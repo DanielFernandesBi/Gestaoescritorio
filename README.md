@@ -24,8 +24,13 @@ Copie `.env.example` para `.env.local` e preencha:
 NEXT_PUBLIC_SUPABASE_URL=https://yaqrfftsnqqecoaqssij.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ALLOWED_EMAILS=danielsfernandes8@gmail.com    # Rodolfo entra aqui depois
-NEXT_PUBLIC_SITE_URL=http://localhost:3000     # em produção, a URL do Vercel
+NEXT_PUBLIC_SITE_URL=http://localhost:3000     # só no dev; no Vercel pode omitir (auto-detecta o domínio)
 ```
+
+> No Vercel, `NEXT_PUBLIC_SITE_URL` é **opcional**: o redirect do magic link detecta
+> o domínio atual pelos headers (funciona em produção e em previews). Defina apenas
+> se quiser forçar um domínio fixo. Em produção, ajuste o **Vercel root directory** para
+> `Gestaoescritorio` (ver guia de deploy).
 
 ```bash
 npm install

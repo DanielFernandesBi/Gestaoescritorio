@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedEmail } from "@/lib/allowlist";
 
@@ -10,6 +11,20 @@ export type LoginState = {
 };
 
 const EMAIL_RE = /^[\w-.+]+@([\w-]+\.)+[\w-]{2,12}$/;
+
+/**
+ * URL base do site. Em produção (Vercel) detecta o domínio atual pelos headers,
+ * então funciona em produção e em previews sem reconfigurar nada.
+ * NEXT_PUBLIC_SITE_URL, se definido, tem prioridade (útil no dev = localhost).
+ */
+async function getBaseUrl(): Promise<string> {
+  const env = process.env.NEXT_PUBLIC_SITE_URL;
+  if (env) return env.replace(/\/$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
 
 export async function enviarMagicLink(
   _prev: LoginState,
@@ -32,7 +47,7 @@ export async function enviarMagicLink(
   }
 
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = await getBaseUrl();
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
