@@ -29,8 +29,8 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000     # só no dev; no Vercel pode omit
 
 > No Vercel, `NEXT_PUBLIC_SITE_URL` é **opcional**: o redirect do magic link detecta
 > o domínio atual pelos headers (funciona em produção e em previews). Defina apenas
-> se quiser forçar um domínio fixo. Em produção, ajuste o **Vercel root directory** para
-> `Gestaoescritorio` (ver guia de deploy).
+> se quiser forçar um domínio fixo. O `package.json` está na **raiz do repositório**,
+> então o *Root Directory* no Vercel fica no padrão (`./`).
 
 ```bash
 npm install
