@@ -1,0 +1,46 @@
+/** Valores válidos (espelham os CHECK constraints do banco). */
+
+export const RESPONSAVEIS = ["Daniel", "Rodolfo", "Ambos", "Correspondente"] as const;
+
+export const PRAZO_STATUS = ["aberto", "cumprido", "perdido", "prejudicado", "cancelado"] as const;
+export const TIPO_CONTAGEM = ["corridos", "uteis"] as const;
+
+export const INTIMACAO_STATUS = [
+  "pendente",
+  "em_analise",
+  "providencia_tomada",
+  "sem_providencia",
+  "arquivada",
+] as const;
+export const INTIMACAO_ORIGEM = [
+  "dje", "djen", "push", "pje", "eproc", "esaj", "projudi", "seeu", "email", "oficio", "outro",
+] as const;
+
+export const TAREFA_STATUS = ["pendente", "em_andamento", "concluida", "cancelada"] as const;
+export const PRIORIDADES = ["baixa", "media", "alta", "urgente"] as const;
+
+export const ANDAMENTO_TIPO = [
+  "peticao_protocolada", "decisao", "sentenca", "acordao", "despacho",
+  "recurso_interposto", "hc_impetrado", "diligencia", "reuniao_cliente",
+  "visita_presidio", "movimentacao_tribunal", "outro",
+] as const;
+export const ANDAMENTO_ORIGEM = [
+  "dje", "djen", "push", "pje", "eproc", "esaj", "projudi", "seeu", "email", "oficio", "tribunal", "outro",
+] as const;
+
+export const AUDIENCIA_STATUS = ["designada", "realizada", "redesignada", "cancelada"] as const;
+export const PAGAMENTO_STATUS = ["a_vencer", "pago", "atrasado", "renegociado", "cancelado"] as const;
+export const SUGESTAO_STATUS = ["pendente", "aprovada", "executada", "rejeitada"] as const;
+
+/** Rótulos amigáveis para alguns valores. */
+export const ROTULO: Record<string, string> = {
+  providencia_tomada: "Providência tomada",
+  em_analise: "Em análise",
+  sem_providencia: "Sem providência",
+  arquivada: "Arquivada",
+  pendente: "Pendente",
+  em_andamento: "Em andamento",
+  concluida: "Concluída",
+  cancelada: "Cancelada",
+  peticao_protocolada: "Petição protocolada",
+};

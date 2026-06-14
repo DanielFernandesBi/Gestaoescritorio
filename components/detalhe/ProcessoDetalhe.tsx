@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { DiasBox, Pill, Gate } from "@/components/ui";
+import { FormModal } from "@/components/FormModal";
+import { criarAndamento, criarPrazo } from "@/app/actions";
+import { ANDAMENTO_TIPO, ANDAMENTO_ORIGEM, TIPO_CONTAGEM, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
 import type { Processo } from "@/lib/data";
 
@@ -48,6 +51,34 @@ export function ProcessoDetalhe({ proc }: { proc: Processo }) {
             <div className="mt">{proc.segredo ? "— (sigiloso)" : proc.clientes || "—"}</div>
             <div className="ms">papel: {proc.papel ?? "—"}</div>
           </div>
+        </div>
+      </div>
+
+      <div className="dsec">
+        <h4>Ações no processo</h4>
+        <div className="acoes">
+          <FormModal label="Registrar andamento" titulo="Novo andamento" acao={criarAndamento} enviarLabel="Registrar" variant="default">
+            <input type="hidden" name="processo_id" defaultValue={proc.id} />
+            <div><label>Tipo</label><select name="tipo" defaultValue="movimentacao_tribunal">{ANDAMENTO_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Data</label><input type="date" name="data" defaultValue={new Date().toISOString().slice(0, 10)} /></div>
+              <div><label>Origem (opcional)</label><select name="origem" defaultValue=""><option value="">—</option>{ANDAMENTO_ORIGEM.map((o) => <option key={o} value={o}>{o.toUpperCase()}</option>)}</select></div>
+            </div>
+            <div><label>Descrição</label><textarea name="descricao" required placeholder="Descreva a movimentação / ato." /></div>
+          </FormModal>
+
+          <FormModal label="Novo prazo" titulo="Novo prazo (nasce validado=false)" descricao="Evento provisório (Tangerina) é criado no Calendar; validação confirma a fatal." acao={criarPrazo} enviarLabel="Criar prazo" variant="default">
+            <input type="hidden" name="processo_id" defaultValue={proc.id} />
+            <div><label>Ato</label><input name="ato" required placeholder="Ex.: Razões de apelação (CPP art. 600)" /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Data fatal</label><input type="date" name="data_fatal" required /></div>
+              <div><label>Data interna</label><input type="date" name="data_interna" /></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Contagem</label><select name="tipo_contagem" defaultValue="corridos">{TIPO_CONTAGEM.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div><label>Responsável</label><select name="responsavel" defaultValue="Daniel">{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+            </div>
+          </FormModal>
         </div>
       </div>
 

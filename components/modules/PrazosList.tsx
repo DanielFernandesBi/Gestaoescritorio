@@ -5,6 +5,8 @@ import { useDrawer } from "@/components/Drawer";
 import { DiasBox, ProcRef, SegredoTag, Gate } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { Icon } from "@/components/Icon";
+import { Acao } from "@/components/Acao";
+import { validarPrazo, baixarPrazo, cancelarPrazo } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 import type { Prazo } from "@/lib/data";
 
@@ -52,6 +54,40 @@ function corpo(p: Prazo) {
             Prazo penal em <b>dias corridos</b>. Conferir feriado local e
             suspensão de expediente no tribunal antes de confiar na data fatal.
           </div>
+        </div>
+      </div>
+
+      <div className="dsec">
+        <h4>Ações</h4>
+        <div className="acoes">
+          {!p.validado && (
+            <Acao
+              label="Validar"
+              variant="primary"
+              titulo="Validar prazo"
+              confirmarLabel="Validar"
+              resumo={<>Marcar <b>{p.ato}</b> como validado e criar o marcador fatal (vermelho) no Google Calendar?</>}
+              acao={() => validarPrazo(p.id)}
+            />
+          )}
+          <Acao
+            label="Dar baixa (cumprido)"
+            variant="ok"
+            titulo="Dar baixa no prazo"
+            confirmarLabel="Dar baixa"
+            resumo={<>Marcar <b>{p.ato}</b> como <b>cumprido</b> (data de hoje) e registrar um andamento no processo?</>}
+            campoTexto={{ label: "Andamento (opcional)", placeholder: "Ex.: Protocolada a petição de razões de apelação.", multiline: true }}
+            acao={(t) => baixarPrazo(p.id, t)}
+          />
+          <Acao
+            label="Cancelar prazo"
+            variant="danger"
+            titulo="Cancelar prazo"
+            confirmarLabel="Cancelar prazo"
+            resumo={<>Cancelar <b>{p.ato}</b>? O registro não é apagado — muda para status <b>cancelado</b> (auditado).</>}
+            campoTexto={{ label: "Motivo", placeholder: "Ex.: prazo duplicado / intimação revista.", obrigatorio: true }}
+            acao={(t) => cancelarPrazo(p.id, t)}
+          />
         </div>
       </div>
     </>

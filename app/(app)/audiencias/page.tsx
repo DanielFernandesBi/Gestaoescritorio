@@ -1,6 +1,8 @@
 import { getAudiencias } from "@/lib/data";
 import { Pill, SegredoTag, Gate, ProcRef } from "@/components/ui";
 import { DrawerRow } from "@/components/DrawerRow";
+import { Acao } from "@/components/Acao";
+import { validarAudiencia } from "@/app/actions";
 import { fmtDate, fmtTime, humano } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +36,7 @@ export default async function AudienciasPage() {
                   <th>Local / link</th>
                   <th>Resp.</th>
                   <th className="center">Estado</th>
+                  <th className="center">Ação</th>
                 </tr>
               </thead>
               <tbody>
@@ -90,6 +93,18 @@ export default async function AudienciasPage() {
                     <td className="sub">{a.local_link ?? "—"}</td>
                     <td>{a.responsavel ?? "—"}</td>
                     <td className="center"><Gate validado={a.validado} /></td>
+                    <td className="center">
+                      {!a.validado && (
+                        <Acao
+                          label="Validar"
+                          variant="primary"
+                          titulo="Validar audiência"
+                          confirmarLabel="Validar"
+                          resumo={<>Confirmar a audiência de <b>{humano(a.tipo)}</b> e criar o evento no Google Calendar?</>}
+                          acao={validarAudiencia.bind(null, a.id)}
+                        />
+                      )}
+                    </td>
                   </DrawerRow>
                 ))}
               </tbody>

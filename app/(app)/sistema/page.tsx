@@ -1,6 +1,8 @@
 import { getSugestoes, getEstruturaBanco } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
+import { Acao } from "@/components/Acao";
+import { atualizarSugestao } from "@/app/actions";
 import { fmtNum } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +45,23 @@ export default async function SistemaPage() {
           </div>
           <div className="sc">{s.sugestao}</div>
           {s.sql_proposto && <pre>{s.sql_proposto}</pre>}
+          <div className="acoes" style={{ marginTop: 12 }}>
+            {s.status !== "aprovada" && s.status !== "executada" && (
+              <Acao label="Aprovar" titulo="Aprovar sugestão"
+                resumo={<>Marcar a sugestão #{s.id} como <b>aprovada</b>? (não executa DDL — só registra a decisão)</>}
+                acao={atualizarSugestao.bind(null, s.id, "aprovada")} />
+            )}
+            {s.status !== "executada" && (
+              <Acao label="Marcar executada" variant="ok" titulo="Marcar executada"
+                resumo={<>Confirmar que a sugestão #{s.id} já foi <b>executada</b> no banco?</>}
+                acao={atualizarSugestao.bind(null, s.id, "executada")} />
+            )}
+            {s.status !== "rejeitada" && (
+              <Acao label="Rejeitar" variant="danger" titulo="Rejeitar sugestão"
+                resumo={<>Marcar a sugestão #{s.id} como <b>rejeitada</b>?</>}
+                acao={atualizarSugestao.bind(null, s.id, "rejeitada")} />
+            )}
+          </div>
         </div>
       ))}
 

@@ -71,9 +71,27 @@ components/                   # Sidebar, Topbar, Drawer, UI (semáforo, pills, g
 `vw_financeiro_pendente`, `vw_situacao_cliente`, `vw_relatorio_diario`,
 `vw_movimentacoes_recentes`, `vw_andamentos_orfaos`.
 
+## Fase 2 — Escrita (conforme o manual)
+
+Gravação pela **sessão do usuário** (RLS): a migração `v2.5` adicionou políticas
+`INSERT`/`UPDATE` para `authenticated` (DELETE segue **bloqueado** por trigger; nunca
+deletar) e tornou `fn_auditar` `SECURITY DEFINER` para a auditoria funcionar sob RLS.
+Toda gravação passa por um **resumo + confirmação** (regime chat) e é auditada.
+
+Operações disponíveis: validar prazo/audiência (gate `validado`), dar baixa em prazo
+(+ andamento), cancelar prazo, providência/arquivar intimação, mover/criar tarefa,
+registrar andamento, criar prazo, cadastrar intimação, marcar parcela paga, rodar
+`fn_marcar_atrasados`, decidir sugestões do sistema.
+
+### Google Calendar (opcional)
+
+Ao validar um prazo, o app cria o marcador **fatal vermelho** (e recolore o provisório);
+ao criar prazo, lança o evento **provisório (Tangerina)**; audiência validada vira evento.
+Configure uma **service account** com acesso de escrita ao calendário e defina
+`GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_CALENDAR_ID` (ver `.env.example`).
+Sem essas variáveis, a validação **grava só no banco** (degradação segura — nunca derruba a gravação).
+
 ## Status
 
-- ✅ Projeto, `.env.local`, login (magic link + allowlist), shell e **Painel** ligados ao banco real.
-- ⏳ Próximos: Validação, Prazos, Audiências, Intimações (com órfãs), Tarefas, Processos,
-  Clientes, Andamentos, Financeiro, Auditoria, Sistema — todos somente leitura, com
-  linhas clicáveis abrindo o painel lateral de detalhe e busca global.
+- ✅ Fase 1 (leitura): todos os módulos + busca global + detalhe cruzado.
+- ✅ Fase 2 (escrita): validações, baixa, intimações, tarefas, financeiro, criações e Calendar.

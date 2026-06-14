@@ -1,5 +1,7 @@
 import { getFinanceiro } from "@/lib/data";
 import { Pill } from "@/components/ui";
+import { Acao } from "@/components/Acao";
+import { marcarPago, rodarMarcarAtrasados } from "@/app/actions";
 import { fmtBRL, fmtDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +17,18 @@ export default async function FinanceiroPage() {
           <div className="eyebrow">Honorários & parcelas</div>
           <h1>Financeiro</h1>
           <p>
-            Parcelas a vencer e atrasadas (vw_financeiro_pendente). Rodar
-            fn_marcar_atrasados() antes do fechamento.
+            Parcelas a vencer e atrasadas. Rode <b>fn_marcar_atrasados()</b> antes do fechamento.
           </p>
         </div>
+        <Acao
+          label="Rodar fn_marcar_atrasados"
+          variant="default"
+          size="md"
+          titulo="Marcar parcelas atrasadas"
+          confirmarLabel="Rodar agora"
+          resumo={<>Move para <b>atrasado</b> toda parcela <b>a_vencer</b> com vencimento anterior a hoje.</>}
+          acao={rodarMarcarAtrasados}
+        />
       </div>
 
       <div className="kpis" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
@@ -55,11 +65,12 @@ export default async function FinanceiroPage() {
                   <th className="right">Valor</th>
                   <th>Vencimento</th>
                   <th className="center">Status</th>
+                  <th className="center">Ação</th>
                 </tr>
               </thead>
               <tbody>
-                {parcelas.map((p, i) => (
-                  <tr key={i}>
+                {parcelas.map((p) => (
+                  <tr key={p.id}>
                     <td className="name">{p.cliente}</td>
                     <td className="sub">{p.objeto ?? "—"}</td>
                     <td className="center mono">{p.numero_parcela}</td>
@@ -74,6 +85,16 @@ export default async function FinanceiroPage() {
                       <Pill tone={p.status === "atrasado" ? "red" : "amber"}>
                         {p.status === "atrasado" ? "atrasado" : "a vencer"}
                       </Pill>
+                    </td>
+                    <td className="center">
+                      <Acao
+                        label="Marcar paga"
+                        variant="ok"
+                        titulo="Registrar pagamento"
+                        confirmarLabel="Marcar paga"
+                        resumo={<>Registrar a parcela {p.numero_parcela} de <b>{p.cliente}</b> ({fmtBRL(p.valor)}) como <b>paga</b> hoje?</>}
+                        acao={marcarPago.bind(null, p.id)}
+                      />
                     </td>
                   </tr>
                 ))}

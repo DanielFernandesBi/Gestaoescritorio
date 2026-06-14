@@ -2,6 +2,8 @@
 
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
+import { Acao } from "@/components/Acao";
+import { moverTarefa } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 import type { Tarefa } from "@/lib/data";
 
@@ -58,6 +60,29 @@ export function TarefasBoard({ tarefas }: { tarefas: Tarefa[] }) {
                                 <div className="field"><div className="k">Prioridade</div><div className="v">{humano(t.prioridade)}</div></div>
                                 <div className="field"><div className="k">Responsável</div><div className="v">{t.responsavel ?? "—"}</div></div>
                                 <div className="field"><div className="k">Data limite</div><div className="v mono">{fmtDate(t.data_limite)}</div></div>
+                              </div>
+                            </div>
+                            <div className="dsec">
+                              <h4>Mover</h4>
+                              <div className="acoes">
+                                {t.status !== "em_andamento" && (
+                                  <Acao label="Em andamento" titulo="Mover tarefa"
+                                    resumo={<>Mover <b>{t.titulo}</b> para <b>em andamento</b>?</>}
+                                    acao={() => moverTarefa(t.id, "em_andamento")} />
+                                )}
+                                {t.status !== "concluida" && (
+                                  <Acao label="Concluir" variant="ok" titulo="Concluir tarefa"
+                                    resumo={<>Marcar <b>{t.titulo}</b> como <b>concluída</b>?</>}
+                                    acao={() => moverTarefa(t.id, "concluida")} />
+                                )}
+                                {t.status !== "pendente" && (
+                                  <Acao label="Voltar p/ pendente" titulo="Reabrir tarefa"
+                                    resumo={<>Voltar <b>{t.titulo}</b> para <b>pendente</b>?</>}
+                                    acao={() => moverTarefa(t.id, "pendente")} />
+                                )}
+                                <Acao label="Cancelar" variant="danger" titulo="Cancelar tarefa"
+                                  resumo={<>Cancelar <b>{t.titulo}</b>?</>}
+                                  acao={() => moverTarefa(t.id, "cancelada")} />
                               </div>
                             </div>
                           </>

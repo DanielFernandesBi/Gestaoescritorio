@@ -2,6 +2,8 @@ import { getValidacao } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { DrawerRow } from "@/components/DrawerRow";
+import { Acao } from "@/components/Acao";
+import { validarPrazo, validarAudiencia } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +48,7 @@ export default async function ValidacaoPage() {
                   <th>Data</th>
                   <th>Origem</th>
                   <th className="center">Estado</th>
+                  <th className="center">Ação</th>
                 </tr>
               </thead>
               <tbody>
@@ -82,6 +85,23 @@ export default async function ValidacaoPage() {
                       <td className="mono">{fmtDate(v.data_relevante)}</td>
                       <td><Pill tone="gray" dot={false}>{v.cadastrado_por ?? "—"}</Pill></td>
                       <td className="center"><span className="gate wait">⏳ aguardando</span></td>
+                      <td className="center">
+                        <Acao
+                          label="Validar"
+                          variant="primary"
+                          titulo={`Validar ${ehAudiencia ? "audiência" : "prazo"}`}
+                          confirmarLabel="Validar"
+                          resumo={
+                            <>
+                              Confirmar a validação de <b>{v.descricao}</b>
+                              {v.numero_cnj ? <> ({v.numero_cnj})</> : null}? Isso marca{" "}
+                              <b>validado=true</b> e cria o evento no Google Calendar
+                              {ehAudiencia ? "" : " (marcador fatal em vermelho)"}.
+                            </>
+                          }
+                          acao={(ehAudiencia ? validarAudiencia : validarPrazo).bind(null, v.id)}
+                        />
+                      </td>
                     </DrawerRow>
                   );
                 })}

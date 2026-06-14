@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useDrawer } from "@/components/Drawer";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
+import { Acao } from "@/components/Acao";
+import { atualizarIntimacao } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 import type { Intimacao } from "@/lib/data";
 
@@ -89,11 +91,45 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
             <div className="dsec"><h4>Providência</h4><div className="field"><div className="v">{i.providencia}</div></div></div>
           )}
           {i.orfa && (
-            <div className="banner" style={{ margin: 0 }}>
+            <div className="banner" style={{ margin: "0 0 24px" }}>
               <span className="ico">⚠</span>
               <div><b>Intimação órfã.</b> Processo não identificado — triagem humana antes de vincular.</div>
             </div>
           )}
+          <div className="dsec">
+            <h4>Ações</h4>
+            <div className="acoes">
+              <Acao
+                label="Em análise"
+                titulo="Marcar em análise"
+                resumo={<>Mover esta intimação para <b>em análise</b>?</>}
+                acao={() => atualizarIntimacao(i.id, "em_analise")}
+              />
+              <Acao
+                label="Providência tomada"
+                variant="ok"
+                titulo="Registrar providência"
+                confirmarLabel="Registrar"
+                resumo={<>Marcar como <b>providência tomada</b>?</>}
+                campoTexto={{ label: "Providência (opcional)", placeholder: "Ex.: protocolada manifestação.", multiline: true }}
+                acao={(t) => atualizarIntimacao(i.id, "providencia_tomada", t)}
+              />
+              <Acao
+                label="Sem providência"
+                titulo="Sem providência"
+                resumo={<>Marcar como <b>sem providência</b> (ciência apenas)?</>}
+                acao={() => atualizarIntimacao(i.id, "sem_providencia")}
+              />
+              <Acao
+                label="Arquivar"
+                variant="danger"
+                titulo="Arquivar intimação"
+                confirmarLabel="Arquivar"
+                resumo={<>Arquivar esta intimação? (muda o status para <b>arquivada</b>, auditado)</>}
+                acao={() => atualizarIntimacao(i.id, "arquivada")}
+              />
+            </div>
+          </div>
         </>
       ),
     });

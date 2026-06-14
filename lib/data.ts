@@ -295,6 +295,7 @@ export async function getClientes(): Promise<Cliente[]> {
 /* Financeiro ------------------------------------------------------------- */
 
 export type Parcela = {
+  id: string;
   cliente: string;
   objeto: string | null;
   numero_parcela: number;
@@ -314,14 +315,28 @@ export async function getFinanceiro(): Promise<{
   const supabase = await createClient();
   const [fin, contratosVig, contratosAll] = await Promise.all([
     supabase
-      .from("vw_financeiro_pendente")
-      .select("*")
+      .from("pagamentos")
+      .select("id, numero_parcela, valor, vencimento, status, contratos(objeto, clientes(nome))")
+      .in("status", ["a_vencer", "atrasado"])
       .order("vencimento", { ascending: true }),
     supabase.from("contratos").select("*", { count: "exact", head: true }).eq("status", "vigente"),
     supabase.from("contratos").select("*", { count: "exact", head: true }),
   ]);
 
-  const parcelas = (fin.data ?? []) as Parcela[];
+  const parcelas: Parcela[] = (fin.data ?? []).map((r) => {
+    const c = r.contratos as unknown as { objeto: string | null; clientes: { nome: string } | null } | null;
+    const dias = diasAte(r.vencimento as string);
+    return {
+      id: r.id as string,
+      cliente: c?.clientes?.nome ?? "—",
+      objeto: c?.objeto ?? null,
+      numero_parcela: Number(r.numero_parcela ?? 0),
+      valor: Number(r.valor ?? 0),
+      vencimento: r.vencimento as string,
+      dias_atraso: dias < 0 ? -dias : 0,
+      status: r.status as string,
+    };
+  });
   const totalReceber = parcelas.reduce((s, p) => s + Number(p.valor ?? 0), 0);
   const totalAtraso = parcelas
     .filter((p) => p.status === "atrasado")

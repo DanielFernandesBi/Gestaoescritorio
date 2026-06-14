@@ -215,6 +215,30 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 .login-msg.err{background:var(--red-soft);color:var(--red)}
 .login-foot{margin-top:22px;text-align:center;font-size:11px;color:var(--muted-2);line-height:1.5}
 
+/* ---------- Botão perigo + ações ---------- */
+.btn.danger{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.danger:hover{background:#a8332a}
+.btn.ok{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.ok:hover{filter:brightness(.95)}
+.acoes{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- Modal ---------- */
+.modal-scrim{position:fixed;inset:0;background:rgba(22,28,45,.45);display:grid;place-items:center;z-index:60;padding:20px}
+.modal{width:100%;max-width:480px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(22,28,45,.25);max-height:90vh;display:flex;flex-direction:column}
+.modal-h{padding:18px 22px;border-bottom:1px solid var(--line-soft)}
+.modal-h h3{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink)}
+.modal-h p{font-size:12.5px;color:var(--muted);margin-top:3px}
+.modal-b{padding:18px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:13px}
+.modal-f{padding:14px 22px;border-top:1px solid var(--line-soft);display:flex;justify-content:flex-end;gap:10px;align-items:center}
+.modal label{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:5px}
+.modal input,.modal select,.modal textarea{width:100%;padding:9px 12px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--text)}
+.modal textarea{resize:vertical;min-height:72px}
+.modal input:focus,.modal select:focus,.modal textarea:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px var(--brass-soft)}
+.modal-resumo{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--text);line-height:1.5}
+.modal-msg{font-size:12.5px;padding:9px 12px;border-radius:8px}
+.modal-msg.ok{background:var(--green-soft);color:var(--green)}
+.modal-msg.err{background:var(--red-soft);color:var(--red)}
+
 @media (max-width:1080px){
   .kpis{grid-template-columns:repeat(2,1fr)} .two-col{grid-template-columns:1fr} .kanban{grid-template-columns:1fr}
 }
