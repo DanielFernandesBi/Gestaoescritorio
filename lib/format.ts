@@ -45,3 +45,19 @@ export function ddLabel(dias: number): string {
 }
 
 export const HOJE = new Date();
+
+/** Dias entre hoje (00h local) e a data ISO (yyyy-mm-dd). Negativo = vencido. */
+export function diasAte(iso: string | null | undefined): number {
+  if (!iso) return 0;
+  const d = new Date(iso.slice(0, 10) + "T00:00:00");
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - hoje.getTime()) / 86_400_000);
+}
+
+/** Capitaliza e troca _ por espaço (ex.: sessao_julgamento → Sessão julgamento). */
+export function humano(s: string | null | undefined): string {
+  if (!s) return "—";
+  const t = s.replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}

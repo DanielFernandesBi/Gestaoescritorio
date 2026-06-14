@@ -14,15 +14,17 @@ export function Topbar({ iniciais }: { iniciais: string }) {
 
   return (
     <header className="topbar">
-      <div className="search">
+      <form className="search" action="/busca" method="get">
         <span className="si">
           <Icon name="search" className="" />
         </span>
         <input
+          name="q"
           placeholder="Buscar cliente, CNJ, nº de registro, intimação…"
           aria-label="Busca global"
+          autoComplete="off"
         />
-      </div>
+      </form>
       <div className="spacer" />
       <div className="today">
         <b>{dataLonga}</b>
