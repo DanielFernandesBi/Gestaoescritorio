@@ -1,6 +1,7 @@
 import { buscaGlobal } from "@/lib/data";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { DrawerRow } from "@/components/DrawerRow";
+import { ProcessoDetalhe } from "@/components/detalhe/ProcessoDetalhe";
 import { Icon } from "@/components/Icon";
 import { fmtDate, humano } from "@/lib/format";
 
@@ -87,16 +88,7 @@ export default async function BuscaPage({
                         </div>
                       </>
                     }
-                    body={
-                      <div className="dsec"><h4>Dados</h4><div className="dgrid">
-                        <div className="field"><div className="k">Tribunal</div><div className="v">{p.tribunal ?? "—"}</div></div>
-                        <div className="field"><div className="k">Instância</div><div className="v">{(p.instancia ?? "—").toUpperCase()} · {p.uf ?? "—"}</div></div>
-                        <div className="field"><div className="k">Área</div><div className="v">{humano(p.area)}</div></div>
-                        <div className="field"><div className="k">Classe</div><div className="v">{p.classe ?? "—"}</div></div>
-                        <div className="field"><div className="k">Cliente</div><div className="v">{p.segredo ? "— (sigiloso)" : p.clientes || "—"}</div></div>
-                        <div className="field"><div className="k">Responsável</div><div className="v">{p.responsavel ?? "—"}</div></div>
-                      </div></div>
-                    }
+                    body={<ProcessoDetalhe proc={p} />}
                   >
                     <td><ProcRef cnj={p.numero_cnj} registro={p.numero_registro} /></td>
                     <td className="sub">{p.tribunal ?? "—"}</td>

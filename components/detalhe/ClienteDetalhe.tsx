@@ -1,0 +1,136 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { DiasBox, ProcRef, SegredoTag, Pill } from "@/components/ui";
+import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
+import type { Cliente } from "@/lib/data";
+
+type ProcRow = {
+  id: string;
+  numero_cnj: string | null;
+  numero_registro_tribunal: string | null;
+  tribunal: string | null;
+  area: string | null;
+  instancia: string | null;
+  status: string;
+  segredo_justica: boolean | null;
+  papel: string | null;
+};
+type Rel = {
+  processos: ProcRow[];
+  prazos: { id: string; ato: string; data_fatal: string; validado: boolean }[];
+  audiencias: { id: string; tipo: string; data_hora: string; modalidade: string | null }[];
+};
+
+const SIT_LBL: Record<string, string> = {
+  solto: "Solto",
+  preso_provisorio: "Preso provisório",
+  preso_definitivo: "Preso definitivo",
+  regime_semiaberto: "Semiaberto",
+  regime_aberto: "Aberto",
+  monitoramento: "Tornozeleira",
+  foragido: "Foragido",
+  falecido: "Falecido",
+};
+
+export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
+  const [rel, setRel] = useState<Rel | null>(null);
+  const [erro, setErro] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    fetch(`/api/clientes/${cliente.id}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => vivo && setRel(d))
+      .catch(() => vivo && setErro(true));
+    return () => {
+      vivo = false;
+    };
+  }, [cliente.id]);
+
+  return (
+    <>
+      <div className="dsec">
+        <h4>Ficha</h4>
+        <div className="dgrid">
+          <div className="field"><div className="k">CPF</div><div className="v mono">{cliente.cpf ?? "—"}</div></div>
+          <div className="field"><div className="k">UF</div><div className="v">{cliente.uf ?? "—"}</div></div>
+          <div className="field"><div className="k">Situação prisional</div><div className="v">{SIT_LBL[cliente.situacao_prisional ?? ""] ?? "—"}</div></div>
+          <div className="field"><div className="k">Unidade prisional</div><div className="v">{cliente.unidade_prisional ?? "—"}</div></div>
+        </div>
+      </div>
+
+      {erro && (
+        <div className="banner" style={{ margin: "0 0 24px" }}>
+          <span className="ico">⚠</span>
+          <div>Não consegui carregar os processos vinculados agora.</div>
+        </div>
+      )}
+      {!rel && !erro && <div className="empty">Carregando processos vinculados…</div>}
+
+      {rel && (
+        <>
+          <div className="dsec">
+            <h4>Processos ({rel.processos.length})</h4>
+            <div className="mini-list">
+              {rel.processos.length ? (
+                rel.processos.map((p) => (
+                  <div className="mini" key={p.id}>
+                    <div>
+                      <div className="mt">
+                        <ProcRef cnj={p.numero_cnj} registro={p.numero_registro_tribunal} />{" "}
+                        <SegredoTag on={p.segredo_justica} />
+                      </div>
+                      <div className="ms">{p.tribunal ?? "—"} · {humano(p.area)} · papel: {p.papel ?? "—"}</div>
+                    </div>
+                    <Pill tone={p.status === "ativo" ? "green" : "gray"} dot={false}>{p.status}</Pill>
+                  </div>
+                ))
+              ) : (
+                <div className="empty">Sem processos vinculados.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="dsec">
+            <h4>Prazos abertos ({rel.prazos.length})</h4>
+            <div className="mini-list">
+              {rel.prazos.length ? (
+                rel.prazos.map((p) => (
+                  <div className="mini" key={p.id}>
+                    <div>
+                      <div className="mt">{p.ato}</div>
+                      <div className="ms">fatal {fmtDate(p.data_fatal)}</div>
+                    </div>
+                    <DiasBox dias={diasAte(p.data_fatal)} />
+                  </div>
+                ))
+              ) : (
+                <div className="empty">Sem prazos abertos.</div>
+              )}
+            </div>
+          </div>
+
+          {rel.audiencias.length > 0 && (
+            <div className="dsec">
+              <h4>Audiências futuras ({rel.audiencias.length})</h4>
+              <div className="mini-list">
+                {rel.audiencias.map((a) => (
+                  <div className="mini" key={a.id}>
+                    <div>
+                      <div className="mt">{humano(a.tipo)}</div>
+                      <div className="ms">{humano(a.modalidade)}</div>
+                    </div>
+                    <div className="mono" style={{ textAlign: "right" }}>
+                      {fmtDate(a.data_hora)}<div className="ms">{fmtTime(a.data_hora)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
+import { ClienteDetalhe } from "@/components/detalhe/ClienteDetalhe";
 import type { Cliente } from "@/lib/data";
 
 type Tone = "red" | "amber" | "green" | "blue" | "gray" | "brass";
@@ -20,20 +21,34 @@ const SIT: Record<string, [string, Tone]> = {
 const sitDe = (s: string | null): [string, Tone] => SIT[s ?? ""] ?? [s ?? "—", "gray"];
 const preso = (s: string | null) => s === "preso_provisorio" || s === "preso_definitivo";
 
+const PASSO = 60;
+
 export function ClientesList({ clientes }: { clientes: Cliente[] }) {
   const { open } = useDrawer();
   const [f, setF] = useState("todos");
+  const [busca, setBusca] = useState("");
+  const [visiveis, setVisiveis] = useState(PASSO);
 
   const filtrados = useMemo(
     () =>
       clientes.filter((c) => {
-        if (f === "presos") return preso(c.situacao_prisional);
-        if (f === "monitoramento") return c.situacao_prisional === "monitoramento";
-        if (f === "auto") return c.cadastro_automatico;
-        return true;
+        const okF =
+          f === "presos"
+            ? preso(c.situacao_prisional)
+            : f === "monitoramento"
+              ? c.situacao_prisional === "monitoramento"
+              : f === "auto"
+                ? c.cadastro_automatico
+                : true;
+        const okBusca = busca
+          ? c.nome.toLowerCase().includes(busca.toLowerCase())
+          : true;
+        return okF && okBusca;
       }),
-    [clientes, f],
+    [clientes, f, busca],
   );
+
+  const mostrados = filtrados.slice(0, visiveis);
 
   const opcoes = [
     { id: "todos", label: `Todos (${clientes.length})` },
@@ -42,12 +57,38 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
     { id: "auto", label: `Cadastro automático (${clientes.filter((c) => c.cadastro_automatico).length})` },
   ];
 
+  function abrir(c: Cliente) {
+    const [lbl, tone] = sitDe(c.situacao_prisional);
+    open({
+      title: (
+        <>
+          <h2>{c.nome}</h2>
+          <div style={{ marginTop: 8 }}><Pill tone={tone}>{lbl}</Pill></div>
+        </>
+      ),
+      body: <ClienteDetalhe cliente={c} />,
+    });
+  }
+
   return (
     <>
-      <Chips options={opcoes} value={f} onChange={setF} />
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <Chips options={opcoes} value={f} onChange={(v) => { setF(v); setVisiveis(PASSO); }} />
+        <input
+          className="filtro-nome"
+          placeholder="Filtrar por nome…"
+          value={busca}
+          onChange={(e) => { setBusca(e.target.value); setVisiveis(PASSO); }}
+          style={{
+            marginLeft: "auto", marginBottom: 18, padding: "6px 12px",
+            border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit",
+            background: "var(--surface)", color: "var(--text)", minWidth: 200,
+          }}
+        />
+      </div>
       <div className="card">
         <div className="card-b flush">
-          {filtrados.length ? (
+          {mostrados.length ? (
             <table>
               <thead>
                 <tr>
@@ -60,52 +101,10 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((c) => {
+                {mostrados.map((c) => {
                   const [lbl, tone] = sitDe(c.situacao_prisional);
                   return (
-                    <tr
-                      key={c.id}
-                      className="clickable"
-                      onClick={() =>
-                        open({
-                          title: (
-                            <>
-                              <h2>{c.nome}</h2>
-                              <div style={{ marginTop: 8 }}>
-                                <Pill tone={tone}>{lbl}</Pill>
-                              </div>
-                            </>
-                          ),
-                          body: (
-                            <>
-                              <div className="dsec">
-                                <h4>Ficha</h4>
-                                <div className="dgrid">
-                                  <div className="field"><div className="k">CPF</div><div className="v mono">{c.cpf ?? "—"}</div></div>
-                                  <div className="field"><div className="k">UF</div><div className="v">{c.uf ?? "—"}</div></div>
-                                  <div className="field"><div className="k">Situação prisional</div><div className="v">{lbl}</div></div>
-                                  <div className="field"><div className="k">Unidade prisional</div><div className="v">{c.unidade_prisional ?? "—"}</div></div>
-                                </div>
-                              </div>
-                              <div className="dsec">
-                                <h4>Consolidado (vw_situacao_cliente)</h4>
-                                <div className="dgrid">
-                                  <div className="field"><div className="k">Processos</div><div className="v mono">{c.total_processos} ({c.processos_ativos} ativos)</div></div>
-                                  <div className="field"><div className="k">Prazos abertos</div><div className="v mono">{c.prazos_abertos}</div></div>
-                                  <div className="field"><div className="k">Audiências futuras</div><div className="v mono">{c.audiencias_futuras}</div></div>
-                                </div>
-                              </div>
-                              {c.cadastro_automatico && (
-                                <div className="banner" style={{ margin: 0 }}>
-                                  <span className="ico">ℹ</span>
-                                  <div>Cliente de <b>cadastro automático</b> — confira os dados antes de usar em peça.</div>
-                                </div>
-                              )}
-                            </>
-                          ),
-                        })
-                      }
-                    >
+                    <tr key={c.id} className="clickable" onClick={() => abrir(c)}>
                       <td>
                         <div className="name">{c.nome}</div>
                         {c.cadastro_automatico && <div className="sub" style={{ color: "var(--blue)" }}>cadastro automático</div>}
@@ -128,6 +127,14 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
           )}
         </div>
       </div>
+
+      {visiveis < filtrados.length && (
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+          <button className="btn" onClick={() => setVisiveis((v) => v + PASSO)}>
+            Carregar mais ({filtrados.length - visiveis} restantes)
+          </button>
+        </div>
+      )}
     </>
   );
 }

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function ProcessosPage() {
   const supabase = await createClient();
   const [processos, ativos, semCnj, sigilosos] = await Promise.all([
-    getProcessos(250),
+    getProcessos(400),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("processos").select("*", { count: "exact", head: true }).is("numero_cnj", null),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("segredo_justica", true),

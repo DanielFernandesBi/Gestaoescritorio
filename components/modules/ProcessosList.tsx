@@ -4,8 +4,27 @@ import { useMemo, useState } from "react";
 import { useDrawer } from "@/components/Drawer";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
+import { ProcessoDetalhe } from "@/components/detalhe/ProcessoDetalhe";
 import { humano } from "@/lib/format";
 import type { Processo } from "@/lib/data";
+
+const PASSO = 50;
+
+const CATEGORIAS = [
+  { id: "todos", label: "Todos" },
+  { id: "semcnj", label: "Sem CNJ" },
+  { id: "superior", label: "STJ/STF" },
+  { id: "execucao", label: "Execução penal" },
+  { id: "hc", label: "Habeas corpus" },
+  { id: "segredo", label: "Segredo de justiça" },
+  { id: "auto", label: "Cadastro automático" },
+];
+const RESPS = [
+  { id: "todos", label: "Todos os resp." },
+  { id: "Daniel", label: "Daniel" },
+  { id: "Rodolfo", label: "Rodolfo" },
+  { id: "Ambos", label: "Ambos" },
+];
 
 export function ProcessosList({
   processos,
@@ -15,38 +34,61 @@ export function ProcessosList({
   totalAtivos: number;
 }) {
   const { open } = useDrawer();
-  const [f, setF] = useState("ativos");
+  const [cat, setCat] = useState("todos");
+  const [resp, setResp] = useState("todos");
+  const [visiveis, setVisiveis] = useState(PASSO);
 
-  const filtrados = useMemo(
-    () =>
-      processos.filter((p) => {
-        if (f === "semcnj") return !p.numero_cnj;
-        if (f === "superior") return p.instancia === "stj" || p.instancia === "stf";
-        if (f === "execucao") return p.area === "execucao_penal";
-        if (f === "hc") return p.area === "habeas_corpus";
-        if (f === "segredo") return p.segredo;
-        if (f === "auto") return p.cadastro_automatico;
-        return true;
-      }),
-    [processos, f],
+  const filtrados = useMemo(() => {
+    return processos.filter((p) => {
+      const okCat =
+        cat === "todos"
+          ? true
+          : cat === "semcnj"
+            ? !p.numero_cnj
+            : cat === "superior"
+              ? p.instancia === "stj" || p.instancia === "stf"
+              : cat === "execucao"
+                ? p.area === "execucao_penal"
+                : cat === "hc"
+                  ? p.area === "habeas_corpus"
+                  : cat === "segredo"
+                    ? p.segredo
+                    : cat === "auto"
+                      ? p.cadastro_automatico
+                      : true;
+      const okResp = resp === "todos" ? true : p.responsavel === resp;
+      return okCat && okResp;
+    });
+  }, [processos, cat, resp]);
+
+  const mostrados = filtrados.slice(0, visiveis);
+
+  const opcoesCat = CATEGORIAS.map((o) =>
+    o.id === "todos" ? { ...o, label: `Todos (${processos.length})` } : o,
   );
 
-  const opcoes = [
-    { id: "ativos", label: `Carregados (${processos.length})` },
-    { id: "semcnj", label: "Sem CNJ" },
-    { id: "superior", label: "STJ/STF" },
-    { id: "execucao", label: "Execução penal" },
-    { id: "hc", label: "Habeas corpus" },
-    { id: "segredo", label: "Segredo de justiça" },
-    { id: "auto", label: "Cadastro automático" },
-  ];
+  function abrir(p: Processo) {
+    open({
+      title: (
+        <>
+          <h2>{p.segredo ? "Processo em segredo de justiça" : p.clientes || "Processo"}</h2>
+          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} />
+            <SegredoTag on={p.segredo} />
+          </div>
+        </>
+      ),
+      body: <ProcessoDetalhe proc={p} />,
+    });
+  }
 
   return (
     <>
-      <Chips options={opcoes} value={f} onChange={setF} />
+      <Chips options={opcoesCat} value={cat} onChange={(v) => { setCat(v); setVisiveis(PASSO); }} />
+      <Chips options={RESPS} value={resp} onChange={(v) => { setResp(v); setVisiveis(PASSO); }} />
       <div className="card">
         <div className="card-b flush">
-          {filtrados.length ? (
+          {mostrados.length ? (
             <table>
               <thead>
                 <tr>
@@ -59,53 +101,13 @@ export function ProcessosList({
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="clickable"
-                    onClick={() =>
-                      open({
-                        title: (
-                          <>
-                            <h2>{p.segredo ? "Processo em segredo de justiça" : p.clientes || "Processo"}</h2>
-                            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} />
-                              <SegredoTag on={p.segredo} />
-                            </div>
-                          </>
-                        ),
-                        body: (
-                          <>
-                            <div className="dsec">
-                              <h4>Dados</h4>
-                              <div className="dgrid">
-                                <div className="field"><div className="k">Tribunal</div><div className="v">{p.tribunal ?? "—"}</div></div>
-                                <div className="field"><div className="k">Vara / comarca</div><div className="v">{p.vara_comarca ?? "—"}</div></div>
-                                <div className="field"><div className="k">Instância</div><div className="v">{(p.instancia ?? "—").toUpperCase()} · {p.uf ?? "—"}</div></div>
-                                <div className="field"><div className="k">Área</div><div className="v">{humano(p.area)}</div></div>
-                                <div className="field"><div className="k">Classe</div><div className="v">{p.classe ?? "—"}</div></div>
-                                <div className="field"><div className="k">Responsável</div><div className="v">{p.responsavel ?? "—"}</div></div>
-                              </div>
-                            </div>
-                            <div className="dsec">
-                              <h4>Parte</h4>
-                              <div className="mini">
-                                <div>
-                                  <div className="mt">{p.segredo ? "— (sigiloso)" : p.clientes || "—"}</div>
-                                  <div className="ms">papel: {p.papel ?? "—"}</div>
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        ),
-                      })
-                    }
-                  >
+                {mostrados.map((p) => (
+                  <tr key={p.id} className="clickable" onClick={() => abrir(p)}>
                     <td>
                       <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} />
                       <div className="sub">
-                        {p.classe ?? "—"}{p.cadastro_automatico ? " · " : ""}
-                        {p.cadastro_automatico && <span style={{ color: "var(--blue)" }}>auto</span>}
+                        {p.classe ?? "—"}
+                        {p.cadastro_automatico && <> · <span style={{ color: "var(--blue)" }}>auto</span></>}
                       </div>
                     </td>
                     <td>
@@ -128,9 +130,17 @@ export function ProcessosList({
           )}
         </div>
       </div>
-      <p className="sub" style={{ marginTop: 12, textAlign: "center", color: "var(--muted-2)" }}>
-        Exibindo os {processos.length} processos ativos mais recentes de {totalAtivos.toLocaleString("pt-BR")} no total.
-        A busca global encontra qualquer processo por CNJ ou nº de registro.
+
+      <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 16, alignItems: "center" }}>
+        {visiveis < filtrados.length && (
+          <button className="btn" onClick={() => setVisiveis((v) => v + PASSO)}>
+            Carregar mais ({filtrados.length - visiveis} restantes)
+          </button>
+        )}
+      </div>
+      <p className="sub" style={{ marginTop: 10, textAlign: "center", color: "var(--muted-2)" }}>
+        Mostrando {mostrados.length} de {filtrados.length} (filtro) · {processos.length} ativos carregados de{" "}
+        {totalAtivos.toLocaleString("pt-BR")}. Qualquer processo é alcançável pela busca global.
       </p>
     </>
   );
