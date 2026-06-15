@@ -48,6 +48,27 @@ const SIT_LBL: Record<string, string> = {
   falecido: "Falecido",
 };
 
+// Cor por urgência do marco (faltam X dias): vermelho perto, âmbar no horizonte, verde já atingível.
+function marcoTone(dias: number | null): string {
+  if (dias == null) return "";
+  if (dias <= 0) return "t-green";
+  if (dias < 90) return "t-red";
+  if (dias <= 365) return "t-amber";
+  return "";
+}
+
+function MarcoItem({ label, dias, data }: { label: string; dias: number | null; data: string | null }) {
+  return (
+    <div className={`item ${marcoTone(dias)}`}>
+      <div className="lbl">{label}</div>
+      <div className="data">{data ? fmtDate(data) : "a calcular"}</div>
+      <div className={`dias${dias == null ? " muted" : ""}`}>
+        {dias == null ? "sem data prevista" : dias <= 0 ? "✓ já atingível" : `faltam ${dias} dias`}
+      </div>
+    </div>
+  );
+}
+
 export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
   const [rel, setRel] = useState<Rel | null>(null);
   const [erro, setErro] = useState(false);
@@ -63,8 +84,17 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
     };
   }, [cliente.id]);
 
+  const sit = rel?.execucao?.situacao;
+
   return (
     <>
+      {sit && (
+        <div className="exec-destaque">
+          <MarcoItem label="Progressão de regime" dias={sit.dias_para_progressao} data={sit.data_prevista_progressao} />
+          <MarcoItem label="Livramento condicional" dias={sit.dias_para_livramento} data={sit.data_prevista_livramento} />
+        </div>
+      )}
+
       <div className="dsec">
         <h4>Ficha</h4>
         <div className="dgrid">

@@ -240,6 +240,15 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 .modal-msg.err{background:var(--red-soft);color:var(--red)}
 
 /* Execução penal (aba na ficha do cliente) */
+.exec-destaque{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+.exec-destaque .item{border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:10px;padding:12px 15px;background:linear-gradient(180deg,#fff,var(--surface-2))}
+.exec-destaque .item .lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--brass)}
+.exec-destaque .item .data{font-family:var(--serif);font-size:21px;font-weight:600;color:var(--ink);margin-top:3px;line-height:1.1}
+.exec-destaque .item .dias{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12px;margin-top:3px;font-weight:600}
+.exec-destaque .item.t-red{border-left-color:var(--red);background:var(--red-soft)} .exec-destaque .item.t-red .lbl,.exec-destaque .item.t-red .dias{color:var(--red)}
+.exec-destaque .item.t-amber{border-left-color:var(--amber);background:var(--amber-soft)} .exec-destaque .item.t-amber .lbl,.exec-destaque .item.t-amber .dias{color:var(--amber)}
+.exec-destaque .item.t-green{border-left-color:var(--green);background:var(--green-soft)} .exec-destaque .item.t-green .lbl,.exec-destaque .item.t-green .dias{color:var(--green)}
+.exec-destaque .item .dias.muted{color:var(--muted)}
 .exec-card{background:linear-gradient(180deg,#fff,var(--surface-2));border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
 .exec-card.alvo{border-left:3px solid var(--red)}
 .exec-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
@@ -263,7 +272,7 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 
 @media (max-width:1080px){
   .kpis{grid-template-columns:repeat(2,1fr)} .two-col{grid-template-columns:1fr} .kanban{grid-template-columns:1fr}
-  .exec-counters{grid-template-columns:1fr}
+  .exec-counters{grid-template-columns:1fr} .exec-destaque{grid-template-columns:1fr}
 }
 @media (max-width:820px){
   .app{grid-template-columns:1fr} .sidebar{display:none} .content{padding:18px}
