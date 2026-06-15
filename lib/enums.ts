@@ -28,6 +28,27 @@ export const ANDAMENTO_ORIGEM = [
   "dje", "djen", "push", "pje", "eproc", "esaj", "projudi", "seeu", "email", "oficio", "tribunal", "outro",
 ] as const;
 
+export const PROCESSO_INSTANCIA = ["1grau", "2grau", "stj", "stf", "vep", "outra"] as const;
+export const PROCESSO_AREA = [
+  "criminal", "execucao_penal", "transferencia_federal", "habeas_corpus",
+  "revisao_criminal", "civel", "outra",
+] as const;
+export const PROCESSO_STATUS = [
+  "ativo", "suspenso", "arquivado", "transitado_em_julgado", "baixado",
+] as const;
+export const SITUACAO_PRISIONAL = [
+  "solto", "preso_provisorio", "preso_definitivo", "regime_semiaberto",
+  "regime_aberto", "monitoramento", "foragido", "falecido",
+] as const;
+export const PAPEL = [
+  "reu", "investigado", "executado", "paciente", "requerente", "recorrente", "vitima", "outro",
+] as const;
+export const AUDIENCIA_TIPO = [
+  "instrucao", "custodia", "interrogatorio", "juri", "sessao_julgamento",
+  "conciliacao", "justificacao", "admonitoria", "outra",
+] as const;
+export const AUDIENCIA_MODALIDADE = ["presencial", "videoconferencia", "hibrida"] as const;
+
 export const AUDIENCIA_STATUS = ["designada", "realizada", "redesignada", "cancelada"] as const;
 export const PAGAMENTO_STATUS = ["a_vencer", "pago", "atrasado", "renegociado", "cancelado"] as const;
 export const SUGESTAO_STATUS = ["pendente", "aprovada", "executada", "rejeitada"] as const;

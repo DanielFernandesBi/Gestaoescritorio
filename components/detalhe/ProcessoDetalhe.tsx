@@ -3,12 +3,21 @@
 import { useEffect, useState } from "react";
 import { DiasBox, Pill, Gate } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
-import { criarAndamento, criarPrazo } from "@/app/actions";
-import { ANDAMENTO_TIPO, ANDAMENTO_ORIGEM, TIPO_CONTAGEM, RESPONSAVEIS } from "@/lib/enums";
+import { Acao } from "@/components/Acao";
+import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
+import { criarAndamento, criarPrazo, atualizarProcesso, arquivarProcesso } from "@/app/actions";
+import {
+  ANDAMENTO_TIPO, ANDAMENTO_ORIGEM, TIPO_CONTAGEM, RESPONSAVEIS,
+  PROCESSO_INSTANCIA, PROCESSO_AREA, PROCESSO_STATUS,
+} from "@/lib/enums";
 import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
 import type { Processo } from "@/lib/data";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type ProcRecord = Record<string, any>;
+
 type Rel = {
+  processo: ProcRecord | null;
   prazos: { id: string; ato: string; data_fatal: string; data_interna: string | null; status: string; validado: boolean }[];
   audiencias: { id: string; tipo: string; data_hora: string; modalidade: string | null; status: string; validado: boolean }[];
   intimacoes: { id: string; resumo: string | null; origem: string | null; status: string; data_publicacao: string | null }[];
@@ -91,6 +100,46 @@ export function ProcessoDetalhe({ proc }: { proc: Processo }) {
 
       {!rel && !erro && <div className="empty">Carregando itens vinculados…</div>}
 
+      {rel?.processo && (
+        <div className="dsec">
+          <h4>Editar / arquivar</h4>
+          <div className="acoes">
+            <FormModal label="Editar processo" titulo="Editar processo" acao={atualizarProcesso.bind(null, proc.id)} enviarLabel="Salvar" variant="default">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label>Nº CNJ</label><input name="numero_cnj" defaultValue={rel.processo.numero_cnj ?? ""} placeholder="0000000-00.0000.0.00.0000" /></div>
+                <div><label>Nº registro</label><input name="numero_registro_tribunal" defaultValue={rel.processo.numero_registro_tribunal ?? ""} /></div>
+              </div>
+              <div><label>Tribunal</label><input name="tribunal" defaultValue={rel.processo.tribunal ?? ""} /></div>
+              <div><label>Vara / comarca</label><input name="vara_comarca" defaultValue={rel.processo.vara_comarca ?? ""} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <div><label>UF</label><input name="uf" maxLength={2} defaultValue={rel.processo.uf ?? ""} /></div>
+                <div><label>Instância</label><select name="instancia" defaultValue={rel.processo.instancia ?? "1grau"}>{PROCESSO_INSTANCIA.map((i) => <option key={i} value={i}>{i.toUpperCase()}</option>)}</select></div>
+                <div><label>Status</label><select name="status" defaultValue={rel.processo.status ?? "ativo"}>{PROCESSO_STATUS.map((s) => <option key={s} value={s}>{humano(s)}</option>)}</select></div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label>Área</label><select name="area" defaultValue={rel.processo.area ?? "criminal"}>{PROCESSO_AREA.map((a) => <option key={a} value={a}>{humano(a)}</option>)}</select></div>
+                <div><label>Responsável</label><select name="responsavel" defaultValue={rel.processo.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+              </div>
+              <div><label>Classe</label><input name="classe" defaultValue={rel.processo.classe ?? ""} /></div>
+              <div><label>Assunto</label><input name="assunto" defaultValue={rel.processo.assunto ?? ""} /></div>
+              <div><label>Observações</label><textarea name="observacoes" defaultValue={rel.processo.observacoes ?? ""} /></div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, textTransform: "none", letterSpacing: 0 }}>
+                <input type="checkbox" name="segredo_justica" defaultChecked={Boolean(rel.processo.segredo_justica)} style={{ width: "auto" }} /> Segredo de justiça
+              </label>
+            </FormModal>
+            <Acao
+              label="Arquivar"
+              variant="danger"
+              titulo="Arquivar processo"
+              confirmarLabel="Arquivar"
+              resumo={<>O processo <b>não é apagado</b> — muda para status <b>arquivado</b> (reversível, auditado). Confirmar?</>}
+              campoTexto={{ label: "Motivo (opcional)", placeholder: "Ex.: baixado / encerrado." }}
+              acao={(t) => arquivarProcesso(proc.id, t)}
+            />
+          </div>
+        </div>
+      )}
+
       {rel && (
         <>
           <div className="dsec">
@@ -165,6 +214,11 @@ export function ProcessoDetalhe({ proc }: { proc: Processo }) {
               </div>
             </div>
           )}
+
+          <div className="dsec">
+            <h4>Histórico (auditoria)</h4>
+            <HistoricoRegistro id={proc.id} />
+          </div>
         </>
       )}
     </>

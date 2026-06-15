@@ -16,6 +16,7 @@ import {
   PAGAMENTO_STATUS,
   SUGESTAO_STATUS,
 } from "@/lib/enums";
+import { normalizarNome, soDigitos } from "@/lib/format";
 
 export type Resultado = { ok: boolean; message: string };
 
@@ -254,11 +255,12 @@ export async function criarIntimacao(fd: FormData): Promise<Resultado> {
     const processo_id = String(fd.get("processo_id") || "") || null;
     const origem = String(fd.get("origem") || "");
     const resumo = String(fd.get("resumo") || "").trim();
+    const teor = String(fd.get("teor") || "").trim() || resumo;
     const data_publicacao = String(fd.get("data_publicacao") || "") || null;
     const data_ciencia = String(fd.get("data_ciencia") || "") || null;
     if (!origem || !resumo) return { ok: false, message: "Origem e resumo são obrigatórios." };
     const { error } = await supabase.from("intimacoes").insert({
-      processo_id, origem, resumo, data_publicacao, data_ciencia,
+      processo_id, origem, resumo, teor, data_publicacao, data_ciencia,
       status: "pendente", cadastrado_por: "manual",
     });
     if (error) throw error;
@@ -401,6 +403,301 @@ export async function atualizarSugestao(id: number, status: string): Promise<Res
     if (error) throw error;
     revalidatePath("/sistema");
     return { ok: true, message: "Sugestão atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== VALIDAÇÃO PRECISA (editar + validar) ==================== */
+
+export async function validarPrazoEditado(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const ato = String(fd.get("ato") || "").trim();
+    const data_fatal = String(fd.get("data_fatal") || "");
+    const data_interna = String(fd.get("data_interna") || "") || null;
+    const responsavel = String(fd.get("responsavel") || "Daniel");
+    const tipo_contagem = String(fd.get("tipo_contagem") || "corridos");
+    if (!ato || !data_fatal) return { ok: false, message: "Ato e data fatal são obrigatórios." };
+
+    const { data: pr } = await supabase
+      .from("prazos")
+      .select("calendar_event_id, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")
+      .eq("id", id)
+      .single();
+
+    const { error } = await supabase
+      .from("prazos")
+      .update({ ato, data_fatal, data_interna, responsavel, tipo_contagem, validado: true, validado_em: agora() })
+      .eq("id", id);
+    if (error) throw error;
+
+    let msg = "Prazo validado com os ajustes.";
+    const fatalId = await confirmarPrazo(
+      { ato, dataFatal: data_fatal, dataInterna: data_interna, ref: refProcesso(pr?.processos) },
+      (pr?.calendar_event_id as string | null) ?? null,
+    );
+    if (fatalId) {
+      await supabase.from("prazos").update({ calendar_event_id_fatal: fatalId }).eq("id", id);
+      msg += " Marcador fatal (vermelho) no Calendar.";
+    } else if (calendarConfigurado()) {
+      msg += " (Calendar indisponível — gravado só no banco.)";
+    }
+    revalidarTudo();
+    return { ok: true, message: msg };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function validarAudienciaEditada(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const tipo = String(fd.get("tipo") || "");
+    const dataLocal = String(fd.get("data_hora") || ""); // YYYY-MM-DDTHH:mm
+    const modalidade = String(fd.get("modalidade") || "") || null;
+    const local_link = String(fd.get("local_link") || "") || null;
+    const responsavel = String(fd.get("responsavel") || "Daniel");
+    if (!dataLocal) return { ok: false, message: "Data e hora são obrigatórias." };
+    const data_hora = `${dataLocal}:00-03:00`; // horário de Brasília
+
+    const { data: a } = await supabase
+      .from("audiencias")
+      .select("processos(numero_cnj,cliente_processo(clientes(nome)))")
+      .eq("id", id)
+      .single();
+
+    const { error } = await supabase
+      .from("audiencias")
+      .update({ tipo, data_hora, modalidade, local_link, responsavel, validado: true, validado_em: agora() })
+      .eq("id", id);
+    if (error) throw error;
+
+    let msg = "Audiência validada com os ajustes.";
+    const evId = await criarEventoAudiencia({ tipo, dataHora: data_hora, modalidade, local: local_link, ref: refProcesso(a?.processos) });
+    if (evId) {
+      await supabase.from("audiencias").update({ calendar_event_id: evId }).eq("id", id);
+      msg += " Evento no Calendar.";
+    } else if (calendarConfigurado()) {
+      msg += " (Calendar indisponível — gravado só no banco.)";
+    }
+    revalidarTudo();
+    return { ok: true, message: msg };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== EDIÇÃO (UPDATE) ==================== */
+
+function patchDeCampos(fd: FormData, campos: string[]): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  for (const c of campos) {
+    if (!fd.has(c)) continue;
+    const v = String(fd.get(c) ?? "").trim();
+    patch[c] = v === "" ? null : v;
+  }
+  return patch;
+}
+
+export async function atualizarProcesso(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const patch = patchDeCampos(fd, [
+      "numero_cnj", "numero_registro_tribunal", "tribunal", "vara_comarca", "uf",
+      "instancia", "area", "classe", "assunto", "fase", "status", "responsavel",
+      "link_tribunal", "observacoes",
+    ]);
+    patch.segredo_justica = fd.get("segredo_justica") === "on";
+    if (!patch.numero_cnj && !patch.numero_registro_tribunal) {
+      return { ok: false, message: "Informe ao menos o CNJ ou o nº de registro." };
+    }
+    const { error } = await supabase.from("processos").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Processo atualizado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function atualizarCliente(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const patch = patchDeCampos(fd, [
+      "nome", "cpf", "rg", "data_nascimento", "nome_mae", "telefone", "email",
+      "endereco", "cidade", "uf", "situacao_prisional", "unidade_prisional",
+      "contato_familia", "observacoes",
+    ]);
+    if (!patch.nome) return { ok: false, message: "Nome é obrigatório." };
+    const { error } = await supabase.from("clientes").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Cliente atualizado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== CRIAÇÃO COM DEDUP ==================== */
+
+export async function criarCliente(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const nome = String(fd.get("nome") || "").trim();
+    if (!nome) return { ok: false, message: "Nome é obrigatório." };
+    const cpf = String(fd.get("cpf") || "").trim() || null;
+    const forcar = fd.get("forcar") === "on";
+
+    // Deduplicação (nome normalizado / CPF) — manual.
+    if (!forcar) {
+      const { data: existentes } = await supabase.from("clientes").select("id, nome, cpf");
+      const nn = normalizarNome(nome);
+      const cd = soDigitos(cpf);
+      const dups = (existentes ?? []).filter((c) => {
+        const mesmoNome = normalizarNome(c.nome as string) === nn;
+        const mesmoCpf = cd && soDigitos(c.cpf as string | null) === cd;
+        return mesmoNome || mesmoCpf;
+      });
+      if (dups.length) {
+        const lista = dups.slice(0, 3).map((d) => d.nome).join("; ");
+        return {
+          ok: false,
+          message: `Possível duplicata/homônimo: ${lista}. Confira; se for outra pessoa, marque "criar mesmo assim".`,
+        };
+      }
+    }
+
+    const { error } = await supabase.from("clientes").insert({
+      nome,
+      cpf,
+      situacao_prisional: String(fd.get("situacao_prisional") || "solto"),
+      uf: String(fd.get("uf") || "").trim() || null,
+      telefone: String(fd.get("telefone") || "").trim() || null,
+      unidade_prisional: String(fd.get("unidade_prisional") || "").trim() || null,
+      observacoes: String(fd.get("observacoes") || "").trim() || null,
+      ativo: true,
+      cadastro_automatico: false,
+      cadastrado_por: "manual",
+    });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Cliente cadastrado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function criarProcesso(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const numero_cnj = String(fd.get("numero_cnj") || "").trim() || null;
+    const numero_registro_tribunal = String(fd.get("numero_registro_tribunal") || "").trim() || null;
+    const tribunal = String(fd.get("tribunal") || "").trim();
+    if (!numero_cnj && !numero_registro_tribunal) {
+      return { ok: false, message: "Informe o CNJ ou o nº de registro do tribunal." };
+    }
+    if (!tribunal) return { ok: false, message: "Tribunal é obrigatório." };
+    const forcar = fd.get("forcar") === "on";
+
+    if (!forcar) {
+      const ors: string[] = [];
+      if (numero_cnj) ors.push(`numero_cnj.eq.${numero_cnj}`);
+      if (numero_registro_tribunal) ors.push(`numero_registro_tribunal.eq.${numero_registro_tribunal}`);
+      const { data: existentes } = await supabase
+        .from("processos")
+        .select("id, numero_cnj, numero_registro_tribunal")
+        .or(ors.join(","));
+      if (existentes?.length) {
+        return { ok: false, message: "Já existe processo com este CNJ/registro. Use a busca para abri-lo." };
+      }
+    }
+
+    const { data: novo, error } = await supabase
+      .from("processos")
+      .insert({
+        numero_cnj,
+        numero_registro_tribunal,
+        tribunal,
+        vara_comarca: String(fd.get("vara_comarca") || "").trim() || null,
+        uf: String(fd.get("uf") || "").trim() || null,
+        instancia: String(fd.get("instancia") || "1grau"),
+        area: String(fd.get("area") || "criminal"),
+        classe: String(fd.get("classe") || "").trim() || null,
+        status: "ativo",
+        responsavel: String(fd.get("responsavel") || "Daniel"),
+        segredo_justica: fd.get("segredo_justica") === "on",
+        cadastro_automatico: false,
+        cadastrado_por: "manual",
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    // Vínculo opcional com cliente
+    const cliente_id = String(fd.get("cliente_id") || "").trim();
+    if (cliente_id && novo) {
+      await supabase.from("cliente_processo").insert({
+        cliente_id,
+        processo_id: novo.id,
+        papel: String(fd.get("papel") || "reu"),
+      });
+    }
+    revalidarTudo();
+    return { ok: true, message: "Processo cadastrado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== "EXCLUSÃO" = arquivar/desativar (soft) ==================== */
+
+export async function arquivarProcesso(id: string, motivo: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const obs = motivo?.trim() ? `Arquivado: ${motivo.trim()}` : null;
+    const patch: Record<string, unknown> = { status: "arquivado" };
+    if (obs) patch.observacoes = obs;
+    const { error } = await supabase.from("processos").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Processo arquivado (não foi apagado; auditado)." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function desativarCliente(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { error } = await supabase.from("clientes").update({ ativo: false }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Cliente desativado (mantido no banco; auditado)." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function cancelarAudiencia(id: string, motivo: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const obs = motivo?.trim() ? motivo.trim() : null;
+    const patch: Record<string, unknown> = { status: "cancelada" };
+    if (obs) patch.observacoes = obs;
+    const { error } = await supabase.from("audiencias").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Audiência cancelada (auditado)." };
   } catch (e) {
     return falha(e);
   }

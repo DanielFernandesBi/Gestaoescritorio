@@ -2,7 +2,7 @@ import { getAudiencias } from "@/lib/data";
 import { Pill, SegredoTag, Gate, ProcRef } from "@/components/ui";
 import { DrawerRow } from "@/components/DrawerRow";
 import { Acao } from "@/components/Acao";
-import { validarAudiencia } from "@/app/actions";
+import { validarAudiencia, cancelarAudiencia } from "@/app/actions";
 import { fmtDate, fmtTime, humano } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -94,16 +94,29 @@ export default async function AudienciasPage() {
                     <td>{a.responsavel ?? "—"}</td>
                     <td className="center"><Gate validado={a.validado} /></td>
                     <td className="center">
-                      {!a.validado && (
-                        <Acao
-                          label="Validar"
-                          variant="primary"
-                          titulo="Validar audiência"
-                          confirmarLabel="Validar"
-                          resumo={<>Confirmar a audiência de <b>{humano(a.tipo)}</b> e criar o evento no Google Calendar?</>}
-                          acao={validarAudiencia.bind(null, a.id)}
-                        />
-                      )}
+                      <div className="acoes" style={{ justifyContent: "center" }}>
+                        {!a.validado && (
+                          <Acao
+                            label="Validar"
+                            variant="primary"
+                            titulo="Validar audiência"
+                            confirmarLabel="Validar"
+                            resumo={<>Confirmar a audiência de <b>{humano(a.tipo)}</b> e criar o evento no Google Calendar?</>}
+                            acao={validarAudiencia.bind(null, a.id)}
+                          />
+                        )}
+                        {a.status === "designada" && (
+                          <Acao
+                            label="Cancelar"
+                            variant="danger"
+                            titulo="Cancelar audiência"
+                            confirmarLabel="Cancelar"
+                            resumo={<>Cancelar a audiência? Não é apagada — muda para <b>cancelada</b> (auditado).</>}
+                            campoTexto={{ label: "Motivo (opcional)", placeholder: "Ex.: redesignada." }}
+                            acao={(t) => cancelarAudiencia(a.id, t)}
+                          />
+                        )}
+                      </div>
                     </td>
                   </DrawerRow>
                 ))}

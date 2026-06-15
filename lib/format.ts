@@ -61,3 +61,19 @@ export function humano(s: string | null | undefined): string {
   const t = s.replace(/_/g, " ");
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
+
+/** Normaliza nome p/ deduplicação: sem acento, maiúsculas, espaços simples. */
+export function normalizarNome(s: string | null | undefined): string {
+  if (!s) return "";
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Mantém só dígitos (CPF/CNPJ). */
+export function soDigitos(s: string | null | undefined): string {
+  return (s ?? "").replace(/\D/g, "");
+}

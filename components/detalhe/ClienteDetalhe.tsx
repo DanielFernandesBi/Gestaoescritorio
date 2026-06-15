@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { DiasBox, ProcRef, SegredoTag, Pill } from "@/components/ui";
+import { FormModal } from "@/components/FormModal";
+import { Acao } from "@/components/Acao";
+import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
+import { atualizarCliente, desativarCliente } from "@/app/actions";
+import { SITUACAO_PRISIONAL } from "@/lib/enums";
 import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
 import type { Cliente } from "@/lib/data";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 type ProcRow = {
   id: string;
@@ -17,6 +24,7 @@ type ProcRow = {
   papel: string | null;
 };
 type Rel = {
+  cliente: Record<string, any> | null;
   processos: ProcRow[];
   prazos: { id: string; ato: string; data_fatal: string; validado: boolean }[];
   audiencias: { id: string; tipo: string; data_hora: string; modalidade: string | null }[];
@@ -59,6 +67,40 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
           <div className="field"><div className="k">Unidade prisional</div><div className="v">{cliente.unidade_prisional ?? "—"}</div></div>
         </div>
       </div>
+
+      {rel?.cliente && (
+        <div className="dsec">
+          <h4>Editar / desativar</h4>
+          <div className="acoes">
+            <FormModal label="Editar cliente" titulo="Editar cliente" acao={atualizarCliente.bind(null, cliente.id)} enviarLabel="Salvar" variant="default">
+              <div><label>Nome</label><input name="nome" required defaultValue={rel.cliente.nome ?? ""} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label>CPF</label><input name="cpf" defaultValue={rel.cliente.cpf ?? ""} /></div>
+                <div><label>RG</label><input name="rg" defaultValue={rel.cliente.rg ?? ""} /></div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+                <div><label>Situação prisional</label><select name="situacao_prisional" defaultValue={rel.cliente.situacao_prisional ?? "solto"}>{SITUACAO_PRISIONAL.map((s) => <option key={s} value={s}>{humano(s)}</option>)}</select></div>
+                <div><label>UF</label><input name="uf" maxLength={2} defaultValue={rel.cliente.uf ?? ""} /></div>
+              </div>
+              <div><label>Unidade prisional</label><input name="unidade_prisional" defaultValue={rel.cliente.unidade_prisional ?? ""} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label>Telefone</label><input name="telefone" defaultValue={rel.cliente.telefone ?? ""} /></div>
+                <div><label>E-mail</label><input name="email" defaultValue={rel.cliente.email ?? ""} /></div>
+              </div>
+              <div><label>Contato da família</label><input name="contato_familia" defaultValue={rel.cliente.contato_familia ?? ""} /></div>
+              <div><label>Observações</label><textarea name="observacoes" defaultValue={rel.cliente.observacoes ?? ""} /></div>
+            </FormModal>
+            <Acao
+              label="Desativar"
+              variant="danger"
+              titulo="Desativar cliente"
+              confirmarLabel="Desativar"
+              resumo={<>O cliente <b>não é apagado</b> — fica inativo (some das listas, mantido no banco e auditado). Confirmar?</>}
+              acao={() => desativarCliente(cliente.id)}
+            />
+          </div>
+        </div>
+      )}
 
       {erro && (
         <div className="banner" style={{ margin: "0 0 24px" }}>
@@ -129,6 +171,11 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
               </div>
             </div>
           )}
+
+          <div className="dsec">
+            <h4>Histórico (auditoria)</h4>
+            <HistoricoRegistro id={cliente.id} />
+          </div>
         </>
       )}
     </>

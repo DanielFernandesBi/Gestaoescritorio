@@ -9,7 +9,8 @@ export async function GET(
   const { id } = await params;
   const supabase = await createClient();
 
-  const [prazos, audiencias, intimacoes, andamentos] = await Promise.all([
+  const [completo, prazos, audiencias, intimacoes, andamentos] = await Promise.all([
+    supabase.from("processos").select("*").eq("id", id).single(),
     supabase
       .from("prazos")
       .select("id, ato, data_fatal, data_interna, status, validado")
@@ -36,6 +37,7 @@ export async function GET(
   ]);
 
   return NextResponse.json({
+    processo: completo.data ?? null,
     prazos: prazos.data ?? [],
     audiencias: audiencias.data ?? [],
     intimacoes: intimacoes.data ?? [],

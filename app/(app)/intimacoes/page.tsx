@@ -32,6 +32,7 @@ export default async function IntimacoesPage() {
             <select name="origem" defaultValue="dje">{INTIMACAO_ORIGEM.map((o) => <option key={o} value={o}>{o.toUpperCase()}</option>)}</select>
           </div>
           <div><label>Resumo</label><textarea name="resumo" required placeholder="Resumo do teor da intimação." /></div>
+          <div><label>Teor integral (opcional)</label><textarea name="teor" placeholder="Cole o teor completo; se vazio, usa o resumo." /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label>Publicação</label><input type="date" name="data_publicacao" /></div>
             <div><label>Ciência</label><input type="date" name="data_ciencia" /></div>

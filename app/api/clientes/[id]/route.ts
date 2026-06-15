@@ -9,6 +9,8 @@ export async function GET(
   const { id } = await params;
   const supabase = await createClient();
 
+  const { data: completo } = await supabase.from("clientes").select("*").eq("id", id).single();
+
   // Processos do cliente (via vínculo N:N)
   const { data: vinculos } = await supabase
     .from("cliente_processo")
@@ -57,6 +59,7 @@ export async function GET(
     : [{ data: [] }, { data: [] }];
 
   return NextResponse.json({
+    cliente: completo ?? null,
     processos,
     prazos: prazos.data ?? [],
     audiencias: audiencias.data ?? [],
