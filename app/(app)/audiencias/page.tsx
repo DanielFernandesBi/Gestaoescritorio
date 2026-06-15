@@ -113,7 +113,7 @@ export default async function AudienciasPage() {
                             confirmarLabel="Cancelar"
                             resumo={<>Cancelar a audiência? Não é apagada — muda para <b>cancelada</b> (auditado).</>}
                             campoTexto={{ label: "Motivo (opcional)", placeholder: "Ex.: redesignada." }}
-                            acao={(t) => cancelarAudiencia(a.id, t)}
+                            acao={cancelarAudiencia.bind(null, a.id)}
                           />
                         )}
                       </div>

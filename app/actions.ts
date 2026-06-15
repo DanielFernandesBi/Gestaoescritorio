@@ -249,6 +249,32 @@ export async function atualizarIntimacao(
   }
 }
 
+/** Edição humana dos CAMPOS de uma intimação (correção/triagem de Daniel). */
+export async function atualizarIntimacaoCampos(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = {};
+    const resumo = String(fd.get("resumo") || "").trim();
+    const providencia = String(fd.get("providencia") || "").trim();
+    const teor = String(fd.get("teor") || "").trim();
+    const data_publicacao = String(fd.get("data_publicacao") || "");
+    const data_ciencia = String(fd.get("data_ciencia") || "");
+    if (resumo) patch.resumo = resumo;
+    if (providencia) patch.providencia = providencia;
+    if (teor) patch.teor = teor;
+    if (data_publicacao) patch.data_publicacao = data_publicacao;
+    if (data_ciencia) patch.data_ciencia = data_ciencia;
+    if (!Object.keys(patch).length) return { ok: false, message: "Nada para atualizar." };
+    const { error } = await supabase.from("intimacoes").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Intimação atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 export async function criarIntimacao(fd: FormData): Promise<Resultado> {
   try {
     await requireUser();
@@ -868,23 +894,6 @@ export async function vincularClienteProcesso(processo_id: string, fd: FormData)
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Cliente vinculado ao processo." };
-  } catch (e) {
-    return falha(e);
-  }
-}
-
-export async function desvincularClienteProcesso(processo_id: string, cliente_id: string): Promise<Resultado> {
-  try {
-    await requireUser();
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("cliente_processo")
-      .delete()
-      .eq("processo_id", processo_id)
-      .eq("cliente_id", cliente_id);
-    if (error) throw error;
-    revalidarTudo();
-    return { ok: true, message: "Vínculo removido." };
   } catch (e) {
     return falha(e);
   }

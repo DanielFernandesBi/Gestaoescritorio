@@ -3,7 +3,9 @@
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Acao } from "@/components/Acao";
-import { moverTarefa } from "@/app/actions";
+import { FormModal } from "@/components/FormModal";
+import { moverTarefa, atualizarTarefa } from "@/app/actions";
+import { PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { Tarefa } from "@/lib/data";
 
@@ -60,6 +62,20 @@ export function TarefasBoard({ tarefas }: { tarefas: Tarefa[] }) {
                                 <div className="field"><div className="k">Prioridade</div><div className="v">{humano(t.prioridade)}</div></div>
                                 <div className="field"><div className="k">Responsável</div><div className="v">{t.responsavel ?? "—"}</div></div>
                                 <div className="field"><div className="k">Data limite</div><div className="v mono">{fmtDate(t.data_limite)}</div></div>
+                              </div>
+                            </div>
+                            <div className="dsec">
+                              <h4>Editar</h4>
+                              <div className="acoes">
+                                <FormModal label="Editar tarefa" titulo="Editar tarefa" acao={atualizarTarefa.bind(null, t.id)} enviarLabel="Salvar" variant="default">
+                                  <div><label>Título</label><input name="titulo" required defaultValue={t.titulo} /></div>
+                                  <div><label>Descrição</label><textarea name="descricao" defaultValue={t.descricao ?? ""} /></div>
+                                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                                    <div><label>Prioridade</label><select name="prioridade" defaultValue={t.prioridade ?? "media"}>{PRIORIDADES.map((p) => <option key={p} value={p}>{p}</option>)}</select></div>
+                                    <div><label>Responsável</label><select name="responsavel" defaultValue={t.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+                                  </div>
+                                  <div><label>Data limite</label><input type="date" name="data_limite" defaultValue={t.data_limite?.slice(0, 10) ?? ""} /></div>
+                                </FormModal>
                               </div>
                             </div>
                             <div className="dsec">

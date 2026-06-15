@@ -5,7 +5,8 @@ import { useDrawer } from "@/components/Drawer";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { Acao } from "@/components/Acao";
-import { atualizarIntimacao } from "@/app/actions";
+import { FormModal } from "@/components/FormModal";
+import { atualizarIntimacao, atualizarIntimacaoCampos } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 import type { Intimacao } from "@/lib/data";
 
@@ -99,6 +100,16 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
           <div className="dsec">
             <h4>Ações</h4>
             <div className="acoes">
+              <FormModal label="Editar dados" titulo="Editar intimação" acao={atualizarIntimacaoCampos.bind(null, i.id)} enviarLabel="Salvar" variant="default">
+                <div><label>Resumo</label><input name="resumo" defaultValue={i.resumo ?? ""} placeholder="Resumo da intimação" /></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div><label>Publicação</label><input type="date" name="data_publicacao" defaultValue={i.data_publicacao?.slice(0, 10) ?? ""} /></div>
+                  <div><label>Ciência</label><input type="date" name="data_ciencia" defaultValue={i.data_ciencia?.slice(0, 10) ?? ""} /></div>
+                </div>
+                <div><label>Providência</label><textarea name="providencia" defaultValue={i.providencia ?? ""} placeholder="Providência a tomar / tomada" /></div>
+                <div><label>Teor (preencher se faltar)</label><textarea name="teor" placeholder="Cole o teor integral se ainda não houver" /></div>
+                <p className="sub" style={{ margin: 0 }}>Só grava os campos preenchidos. Datas em dias corridos — confira ciência e feriados locais antes de gerar prazo.</p>
+              </FormModal>
               <Acao
                 label="Em análise"
                 titulo="Marcar em análise"
