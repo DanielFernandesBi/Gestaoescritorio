@@ -1,6 +1,7 @@
 import { buscaGlobal } from "@/lib/data";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { DrawerRow } from "@/components/DrawerRow";
+import { FavoritoStar } from "@/components/FavoritoStar";
 import { ProcessoDetalhe } from "@/components/detalhe/ProcessoDetalhe";
 import { ClienteDetalhe } from "@/components/detalhe/ClienteDetalhe";
 import { Icon } from "@/components/Icon";
@@ -45,7 +46,7 @@ export default async function BuscaPage({
           <div className="card-h"><h3><Icon name="users" /> Clientes ({clientes.length})</h3></div>
           <div className="card-b flush">
             <table>
-              <thead><tr><th>Cliente</th><th>CPF</th><th>UF</th><th>Situação</th></tr></thead>
+              <thead><tr><th style={{ width: 34 }}></th><th>Cliente</th><th>CPF</th><th>UF</th><th>Situação</th></tr></thead>
               <tbody>
                 {clientes.map((c) => (
                   <DrawerRow
@@ -66,7 +67,7 @@ export default async function BuscaPage({
                           situacao_prisional: c.situacao_prisional,
                           unidade_prisional: c.unidade_prisional,
                           cadastro_automatico: false,
-                          favorito: false,
+                          favorito: c.favorito,
                           total_processos: 0,
                           processos_ativos: 0,
                           prazos_abertos: 0,
@@ -78,6 +79,7 @@ export default async function BuscaPage({
                       />
                     }
                   >
+                    <td className="center"><FavoritoStar id={c.id} favorito={c.favorito} /></td>
                     <td className="name">{c.nome}</td>
                     <td className="mono">{c.cpf ?? "—"}</td>
                     <td>{c.uf ?? "—"}</td>

@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { FormModal } from "@/components/FormModal";
+import { FavoritoStar } from "@/components/FavoritoStar";
 import { ClienteDetalhe } from "@/components/detalhe/ClienteDetalhe";
-import { alternarFavorito, favoritarCliente } from "@/app/actions";
+import { favoritarCliente } from "@/app/actions";
 import { fmtDate, diasAte } from "@/lib/format";
 import type { Cliente } from "@/lib/data";
 
@@ -37,7 +37,6 @@ function haDias(iso: string | null): string {
 
 export function ClientesList({ clientes }: { clientes: Cliente[] }) {
   const { open } = useDrawer();
-  const router = useRouter();
   const [f, setF] = useState("todos");
   const [busca, setBusca] = useState("");
   const [visiveis, setVisiveis] = useState(PASSO);
@@ -74,12 +73,6 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
     { id: "atividade", label: `Atividade recente (${clientes.filter((c) => c.ultima_atividade != null).length})` },
     { id: "auto", label: `Cadastro automático (${clientes.filter((c) => c.cadastro_automatico).length})` },
   ];
-
-  async function toggleFav(c: Cliente, e: React.MouseEvent) {
-    e.stopPropagation();
-    await alternarFavorito(c.id, !c.favorito);
-    router.refresh();
-  }
 
   // Seletor para adicionar aos favoritos por nome (temos +200 clientes).
   const naoFavoritos = clientes.filter((c) => !c.favorito).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -166,17 +159,7 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
                   const [lbl, tone] = sitDe(c.situacao_prisional);
                   return (
                     <tr key={c.id} className="clickable" onClick={() => abrir(c)}>
-                      <td className="center">
-                        <button
-                          type="button"
-                          className={`star${c.favorito ? " on" : ""}`}
-                          title={c.favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                          aria-label={c.favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                          onClick={(e) => toggleFav(c, e)}
-                        >
-                          {c.favorito ? "★" : "☆"}
-                        </button>
-                      </td>
+                      <td className="center"><FavoritoStar id={c.id} favorito={c.favorito} /></td>
                       <td>
                         <div className="name">{c.nome}</div>
                         {c.cadastro_automatico && <div className="sub" style={{ color: "var(--blue)" }}>cadastro automático</div>}
