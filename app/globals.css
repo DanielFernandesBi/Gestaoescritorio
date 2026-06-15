@@ -239,6 +239,11 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 .modal-msg.ok{background:var(--green-soft);color:var(--green)}
 .modal-msg.err{background:var(--red-soft);color:var(--red)}
 
+/* Estrela de favoritos (lista de clientes) */
+.star{background:none;border:none;cursor:pointer;font-size:17px;line-height:1;color:var(--muted-2);padding:2px 4px;border-radius:6px;transition:.12s}
+.star:hover{color:var(--brass);background:var(--brass-soft)}
+.star.on{color:var(--brass)}
+
 /* Execução penal (aba na ficha do cliente) */
 .exec-destaque{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
 .exec-destaque .item{border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:10px;padding:12px 15px;background:linear-gradient(180deg,#fff,var(--surface-2))}

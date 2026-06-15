@@ -1,10 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
+import { FormModal } from "@/components/FormModal";
 import { ClienteDetalhe } from "@/components/detalhe/ClienteDetalhe";
+import { alternarFavorito, favoritarCliente } from "@/app/actions";
 import { fmtDate, diasAte } from "@/lib/format";
 import type { Cliente } from "@/lib/data";
 
@@ -24,7 +27,6 @@ const preso = (s: string | null) => s === "preso_provisorio" || s === "preso_def
 
 const PASSO = 60;
 
-// Rótulo "há N dias" a partir de uma data ISO (datas passadas → diasAte negativo).
 function haDias(iso: string | null): string {
   if (!iso) return "—";
   const d = -diasAte(iso);
@@ -35,6 +37,7 @@ function haDias(iso: string | null): string {
 
 export function ClientesList({ clientes }: { clientes: Cliente[] }) {
   const { open } = useDrawer();
+  const router = useRouter();
   const [f, setF] = useState("todos");
   const [busca, setBusca] = useState("");
   const [visiveis, setVisiveis] = useState(PASSO);
@@ -46,8 +49,8 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
       const okF =
         f === "presos"
           ? preso(c.situacao_prisional)
-          : f === "monitoramento"
-            ? c.situacao_prisional === "monitoramento"
+          : f === "favoritos"
+            ? c.favorito
             : f === "auto"
               ? c.cadastro_automatico
               : f === "atividade"
@@ -57,7 +60,6 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
       return okF && okBusca;
     });
     if (porAtividade) {
-      // Mais recente primeiro (ultima_atividade é "YYYY-MM-DD", ordenação lexicográfica serve).
       lista.sort((a, b) => (b.ultima_atividade ?? "").localeCompare(a.ultima_atividade ?? ""));
     }
     return lista;
@@ -65,14 +67,43 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
 
   const mostrados = filtrados.slice(0, visiveis);
 
-  const comAtividade = clientes.filter((c) => c.ultima_atividade != null).length;
   const opcoes = [
     { id: "todos", label: `Todos (${clientes.length})` },
+    { id: "favoritos", label: `★ Favoritos (${clientes.filter((c) => c.favorito).length})` },
     { id: "presos", label: `Presos (${clientes.filter((c) => preso(c.situacao_prisional)).length})` },
-    { id: "monitoramento", label: `Monitoramento (${clientes.filter((c) => c.situacao_prisional === "monitoramento").length})` },
-    { id: "atividade", label: `Atividade recente (${comAtividade})` },
+    { id: "atividade", label: `Atividade recente (${clientes.filter((c) => c.ultima_atividade != null).length})` },
     { id: "auto", label: `Cadastro automático (${clientes.filter((c) => c.cadastro_automatico).length})` },
   ];
+
+  async function toggleFav(c: Cliente, e: React.MouseEvent) {
+    e.stopPropagation();
+    await alternarFavorito(c.id, !c.favorito);
+    router.refresh();
+  }
+
+  // Seletor para adicionar aos favoritos por nome (temos +200 clientes).
+  const naoFavoritos = clientes.filter((c) => !c.favorito).sort((a, b) => a.nome.localeCompare(b.nome));
+  const botaoAddFavorito = (
+    <FormModal
+      label="★ Adicionar favorito"
+      titulo="Adicionar cliente aos favoritos"
+      descricao="Marcação do escritório para acesso rápido. Não altera a situação prisional do cliente."
+      acao={favoritarCliente}
+      enviarLabel="Adicionar"
+      variant="default"
+    >
+      <div>
+        <label>Cliente</label>
+        <select name="cliente_id" required defaultValue="">
+          <option value="" disabled>Selecione o cliente…</option>
+          {naoFavoritos.map((c) => (
+            <option key={c.id} value={c.id}>{c.nome}</option>
+          ))}
+        </select>
+      </div>
+      <p className="sub" style={{ margin: 0 }}>Dica: digite no seletor para buscar pelo nome. Você também pode clicar na ★ ao lado de qualquer cliente.</p>
+    </FormModal>
+  );
 
   function abrir(c: Cliente) {
     const [lbl, tone] = sitDe(c.situacao_prisional);
@@ -91,17 +122,20 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
     <>
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <Chips options={opcoes} value={f} onChange={(v) => { setF(v); setVisiveis(PASSO); }} />
-        <input
-          className="filtro-nome"
-          placeholder="Filtrar por nome…"
-          value={busca}
-          onChange={(e) => { setBusca(e.target.value); setVisiveis(PASSO); }}
-          style={{
-            marginLeft: "auto", marginBottom: 18, padding: "6px 12px",
-            border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit",
-            background: "var(--surface)", color: "var(--text)", minWidth: 200,
-          }}
-        />
+        <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center", marginBottom: 18 }}>
+          {f === "favoritos" && botaoAddFavorito}
+          <input
+            className="filtro-nome"
+            placeholder="Filtrar por nome…"
+            value={busca}
+            onChange={(e) => { setBusca(e.target.value); setVisiveis(PASSO); }}
+            style={{
+              padding: "6px 12px",
+              border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit",
+              background: "var(--surface)", color: "var(--text)", minWidth: 200,
+            }}
+          />
+        </div>
       </div>
       <div className="card">
         <div className="card-b flush">
@@ -109,6 +143,7 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: 34 }}></th>
                   <th>Cliente</th>
                   <th>CPF</th>
                   <th>UF</th>
@@ -131,6 +166,17 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
                   const [lbl, tone] = sitDe(c.situacao_prisional);
                   return (
                     <tr key={c.id} className="clickable" onClick={() => abrir(c)}>
+                      <td className="center">
+                        <button
+                          type="button"
+                          className={`star${c.favorito ? " on" : ""}`}
+                          title={c.favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                          aria-label={c.favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                          onClick={(e) => toggleFav(c, e)}
+                        >
+                          {c.favorito ? "★" : "☆"}
+                        </button>
+                      </td>
                       <td>
                         <div className="name">{c.nome}</div>
                         {c.cadastro_automatico && <div className="sub" style={{ color: "var(--blue)" }}>cadastro automático</div>}
@@ -157,11 +203,10 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
                 })}
               </tbody>
             </table>
-          ) : f === "monitoramento" ? (
-            <div className="empty">
-              Nenhum cliente em monitoramento (tornozeleira).<br />
-              Um cliente aparece aqui quando a situação prisional dele é “Monitoramento” —
-              defina na ficha do cliente em Editar → Situação prisional.
+          ) : f === "favoritos" ? (
+            <div className="empty" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <div>Nenhum cliente nos favoritos ainda.<br />Adicione pelo botão abaixo ou clique na ★ ao lado de qualquer cliente.</div>
+              {botaoAddFavorito}
             </div>
           ) : f === "atividade" ? (
             <div className="empty">Nenhum cliente com movimentação ou intimação registrada ainda.</div>

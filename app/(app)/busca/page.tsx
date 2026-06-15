@@ -66,6 +66,7 @@ export default async function BuscaPage({
                           situacao_prisional: c.situacao_prisional,
                           unidade_prisional: c.unidade_prisional,
                           cadastro_automatico: false,
+                          favorito: false,
                           total_processos: 0,
                           processos_ativos: 0,
                           prazos_abertos: 0,

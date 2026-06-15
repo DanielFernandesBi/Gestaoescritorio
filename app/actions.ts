@@ -570,6 +570,26 @@ export async function atualizarCliente(id: string, fd: FormData): Promise<Result
   }
 }
 
+/** Marca/desmarca um cliente como favorito do escritório (toggle pela estrela). */
+export async function alternarFavorito(cliente_id: string, valor: boolean): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!cliente_id) return { ok: false, message: "Cliente inválido." };
+    const supabase = await createClient();
+    const { error } = await supabase.from("clientes").update({ favorito: valor }).eq("id", cliente_id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: valor ? "Adicionado aos favoritos." : "Removido dos favoritos." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Adiciona um cliente aos favoritos a partir do seletor (FormModal). */
+export async function favoritarCliente(fd: FormData): Promise<Resultado> {
+  return alternarFavorito(String(fd.get("cliente_id") || "").trim(), true);
+}
+
 /* ==================== CRIAÇÃO COM DEDUP ==================== */
 
 export async function criarCliente(fd: FormData): Promise<Resultado> {

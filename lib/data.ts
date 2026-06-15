@@ -247,6 +247,7 @@ export type Cliente = {
   situacao_prisional: string | null;
   unidade_prisional: string | null;
   cadastro_automatico: boolean;
+  favorito: boolean;
   total_processos: number;
   processos_ativos: number;
   prazos_abertos: number;
@@ -261,7 +262,7 @@ export async function getClientes(): Promise<Cliente[]> {
   const [base, situacao, atividade] = await Promise.all([
     supabase
       .from("clientes")
-      .select("id, nome, cpf, uf, situacao_prisional, unidade_prisional, cadastro_automatico")
+      .select("id, nome, cpf, uf, situacao_prisional, unidade_prisional, cadastro_automatico, favorito")
       .eq("ativo", true)
       .order("nome", { ascending: true }),
     supabase.from("vw_situacao_cliente").select("*"),
@@ -298,6 +299,7 @@ export async function getClientes(): Promise<Cliente[]> {
       situacao_prisional: c.situacao_prisional as string | null,
       unidade_prisional: c.unidade_prisional as string | null,
       cadastro_automatico: Boolean(c.cadastro_automatico),
+      favorito: Boolean(c.favorito),
       total_processos: s.total_processos ?? 0,
       processos_ativos: s.processos_ativos ?? 0,
       prazos_abertos: s.prazos_abertos ?? 0,
