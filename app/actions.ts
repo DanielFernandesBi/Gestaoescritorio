@@ -15,6 +15,7 @@ import {
   ANDAMENTO_TIPO,
   PAGAMENTO_STATUS,
   SUGESTAO_STATUS,
+  CONTRATO_STATUS,
 } from "@/lib/enums";
 import { normalizarNome, soDigitos } from "@/lib/format";
 
@@ -698,6 +699,134 @@ export async function cancelarAudiencia(id: string, motivo: string): Promise<Res
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Audiência cancelada (auditado)." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== FINANCEIRO: contratos, parcelas, despesas ==================== */
+
+function valorNumerico(v: FormDataEntryValue | null): number {
+  // Aceita "1.234,56" ou "1234.56" ou "1234".
+  const s = String(v ?? "").trim().replace(/\s/g, "");
+  if (!s) return NaN;
+  const normal = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
+  return Number(normal);
+}
+
+export async function criarContrato(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const cliente_id = String(fd.get("cliente_id") || "").trim();
+    const objeto = String(fd.get("objeto") || "").trim();
+    const valor_total = valorNumerico(fd.get("valor_total"));
+    if (!cliente_id) return { ok: false, message: "Selecione o cliente." };
+    if (!objeto) return { ok: false, message: "Descreva o objeto da contratação." };
+    if (!Number.isFinite(valor_total) || valor_total <= 0) return { ok: false, message: "Valor total inválido." };
+
+    const { error } = await supabase.from("contratos").insert({
+      cliente_id,
+      objeto,
+      valor_total,
+      contratante: String(fd.get("contratante") || "").trim() || null,
+      forma_pagamento: String(fd.get("forma_pagamento") || "").trim() || null,
+      data_contrato: String(fd.get("data_contrato") || "") || hoje(),
+      status: "vigente",
+      observacoes: String(fd.get("observacoes") || "").trim() || null,
+    });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Contrato criado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function atualizarContrato(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const status = String(fd.get("status") || "vigente");
+    if (!(CONTRATO_STATUS as readonly string[]).includes(status)) {
+      return { ok: false, message: "Status de contrato inválido." };
+    }
+    const objeto = String(fd.get("objeto") || "").trim();
+    if (!objeto) return { ok: false, message: "Objeto é obrigatório." };
+    const patch: Record<string, unknown> = {
+      objeto,
+      status,
+      contratante: String(fd.get("contratante") || "").trim() || null,
+      forma_pagamento: String(fd.get("forma_pagamento") || "").trim() || null,
+      observacoes: String(fd.get("observacoes") || "").trim() || null,
+    };
+    if (fd.has("valor_total")) {
+      const v = valorNumerico(fd.get("valor_total"));
+      if (Number.isFinite(v) && v > 0) patch.valor_total = v;
+    }
+    const { error } = await supabase.from("contratos").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Contrato atualizado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function criarParcela(contrato_id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const valor = valorNumerico(fd.get("valor"));
+    const vencimento = String(fd.get("vencimento") || "");
+    const numero_parcela = Number(String(fd.get("numero_parcela") || "0")) || null;
+    if (!contrato_id) return { ok: false, message: "Contrato não identificado." };
+    if (!Number.isFinite(valor) || valor <= 0) return { ok: false, message: "Valor inválido." };
+    if (!vencimento) return { ok: false, message: "Informe o vencimento." };
+    const { error } = await supabase.from("pagamentos").insert({
+      contrato_id, numero_parcela, valor, vencimento,
+      status: "a_vencer", forma: String(fd.get("forma") || "").trim() || null,
+    });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Parcela adicionada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function criarDespesa(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const descricao = String(fd.get("descricao") || "").trim();
+    const valor = valorNumerico(fd.get("valor"));
+    if (!descricao) return { ok: false, message: "Descreva a despesa." };
+    if (!Number.isFinite(valor) || valor <= 0) return { ok: false, message: "Valor inválido." };
+    const { error } = await supabase.from("despesas").insert({
+      descricao,
+      valor,
+      categoria: String(fd.get("categoria") || "outra"),
+      data: String(fd.get("data") || "") || hoje(),
+      reembolsavel: fd.get("reembolsavel") === "on",
+      observacoes: String(fd.get("observacoes") || "").trim() || null,
+    });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Despesa lançada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function marcarDespesaReembolsada(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { error } = await supabase.from("despesas").update({ reembolsada: true }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Despesa marcada como reembolsada." };
   } catch (e) {
     return falha(e);
   }

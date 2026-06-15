@@ -351,6 +351,129 @@ export async function getFinanceiro(): Promise<{
   };
 }
 
+export type ParcelaContrato = {
+  id: string;
+  numero_parcela: number;
+  valor: number;
+  valor_pago: number | null;
+  vencimento: string;
+  pago_em: string | null;
+  status: string;
+  dias_atraso: number;
+};
+
+export type Contrato = {
+  id: string;
+  cliente_id: string;
+  cliente: string;
+  objeto: string;
+  contratante: string | null;
+  valor_total: number;
+  forma_pagamento: string | null;
+  status: string;
+  data_contrato: string | null;
+  processo_cnj: string | null;
+  observacoes: string | null;
+  total_pago: number;
+  total_aberto: number;
+  total_atraso: number;
+  qtd_parcelas: number;
+  parcelas: ParcelaContrato[];
+};
+
+export async function getContratos(): Promise<Contrato[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("contratos")
+    .select(
+      "id, cliente_id, objeto, contratante, valor_total, forma_pagamento, status, data_contrato, observacoes, clientes(nome), processos(numero_cnj), pagamentos(id, numero_parcela, valor, valor_pago, vencimento, pago_em, status)",
+    )
+    .order("data_contrato", { ascending: false });
+
+  return (data ?? []).map((c) => {
+    const cli = c.clientes as unknown as { nome: string } | null;
+    const proc = c.processos as unknown as { numero_cnj: string | null } | null;
+    const pags = (c.pagamentos ?? []) as unknown as Array<Record<string, unknown>>;
+    const parcelas: ParcelaContrato[] = pags
+      .map((p) => {
+        const dias = diasAte(p.vencimento as string);
+        return {
+          id: p.id as string,
+          numero_parcela: Number(p.numero_parcela ?? 0),
+          valor: Number(p.valor ?? 0),
+          valor_pago: p.valor_pago == null ? null : Number(p.valor_pago),
+          vencimento: p.vencimento as string,
+          pago_em: (p.pago_em as string | null) ?? null,
+          status: p.status as string,
+          dias_atraso: dias < 0 ? -dias : 0,
+        };
+      })
+      .sort((a, b) => a.numero_parcela - b.numero_parcela);
+
+    const total_pago = parcelas
+      .filter((p) => p.status === "pago")
+      .reduce((s, p) => s + (p.valor_pago ?? p.valor), 0);
+    const abertas = parcelas.filter((p) => p.status === "a_vencer" || p.status === "atrasado");
+    const total_aberto = abertas.reduce((s, p) => s + p.valor, 0);
+    const total_atraso = parcelas.filter((p) => p.status === "atrasado").reduce((s, p) => s + p.valor, 0);
+
+    return {
+      id: c.id as string,
+      cliente_id: c.cliente_id as string,
+      cliente: cli?.nome ?? "—",
+      objeto: c.objeto as string,
+      contratante: (c.contratante as string | null) ?? null,
+      valor_total: Number(c.valor_total ?? 0),
+      forma_pagamento: (c.forma_pagamento as string | null) ?? null,
+      status: c.status as string,
+      data_contrato: (c.data_contrato as string | null) ?? null,
+      processo_cnj: proc?.numero_cnj ?? null,
+      observacoes: (c.observacoes as string | null) ?? null,
+      total_pago,
+      total_aberto,
+      total_atraso,
+      qtd_parcelas: parcelas.length,
+      parcelas,
+    };
+  });
+}
+
+export type Despesa = {
+  id: string;
+  descricao: string;
+  categoria: string;
+  valor: number;
+  data: string | null;
+  reembolsavel: boolean;
+  reembolsada: boolean;
+  cliente: string | null;
+  processo_cnj: string | null;
+};
+
+export async function getDespesas(): Promise<Despesa[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("despesas")
+    .select("id, descricao, categoria, valor, data, reembolsavel, reembolsada, clientes(nome), processos(numero_cnj)")
+    .order("data", { ascending: false })
+    .limit(200);
+  return (data ?? []).map((d) => {
+    const cli = d.clientes as unknown as { nome: string } | null;
+    const proc = d.processos as unknown as { numero_cnj: string | null } | null;
+    return {
+      id: d.id as string,
+      descricao: d.descricao as string,
+      categoria: (d.categoria as string) ?? "outra",
+      valor: Number(d.valor ?? 0),
+      data: (d.data as string | null) ?? null,
+      reembolsavel: Boolean(d.reembolsavel),
+      reembolsada: Boolean(d.reembolsada),
+      cliente: cli?.nome ?? null,
+      processo_cnj: proc?.numero_cnj ?? null,
+    };
+  });
+}
+
 /* Andamentos ------------------------------------------------------------- */
 
 export type Movimentacao = {

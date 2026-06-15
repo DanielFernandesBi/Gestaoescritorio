@@ -51,6 +51,10 @@ export const AUDIENCIA_MODALIDADE = ["presencial", "videoconferencia", "hibrida"
 
 export const AUDIENCIA_STATUS = ["designada", "realizada", "redesignada", "cancelada"] as const;
 export const PAGAMENTO_STATUS = ["a_vencer", "pago", "atrasado", "renegociado", "cancelado"] as const;
+export const CONTRATO_STATUS = ["vigente", "quitado", "rescindido", "inadimplente"] as const;
+export const DESPESA_CATEGORIA = [
+  "custas", "diligencia", "correspondente", "viagem", "copia_autos", "cartorio", "outra",
+] as const;
 export const SUGESTAO_STATUS = ["pendente", "aprovada", "executada", "rejeitada"] as const;
 
 /** Rótulos amigáveis para alguns valores. */
