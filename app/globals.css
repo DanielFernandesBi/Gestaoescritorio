@@ -113,6 +113,11 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .kpi.red .accent{background:var(--red)} .kpi.amber .accent{background:var(--amber)}
 .kpi.green .accent{background:var(--green)} .kpi.blue .accent{background:var(--blue)}
 .kpi.brass .accent{background:var(--brass)}
+a.kpi{cursor:pointer;text-decoration:none;color:inherit;transition:.12s}
+a.kpi:hover{border-color:var(--muted-2);box-shadow:0 6px 18px rgba(22,28,45,.10);transform:translateY(-2px)}
+a.kpi:hover .val{color:var(--ink)}
+a.kpi::after{content:"↗";position:absolute;top:12px;right:13px;font-size:13px;color:var(--muted-2);opacity:0;transition:.12s}
+a.kpi:hover::after{opacity:1}
 
 /* ---------- Tables ---------- */
 table{width:100%;border-collapse:collapse;font-size:13px}

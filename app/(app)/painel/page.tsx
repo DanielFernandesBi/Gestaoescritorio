@@ -42,7 +42,7 @@ export default async function PainelPage() {
       </div>
 
       <div className="kpis">
-        <div className="kpi red">
+        <Link className="kpi red" href="/prazos">
           <div className="accent" />
           <div className="label">
             <Icon name="clock" size={14} /> Prazos abertos
@@ -53,9 +53,9 @@ export default async function PainelPage() {
               ? <>próximo fatal em <b style={{ color: "var(--red)" }}>{prazos[0].dias_restantes} dias</b></>
               : "sem prazos abertos"}
           </div>
-        </div>
+        </Link>
 
-        <div className="kpi amber">
+        <Link className="kpi amber" href="/intimacoes">
           <div className="accent" />
           <div className="label">
             <Icon name="inbox" size={14} /> Intimações pendentes
@@ -64,9 +64,9 @@ export default async function PainelPage() {
             {stats.intimacoes_pendentes} <small>· {stats.intimacoes_orfas} órfãs</small>
           </div>
           <div className="meta">triagem humana pendente</div>
-        </div>
+        </Link>
 
-        <div className="kpi blue">
+        <Link className="kpi blue" href="/processos">
           <div className="accent" />
           <div className="label">
             <Icon name="folder" size={14} /> Processos ativos
@@ -75,9 +75,9 @@ export default async function PainelPage() {
           <div className="meta">
             {stats.processos_sem_cnj} sem CNJ · {stats.processos_sigilosos} sigilosos
           </div>
-        </div>
+        </Link>
 
-        <div className="kpi green">
+        <Link className="kpi green" href="/financeiro">
           <div className="accent" />
           <div className="label">
             <Icon name="wallet" size={14} /> A receber
@@ -86,7 +86,7 @@ export default async function PainelPage() {
             {fmtBRL(stats.valor_a_receber)}
           </div>
           <div className="meta">{stats.parcelas_pendentes} parcelas em aberto</div>
-        </div>
+        </Link>
       </div>
 
       <div className="two-col section-gap">
