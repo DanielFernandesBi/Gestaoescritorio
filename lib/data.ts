@@ -785,3 +785,222 @@ export async function buscaGlobal(termoRaw: string): Promise<ResultadosBusca> {
     intimacoes,
   };
 }
+
+/* Estudos de caso (estratégia) ------------------------------------------- */
+
+export type EstudoResumo = {
+  id: string;
+  titulo: string;
+  tipo: string | null;
+  status: string;
+  cliente_id: string | null;
+  cliente: string | null;
+  atualizado_em: string | null;
+  n_processos: number;
+  n_objetivos: number;
+  n_atingidos: number;
+  proximo_marco: string | null;
+};
+
+export async function getEstudos(): Promise<EstudoResumo[]> {
+  const supabase = await createClient();
+  const { data: estudos } = await supabase
+    .from("estudos_caso")
+    .select("id, titulo, tipo, status, cliente_id, atualizado_em, clientes(nome)")
+    .order("atualizado_em", { ascending: false })
+    .limit(300);
+  const ids = (estudos ?? []).map((e) => e.id as string);
+  if (!ids.length) return [];
+
+  const [vinc, objs] = await Promise.all([
+    supabase.from("estudo_processo").select("estudo_id").in("estudo_id", ids),
+    supabase.from("estudo_objetivos").select("estudo_id, status, data_alvo").in("estudo_id", ids),
+  ]);
+
+  const procPorEstudo = new Map<string, number>();
+  for (const v of vinc.data ?? []) procPorEstudo.set(v.estudo_id as string, (procPorEstudo.get(v.estudo_id as string) ?? 0) + 1);
+
+  const objPorEstudo = new Map<string, { total: number; atingidos: number; marco: string | null }>();
+  for (const o of objs.data ?? []) {
+    const k = o.estudo_id as string;
+    const cur = objPorEstudo.get(k) ?? { total: 0, atingidos: 0, marco: null };
+    cur.total += 1;
+    if (o.status === "atingido") cur.atingidos += 1;
+    const da = o.data_alvo as string | null;
+    if (da && (o.status === "planejado" || o.status === "em_curso") && (!cur.marco || da < cur.marco)) cur.marco = da;
+    objPorEstudo.set(k, cur);
+  }
+
+  return (estudos ?? []).map((e): EstudoResumo => {
+    const o = objPorEstudo.get(e.id as string);
+    return {
+      id: e.id as string,
+      titulo: e.titulo as string,
+      tipo: e.tipo as string | null,
+      status: e.status as string,
+      cliente_id: e.cliente_id as string | null,
+      cliente: (e.clientes as { nome?: string } | null)?.nome ?? null,
+      atualizado_em: e.atualizado_em as string | null,
+      n_processos: procPorEstudo.get(e.id as string) ?? 0,
+      n_objetivos: o?.total ?? 0,
+      n_atingidos: o?.atingidos ?? 0,
+      proximo_marco: o?.marco ?? null,
+    };
+  });
+}
+
+export type EstudoVinculo = {
+  id: string;
+  processo_id: string;
+  diagnostico: string | null;
+  estrategia: string | null;
+  prioridade: string | null;
+  processo: string; // rótulo (cnj/registro)
+  area: string | null;
+  instancia: string | null;
+  status: string | null;
+  segredo: boolean;
+};
+
+export type EstudoObjetivo = {
+  id: string;
+  objetivo: string;
+  beneficio_alvo: string | null;
+  data_alvo: string | null;
+  status: string;
+  resultado: string | null;
+  resultado_em: string | null;
+  observacoes: string | null;
+  processo_id: string | null;
+  processo_instrumento_id: string | null;
+  alvo: string | null;
+  instrumento: string | null;
+};
+
+export type EstudoDetalhe = {
+  id: string;
+  titulo: string;
+  tipo: string | null;
+  status: string;
+  conteudo: string | null;
+  teses: string | null;
+  jurisprudencia: string | null;
+  drive_file_id: string | null;
+  cliente_id: string | null;
+  cliente: string | null;
+  atualizado_em: string | null;
+  vinculos: EstudoVinculo[];
+  objetivos: EstudoObjetivo[];
+};
+
+function rotuloProc(p: { numero_cnj?: string | null; numero_registro_tribunal?: string | null } | null | undefined): string {
+  if (!p) return "—";
+  return (p.numero_cnj as string) || (p.numero_registro_tribunal ? "reg " + p.numero_registro_tribunal : "—");
+}
+
+export async function getEstudoDetalhe(id: string): Promise<EstudoDetalhe | null> {
+  const supabase = await createClient();
+  const { data: e } = await supabase
+    .from("estudos_caso")
+    .select("id, titulo, tipo, status, conteudo, teses, jurisprudencia, drive_file_id, cliente_id, atualizado_em, clientes(nome)")
+    .eq("id", id)
+    .single();
+  if (!e) return null;
+
+  const [vinc, objs] = await Promise.all([
+    supabase
+      .from("estudo_processo")
+      .select("id, processo_id, diagnostico, estrategia, prioridade, processos(numero_cnj, numero_registro_tribunal, area, instancia, status, segredo_justica)")
+      .eq("estudo_id", id),
+    supabase
+      .from("estudo_objetivos")
+      .select("id, objetivo, beneficio_alvo, data_alvo, status, resultado, resultado_em, observacoes, processo_id, processo_instrumento_id")
+      .eq("estudo_id", id)
+      .order("data_alvo", { ascending: true }),
+  ]);
+
+  // Resolve rótulos dos processos referenciados nos objetivos (alvo/instrumento).
+  const procIds = new Set<string>();
+  for (const o of objs.data ?? []) {
+    if (o.processo_id) procIds.add(o.processo_id as string);
+    if (o.processo_instrumento_id) procIds.add(o.processo_instrumento_id as string);
+  }
+  const rotulos = new Map<string, string>();
+  if (procIds.size) {
+    const { data: ps } = await supabase
+      .from("processos")
+      .select("id, numero_cnj, numero_registro_tribunal")
+      .in("id", Array.from(procIds));
+    for (const p of ps ?? []) rotulos.set(p.id as string, rotuloProc(p));
+  }
+
+  const vinculos: EstudoVinculo[] = (vinc.data ?? []).map((v) => {
+    const p = v.processos as unknown as Record<string, unknown> | null;
+    return {
+      id: v.id as string,
+      processo_id: v.processo_id as string,
+      diagnostico: v.diagnostico as string | null,
+      estrategia: v.estrategia as string | null,
+      prioridade: v.prioridade as string | null,
+      processo: rotuloProc(p as never),
+      area: (p?.area as string) ?? null,
+      instancia: (p?.instancia as string) ?? null,
+      status: (p?.status as string) ?? null,
+      segredo: Boolean(p?.segredo_justica),
+    };
+  });
+
+  const objetivos: EstudoObjetivo[] = (objs.data ?? []).map((o) => ({
+    id: o.id as string,
+    objetivo: o.objetivo as string,
+    beneficio_alvo: o.beneficio_alvo as string | null,
+    data_alvo: o.data_alvo as string | null,
+    status: o.status as string,
+    resultado: o.resultado as string | null,
+    resultado_em: o.resultado_em as string | null,
+    observacoes: o.observacoes as string | null,
+    processo_id: o.processo_id as string | null,
+    processo_instrumento_id: o.processo_instrumento_id as string | null,
+    alvo: o.processo_id ? rotulos.get(o.processo_id as string) ?? null : null,
+    instrumento: o.processo_instrumento_id ? rotulos.get(o.processo_instrumento_id as string) ?? null : null,
+  }));
+
+  return {
+    id: e.id as string,
+    titulo: e.titulo as string,
+    tipo: e.tipo as string | null,
+    status: e.status as string,
+    conteudo: e.conteudo as string | null,
+    teses: e.teses as string | null,
+    jurisprudencia: e.jurisprudencia as string | null,
+    drive_file_id: e.drive_file_id as string | null,
+    cliente_id: e.cliente_id as string | null,
+    cliente: (e.clientes as { nome?: string } | null)?.nome ?? null,
+    atualizado_em: e.atualizado_em as string | null,
+    vinculos,
+    objetivos,
+  };
+}
+
+/** Estudos vinculados a um processo (para o detalhe do processo). */
+export async function getEstudosDoProcesso(processo_id: string): Promise<
+  { estudo_id: string; titulo: string; status: string; cliente: string | null; diagnostico: string | null; estrategia: string | null; prioridade: string | null }[]
+> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("estudo_processo")
+    .select("diagnostico, estrategia, prioridade, estudos_caso(id, titulo, status, clientes(nome))")
+    .eq("processo_id", processo_id);
+  return (data ?? []).map((v) => {
+    const e = v.estudos_caso as unknown as Record<string, unknown> | null;
+    return {
+      estudo_id: (e?.id as string) ?? "",
+      titulo: (e?.titulo as string) ?? "—",
+      status: (e?.status as string) ?? "",
+      cliente: (e?.clientes as { nome?: string } | null)?.nome ?? null,
+      diagnostico: v.diagnostico as string | null,
+      estrategia: v.estrategia as string | null,
+      prioridade: v.prioridade as string | null,
+    };
+  });
+}

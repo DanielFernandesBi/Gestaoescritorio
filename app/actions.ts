@@ -43,7 +43,7 @@ function revalidarTudo() {
   for (const p of [
     "/painel", "/validacao", "/prazos", "/audiencias", "/intimacoes",
     "/tarefas", "/processos", "/clientes", "/financeiro", "/andamentos",
-    "/auditoria", "/sistema", "/alertas",
+    "/auditoria", "/sistema", "/alertas", "/estudos",
   ]) {
     revalidatePath(p);
   }
@@ -959,6 +959,155 @@ export async function atualizarTarefa(id: string, fd: FormData): Promise<Resulta
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Tarefa atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== ESTUDOS DE CASO (estratégia) ==================== */
+
+export async function criarEstudo(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const titulo = String(fd.get("titulo") || "").trim();
+    if (!titulo) return { ok: false, message: "Título é obrigatório." };
+    const { error } = await supabase
+      .from("estudos_caso")
+      .insert({
+        titulo,
+        cliente_id: String(fd.get("cliente_id") || "") || null,
+        tipo: String(fd.get("tipo") || "geral"),
+        status: "em_elaboracao",
+        conteudo: String(fd.get("conteudo") || "").trim() || null,
+        teses: String(fd.get("teses") || "").trim() || null,
+        jurisprudencia: String(fd.get("jurisprudencia") || "").trim() || null,
+        drive_file_id: String(fd.get("drive_file_id") || "").trim() || null,
+        cadastrado_por: "manual",
+        cadastro_automatico: false,
+      });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Estudo criado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function atualizarEstudo(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = {};
+    const titulo = String(fd.get("titulo") || "").trim();
+    if (titulo) patch.titulo = titulo;
+    const tipo = String(fd.get("tipo") || "").trim();
+    if (tipo) patch.tipo = tipo;
+    const status = String(fd.get("status") || "").trim();
+    if (status) patch.status = status;
+    for (const campo of ["conteudo", "teses", "jurisprudencia", "drive_file_id"] as const) {
+      const v = String(fd.get(campo) || "").trim();
+      if (v) patch[campo] = v;
+    }
+    if (!Object.keys(patch).length) return { ok: false, message: "Nada para atualizar." };
+    const { error } = await supabase.from("estudos_caso").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Estudo atualizado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function vincularProcessoEstudo(estudo_id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const processo_id = String(fd.get("processo_id") || "").trim();
+    if (!processo_id) return { ok: false, message: "Selecione o processo." };
+    const { data: ja } = await supabase
+      .from("estudo_processo")
+      .select("id")
+      .eq("estudo_id", estudo_id)
+      .eq("processo_id", processo_id)
+      .maybeSingle();
+    if (ja) {
+      const { error } = await supabase
+        .from("estudo_processo")
+        .update({
+          diagnostico: String(fd.get("diagnostico") || "").trim() || null,
+          estrategia: String(fd.get("estrategia") || "").trim() || null,
+          prioridade: String(fd.get("prioridade") || "media"),
+        })
+        .eq("id", ja.id);
+      if (error) throw error;
+      revalidarTudo();
+      return { ok: true, message: "Diagnóstico do processo atualizado neste estudo." };
+    }
+    const { error } = await supabase.from("estudo_processo").insert({
+      estudo_id,
+      processo_id,
+      diagnostico: String(fd.get("diagnostico") || "").trim() || null,
+      estrategia: String(fd.get("estrategia") || "").trim() || null,
+      prioridade: String(fd.get("prioridade") || "media"),
+    });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Processo vinculado ao estudo." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function criarObjetivo(estudo_id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const objetivo = String(fd.get("objetivo") || "").trim();
+    if (!objetivo) return { ok: false, message: "Descreva o objetivo." };
+    const { error } = await supabase.from("estudo_objetivos").insert({
+      estudo_id,
+      objetivo,
+      beneficio_alvo: String(fd.get("beneficio_alvo") || "").trim() || null,
+      data_alvo: String(fd.get("data_alvo") || "") || null,
+      processo_id: String(fd.get("processo_id") || "") || null,
+      processo_instrumento_id: String(fd.get("processo_instrumento_id") || "") || null,
+      status: String(fd.get("status") || "planejado"),
+      observacoes: String(fd.get("observacoes") || "").trim() || null,
+    });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Objetivo criado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Atualiza o objetivo conforme as decisões saem (status/resultado/marco). */
+export async function atualizarObjetivo(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = {};
+    const status = String(fd.get("status") || "").trim();
+    if (status) patch.status = status;
+    const data_alvo = String(fd.get("data_alvo") || "");
+    if (data_alvo) patch.data_alvo = data_alvo;
+    const resultado = String(fd.get("resultado") || "").trim();
+    if (resultado) patch.resultado = resultado;
+    const resultado_em = String(fd.get("resultado_em") || "");
+    if (resultado_em) patch.resultado_em = resultado_em;
+    const observacoes = String(fd.get("observacoes") || "").trim();
+    if (observacoes) patch.observacoes = observacoes;
+    const instrumento = String(fd.get("processo_instrumento_id") || "");
+    if (instrumento) patch.processo_instrumento_id = instrumento;
+    // Se marcou atingido/frustrado sem data de resultado, registra hoje.
+    if ((status === "atingido" || status === "frustrado") && !resultado_em) patch.resultado_em = hoje();
+    if (!Object.keys(patch).length) return { ok: false, message: "Nada para atualizar." };
+    const { error } = await supabase.from("estudo_objetivos").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Objetivo atualizado." };
   } catch (e) {
     return falha(e);
   }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getEstudosDoProcesso } from "@/lib/data";
 
 /** Detalhe cruzado de um processo: prazos, audiências, intimações e andamentos. */
 export async function GET(
@@ -9,7 +10,7 @@ export async function GET(
   const { id } = await params;
   const supabase = await createClient();
 
-  const [completo, prazos, audiencias, intimacoes, andamentos] = await Promise.all([
+  const [completo, prazos, audiencias, intimacoes, andamentos, estudos] = await Promise.all([
     supabase.from("processos").select("*").eq("id", id).single(),
     supabase
       .from("prazos")
@@ -34,6 +35,7 @@ export async function GET(
       .eq("processo_id", id)
       .order("data", { ascending: false })
       .limit(20),
+    getEstudosDoProcesso(id),
   ]);
 
   return NextResponse.json({
@@ -42,5 +44,6 @@ export async function GET(
     audiencias: audiencias.data ?? [],
     intimacoes: intimacoes.data ?? [],
     andamentos: andamentos.data ?? [],
+    estudos,
   });
 }

@@ -57,6 +57,11 @@ export const DESPESA_CATEGORIA = [
 ] as const;
 export const SUGESTAO_STATUS = ["pendente", "aprovada", "executada", "rejeitada"] as const;
 
+// Estudos de caso (estratégia por cliente/execução)
+export const ESTUDO_STATUS = ["em_elaboracao", "concluido", "aplicado", "superado"] as const;
+export const ESTUDO_TIPO = ["geral", "execucao_global", "recurso", "defesa", "revisional"] as const;
+export const OBJETIVO_STATUS = ["planejado", "em_curso", "atingido", "frustrado", "prejudicado"] as const;
+
 /** Rótulos amigáveis para alguns valores. */
 export const ROTULO: Record<string, string> = {
   providencia_tomada: "Providência tomada",

@@ -22,6 +22,7 @@ type Rel = {
   audiencias: { id: string; tipo: string; data_hora: string; modalidade: string | null; status: string; validado: boolean }[];
   intimacoes: { id: string; resumo: string | null; origem: string | null; status: string; data_publicacao: string | null }[];
   andamentos: { id: string; data: string; tipo: string; descricao: string; origem: string | null }[];
+  estudos?: { estudo_id: string; titulo: string; status: string; cliente: string | null; diagnostico: string | null; estrategia: string | null; prioridade: string | null }[];
 };
 
 export function ProcessoDetalhe({ proc }: { proc: Processo }) {
@@ -78,6 +79,24 @@ export function ProcessoDetalhe({ proc }: { proc: Processo }) {
           </FormModal>
         </div>
       </div>
+
+      {rel?.estudos && rel.estudos.length > 0 && (
+        <div className="dsec">
+          <h4>Estratégia (estudos)</h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {rel.estudos.map((es) => (
+              <div className="mini" key={es.estudo_id}>
+                <div>
+                  <div className="mt">{es.titulo}</div>
+                  {es.diagnostico && <div className="ms">{es.diagnostico}</div>}
+                  {es.estrategia && <div className="ms">→ {es.estrategia}</div>}
+                </div>
+                <a className="link" href="/estudos">abrir</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="dsec">
         <h4>Ações no processo</h4>
