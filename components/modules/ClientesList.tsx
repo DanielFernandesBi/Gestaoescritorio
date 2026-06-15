@@ -4,9 +4,8 @@ import { useMemo, useState } from "react";
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
-import { FormModal } from "@/components/FormModal";
 import { ClienteDetalhe } from "@/components/detalhe/ClienteDetalhe";
-import { definirSituacaoPrisional } from "@/app/actions";
+import { fmtDate, diasAte } from "@/lib/format";
 import type { Cliente } from "@/lib/data";
 
 type Tone = "red" | "amber" | "green" | "blue" | "gray" | "brass";
@@ -25,70 +24,55 @@ const preso = (s: string | null) => s === "preso_provisorio" || s === "preso_def
 
 const PASSO = 60;
 
+// Rótulo "há N dias" a partir de uma data ISO (datas passadas → diasAte negativo).
+function haDias(iso: string | null): string {
+  if (!iso) return "—";
+  const d = -diasAte(iso);
+  if (d <= 0) return "hoje";
+  if (d === 1) return "ontem";
+  return `há ${d} dias`;
+}
+
 export function ClientesList({ clientes }: { clientes: Cliente[] }) {
   const { open } = useDrawer();
   const [f, setF] = useState("todos");
   const [busca, setBusca] = useState("");
   const [visiveis, setVisiveis] = useState(PASSO);
 
-  const filtrados = useMemo(
-    () =>
-      clientes.filter((c) => {
-        const okF =
-          f === "presos"
-            ? preso(c.situacao_prisional)
-            : f === "monitoramento"
-              ? c.situacao_prisional === "monitoramento"
-              : f === "auto"
-                ? c.cadastro_automatico
+  const porAtividade = f === "atividade";
+
+  const filtrados = useMemo(() => {
+    const lista = clientes.filter((c) => {
+      const okF =
+        f === "presos"
+          ? preso(c.situacao_prisional)
+          : f === "monitoramento"
+            ? c.situacao_prisional === "monitoramento"
+            : f === "auto"
+              ? c.cadastro_automatico
+              : f === "atividade"
+                ? c.ultima_atividade != null
                 : true;
-        const okBusca = busca
-          ? c.nome.toLowerCase().includes(busca.toLowerCase())
-          : true;
-        return okF && okBusca;
-      }),
-    [clientes, f, busca],
-  );
+      const okBusca = busca ? c.nome.toLowerCase().includes(busca.toLowerCase()) : true;
+      return okF && okBusca;
+    });
+    if (porAtividade) {
+      // Mais recente primeiro (ultima_atividade é "YYYY-MM-DD", ordenação lexicográfica serve).
+      lista.sort((a, b) => (b.ultima_atividade ?? "").localeCompare(a.ultima_atividade ?? ""));
+    }
+    return lista;
+  }, [clientes, f, busca, porAtividade]);
 
   const mostrados = filtrados.slice(0, visiveis);
 
-  const emMonitoramento = clientes.filter((c) => c.situacao_prisional === "monitoramento").length;
+  const comAtividade = clientes.filter((c) => c.ultima_atividade != null).length;
   const opcoes = [
     { id: "todos", label: `Todos (${clientes.length})` },
     { id: "presos", label: `Presos (${clientes.filter((c) => preso(c.situacao_prisional)).length})` },
-    { id: "monitoramento", label: `Monitoramento (${emMonitoramento})` },
+    { id: "monitoramento", label: `Monitoramento (${clientes.filter((c) => c.situacao_prisional === "monitoramento").length})` },
+    { id: "atividade", label: `Atividade recente (${comAtividade})` },
     { id: "auto", label: `Cadastro automático (${clientes.filter((c) => c.cadastro_automatico).length})` },
   ];
-
-  // Candidatos para marcar monitoramento: ativos que ainda não estão em monitoramento.
-  const candidatosMonitoramento = clientes
-    .filter((c) => c.situacao_prisional !== "monitoramento")
-    .sort((a, b) => a.nome.localeCompare(b.nome));
-
-  const botaoMonitoramento = (
-    <FormModal
-      label="+ Monitoramento"
-      titulo="Adicionar cliente ao monitoramento"
-      descricao="Marca a situação prisional como Monitoramento (tornozeleira). Reversível na ficha do cliente."
-      acao={definirSituacaoPrisional}
-      enviarLabel="Aplicar"
-      variant="default"
-    >
-      <input type="hidden" name="situacao" value="monitoramento" />
-      <div>
-        <label>Cliente</label>
-        <select name="cliente_id" required defaultValue="">
-          <option value="" disabled>Selecione o cliente…</option>
-          {candidatosMonitoramento.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nome}{c.situacao_prisional && c.situacao_prisional !== "solto" ? ` — ${sitDe(c.situacao_prisional)[0]}` : ""}
-            </option>
-          ))}
-        </select>
-      </div>
-      <p className="sub" style={{ margin: 0 }}>Dica: digite no seletor para buscar pelo nome. Depois o cliente aparece no filtro “Monitoramento”.</p>
-    </FormModal>
-  );
 
   function abrir(c: Cliente) {
     const [lbl, tone] = sitDe(c.situacao_prisional);
@@ -107,20 +91,17 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
     <>
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <Chips options={opcoes} value={f} onChange={(v) => { setF(v); setVisiveis(PASSO); }} />
-        <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center", marginBottom: 18 }}>
-          {f === "monitoramento" && botaoMonitoramento}
-          <input
-            className="filtro-nome"
-            placeholder="Filtrar por nome…"
-            value={busca}
-            onChange={(e) => { setBusca(e.target.value); setVisiveis(PASSO); }}
-            style={{
-              padding: "6px 12px",
-              border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit",
-              background: "var(--surface)", color: "var(--text)", minWidth: 200,
-            }}
-          />
-        </div>
+        <input
+          className="filtro-nome"
+          placeholder="Filtrar por nome…"
+          value={busca}
+          onChange={(e) => { setBusca(e.target.value); setVisiveis(PASSO); }}
+          style={{
+            marginLeft: "auto", marginBottom: 18, padding: "6px 12px",
+            border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit",
+            background: "var(--surface)", color: "var(--text)", minWidth: 200,
+          }}
+        />
       </div>
       <div className="card">
         <div className="card-b flush">
@@ -132,8 +113,17 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
                   <th>CPF</th>
                   <th>UF</th>
                   <th>Situação prisional</th>
-                  <th className="center">Processos</th>
-                  <th className="center">Prazos</th>
+                  {porAtividade ? (
+                    <>
+                      <th>Última movimentação</th>
+                      <th>Última intimação</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="center">Processos</th>
+                      <th className="center">Prazos</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -151,18 +141,30 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
                         <Pill tone={tone}>{lbl}</Pill>
                         {c.unidade_prisional && <div className="sub">{c.unidade_prisional}</div>}
                       </td>
-                      <td className="center mono">{c.total_processos}</td>
-                      <td className="center mono">{c.prazos_abertos || "—"}</td>
+                      {porAtividade ? (
+                        <>
+                          <td className="mono">{fmtDate(c.ultima_movimentacao)}<div className="sub">{haDias(c.ultima_movimentacao)}</div></td>
+                          <td className="mono">{fmtDate(c.ultima_intimacao)}<div className="sub">{haDias(c.ultima_intimacao)}</div></td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="center mono">{c.total_processos}</td>
+                          <td className="center mono">{c.prazos_abertos || "—"}</td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           ) : f === "monitoramento" ? (
-            <div className="empty" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-              <div>Nenhum cliente em monitoramento (tornozeleira).<br />Use o botão abaixo ou, na ficha do cliente, Editar → Situação prisional.</div>
-              {botaoMonitoramento}
+            <div className="empty">
+              Nenhum cliente em monitoramento (tornozeleira).<br />
+              Um cliente aparece aqui quando a situação prisional dele é “Monitoramento” —
+              defina na ficha do cliente em Editar → Situação prisional.
             </div>
+          ) : f === "atividade" ? (
+            <div className="empty">Nenhum cliente com movimentação ou intimação registrada ainda.</div>
           ) : (
             <div className="empty">Nenhum cliente neste filtro.</div>
           )}

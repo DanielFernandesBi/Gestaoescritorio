@@ -16,7 +16,6 @@ import {
   PAGAMENTO_STATUS,
   SUGESTAO_STATUS,
   CONTRATO_STATUS,
-  SITUACAO_PRISIONAL,
 } from "@/lib/enums";
 import { normalizarNome, soDigitos } from "@/lib/format";
 
@@ -566,26 +565,6 @@ export async function atualizarCliente(id: string, fd: FormData): Promise<Result
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Cliente atualizado." };
-  } catch (e) {
-    return falha(e);
-  }
-}
-
-/** Define a situação prisional de um cliente (atalho — ex.: marcar monitoramento/tornozeleira). */
-export async function definirSituacaoPrisional(fd: FormData): Promise<Resultado> {
-  try {
-    await requireUser();
-    const cliente_id = String(fd.get("cliente_id") || "").trim();
-    const situacao = String(fd.get("situacao") || "").trim();
-    if (!cliente_id) return { ok: false, message: "Selecione o cliente." };
-    if (!(SITUACAO_PRISIONAL as readonly string[]).includes(situacao)) {
-      return { ok: false, message: "Situação prisional inválida." };
-    }
-    const supabase = await createClient();
-    const { error } = await supabase.from("clientes").update({ situacao_prisional: situacao }).eq("id", cliente_id);
-    if (error) throw error;
-    revalidarTudo();
-    return { ok: true, message: "Situação prisional atualizada." };
   } catch (e) {
     return falha(e);
   }

@@ -251,17 +251,21 @@ export type Cliente = {
   processos_ativos: number;
   prazos_abertos: number;
   audiencias_futuras: number;
+  ultima_movimentacao: string | null;
+  ultima_intimacao: string | null;
+  ultima_atividade: string | null;
 };
 
 export async function getClientes(): Promise<Cliente[]> {
   const supabase = await createClient();
-  const [base, situacao] = await Promise.all([
+  const [base, situacao, atividade] = await Promise.all([
     supabase
       .from("clientes")
       .select("id, nome, cpf, uf, situacao_prisional, unidade_prisional, cadastro_automatico")
       .eq("ativo", true)
       .order("nome", { ascending: true }),
     supabase.from("vw_situacao_cliente").select("*"),
+    supabase.from("vw_cliente_ultima_atividade").select("cliente_id, ultima_movimentacao, ultima_intimacao, ultima_atividade"),
   ]);
 
   const sit = new Map<string, Record<string, number>>();
@@ -274,8 +278,18 @@ export async function getClientes(): Promise<Cliente[]> {
     });
   }
 
+  const ativ = new Map<string, { mov: string | null; int: string | null; ult: string | null }>();
+  for (const a of atividade.data ?? []) {
+    ativ.set(a.cliente_id as string, {
+      mov: (a.ultima_movimentacao as string) ?? null,
+      int: (a.ultima_intimacao as string) ?? null,
+      ult: (a.ultima_atividade as string) ?? null,
+    });
+  }
+
   return (base.data ?? []).map((c): Cliente => {
     const s = sit.get(c.id as string) ?? {};
+    const a = ativ.get(c.id as string);
     return {
       id: c.id as string,
       nome: c.nome as string,
@@ -288,6 +302,9 @@ export async function getClientes(): Promise<Cliente[]> {
       processos_ativos: s.processos_ativos ?? 0,
       prazos_abertos: s.prazos_abertos ?? 0,
       audiencias_futuras: s.audiencias_futuras ?? 0,
+      ultima_movimentacao: a?.mov ?? null,
+      ultima_intimacao: a?.int ?? null,
+      ultima_atividade: a?.ult ?? null,
     };
   });
 }

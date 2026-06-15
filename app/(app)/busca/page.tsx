@@ -70,6 +70,9 @@ export default async function BuscaPage({
                           processos_ativos: 0,
                           prazos_abertos: 0,
                           audiencias_futuras: 0,
+                          ultima_movimentacao: null,
+                          ultima_intimacao: null,
+                          ultima_atividade: null,
                         }}
                       />
                     }
