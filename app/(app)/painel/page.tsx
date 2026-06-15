@@ -1,4 +1,5 @@
 import { getPainelData } from "@/lib/queries";
+import { getFinanceiro, getProcessosParados } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { PrazoRow } from "@/components/PrazoRow";
@@ -8,7 +9,12 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
-  const { stats, prazos, validacao, orfas, agenda } = await getPainelData();
+  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados] = await Promise.all([
+    getPainelData(),
+    getFinanceiro(),
+    getProcessosParados(30),
+  ]);
+  const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
 
   return (
     <>
@@ -199,6 +205,56 @@ export default async function PainelPage() {
           ) : (
             <div className="empty">Agenda vazia para os próximos 7 dias.</div>
           )}
+        </div>
+      </div>
+
+      <div className="two-col section-gap">
+        <div className="card">
+          <div className="card-h">
+            <h3><Icon name="wallet" /> Cobranças atrasadas</h3>
+            <Link className="link" href="/financeiro">financeiro</Link>
+          </div>
+          <div className="card-b flush">
+            {atrasadas.length ? (
+              <table>
+                <tbody>
+                  {atrasadas.slice(0, 6).map((p) => (
+                    <tr key={p.id}>
+                      <td className="name">{p.cliente}</td>
+                      <td className="right money">{fmtBRL(p.valor)}</td>
+                      <td className="right sub" style={{ color: "var(--red)" }}>{p.dias_atraso}d</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty">Nenhuma parcela atrasada. 🎉</div>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-h">
+            <h3><Icon name="shield" /> Radar — processos parados (≥30d)</h3>
+            <Link className="link" href="/alertas">ver alertas</Link>
+          </div>
+          <div className="card-b flush">
+            {parados.length ? (
+              <table>
+                <tbody>
+                  {parados.slice(0, 6).map((p) => (
+                    <tr key={p.processo_id}>
+                      <td className="mono">{p.numero_cnj ?? p.numero_registro_tribunal ?? "—"}</td>
+                      <td className="sub">{p.clientes ?? "—"}{p.tem_preso && <span style={{ color: "var(--red)" }}> · preso</span>}</td>
+                      <td className="right"><Pill tone={p.dias_parado >= 90 ? "red" : "amber"}>{p.dias_parado}d</Pill></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty">Nenhum processo parado há ≥30 dias. 🎉</div>
+            )}
+          </div>
         </div>
       </div>
     </>

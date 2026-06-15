@@ -5,10 +5,10 @@ import { DiasBox, Pill, Gate } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
-import { criarAndamento, criarPrazo, atualizarProcesso, arquivarProcesso } from "@/app/actions";
+import { criarAndamento, criarPrazo, atualizarProcesso, arquivarProcesso, vincularClienteProcesso } from "@/app/actions";
 import {
   ANDAMENTO_TIPO, ANDAMENTO_ORIGEM, TIPO_CONTAGEM, RESPONSAVEIS,
-  PROCESSO_INSTANCIA, PROCESSO_AREA, PROCESSO_STATUS,
+  PROCESSO_INSTANCIA, PROCESSO_AREA, PROCESSO_STATUS, PAPEL,
 } from "@/lib/enums";
 import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
 import type { Processo } from "@/lib/data";
@@ -27,6 +27,7 @@ type Rel = {
 export function ProcessoDetalhe({ proc }: { proc: Processo }) {
   const [rel, setRel] = useState<Rel | null>(null);
   const [erro, setErro] = useState(false);
+  const [clientesLite, setClientesLite] = useState<{ id: string; nome: string }[]>([]);
 
   useEffect(() => {
     let vivo = true;
@@ -34,6 +35,10 @@ export function ProcessoDetalhe({ proc }: { proc: Processo }) {
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => vivo && setRel(d))
       .catch(() => vivo && setErro(true));
+    fetch("/api/clientes-lite")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => vivo && setClientesLite(d.clientes ?? []))
+      .catch(() => {});
     return () => {
       vivo = false;
     };
@@ -54,12 +59,23 @@ export function ProcessoDetalhe({ proc }: { proc: Processo }) {
       </div>
 
       <div className="dsec">
-        <h4>Parte</h4>
+        <h4>Partes</h4>
         <div className="mini">
           <div>
             <div className="mt">{proc.segredo ? "— (sigiloso)" : proc.clientes || "—"}</div>
             <div className="ms">papel: {proc.papel ?? "—"}</div>
           </div>
+        </div>
+        <div className="acoes" style={{ marginTop: 10 }}>
+          <FormModal label="Vincular cliente" titulo="Vincular cliente ao processo" acao={vincularClienteProcesso.bind(null, proc.id)} enviarLabel="Vincular" variant="default">
+            <div><label>Cliente</label>
+              <select name="cliente_id" required defaultValue="">
+                <option value="" disabled>Selecione…</option>
+                {clientesLite.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </div>
+            <div><label>Papel</label><select name="papel" defaultValue="reu">{PAPEL.map((p) => <option key={p} value={p}>{humano(p)}</option>)}</select></div>
+          </FormModal>
         </div>
       </div>
 

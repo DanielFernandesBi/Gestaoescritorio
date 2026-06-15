@@ -43,7 +43,7 @@ function revalidarTudo() {
   for (const p of [
     "/painel", "/validacao", "/prazos", "/audiencias", "/intimacoes",
     "/tarefas", "/processos", "/clientes", "/financeiro", "/andamentos",
-    "/auditoria", "/sistema",
+    "/auditoria", "/sistema", "/alertas",
   ]) {
     revalidatePath(p);
   }
@@ -641,8 +641,20 @@ export async function criarProcesso(fd: FormData): Promise<Resultado> {
       .single();
     if (error) throw error;
 
-    // Vínculo opcional com cliente
-    const cliente_id = String(fd.get("cliente_id") || "").trim();
+    // Vínculo opcional com cliente: existente (cliente_id) ou novo (novo_cliente_nome).
+    let cliente_id = String(fd.get("cliente_id") || "").trim();
+    let msg = "Processo cadastrado.";
+    const novoNome = String(fd.get("novo_cliente_nome") || "").trim();
+    if (!cliente_id && novoNome) {
+      const { data: c, error: cErr } = await supabase
+        .from("clientes")
+        .insert({ nome: novoNome, situacao_prisional: "solto", ativo: true, cadastro_automatico: false, cadastrado_por: "manual" })
+        .select("id")
+        .single();
+      if (cErr) throw cErr;
+      cliente_id = c.id as string;
+      msg += " Cliente criado e vinculado.";
+    }
     if (cliente_id && novo) {
       await supabase.from("cliente_processo").insert({
         cliente_id,
@@ -651,7 +663,7 @@ export async function criarProcesso(fd: FormData): Promise<Resultado> {
       });
     }
     revalidarTudo();
-    return { ok: true, message: "Processo cadastrado." };
+    return { ok: true, message: msg };
   } catch (e) {
     return falha(e);
   }
@@ -827,6 +839,117 @@ export async function marcarDespesaReembolsada(id: string): Promise<Resultado> {
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Despesa marcada como reembolsada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== PARTES (cliente ↔ processo) ==================== */
+
+export async function vincularClienteProcesso(processo_id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const cliente_id = String(fd.get("cliente_id") || "").trim();
+    const papel = String(fd.get("papel") || "reu");
+    if (!cliente_id) return { ok: false, message: "Selecione o cliente." };
+
+    const { data: ja } = await supabase
+      .from("cliente_processo")
+      .select("id")
+      .eq("processo_id", processo_id)
+      .eq("cliente_id", cliente_id)
+      .maybeSingle();
+    if (ja) return { ok: false, message: "Esse cliente já está vinculado a este processo." };
+
+    const { error } = await supabase
+      .from("cliente_processo")
+      .insert({ processo_id, cliente_id, papel });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Cliente vinculado ao processo." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function desvincularClienteProcesso(processo_id: string, cliente_id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("cliente_processo")
+      .delete()
+      .eq("processo_id", processo_id)
+      .eq("cliente_id", cliente_id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Vínculo removido." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== EDIÇÃO de prazo / tarefa ==================== */
+
+export async function atualizarPrazo(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const ato = String(fd.get("ato") || "").trim();
+    const data_fatal = String(fd.get("data_fatal") || "");
+    if (!ato || !data_fatal) return { ok: false, message: "Ato e data fatal são obrigatórios." };
+    const patch: Record<string, unknown> = {
+      ato,
+      data_fatal,
+      data_interna: String(fd.get("data_interna") || "") || null,
+      responsavel: String(fd.get("responsavel") || "Daniel"),
+      tipo_contagem: String(fd.get("tipo_contagem") || "corridos"),
+    };
+    const { data: pr } = await supabase
+      .from("prazos")
+      .select("validado, calendar_event_id_fatal, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")
+      .eq("id", id)
+      .single();
+    const { error } = await supabase.from("prazos").update(patch).eq("id", id);
+    if (error) throw error;
+
+    let msg = "Prazo atualizado.";
+    // Se já validado, re-sincroniza o marcador fatal no Calendar.
+    if (pr?.validado) {
+      const fatalId = await confirmarPrazo(
+        { ato, dataFatal: data_fatal, dataInterna: (patch.data_interna as string | null) ?? null, ref: refProcesso(pr.processos) },
+        (pr.calendar_event_id_fatal as string | null) ?? null,
+      );
+      if (fatalId) {
+        await supabase.from("prazos").update({ calendar_event_id_fatal: fatalId }).eq("id", id);
+        msg += " Calendar atualizado.";
+      }
+    }
+    revalidarTudo();
+    return { ok: true, message: msg };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function atualizarTarefa(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const titulo = String(fd.get("titulo") || "").trim();
+    if (!titulo) return { ok: false, message: "Título é obrigatório." };
+    const patch: Record<string, unknown> = {
+      titulo,
+      descricao: String(fd.get("descricao") || "").trim() || null,
+      prioridade: String(fd.get("prioridade") || "media"),
+      responsavel: String(fd.get("responsavel") || "Daniel"),
+      data_limite: String(fd.get("data_limite") || "") || null,
+    };
+    const { error } = await supabase.from("tarefas").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Tarefa atualizada." };
   } catch (e) {
     return falha(e);
   }

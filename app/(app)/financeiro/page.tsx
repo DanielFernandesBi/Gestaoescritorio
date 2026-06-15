@@ -1,4 +1,4 @@
-import { getFinanceiro, getContratos, getDespesas, getClientes } from "@/lib/data";
+import { getFinanceiro, getContratos, getDespesas, getClientes, getFechamentoMensal } from "@/lib/data";
 import { Pill } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { Icon } from "@/components/Icon";
@@ -13,12 +13,15 @@ import { fmtBRL, fmtDate, humano } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function FinanceiroPage() {
-  const [{ parcelas, totalReceber, totalAtraso }, contratos, despesas, clientes] = await Promise.all([
+  const ym = new Date().toISOString().slice(0, 7);
+  const [{ parcelas, totalReceber, totalAtraso }, contratos, despesas, clientes, fechamento] = await Promise.all([
     getFinanceiro(),
     getContratos(),
     getDespesas(),
     getClientes(),
+    getFechamentoMensal(ym),
   ]);
+  const mesLabel = new Date(`${ym}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const totalRecebido = contratos.reduce((s, c) => s + c.total_pago, 0);
   const contratosVigentes = contratos.filter((c) => c.status === "vigente").length;
   const despesasAbertas = despesas.filter((d) => d.reembolsavel && !d.reembolsada);
@@ -80,6 +83,18 @@ export default async function FinanceiroPage() {
         <div className="kpi red"><div className="accent" /><div className="label">Em atraso</div><div className="val" style={{ fontSize: 23 }}>{fmtBRL(totalAtraso)}</div><div className="meta">cobrança prioritária</div></div>
         <div className="kpi"><div className="label">Recebido (acumulado)</div><div className="val" style={{ fontSize: 23 }}>{fmtBRL(totalRecebido)}</div><div className="meta">parcelas pagas</div></div>
         <div className="kpi brass"><div className="accent" /><div className="label">Contratos vigentes</div><div className="val">{contratosVigentes}</div><div className="meta">{contratos.length} no total</div></div>
+      </div>
+
+      <div className="card section-gap">
+        <div className="card-h"><h3><Icon name="wallet" /> Fechamento de {mesLabel}</h3></div>
+        <div className="card-b">
+          <div className="kpis" style={{ gridTemplateColumns: "repeat(4,1fr)", margin: 0 }}>
+            <div className="kpi green"><div className="accent" /><div className="label">Recebido no mês</div><div className="val" style={{ fontSize: 22 }}>{fmtBRL(fechamento.recebido)}</div><div className="meta">{fechamento.qtdPagas} parcelas pagas</div></div>
+            <div className="kpi brass"><div className="accent" /><div className="label">Sócio (50%)</div><div className="val" style={{ fontSize: 22 }}>{fmtBRL(fechamento.socio)}</div><div className="meta">rateio do recebido</div></div>
+            <div className="kpi amber"><div className="accent" /><div className="label">A receber no mês</div><div className="val" style={{ fontSize: 22 }}>{fmtBRL(fechamento.aReceber)}</div><div className="meta">{fmtBRL(fechamento.emAtraso)} em atraso</div></div>
+            <div className="kpi"><div className="label">Despesas no mês</div><div className="val" style={{ fontSize: 22 }}>{fmtBRL(fechamento.despesas)}</div><div className="meta">líquido sócio: {fmtBRL(fechamento.socio - fechamento.despesas / 2)}</div></div>
+          </div>
+        </div>
       </div>
 
       <h3 className="section-gap" style={{ marginBottom: 12 }}>Contratos</h3>

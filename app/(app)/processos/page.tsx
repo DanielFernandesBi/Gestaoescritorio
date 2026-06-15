@@ -4,17 +4,19 @@ import { ProcessosList } from "@/components/modules/ProcessosList";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
 import { criarProcesso } from "@/app/actions";
-import { PROCESSO_INSTANCIA, PROCESSO_AREA, RESPONSAVEIS } from "@/lib/enums";
+import { getClientes } from "@/lib/data";
+import { PROCESSO_INSTANCIA, PROCESSO_AREA, RESPONSAVEIS, PAPEL } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProcessosPage() {
   const supabase = await createClient();
-  const [processos, ativos, semCnj, sigilosos] = await Promise.all([
+  const [processos, ativos, semCnj, sigilosos, clientes] = await Promise.all([
     getProcessos(400),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("processos").select("*", { count: "exact", head: true }).is("numero_cnj", null),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("segredo_justica", true),
+    getClientes(),
   ]);
 
   const totalAtivos = ativos.count ?? 0;
@@ -46,6 +48,16 @@ export default async function ProcessosPage() {
             <div><label>Classe</label><input name="classe" placeholder="Ação Penal, HC…" /></div>
             <div><label>Responsável</label><select name="responsavel" defaultValue="Daniel">{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
           </div>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+            <div><label>Cliente (vincular existente)</label>
+              <select name="cliente_id" defaultValue="">
+                <option value="">— sem vínculo —</option>
+                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </div>
+            <div><label>Papel</label><select name="papel" defaultValue="reu">{PAPEL.map((p) => <option key={p} value={p}>{p}</option>)}</select></div>
+          </div>
+          <div><label>…ou criar novo cliente (nome)</label><input name="novo_cliente_nome" placeholder="Preencha só se o cliente ainda não existe" /></div>
           <label style={{ display: "flex", alignItems: "center", gap: 8, textTransform: "none", letterSpacing: 0 }}>
             <input type="checkbox" name="segredo_justica" style={{ width: "auto" }} /> Segredo de justiça
           </label>

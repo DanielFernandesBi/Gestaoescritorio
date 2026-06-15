@@ -6,7 +6,9 @@ import { DiasBox, ProcRef, SegredoTag, Gate } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { Icon } from "@/components/Icon";
 import { Acao } from "@/components/Acao";
-import { validarPrazo, baixarPrazo, cancelarPrazo } from "@/app/actions";
+import { FormModal } from "@/components/FormModal";
+import { validarPrazo, baixarPrazo, cancelarPrazo, atualizarPrazo } from "@/app/actions";
+import { TIPO_CONTAGEM, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { Prazo } from "@/lib/data";
 
@@ -60,6 +62,17 @@ function corpo(p: Prazo) {
       <div className="dsec">
         <h4>Ações</h4>
         <div className="acoes">
+          <FormModal label="Editar prazo" titulo="Editar prazo" acao={atualizarPrazo.bind(null, p.id)} enviarLabel="Salvar" variant="default">
+            <div><label>Ato</label><input name="ato" required defaultValue={p.ato} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Data fatal</label><input type="date" name="data_fatal" required defaultValue={p.data_fatal?.slice(0, 10)} /></div>
+              <div><label>Data interna</label><input type="date" name="data_interna" defaultValue={p.data_interna?.slice(0, 10) ?? ""} /></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Contagem</label><select name="tipo_contagem" defaultValue={p.tipo_contagem ?? "corridos"}>{TIPO_CONTAGEM.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div><label>Responsável</label><select name="responsavel" defaultValue={p.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+            </div>
+          </FormModal>
           {!p.validado && (
             <Acao
               label="Validar"

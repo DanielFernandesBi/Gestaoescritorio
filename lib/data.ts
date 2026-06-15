@@ -474,6 +474,96 @@ export async function getDespesas(): Promise<Despesa[]> {
   });
 }
 
+/* Inteligência: processos sem movimentação + presos ---------------------- */
+
+export type ProcessoParado = {
+  processo_id: string;
+  numero_cnj: string | null;
+  numero_registro_tribunal: string | null;
+  tribunal: string | null;
+  vara_comarca: string | null;
+  uf: string | null;
+  area: string | null;
+  status: string;
+  responsavel: string | null;
+  segredo_justica: boolean;
+  ultima_movimentacao: string;
+  dias_parado: number;
+  clientes: string | null;
+  tem_preso: boolean;
+};
+
+export async function getProcessosParados(diasMin = 15): Promise<ProcessoParado[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_processos_movimentacao")
+    .select("*")
+    .gte("dias_parado", diasMin)
+    .order("dias_parado", { ascending: false })
+    .limit(400);
+  return (data ?? []) as ProcessoParado[];
+}
+
+export type ClientePreso = {
+  cliente_id: string;
+  nome: string;
+  situacao_prisional: string;
+  total_processos: number;
+  processos_ativos: number;
+  prazos_abertos: number;
+  audiencias_futuras: number;
+};
+
+export async function getClientesPresos(): Promise<ClientePreso[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_situacao_cliente")
+    .select("cliente_id, nome, situacao_prisional, total_processos, processos_ativos, prazos_abertos, audiencias_futuras")
+    .in("situacao_prisional", ["preso_provisorio", "preso_definitivo"])
+    .order("nome", { ascending: true });
+  return (data ?? []) as ClientePreso[];
+}
+
+/* Fechamento financeiro mensal ------------------------------------------- */
+
+export type Fechamento = {
+  ym: string;
+  recebido: number;
+  socio: number;
+  aReceber: number;
+  emAtraso: number;
+  despesas: number;
+  qtdPagas: number;
+};
+
+export async function getFechamentoMensal(ym: string): Promise<Fechamento> {
+  const supabase = await createClient();
+  const ini = `${ym}-01`;
+  const [ano, mes] = ym.split("-").map(Number);
+  const fim = new Date(ano, mes, 0).toISOString().slice(0, 10); // último dia do mês
+
+  const [pagas, abertas, desp] = await Promise.all([
+    supabase.from("pagamentos").select("valor, valor_pago").eq("status", "pago").gte("pago_em", ini).lte("pago_em", fim),
+    supabase.from("pagamentos").select("valor, status").in("status", ["a_vencer", "atrasado"]).gte("vencimento", ini).lte("vencimento", fim),
+    supabase.from("despesas").select("valor").gte("data", ini).lte("data", fim),
+  ]);
+
+  const recebido = (pagas.data ?? []).reduce((s, p) => s + Number(p.valor_pago ?? p.valor ?? 0), 0);
+  const aReceber = (abertas.data ?? []).reduce((s, p) => s + Number(p.valor ?? 0), 0);
+  const emAtraso = (abertas.data ?? []).filter((p) => p.status === "atrasado").reduce((s, p) => s + Number(p.valor ?? 0), 0);
+  const despesas = (desp.data ?? []).reduce((s, d) => s + Number(d.valor ?? 0), 0);
+
+  return {
+    ym,
+    recebido,
+    socio: recebido / 2,
+    aReceber,
+    emAtraso,
+    despesas,
+    qtdPagas: (pagas.data ?? []).length,
+  };
+}
+
 /* Andamentos ------------------------------------------------------------- */
 
 export type Movimentacao = {
