@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getExecucaoCliente } from "@/lib/data";
 
 /** Detalhe cruzado de um cliente: processos, prazos abertos e audiências futuras. */
 export async function GET(
@@ -58,10 +59,13 @@ export async function GET(
       ])
     : [{ data: [] }, { data: [] }];
 
+  const execucao = await getExecucaoCliente(id);
+
   return NextResponse.json({
     cliente: completo ?? null,
     processos,
     prazos: prazos.data ?? [],
     audiencias: audiencias.data ?? [],
+    execucao,
   });
 }

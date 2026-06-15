@@ -1004,3 +1004,153 @@ export async function getEstudosDoProcesso(processo_id: string): Promise<
     };
   });
 }
+
+/* Execução penal (aba Execução na ficha do cliente) ---------------------- */
+
+export type ExecSituacao = {
+  data_atestado: string | null;
+  regime_atual: string | null;
+  pena_total_texto: string | null;
+  pena_cumprida_texto: string | null;
+  pena_remanescente_texto: string | null;
+  dias_remidos: number | null;
+  dias_perdidos: number | null;
+  data_prevista_progressao: string | null;
+  dias_para_progressao: number | null;
+  data_prevista_livramento: string | null;
+  dias_para_livramento: number | null;
+  data_termino_pena: string | null;
+  processo_id: string | null;
+  segredo: boolean;
+  progresso: number | null; // % pena cumprida sobre total (0-100)
+};
+
+export type ExecAtestado = {
+  id: string;
+  data_atestado: string | null;
+  fonte: string | null;
+  regime_atual: string | null;
+  pena_cumprida_texto: string | null;
+  pena_remanescente_texto: string | null;
+  dias_remidos: number | null;
+  dias_perdidos: number | null;
+  data_prevista_progressao: string | null;
+  data_prevista_livramento: string | null;
+  data_termino_pena: string | null;
+  drive_file_id: string | null;
+  observacoes: string | null;
+};
+
+export type ExecCondenacao = {
+  numero_processo_origem: string | null;
+  juizo_vara: string | null;
+  uf: string | null;
+  artigo: string | null;
+  lei: string | null;
+  pena_texto: string | null;
+  regime_imposto: string | null;
+  fracao_progressao: string | null;
+  fracao_livramento: string | null;
+  hediondo: boolean;
+  reincidente: boolean;
+  situacao: string | null;
+  processo_origem_id: string | null;
+};
+
+export type ExecEstrategia = {
+  estudo_id: string;
+  titulo: string;
+  tipo: string | null;
+  estudo_status: string;
+  objetivos_planejados: number;
+  objetivos_em_curso: number;
+  objetivos_atingidos: number;
+  objetivos_frustrados: number;
+  proximo_marco: string | null;
+};
+
+export type ExecObjetivo = {
+  objetivo_id: string;
+  objetivo: string;
+  beneficio_alvo: string | null;
+  status: string;
+  data_alvo: string | null;
+  resultado: string | null;
+  alvo_cnj: string | null;
+  instrumento_cnj: string | null;
+  instrumento_area: string | null;
+  instrumento_instancia: string | null;
+};
+
+export type ExecucaoCliente = {
+  temDados: boolean;
+  situacao: ExecSituacao | null;
+  atestados: ExecAtestado[];
+  condenacoes: ExecCondenacao[];
+  estrategia: ExecEstrategia[];
+  objetivos: ExecObjetivo[];
+};
+
+export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCliente> {
+  const supabase = await createClient();
+  const [sit, atest, cond, estr, obj] = await Promise.all([
+    supabase.from("vw_situacao_executoria_atual").select("*").eq("cliente_id", cliente_id).maybeSingle(),
+    supabase
+      .from("situacao_executoria")
+      .select("id, data_atestado, fonte, regime_atual, pena_total_dias, pena_cumprida_dias, pena_cumprida_texto, pena_remanescente_texto, dias_remidos, dias_perdidos, data_prevista_progressao, data_prevista_livramento, data_termino_pena, drive_file_id, observacoes")
+      .eq("cliente_id", cliente_id)
+      .order("data_atestado", { ascending: false })
+      .limit(60),
+    supabase.from("vw_condenacoes_cliente").select("*").eq("cliente_id", cliente_id),
+    supabase.from("vw_estrategia_cliente").select("*").eq("cliente_id", cliente_id),
+    supabase.from("vw_objetivos_instrumento").select("*").eq("cliente_id", cliente_id),
+  ]);
+
+  let segredo = false;
+  const sitRow = sit.data as Record<string, unknown> | null;
+  if (sitRow?.processo_id) {
+    const { data: p } = await supabase.from("processos").select("segredo_justica").eq("id", sitRow.processo_id as string).maybeSingle();
+    segredo = Boolean(p?.segredo_justica);
+  }
+
+  const atestadosRaw = (atest.data ?? []) as (ExecAtestado & { pena_total_dias?: number | null; pena_cumprida_dias?: number | null })[];
+  // O atestado mais recente equivale à situação atual da view; usa-o para a barra de progresso.
+  const atual = atestadosRaw[0];
+  const total = atual?.pena_total_dias ?? null;
+  const cumprida = atual?.pena_cumprida_dias ?? null;
+  const progresso = total && total > 0 && cumprida != null ? Math.min(100, Math.round((cumprida / total) * 100)) : null;
+
+  const situacao: ExecSituacao | null = sitRow
+    ? {
+        data_atestado: sitRow.data_atestado as string | null,
+        regime_atual: sitRow.regime_atual as string | null,
+        pena_total_texto: sitRow.pena_total_texto as string | null,
+        pena_cumprida_texto: sitRow.pena_cumprida_texto as string | null,
+        pena_remanescente_texto: sitRow.pena_remanescente_texto as string | null,
+        dias_remidos: sitRow.dias_remidos as number | null,
+        dias_perdidos: sitRow.dias_perdidos as number | null,
+        data_prevista_progressao: sitRow.data_prevista_progressao as string | null,
+        dias_para_progressao: sitRow.dias_para_progressao as number | null,
+        data_prevista_livramento: sitRow.data_prevista_livramento as string | null,
+        dias_para_livramento: sitRow.dias_para_livramento as number | null,
+        data_termino_pena: sitRow.data_termino_pena as string | null,
+        processo_id: sitRow.processo_id as string | null,
+        segredo,
+        progresso,
+      }
+    : null;
+
+  const atestados = atestadosRaw as ExecAtestado[];
+  const condenacoes = (cond.data ?? []) as unknown as ExecCondenacao[];
+  const estrategia = (estr.data ?? []) as unknown as ExecEstrategia[];
+  const objetivos = (obj.data ?? []) as unknown as ExecObjetivo[];
+
+  return {
+    temDados: Boolean(situacao) || atestados.length > 0 || condenacoes.length > 0 || estrategia.length > 0 || objetivos.length > 0,
+    situacao,
+    atestados,
+    condenacoes,
+    estrategia,
+    objetivos,
+  };
+}

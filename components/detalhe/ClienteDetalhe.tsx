@@ -5,10 +5,11 @@ import { DiasBox, ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
+import { ExecucaoCliente } from "@/components/detalhe/ExecucaoCliente";
 import { atualizarCliente, desativarCliente } from "@/app/actions";
 import { SITUACAO_PRISIONAL } from "@/lib/enums";
 import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
-import type { Cliente } from "@/lib/data";
+import type { Cliente, ExecucaoCliente as TExec } from "@/lib/data";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -28,6 +29,7 @@ type Rel = {
   processos: ProcRow[];
   prazos: { id: string; ato: string; data_fatal: string; validado: boolean }[];
   audiencias: { id: string; tipo: string; data_hora: string; modalidade: string | null }[];
+  execucao?: TExec;
 };
 
 const SIT_LBL: Record<string, string> = {
@@ -67,6 +69,8 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
           <div className="field"><div className="k">Unidade prisional</div><div className="v">{cliente.unidade_prisional ?? "—"}</div></div>
         </div>
       </div>
+
+      {rel?.execucao?.temDados && <ExecucaoCliente exec={rel.execucao} />}
 
       {rel?.cliente && (
         <div className="dsec">
