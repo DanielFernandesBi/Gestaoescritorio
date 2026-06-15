@@ -2,6 +2,7 @@ import { buscaGlobal } from "@/lib/data";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { DrawerRow } from "@/components/DrawerRow";
 import { ProcessoDetalhe } from "@/components/detalhe/ProcessoDetalhe";
+import { ClienteDetalhe } from "@/components/detalhe/ClienteDetalhe";
 import { Icon } from "@/components/Icon";
 import { fmtDate, humano } from "@/lib/format";
 
@@ -49,13 +50,28 @@ export default async function BuscaPage({
                 {clientes.map((c) => (
                   <DrawerRow
                     key={c.id}
-                    title={<h2>{c.nome}</h2>}
+                    title={
+                      <>
+                        <h2>{c.nome}</h2>
+                        <div style={{ marginTop: 8 }}><Pill tone="gray">{humano(c.situacao_prisional)}</Pill></div>
+                      </>
+                    }
                     body={
-                      <div className="dsec"><h4>Ficha</h4><div className="dgrid">
-                        <div className="field"><div className="k">CPF</div><div className="v mono">{c.cpf ?? "—"}</div></div>
-                        <div className="field"><div className="k">UF</div><div className="v">{c.uf ?? "—"}</div></div>
-                        <div className="field"><div className="k">Situação prisional</div><div className="v">{humano(c.situacao_prisional)}</div></div>
-                      </div></div>
+                      <ClienteDetalhe
+                        cliente={{
+                          id: c.id,
+                          nome: c.nome,
+                          cpf: c.cpf,
+                          uf: c.uf,
+                          situacao_prisional: c.situacao_prisional,
+                          unidade_prisional: c.unidade_prisional,
+                          cadastro_automatico: false,
+                          total_processos: 0,
+                          processos_ativos: 0,
+                          prazos_abertos: 0,
+                          audiencias_futuras: 0,
+                        }}
+                      />
                     }
                   >
                     <td className="name">{c.nome}</td>

@@ -703,7 +703,7 @@ export async function getEstruturaBanco(): Promise<
 /* Busca global ----------------------------------------------------------- */
 
 export type ResultadosBusca = {
-  clientes: { id: string; nome: string; cpf: string | null; uf: string | null; situacao_prisional: string | null }[];
+  clientes: { id: string; nome: string; cpf: string | null; uf: string | null; situacao_prisional: string | null; unidade_prisional: string | null }[];
   processos: Processo[];
   intimacoes: Intimacao[];
 };
@@ -718,7 +718,7 @@ export async function buscaGlobal(termoRaw: string): Promise<ResultadosBusca> {
   const [cli, proc, intim] = await Promise.all([
     supabase
       .from("clientes")
-      .select("id, nome, cpf, uf, situacao_prisional")
+      .select("id, nome, cpf, uf, situacao_prisional, unidade_prisional")
       .ilike("nome", like)
       .order("nome", { ascending: true })
       .limit(25),

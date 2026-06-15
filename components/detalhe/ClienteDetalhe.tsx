@@ -32,6 +32,11 @@ type Rel = {
   execucao?: TExec;
 };
 
+// Situações em que a aba de execução penal é relevante (mesmo sem atestado ainda).
+const CUSTODIA = new Set([
+  "preso_provisorio", "preso_definitivo", "regime_semiaberto", "regime_aberto", "monitoramento", "foragido",
+]);
+
 const SIT_LBL: Record<string, string> = {
   solto: "Solto",
   preso_provisorio: "Preso provisório",
@@ -70,7 +75,9 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
         </div>
       </div>
 
-      {rel?.execucao?.temDados && <ExecucaoCliente exec={rel.execucao} />}
+      {rel?.execucao && (rel.execucao.temDados || CUSTODIA.has(cliente.situacao_prisional ?? "")) && (
+        <ExecucaoCliente exec={rel.execucao} />
+      )}
 
       {rel?.cliente && (
         <div className="dsec">
