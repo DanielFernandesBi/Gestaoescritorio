@@ -108,7 +108,7 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
       </div>
 
       {rel?.execucao && (rel.execucao.temDados || CUSTODIA.has(cliente.situacao_prisional ?? "")) && (
-        <ExecucaoCliente exec={rel.execucao} />
+        <ExecucaoCliente exec={rel.execucao} clienteId={cliente.id} situacaoAtual={cliente.situacao_prisional} />
       )}
 
       {rel?.cliente && (

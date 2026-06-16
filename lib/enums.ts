@@ -63,6 +63,15 @@ export const DOCUMENTO_TIPO = [
   "contrato", "procuracao", "documento_pessoal", "bruto", "outro",
 ] as const;
 
+// Execução penal — atestado de pena (cadastro do SEEU). Campos sem CHECK no banco;
+// padronizados aqui para casar com os rótulos da aba Execução.
+export const REGIME_EXEC = ["fechado", "semiaberto", "aberto", "livramento"] as const;
+export const REGIME_IMPOSTO = ["fechado", "semiaberto", "aberto"] as const;
+export const CONDENACAO_SITUACAO = ["ativa", "extinta", "suspensa"] as const;
+export const BENEFICIO_ALVO = [
+  "progressao", "livramento", "comutacao", "unificacao", "reducao_pena", "absolvicao",
+] as const;
+
 // Estudos de caso (estratégia por cliente/execução)
 export const ESTUDO_STATUS = ["em_elaboracao", "concluido", "aplicado", "superado"] as const;
 export const ESTUDO_TIPO = ["geral", "execucao_global", "recurso", "defesa", "revisional"] as const;

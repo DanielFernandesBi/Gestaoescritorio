@@ -18,7 +18,7 @@ import {
   CONTRATO_STATUS,
   DOCUMENTO_TIPO,
 } from "@/lib/enums";
-import { soDigitos } from "@/lib/format";
+import { soDigitos, humano, fmtDate } from "@/lib/format";
 
 export type Resultado = { ok: boolean; message: string };
 
@@ -1383,6 +1383,208 @@ export async function criarDocumento(fd: FormData): Promise<Resultado> {
     }
     revalidarTudo();
     return { ok: true, message: "Documento registrado no acervo." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== EXECUÇÃO PENAL — ATESTADO DE PENA ==================== */
+
+export type CondenacaoInput = {
+  numero_processo_origem: string;
+  juizo_vara: string;
+  uf: string;
+  artigo: string;
+  lei: string;
+  descricao_crime: string;
+  pena_texto: string;
+  regime_imposto: string;
+  fracao_progressao: string;
+  fracao_livramento: string;
+  hediondo: boolean;
+  reincidente: boolean;
+  situacao: string;
+};
+
+export type AtestadoInput = {
+  cliente_id: string;
+  data_atestado: string;
+  fonte: string;
+  regime_atual: string;
+  pena_total_texto: string;
+  pena_total_dias: string;
+  pena_cumprida_texto: string;
+  pena_cumprida_dias: string;
+  pena_remanescente_texto: string;
+  dias_remidos: string;
+  dias_perdidos: string;
+  total_interrupcoes_texto: string;
+  data_base_progressao: string;
+  data_prevista_progressao: string;
+  data_base_livramento: string;
+  data_prevista_livramento: string;
+  data_termino_pena: string;
+  drive_file_id: string;
+  observacoes: string;
+  condenacoes: CondenacaoInput[];
+};
+
+function strOrNull(v: string | undefined | null): string | null {
+  const s = (v ?? "").trim();
+  return s === "" ? null : s;
+}
+function intOrNull(v: string | undefined | null): number | null {
+  const s = (v ?? "").trim();
+  if (!s) return null;
+  const n = Number(s.replace(",", "."));
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+}
+// Regime do atestado → situacao_prisional do cadastro (mapa do manual).
+function regimeParaSituacao(r: string | null): string | null {
+  switch (r) {
+    case "fechado": return "preso_definitivo";
+    case "semiaberto": return "regime_semiaberto";
+    case "aberto": return "regime_aberto";
+    case "livramento": return "solto";
+    default: return null;
+  }
+}
+
+/**
+ * Cadastro de atestado de pena (regime chat, fluxo do manual). Grava UM snapshot
+ * em situacao_executoria (nunca edita o anterior) + N condenações; semeia objetivos
+ * de progressão/livramento se o cliente já tiver estudo; e atualiza a situação
+ * prisional conforme o regime — SEM sobrescrever divergência (abre tarefa). A
+ * confirmação (resumo) acontece na UI antes de chamar esta action.
+ */
+export async function criarAtestado(input: AtestadoInput): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const cliente_id = (input.cliente_id || "").trim();
+    const data_atestado = (input.data_atestado || "").trim();
+    if (!cliente_id) return { ok: false, message: "Cliente inválido." };
+    if (!data_atestado) return { ok: false, message: "Informe a data do atestado." };
+    const fonte = strOrNull(input.fonte) ?? "seeu";
+    const regime_atual = strOrNull(input.regime_atual);
+
+    // 1) Snapshot do atestado (nunca sobrescreve um anterior).
+    const { error: sitErr } = await supabase.from("situacao_executoria").insert({
+      cliente_id,
+      data_atestado,
+      fonte,
+      regime_atual,
+      pena_total_texto: strOrNull(input.pena_total_texto),
+      pena_total_dias: intOrNull(input.pena_total_dias),
+      pena_cumprida_texto: strOrNull(input.pena_cumprida_texto),
+      pena_cumprida_dias: intOrNull(input.pena_cumprida_dias),
+      pena_remanescente_texto: strOrNull(input.pena_remanescente_texto),
+      dias_remidos: intOrNull(input.dias_remidos) ?? 0,
+      dias_perdidos: intOrNull(input.dias_perdidos) ?? 0,
+      total_interrupcoes_texto: strOrNull(input.total_interrupcoes_texto),
+      data_base_progressao: strOrNull(input.data_base_progressao),
+      data_prevista_progressao: strOrNull(input.data_prevista_progressao),
+      data_base_livramento: strOrNull(input.data_base_livramento),
+      data_prevista_livramento: strOrNull(input.data_prevista_livramento),
+      data_termino_pena: strOrNull(input.data_termino_pena),
+      drive_file_id: strOrNull(input.drive_file_id),
+      observacoes: strOrNull(input.observacoes),
+      cadastrado_por: "manual",
+      cadastro_automatico: false,
+    });
+    if (sitErr) {
+      if ((sitErr as { code?: string }).code === "23505") {
+        return { ok: false, message: `Já existe um atestado de ${fmtDate(data_atestado)} (fonte ${fonte}). Cada atestado é um snapshot novo — use outra data/fonte; nunca edite o anterior.` };
+      }
+      throw sitErr;
+    }
+
+    const partes: string[] = ["Atestado registrado (snapshot novo)."];
+
+    // 2) Condenações (dedup individual por cliente+nº processo de origem).
+    const conds = (input.condenacoes ?? []).filter((c) =>
+      [c.numero_processo_origem, c.artigo, c.lei, c.descricao_crime, c.pena_texto].some((x) => (x ?? "").trim()),
+    );
+    let inseridas = 0;
+    let puladas = 0;
+    for (const c of conds) {
+      const { error: cErr } = await supabase.from("condenacoes").insert({
+        cliente_id,
+        numero_processo_origem: strOrNull(c.numero_processo_origem),
+        juizo_vara: strOrNull(c.juizo_vara),
+        uf: strOrNull(c.uf),
+        artigo: strOrNull(c.artigo),
+        lei: strOrNull(c.lei),
+        descricao_crime: strOrNull(c.descricao_crime),
+        pena_texto: strOrNull(c.pena_texto),
+        regime_imposto: strOrNull(c.regime_imposto),
+        fracao_progressao: strOrNull(c.fracao_progressao),
+        fracao_livramento: strOrNull(c.fracao_livramento),
+        hediondo: Boolean(c.hediondo),
+        reincidente: Boolean(c.reincidente),
+        situacao: strOrNull(c.situacao) ?? "ativa",
+        cadastrado_por: "manual",
+        cadastro_automatico: false,
+      });
+      if (cErr) {
+        if ((cErr as { code?: string }).code === "23505") { puladas++; continue; }
+        throw cErr;
+      }
+      inseridas++;
+    }
+    if (conds.length) {
+      partes.push(`${inseridas} condenação(ões) gravada(s)${puladas ? `, ${puladas} já existente(s) ignorada(s)` : ""}.`);
+    }
+
+    // 3) Semear objetivos (progressão/livramento) se o cliente já tiver estudo.
+    const { data: estudos } = await supabase
+      .from("estudos_caso")
+      .select("id, tipo, atualizado_em")
+      .eq("cliente_id", cliente_id)
+      .order("atualizado_em", { ascending: false });
+    const estudo = (estudos ?? []).find((e) => e.tipo === "execucao_global") ?? (estudos ?? [])[0];
+    if (estudo) {
+      const { data: existentes } = await supabase
+        .from("estudo_objetivos")
+        .select("beneficio_alvo")
+        .eq("estudo_id", estudo.id);
+      const jaTem = new Set((existentes ?? []).map((o) => o.beneficio_alvo as string));
+      const dProg = strOrNull(input.data_prevista_progressao);
+      const dLivr = strOrNull(input.data_prevista_livramento);
+      const semear: { estudo_id: string; objetivo: string; beneficio_alvo: string; data_alvo: string; status: string }[] = [];
+      if (dProg && !jaTem.has("progressao")) semear.push({ estudo_id: estudo.id as string, objetivo: "Progressão de regime", beneficio_alvo: "progressao", data_alvo: dProg, status: "planejado" });
+      if (dLivr && !jaTem.has("livramento")) semear.push({ estudo_id: estudo.id as string, objetivo: "Livramento condicional", beneficio_alvo: "livramento", data_alvo: dLivr, status: "planejado" });
+      if (semear.length) {
+        const { error: oErr } = await supabase.from("estudo_objetivos").insert(semear);
+        if (!oErr) partes.push(`${semear.length} objetivo(s) semeado(s) no estudo (${semear.map((s) => s.beneficio_alvo).join("/")}).`);
+      }
+    }
+
+    // 4) Situação prisional conforme o regime — sem sobrescrever divergência.
+    const mapped = regimeParaSituacao(regime_atual);
+    if (mapped) {
+      const { data: cli } = await supabase.from("clientes").select("situacao_prisional").eq("id", cliente_id).single();
+      const atual = (cli?.situacao_prisional as string | null) ?? null;
+      if (mapped === atual) {
+        // já condizente — nada a fazer.
+      } else if (!atual || atual === "solto") {
+        await supabase.from("clientes").update({ situacao_prisional: mapped }).eq("id", cliente_id);
+        partes.push(`Situação prisional atualizada para "${humano(mapped)}".`);
+      } else {
+        await supabase.from("tarefas").insert({
+          titulo: `Conferir situação prisional (atestado ${fmtDate(data_atestado)})`,
+          descricao: `O atestado indica regime "${regime_atual}" → situação "${mapped}", mas o cadastro está como "${atual}". Conferir e ajustar manualmente — não sobrescrevemos automaticamente (doutrina do manual).`,
+          cliente_id,
+          prioridade: "alta",
+          responsavel: "Daniel",
+          status: "pendente",
+        });
+        partes.push(`Divergência de situação prisional (cadastro "${humano(atual)}" × atestado "${humano(mapped)}") — tarefa de conferência criada.`);
+      }
+    }
+
+    revalidarTudo();
+    return { ok: true, message: partes.join(" ") };
   } catch (e) {
     return falha(e);
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Pill, SegredoTag } from "@/components/ui";
+import { AtestadoForm } from "@/components/detalhe/AtestadoForm";
 import { fmtDate, humano } from "@/lib/format";
 import type { ExecucaoCliente as TExec } from "@/lib/data";
 
@@ -28,18 +29,20 @@ function Counter({ label, dias, data }: { label: string; dias: number | null; da
 const objTone = (s: string) =>
   s === "atingido" ? "green" : s === "em_curso" ? "blue" : s === "frustrado" ? "red" : s === "prejudicado" ? "gray" : "amber";
 
-export function ExecucaoCliente({ exec }: { exec: TExec }) {
+export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExec; clienteId: string; situacaoAtual: string | null }) {
   if (!exec.temDados) {
     return (
       <div className="dsec">
         <h4>Execução penal</h4>
-        <div className="banner" style={{ margin: 0 }}>
+        <div className="banner" style={{ margin: "0 0 12px" }}>
           <span className="ico">⚖</span>
           <div>
             Ainda não há atestado de execução, condenações ou estudo estratégico para este cliente.
-            Esses dados são alimentados pelo fluxo de chat/cowork (envio do atestado em PDF, cadastro de
-            condenações) e aparecem aqui automaticamente.
+            Lance o atestado do SEEU abaixo (ou aguarde o fluxo de chat/cowork) — os dados aparecem aqui automaticamente.
           </div>
+        </div>
+        <div className="acoes">
+          <AtestadoForm clienteId={clienteId} situacaoAtual={situacaoAtual} />
         </div>
       </div>
     );
@@ -49,6 +52,12 @@ export function ExecucaoCliente({ exec }: { exec: TExec }) {
 
   return (
     <>
+      <div className="dsec">
+        <div className="acoes">
+          <AtestadoForm clienteId={clienteId} situacaoAtual={situacaoAtual} />
+        </div>
+      </div>
+
       {s && (
         <div className="dsec">
           <h4>Situação atual {s.data_atestado && <span style={{ color: "var(--muted)", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>· atestado de {fmtDate(s.data_atestado)}</span>}</h4>
