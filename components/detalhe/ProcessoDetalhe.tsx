@@ -5,13 +5,14 @@ import { DiasBox, Pill, Gate } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
+import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
 import { criarAndamento, criarPrazo, atualizarProcesso, arquivarProcesso, vincularClienteProcesso } from "@/app/actions";
 import {
   ANDAMENTO_TIPO, ANDAMENTO_ORIGEM, TIPO_CONTAGEM, RESPONSAVEIS,
   PROCESSO_INSTANCIA, PROCESSO_AREA, PROCESSO_STATUS, PAPEL,
 } from "@/lib/enums";
 import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
-import type { Processo } from "@/lib/data";
+import type { Processo, Documento } from "@/lib/data";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type ProcRecord = Record<string, any>;
@@ -23,6 +24,7 @@ type Rel = {
   intimacoes: { id: string; resumo: string | null; origem: string | null; status: string; data_publicacao: string | null }[];
   andamentos: { id: string; data: string; tipo: string; descricao: string; origem: string | null }[];
   estudos?: { estudo_id: string; titulo: string; status: string; cliente: string | null; diagnostico: string | null; estrategia: string | null; prioridade: string | null }[];
+  documentos?: Documento[];
 };
 
 export function ProcessoDetalhe({ proc }: { proc: Processo }) {
@@ -249,6 +251,12 @@ export function ProcessoDetalhe({ proc }: { proc: Processo }) {
               </div>
             </div>
           )}
+
+          <DocumentosCaso
+            documentos={rel.documentos ?? []}
+            vinculo={{ campo: "processo_id", id: proc.id }}
+            segredo={proc.segredo}
+          />
 
           <div className="dsec">
             <h4>Histórico (auditoria)</h4>

@@ -6,10 +6,11 @@ import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
 import { ExecucaoCliente } from "@/components/detalhe/ExecucaoCliente";
+import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
 import { atualizarCliente, desativarCliente } from "@/app/actions";
 import { SITUACAO_PRISIONAL } from "@/lib/enums";
 import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
-import type { Cliente, ExecucaoCliente as TExec } from "@/lib/data";
+import type { Cliente, ExecucaoCliente as TExec, Documento } from "@/lib/data";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -30,6 +31,7 @@ type Rel = {
   prazos: { id: string; ato: string; data_fatal: string; validado: boolean }[];
   audiencias: { id: string; tipo: string; data_hora: string; modalidade: string | null }[];
   execucao?: TExec;
+  documentos?: Documento[];
 };
 
 // Situações em que a aba de execução penal é relevante (mesmo sem atestado ainda).
@@ -212,6 +214,11 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
               </div>
             </div>
           )}
+
+          <DocumentosCaso
+            documentos={rel.documentos ?? []}
+            vinculo={{ campo: "cliente_id", id: cliente.id }}
+          />
 
           <div className="dsec">
             <h4>Histórico (auditoria)</h4>

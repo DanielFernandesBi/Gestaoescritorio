@@ -57,6 +57,12 @@ export const DESPESA_CATEGORIA = [
 ] as const;
 export const SUGESTAO_STATUS = ["pendente", "aprovada", "executada", "rejeitada"] as const;
 
+// Documentos (acervo do Drive ligado ao caso) — espelha o CHECK do banco.
+export const DOCUMENTO_TIPO = [
+  "peca", "pedido", "resultado", "nota", "decisao", "atestado",
+  "contrato", "procuracao", "documento_pessoal", "bruto", "outro",
+] as const;
+
 // Estudos de caso (estratégia por cliente/execução)
 export const ESTUDO_STATUS = ["em_elaboracao", "concluido", "aplicado", "superado"] as const;
 export const ESTUDO_TIPO = ["geral", "execucao_global", "recurso", "defesa", "revisional"] as const;

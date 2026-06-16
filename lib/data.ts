@@ -1224,6 +1224,74 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
   };
 }
 
+/* Documentos (acervo do Drive ligado ao caso) ---------------------------- */
+
+export type Documento = {
+  id: string;
+  nome: string | null;
+  tipo: string;
+  mime_type: string | null;
+  tamanho_bytes: number | null;
+  origem: string | null;
+  drive_file_id: string | null;
+  drive_url: string | null;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  segredo: boolean;
+  intimacao_id: string | null;
+  cliente_id: string | null;
+  cliente_nome: string | null;
+  cadastro_automatico: boolean;
+  cadastrado_por: string | null;
+  criado_em: string | null;
+};
+
+function mapDocumento(r: Record<string, unknown>): Documento {
+  return {
+    id: r.id as string,
+    nome: (r.nome as string) ?? null,
+    tipo: (r.tipo as string) ?? "outro",
+    mime_type: (r.mime_type as string) ?? null,
+    tamanho_bytes: r.tamanho_bytes == null ? null : Number(r.tamanho_bytes),
+    origem: (r.origem as string) ?? null,
+    drive_file_id: (r.drive_file_id as string) ?? null,
+    drive_url: (r.drive_url as string) ?? null,
+    processo_id: (r.processo_id as string) ?? null,
+    numero_cnj: (r.numero_cnj as string) ?? null,
+    numero_registro: (r.numero_registro_tribunal as string) ?? null,
+    segredo: Boolean(r.segredo_justica),
+    intimacao_id: (r.intimacao_id as string) ?? null,
+    cliente_id: (r.cliente_id as string) ?? null,
+    cliente_nome: (r.cliente_nome as string) ?? null,
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    cadastrado_por: (r.cadastrado_por as string) ?? null,
+    criado_em: (r.criado_em as string) ?? null,
+  };
+}
+
+/** Documentos do Drive vinculados a um processo (registro/auditoria do acervo). */
+export async function getDocumentosProcesso(processo_id: string): Promise<Documento[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_documentos_processo")
+    .select("*")
+    .eq("processo_id", processo_id)
+    .order("criado_em", { ascending: false });
+  return (data ?? []).map((r) => mapDocumento(r as Record<string, unknown>));
+}
+
+/** Documentos do Drive vinculados diretamente a um cliente. */
+export async function getDocumentosCliente(cliente_id: string): Promise<Documento[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_documentos_processo")
+    .select("*")
+    .eq("cliente_id", cliente_id)
+    .order("criado_em", { ascending: false });
+  return (data ?? []).map((r) => mapDocumento(r as Record<string, unknown>));
+}
+
 /* Merge / duplicados ----------------------------------------------------- */
 
 export type ClienteDuplicadoCluster = {

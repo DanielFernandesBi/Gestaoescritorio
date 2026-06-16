@@ -16,6 +16,7 @@ import {
   PAGAMENTO_STATUS,
   SUGESTAO_STATUS,
   CONTRATO_STATUS,
+  DOCUMENTO_TIPO,
 } from "@/lib/enums";
 import { soDigitos } from "@/lib/format";
 
@@ -1327,6 +1328,76 @@ export async function atualizarObjetivo(id: string, fd: FormData): Promise<Resul
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Objetivo atualizado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== DOCUMENTOS (acervo do Drive) ==================== */
+
+/**
+ * Registra o ponteiro de um arquivo do Drive ligado ao caso. O conteúdo segue
+ * vivendo no Drive — o banco guarda só metadados (manual: tabela `documentos`).
+ * Respeita o CHECK de vínculo (ao menos processo/cliente/intimação) e o enum de tipo.
+ */
+export async function criarDocumento(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const processo_id = String(fd.get("processo_id") || "").trim() || null;
+    const cliente_id = String(fd.get("cliente_id") || "").trim() || null;
+    const intimacao_id = String(fd.get("intimacao_id") || "").trim() || null;
+    if (!processo_id && !cliente_id && !intimacao_id) {
+      return { ok: false, message: "Vincule o documento a um processo, cliente ou intimação." };
+    }
+    const tipo = String(fd.get("tipo") || "outro");
+    if (!(DOCUMENTO_TIPO as readonly string[]).includes(tipo)) {
+      return { ok: false, message: "Tipo de documento inválido." };
+    }
+    const nome = String(fd.get("nome") || "").trim();
+    if (!nome) return { ok: false, message: "Informe o nome do documento." };
+    const drive_file_id = String(fd.get("drive_file_id") || "").trim() || null;
+    if (!drive_file_id) return { ok: false, message: "Informe o id do arquivo no Drive (drive_file_id)." };
+
+    const { error } = await supabase.from("documentos").insert({
+      processo_id,
+      cliente_id,
+      intimacao_id,
+      nome,
+      tipo,
+      drive_file_id,
+      mime_type: String(fd.get("mime_type") || "").trim() || null,
+      origem: String(fd.get("origem") || "").trim() || "drive",
+      drive_url: String(fd.get("drive_url") || "").trim() || null,
+      observacoes: String(fd.get("observacoes") || "").trim() || null,
+      ativo: true,
+      cadastro_automatico: false,
+      cadastrado_por: "manual",
+    });
+    if (error) {
+      // Índice único parcial ux_documentos_drive_processo (drive_file_id, processo_id).
+      if ((error as { code?: string }).code === "23505") {
+        return { ok: false, message: "Este documento já está registrado neste processo." };
+      }
+      throw error;
+    }
+    revalidarTudo();
+    return { ok: true, message: "Documento registrado no acervo." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** "Remove" um documento do acervo: soft-remove (ativo=false). Nunca DELETE; o arquivo no Drive não é tocado. */
+export async function inativarDocumento(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!id) return { ok: false, message: "Documento inválido." };
+    const supabase = await createClient();
+    const { error } = await supabase.from("documentos").update({ ativo: false }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Documento inativado (mantido no banco e auditado; o Drive não foi alterado)." };
   } catch (e) {
     return falha(e);
   }
