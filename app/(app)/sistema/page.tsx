@@ -3,7 +3,7 @@ import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { atualizarSugestao } from "@/app/actions";
-import { fmtNum } from "@/lib/format";
+import { fmtNum, fmtDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -45,21 +45,39 @@ export default async function SistemaPage() {
           </div>
           <div className="sc">{s.sugestao}</div>
           {s.sql_proposto && <pre>{s.sql_proposto}</pre>}
-          <div className="acoes" style={{ marginTop: 12 }}>
-            {s.status !== "aprovada" && s.status !== "executada" && (
+          <div className="acoes" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {/* Pendente: decisão completa. Aprovada: ainda dá para executar ou rejeitar.
+                Executada / rejeitada: estados terminais — sem botão destrutivo. */}
+            {s.status === "pendente" && (
               <Acao label="Aprovar" titulo="Aprovar sugestão"
                 resumo={<>Marcar a sugestão #{s.id} como <b>aprovada</b>? (não executa DDL — só registra a decisão)</>}
                 acao={atualizarSugestao.bind(null, s.id, "aprovada")} />
             )}
-            {s.status !== "executada" && (
+            {(s.status === "pendente" || s.status === "aprovada") && (
               <Acao label="Marcar executada" variant="ok" titulo="Marcar executada"
                 resumo={<>Confirmar que a sugestão #{s.id} já foi <b>executada</b> no banco?</>}
                 acao={atualizarSugestao.bind(null, s.id, "executada")} />
             )}
-            {s.status !== "rejeitada" && (
+            {(s.status === "pendente" || s.status === "aprovada") && (
               <Acao label="Rejeitar" variant="danger" titulo="Rejeitar sugestão"
                 resumo={<>Marcar a sugestão #{s.id} como <b>rejeitada</b>?</>}
                 acao={atualizarSugestao.bind(null, s.id, "rejeitada")} />
+            )}
+
+            {s.status === "executada" && (
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--green)" }}>
+                ✓ Implementada{s.decidida_em ? ` em ${fmtDate(s.decidida_em)}` : ""}
+              </span>
+            )}
+            {s.status === "rejeitada" && (
+              <>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>
+                  Rejeitada{s.decidida_em ? ` em ${fmtDate(s.decidida_em)}` : ""}
+                </span>
+                <Acao label="Reconsiderar" variant="ghost" titulo="Reconsiderar sugestão"
+                  resumo={<>Voltar a sugestão #{s.id} para <b>pendente</b>?</>}
+                  acao={atualizarSugestao.bind(null, s.id, "pendente")} />
+              </>
             )}
           </div>
         </div>

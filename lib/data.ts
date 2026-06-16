@@ -679,13 +679,14 @@ export type Sugestao = {
   sugestao: string;
   sql_proposto: string | null;
   status: string;
+  decidida_em: string | null;
 };
 
 export async function getSugestoes(): Promise<Sugestao[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("sugestoes_sistema")
-    .select("id, contexto, sugestao, sql_proposto, status")
+    .select("id, contexto, sugestao, sql_proposto, status, decidida_em")
     .order("id", { ascending: true });
   return (data ?? []) as Sugestao[];
 }
