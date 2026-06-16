@@ -32,6 +32,17 @@ function agora(): string {
   return new Date().toISOString();
 }
 
+// Segue a cadeia de merge (Sugestão 28): se o id for um tombstone com merged_into,
+// devolve o canônico vivo; senão, o próprio id. Usado no lookup/dedup de processos.
+async function resolverProcesso(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  id: string,
+): Promise<string> {
+  if (!id) return id;
+  const { data } = await supabase.rpc("fn_resolver_processo", { p_id: id });
+  return (data as string | null) ?? id;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function refProcesso(proc: any): string {
   if (!proc) return "processo";
@@ -675,7 +686,15 @@ export async function criarProcesso(fd: FormData): Promise<Resultado> {
         .select("id, numero_cnj, numero_registro_tribunal")
         .or(ors.join(","));
       if (existentes?.length) {
-        return { ok: false, message: "Já existe processo com este CNJ/registro. Use a busca para abri-lo." };
+        // Sugestão 28: se o achado for um tombstone de merge, o processo vivo é o canônico.
+        const canonico = await resolverProcesso(supabase, existentes[0].id as string);
+        const mesclado = canonico !== (existentes[0].id as string);
+        return {
+          ok: false,
+          message: mesclado
+            ? "Este CNJ/registro pertence a um processo já mesclado — o processo vivo está no acervo. Use a busca para abri-lo."
+            : "Já existe processo com este CNJ/registro. Use a busca para abri-lo.",
+        };
       }
     }
 
@@ -751,7 +770,10 @@ export async function promoverPrazoOrfao(prazo_id: string, fd: FormData): Promis
     let msg = "";
 
     if (procId) {
-      // Processo existente selecionado: completar CNJ se faltava e foi informado.
+      // Processo existente selecionado: seguir o merge se for um tombstone (Sugestão 28).
+      const alvo = await resolverProcesso(supabase, procId);
+      if (alvo !== procId) { procId = alvo; msg += "Processo selecionado estava mesclado; seguido para o canônico vivo. "; }
+      // completar CNJ se faltava e foi informado.
       if (cnj) {
         const { data: ex } = await supabase.from("processos").select("numero_cnj").eq("id", procId).single();
         if (ex && !ex.numero_cnj) {
@@ -772,8 +794,10 @@ export async function promoverPrazoOrfao(prazo_id: string, fd: FormData): Promis
         .select("id, numero_cnj, numero_registro_tribunal")
         .or(ors.join(","));
       if (existentes && existentes.length === 1) {
-        procId = existentes[0].id as string;
-        if (cnj && !existentes[0].numero_cnj) {
+        // Seguir o merge se o achado for um tombstone (Sugestão 28).
+        procId = await resolverProcesso(supabase, existentes[0].id as string);
+        const { data: canon } = await supabase.from("processos").select("numero_cnj").eq("id", procId).single();
+        if (cnj && canon && !canon.numero_cnj) {
           await supabase.from("processos").update({ numero_cnj: cnj }).eq("id", procId);
           msg += "Processo localizado por registro; CNJ completado no mesmo registro. ";
         } else {
