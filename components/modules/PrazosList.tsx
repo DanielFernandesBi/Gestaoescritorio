@@ -73,7 +73,7 @@ function corpo(p: Prazo) {
               <div><label>Responsável</label><select name="responsavel" defaultValue={p.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
             </div>
           </FormModal>
-          {!p.validado && (
+          {!p.validado && !p.orfao && (
             <Acao
               label="Validar"
               variant="primary"
@@ -82,6 +82,11 @@ function corpo(p: Prazo) {
               resumo={<>Marcar <b>{p.ato}</b> como validado e criar o marcador fatal (vermelho) no Google Calendar?</>}
               acao={() => validarPrazo(p.id)}
             />
+          )}
+          {p.orfao && (
+            <span className="sub" style={{ color: "var(--amber)" }}>
+              ⚠ Prazo órfão (sem processo). Use a aba <b>Órfãos / triagem</b> para promover antes de validar.
+            </span>
           )}
           <Acao
             label="Dar baixa (cumprido)"

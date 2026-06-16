@@ -38,6 +38,7 @@ export type Prazo = {
   segredo: boolean;
   clientes: string;
   dias_restantes: number;
+  orfao: boolean;
 };
 
 export async function getPrazos(): Promise<Prazo[]> {
@@ -45,7 +46,7 @@ export async function getPrazos(): Promise<Prazo[]> {
   const { data } = await supabase
     .from("prazos")
     .select(
-      "id, ato, data_fatal, data_interna, tipo_contagem, status, validado, responsavel, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, ato, data_fatal, data_interna, tipo_contagem, status, validado, responsavel, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome)))",
     )
     .eq("status", "aberto")
     .order("data_fatal", { ascending: true });
@@ -68,8 +69,56 @@ export async function getPrazos(): Promise<Prazo[]> {
       segredo: Boolean(p?.segredo_justica),
       clientes: nomesClientes(p?.cliente_processo),
       dias_restantes: diasAte(r.data_fatal as string),
+      orfao: r.processo_id == null,
     };
   });
+}
+
+/* Prazos órfãos (triagem) ------------------------------------------------ */
+
+export type PrazoOrfao = {
+  prazo_id: string;
+  criado_em: string | null;
+  ato: string;
+  data_fatal: string;
+  data_interna: string | null;
+  dias_restantes: number;
+  responsavel: string | null;
+  intimacao_id: string | null;
+  intimacao_resumo: string | null;
+  cadastrado_por: string | null;
+  observacoes: string | null;
+};
+
+export async function getPrazosOrfaos(): Promise<PrazoOrfao[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_prazos_orfaos")
+    .select("*")
+    .order("data_fatal", { ascending: true });
+  const rows = (data ?? []) as Record<string, unknown>[];
+
+  // Resumo da intimação de origem (se houver) para exibir + link.
+  const ids = [...new Set(rows.map((r) => r.intimacao_id).filter(Boolean))] as string[];
+  const resumos = new Map<string, string | null>();
+  if (ids.length) {
+    const { data: ints } = await supabase.from("intimacoes").select("id, resumo").in("id", ids);
+    for (const it of ints ?? []) resumos.set(it.id as string, (it.resumo as string) ?? null);
+  }
+
+  return rows.map((r): PrazoOrfao => ({
+    prazo_id: r.prazo_id as string,
+    criado_em: (r.criado_em as string) ?? null,
+    ato: r.ato as string,
+    data_fatal: r.data_fatal as string,
+    data_interna: (r.data_interna as string) ?? null,
+    dias_restantes: Number(r.dias_restantes ?? 0),
+    responsavel: (r.responsavel as string) ?? null,
+    intimacao_id: (r.intimacao_id as string) ?? null,
+    intimacao_resumo: r.intimacao_id ? resumos.get(r.intimacao_id as string) ?? null : null,
+    cadastrado_por: (r.cadastrado_por as string) ?? null,
+    observacoes: (r.observacoes as string) ?? null,
+  }));
 }
 
 /* Validação -------------------------------------------------------------- */

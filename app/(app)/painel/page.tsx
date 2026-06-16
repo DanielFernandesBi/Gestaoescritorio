@@ -1,5 +1,5 @@
 import { getPainelData } from "@/lib/queries";
-import { getFinanceiro, getProcessosParados } from "@/lib/data";
+import { getFinanceiro, getProcessosParados, getPrazosOrfaos } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { PrazoRow } from "@/components/PrazoRow";
@@ -9,10 +9,11 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
-  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados] = await Promise.all([
+  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados, prazosOrfaos] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
     getProcessosParados(30),
+    getPrazosOrfaos(),
   ]);
   const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
 
@@ -171,6 +172,33 @@ export default async function PainelPage() {
                 ))
               ) : (
                 <div className="empty">Nenhuma intimação órfã. 🎉</div>
+              )}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-h">
+              <h3>
+                <Icon name="clock" /> Prazos órfãos — triagem
+                {prazosOrfaos.length > 0 && <span className="badge alert" style={{ marginLeft: 8 }}>{prazosOrfaos.length}</span>}
+              </h3>
+              <Link className="link" href="/prazos">triagem</Link>
+            </div>
+            <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {prazosOrfaos.length ? (
+                prazosOrfaos.slice(0, 5).map((p) => (
+                  <div className="mini" key={p.prazo_id}>
+                    <div>
+                      <div className="mt">{p.ato}</div>
+                      <div className="ms">fatal {fmtDate(p.data_fatal)} · sem processo</div>
+                    </div>
+                    <Pill tone={p.dias_restantes <= 2 ? "red" : p.dias_restantes <= 7 ? "amber" : "gray"}>
+                      {p.dias_restantes}d
+                    </Pill>
+                  </div>
+                ))
+              ) : (
+                <div className="empty">Nenhuma fatal sem processo. 🎉</div>
               )}
             </div>
           </div>

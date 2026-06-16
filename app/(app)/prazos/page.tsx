@@ -1,10 +1,10 @@
-import { getPrazos } from "@/lib/data";
-import { PrazosList } from "@/components/modules/PrazosList";
+import { getPrazos, getPrazosOrfaos } from "@/lib/data";
+import { PrazosModulo } from "@/components/modules/PrazosModulo";
 
 export const dynamic = "force-dynamic";
 
 export default async function PrazosPage() {
-  const prazos = await getPrazos();
+  const [prazos, orfaos] = await Promise.all([getPrazos(), getPrazosOrfaos()]);
   return (
     <>
       <div className="page-head">
@@ -17,7 +17,7 @@ export default async function PrazosPage() {
           </p>
         </div>
       </div>
-      <PrazosList prazos={prazos} />
+      <PrazosModulo prazos={prazos} orfaos={orfaos} />
     </>
   );
 }
