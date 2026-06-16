@@ -14,6 +14,8 @@ export async function getBadges(): Promise<Badges> {
     processos,
     clientes,
     alertas,
+    dupClientes,
+    dupProcessos,
   ] = await Promise.all([
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
@@ -23,6 +25,8 @@ export async function getBadges(): Promise<Badges> {
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("clientes").select("*", { count: "exact", head: true }).eq("ativo", true),
     supabase.from("vw_processos_movimentacao").select("*", { count: "exact", head: true }).gte("dias_parado", 30),
+    supabase.from("vw_clientes_duplicados").select("*", { count: "exact", head: true }),
+    supabase.from("vw_reconciliacao_registro").select("*", { count: "exact", head: true }),
   ]);
 
   return {
@@ -34,6 +38,7 @@ export async function getBadges(): Promise<Badges> {
     processos: processos.count ?? 0,
     clientes: clientes.count ?? 0,
     alertas: alertas.count ?? 0,
+    duplicados: (dupClientes.count ?? 0) + (dupProcessos.count ?? 0),
   };
 }
 

@@ -18,7 +18,14 @@ export async function GET() {
       ? "(sigiloso)"
       : (p.numero_cnj as string) || (p.numero_registro_tribunal ? "reg " + p.numero_registro_tribunal : "sem nº");
     const label = [ref, nomes].filter(Boolean).join(" — ");
-    return { id: p.id as string, label, area: p.area as string | null, instancia: p.instancia as string | null };
+    return {
+      id: p.id as string,
+      label,
+      area: p.area as string | null,
+      instancia: p.instancia as string | null,
+      numero_cnj: (p.numero_cnj as string) ?? null,
+      segredo: Boolean(p.segredo_justica),
+    };
   });
 
   return NextResponse.json({ processos });

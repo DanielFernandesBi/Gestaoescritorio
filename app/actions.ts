@@ -17,7 +17,7 @@ import {
   SUGESTAO_STATUS,
   CONTRATO_STATUS,
 } from "@/lib/enums";
-import { normalizarNome, soDigitos } from "@/lib/format";
+import { soDigitos } from "@/lib/format";
 
 export type Resultado = { ok: boolean; message: string };
 
@@ -601,16 +601,29 @@ export async function criarCliente(fd: FormData): Promise<Resultado> {
     const cpf = String(fd.get("cpf") || "").trim() || null;
     const forcar = fd.get("forcar") === "on";
 
-    // Deduplicação (nome normalizado / CPF) — manual.
+    // Deduplicação (nome normalizado / CPF) — consulta o banco direto, usando a
+    // mesma normalização da coluna gerada clientes.nome_normalizado = upper(unaccent(nome)).
     if (!forcar) {
-      const { data: existentes } = await supabase.from("clientes").select("id, nome, cpf");
-      const nn = normalizarNome(nome);
+      const nnDb = nome.normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "").toUpperCase();
       const cd = soDigitos(cpf);
-      const dups = (existentes ?? []).filter((c) => {
-        const mesmoNome = normalizarNome(c.nome as string) === nn;
-        const mesmoCpf = cd && soDigitos(c.cpf as string | null) === cd;
-        return mesmoNome || mesmoCpf;
-      });
+      const dups: { id: string; nome: string }[] = [];
+      const vistos = new Set<string>();
+      const porNome = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .eq("ativo", true)
+        .eq("nome_normalizado", nnDb)
+        .limit(3);
+      for (const d of porNome.data ?? []) { if (!vistos.has(d.id as string)) { vistos.add(d.id as string); dups.push({ id: d.id as string, nome: d.nome as string }); } }
+      if (cd) {
+        const porCpf = await supabase
+          .from("clientes")
+          .select("id, nome")
+          .eq("ativo", true)
+          .eq("cpf", cpf)
+          .limit(3);
+        for (const d of porCpf.data ?? []) { if (!vistos.has(d.id as string)) { vistos.add(d.id as string); dups.push({ id: d.id as string, nome: d.nome as string }); } }
+      }
       if (dups.length) {
         const lista = dups.slice(0, 3).map((d) => d.nome).join("; ");
         return {
@@ -838,6 +851,40 @@ export async function promoverPrazoOrfao(prazo_id: string, fd: FormData): Promis
 
     revalidarTudo();
     return { ok: true, message: msg.trim() };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== MESCLAGEM (merge de duplicados) ==================== */
+
+/** Mescla dois clientes via RPC transacional. Duplicado é desativado (nunca apagado). */
+export async function mesclarCliente(canonico: string, duplicado: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!canonico || !duplicado) return { ok: false, message: "Selecione o canônico e o duplicado." };
+    if (canonico === duplicado) return { ok: false, message: "Canônico e duplicado não podem ser o mesmo registro." };
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("fn_mesclar_cliente", { canonico, duplicado });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: (data as string) ?? "Cliente mesclado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Mescla dois processos via RPC transacional. Duplicado vira status arquivado (nunca apagado). */
+export async function mesclarProcesso(canonico: string, duplicado: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!canonico || !duplicado) return { ok: false, message: "Selecione o canônico e o duplicado." };
+    if (canonico === duplicado) return { ok: false, message: "Canônico e duplicado não podem ser o mesmo registro." };
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("fn_mesclar_processo", { canonico, duplicado });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: (data as string) ?? "Processo mesclado." };
   } catch (e) {
     return falha(e);
   }

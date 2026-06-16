@@ -1223,3 +1223,61 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
     objetivos,
   };
 }
+
+/* Merge / duplicados ----------------------------------------------------- */
+
+export type ClienteDuplicadoCluster = {
+  nome_normalizado: string;
+  qtd: number;
+  algum_com_cpf: boolean;
+  cpfs_distintos: number;
+  ids: string[];
+  nomes: string[];
+  cpfs: (string | null)[];
+  primeiro_cadastro: string | null;
+  ultimo_cadastro: string | null;
+};
+
+export async function getClientesDuplicados(): Promise<ClienteDuplicadoCluster[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("vw_clientes_duplicados").select("*");
+  return (data ?? []).map((r): ClienteDuplicadoCluster => ({
+    nome_normalizado: r.nome_normalizado as string,
+    qtd: Number(r.qtd ?? 0),
+    algum_com_cpf: Boolean(r.algum_com_cpf),
+    cpfs_distintos: Number(r.cpfs_distintos ?? 0),
+    ids: (r.ids as string[]) ?? [],
+    nomes: (r.nomes as string[]) ?? [],
+    cpfs: (r.cpfs as (string | null)[]) ?? [],
+    primeiro_cadastro: (r.primeiro_cadastro as string) ?? null,
+    ultimo_cadastro: (r.ultimo_cadastro as string) ?? null,
+  }));
+}
+
+export type ProcessoReconciliacao = {
+  id: string;
+  numero_registro_tribunal: string | null;
+  tribunal: string | null;
+  uf: string | null;
+  area: string | null;
+  instancia: string | null;
+  segredo_justica: boolean;
+  clientes: string | null;
+  criado_em: string | null;
+};
+
+export async function getProcessosReconciliacao(): Promise<ProcessoReconciliacao[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("vw_reconciliacao_registro").select("*");
+  return (data ?? []).map((r): ProcessoReconciliacao => ({
+    id: r.id as string,
+    numero_registro_tribunal: (r.numero_registro_tribunal as string) ?? null,
+    tribunal: (r.tribunal as string) ?? null,
+    uf: (r.uf as string) ?? null,
+    area: (r.area as string) ?? null,
+    instancia: (r.instancia as string) ?? null,
+    segredo_justica: Boolean(r.segredo_justica),
+    clientes: (r.clientes as string) ?? null,
+    criado_em: (r.criado_em as string) ?? null,
+  }));
+}
