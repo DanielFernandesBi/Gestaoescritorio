@@ -1,21 +1,24 @@
-import { getPainelData } from "@/lib/queries";
+import { getPainelData, getUltimaVarredura } from "@/lib/queries";
 import { getFinanceiro, getProcessosParados, getPrazosOrfaos } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { PrazoRow } from "@/components/PrazoRow";
-import { fmtBRL, fmtDate, fmtNum } from "@/lib/format";
+import { fmtBRL, fmtDate, fmtTime, fmtNum } from "@/lib/format";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
-  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados, prazosOrfaos] = await Promise.all([
+  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados, prazosOrfaos, varredura] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
     getProcessosParados(30),
     getPrazosOrfaos(),
+    getUltimaVarredura(),
   ]);
   const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
+  const statusTone = (s: string): "green" | "amber" | "red" =>
+    s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
 
   return (
     <>
@@ -39,6 +42,51 @@ export default async function PainelPage() {
           eventos registrados · {stats.processos_auto} processos e {stats.clientes_auto}{" "}
           clientes em cadastro automático aguardam revisão. Feriados locais e
           suspensões de expediente devem ser conferidos por Daniel.
+        </div>
+      </div>
+
+      <div className="card section-gap">
+        <div className="card-h">
+          <h3>
+            <Icon name="shield" /> Cobertura da última varredura
+          </h3>
+          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
+        </div>
+        <div className="card-b">
+          {!varredura ? (
+            <div className="empty">Nenhuma varredura registrada ainda.</div>
+          ) : (
+            <>
+              <div className="ms" style={{ marginBottom: 10, color: "var(--muted)" }}>
+                Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
+                {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
+              </div>
+              <div className="ms" style={{ marginBottom: 12 }}>
+                processados <b>{fmtNum(varredura.itens_processados)}</b> · intimações novas{" "}
+                <b>{fmtNum(varredura.intimacoes_novas)}</b> · andamentos novos{" "}
+                <b>{fmtNum(varredura.andamentos_novos)}</b> · prazos criados{" "}
+                <b>{fmtNum(varredura.prazos_criados)}</b>
+              </div>
+              {varredura.diagnostico_oab && varredura.diagnostico_oab.length ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {varredura.diagnostico_oab.map((d) => (
+                    <div className="mini" key={d.oab}>
+                      <div>
+                        <div className="mt mono">{d.oab}</div>
+                        <div className="ms">
+                          acervo {fmtNum(d.acervo_total)} · {fmtNum(d.itens_janela)} na janela
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  DJEN sem diagnóstico nesta execução (degradação) — ver anomalias.
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -283,6 +331,40 @@ export default async function PainelPage() {
               <div className="empty">Nenhum processo parado há ≥30 dias. 🎉</div>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="card section-gap">
+        <div className="card-h">
+          <h3>
+            <Icon name="shield" /> Anomalias
+          </h3>
+          {varredura && varredura.status !== "concluida" && (
+            <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>
+          )}
+        </div>
+        <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          {!varredura ? (
+            <div className="empty">Nenhuma varredura registrada ainda.</div>
+          ) : varredura.anomalias && varredura.anomalias.length ? (
+            varredura.anomalias.map((a, idx) => (
+              <div className="mini" key={idx}>
+                <div>
+                  <div
+                    className="mt"
+                    style={varredura.status !== "concluida" ? { color: "var(--red)" } : undefined}
+                  >
+                    {a.fonte.toUpperCase()} · {a.tipo}
+                  </div>
+                  <div className="ms">{a.detalhe}</div>
+                </div>
+              </div>
+            ))
+          ) : varredura.status === "concluida" ? (
+            <div className="empty">Sem anomalias nesta varredura. 🎉</div>
+          ) : (
+            <div className="empty">Sem anomalias listadas nesta execução.</div>
+          )}
         </div>
       </div>
     </>

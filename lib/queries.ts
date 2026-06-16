@@ -187,3 +187,49 @@ export async function getPainelData(): Promise<PainelData> {
     agenda: (agenda.data ?? []) as AgendaItem[],
   };
 }
+
+/* ===== Varredura DJEN/push (ritual matinal: cobertura + anomalias) ===== */
+
+export type DiagnosticoOab = { oab: string; acervo_total: number; itens_janela: number };
+export type Anomalia = { fonte: string; tipo: string; detalhe: string };
+export type Varredura = {
+  fonte: string;
+  criado_em: string;
+  data_referencia: string;
+  status: "concluida" | "parcial" | "falha";
+  itens_processados: number;
+  intimacoes_novas: number;
+  andamentos_novos: number;
+  prazos_criados: number;
+  diagnostico_oab: DiagnosticoOab[] | null;
+  anomalias: Anomalia[] | null;
+};
+
+/**
+ * Última execução da triagem (view vw_ultima_varredura, distinct on fonte). A
+ * automação grava UMA linha por execução com fonte='ambas'; preferimos essa quando
+ * houver mais de uma. Tabela vazia → null (Painel mostra placeholder). jsonb já
+ * volta parseado pelo supabase-js; tratamos null em diagnostico_oab/anomalias.
+ */
+export async function getUltimaVarredura(): Promise<Varredura | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_ultima_varredura")
+    .select("*")
+    .order("criado_em", { ascending: false });
+  const rows = (data ?? []) as Record<string, unknown>[];
+  if (!rows.length) return null;
+  const row = rows.find((r) => r.fonte === "ambas") ?? rows[0];
+  return {
+    fonte: (row.fonte as string) ?? "",
+    criado_em: row.criado_em as string,
+    data_referencia: row.data_referencia as string,
+    status: row.status as Varredura["status"],
+    itens_processados: Number(row.itens_processados ?? 0),
+    intimacoes_novas: Number(row.intimacoes_novas ?? 0),
+    andamentos_novos: Number(row.andamentos_novos ?? 0),
+    prazos_criados: Number(row.prazos_criados ?? 0),
+    diagnostico_oab: (row.diagnostico_oab as DiagnosticoOab[] | null) ?? null,
+    anomalias: (row.anomalias as Anomalia[] | null) ?? null,
+  };
+}
