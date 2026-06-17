@@ -1,5 +1,5 @@
 import { getPainelData, getUltimaVarredura } from "@/lib/queries";
-import { getFinanceiro, getProcessosParados, getPrazosOrfaos } from "@/lib/data";
+import { getFinanceiro, getProcessosParados, getPrazosOrfaos, getPecas } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { PrazoRow } from "@/components/PrazoRow";
@@ -9,14 +9,34 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
-  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados, prazosOrfaos, varredura] = await Promise.all([
+  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados, prazosOrfaos, varredura, pecas] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
     getProcessosParados(30),
     getPrazosOrfaos(),
     getUltimaVarredura(),
+    getPecas(),
   ]);
   const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
+
+  // Resumo do backlog de peças (vw_pecas_pendentes já exclui protocolada/cancelada/prejudicada).
+  const pecasPorStatus = pecas.reduce<Record<string, number>>((acc, p) => {
+    acc[p.status] = (acc[p.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const pecasUrgentes = pecas.filter((p) => p.prioridade === "urgente").length;
+  const pecasAtrasadas = pecas.filter((p) => p.dias_restantes != null && p.dias_restantes < 0).length;
+  const proximaPeca = pecas
+    .map((p) => p.data_efetiva)
+    .filter((d): d is string => Boolean(d))
+    .sort()[0] ?? null;
+  const PECA_COLS: { key: string; label: string }[] = [
+    { key: "a_fazer", label: "A fazer" },
+    { key: "em_elaboracao", label: "Em elaboração" },
+    { key: "em_revisao", label: "Em revisão" },
+    { key: "aguardando_insumo", label: "Aguardando insumo" },
+    { key: "pronta", label: "Pronta" },
+  ];
   const statusTone = (s: string): "green" | "amber" | "red" =>
     s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
 
@@ -247,6 +267,36 @@ export default async function PainelPage() {
                 ))
               ) : (
                 <div className="empty">Nenhuma fatal sem processo. 🎉</div>
+              )}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-h">
+              <h3>
+                <Icon name="book" /> Peças pendentes
+                {pecasAtrasadas > 0 && <span className="badge alert" style={{ marginLeft: 8 }}>{pecasAtrasadas} atrasadas</span>}
+              </h3>
+              <Link className="link" href="/producao">produção</Link>
+            </div>
+            <div className="card-b">
+              {pecas.length ? (
+                <>
+                  <div className="ms" style={{ marginBottom: 10 }}>
+                    <b>{pecas.length}</b> no backlog · <b style={{ color: "var(--red)" }}>{pecasUrgentes}</b> urgentes ·{" "}
+                    <b style={{ color: "var(--red)" }}>{pecasAtrasadas}</b> atrasadas
+                    {proximaPeca && <> · próxima {fmtDate(proximaPeca)}</>}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {PECA_COLS.filter((c) => pecasPorStatus[c.key]).map((c) => (
+                      <Pill key={c.key} tone="gray" dot={false}>
+                        {c.label}: {pecasPorStatus[c.key]}
+                      </Pill>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="empty">Nenhuma peça pendente. 🎉</div>
               )}
             </div>
           </div>

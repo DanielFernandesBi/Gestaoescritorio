@@ -19,6 +19,15 @@ export const INTIMACAO_ORIGEM = [
 export const TAREFA_STATUS = ["pendente", "em_andamento", "concluida", "cancelada"] as const;
 export const PRIORIDADES = ["baixa", "media", "alta", "urgente"] as const;
 
+// Produção de peças (kanban de escrita — Sugestão 20). Espelha os CHECK do banco.
+export const PECA_TIPO = [
+  "inicial", "defesa", "recurso", "manifestacao", "memorial", "incidente", "outra",
+] as const;
+export const PECA_STATUS = [
+  "a_fazer", "em_elaboracao", "em_revisao", "aguardando_insumo",
+  "pronta", "protocolada", "cancelada", "prejudicada",
+] as const;
+
 export const ANDAMENTO_TIPO = [
   "peticao_protocolada", "decisao", "sentenca", "acordao", "despacho",
   "recurso_interposto", "hc_impetrado", "diligencia", "reuniao_cliente",

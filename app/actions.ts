@@ -17,6 +17,8 @@ import {
   SUGESTAO_STATUS,
   CONTRATO_STATUS,
   DOCUMENTO_TIPO,
+  PECA_STATUS,
+  PECA_TIPO,
 } from "@/lib/enums";
 import { soDigitos, humano, fmtDate } from "@/lib/format";
 
@@ -54,7 +56,7 @@ function refProcesso(proc: any): string {
 function revalidarTudo() {
   for (const p of [
     "/painel", "/validacao", "/prazos", "/audiencias", "/intimacoes",
-    "/tarefas", "/processos", "/clientes", "/financeiro", "/andamentos",
+    "/tarefas", "/producao", "/processos", "/clientes", "/financeiro", "/andamentos",
     "/auditoria", "/sistema", "/alertas", "/estudos",
   ]) {
     revalidatePath(p);
@@ -120,21 +122,48 @@ export async function baixarPrazo(id: string, descricao?: string): Promise<Resul
     if (upErr) throw upErr;
 
     let msg = "Prazo dado como cumprido.";
+    let andamentoId: string | null = null;
     if (pr.processo_id) {
-      const { error: andErr } = await supabase.from("andamentos").insert({
-        processo_id: pr.processo_id,
-        data: hoje(),
-        tipo: "peticao_protocolada",
-        descricao: descricao?.trim() || `Cumprido o prazo: ${pr.ato}.`,
-        cadastrado_por: "manual",
-        cadastro_automatico: false,
-      });
-      if (!andErr) msg += " Andamento registrado.";
+      const { data: and, error: andErr } = await supabase
+        .from("andamentos")
+        .insert({
+          processo_id: pr.processo_id,
+          data: hoje(),
+          tipo: "peticao_protocolada",
+          descricao: descricao?.trim() || `Cumprido o prazo: ${pr.ato}.`,
+          cadastrado_por: "manual",
+          cadastro_automatico: false,
+        })
+        .select("id")
+        .single();
+      if (!andErr) {
+        msg += " Andamento registrado.";
+        andamentoId = (and?.id as string) ?? null;
+      }
     }
     if (pr.intimacao_id) {
       await supabase.from("intimacoes").update({ status: "providencia_tomada" }).eq("id", pr.intimacao_id);
       msg += " Intimação marcada como providência tomada.";
     }
+
+    // Fecha o ciclo intimação→prazo→PEÇA→andamento: se houver peça vinculada a este
+    // prazo em status não-terminal, move-a para "protocolada" gravando o andamento
+    // que a materializou e a data da baixa. Nunca DELETE; troca de status, auditada.
+    const TERMINAIS = ["protocolada", "cancelada", "prejudicada"];
+    const { data: pecasVinc } = await supabase
+      .from("pecas")
+      .select("id, status")
+      .eq("prazo_id", id);
+    const aProtocolar = (pecasVinc ?? []).filter((p) => !TERMINAIS.includes(p.status as string));
+    for (const p of aProtocolar) {
+      const patch: Record<string, unknown> = { status: "protocolada", protocolada_em: hoje() };
+      if (andamentoId) patch.andamento_id = andamentoId;
+      await supabase.from("pecas").update(patch).eq("id", p.id);
+    }
+    if (aProtocolar.length) {
+      msg += ` ${aProtocolar.length} peça(s) vinculada(s) movida(s) para protocolada.`;
+    }
+
     revalidarTudo();
     return { ok: true, message: msg };
   } catch (e) {
@@ -351,6 +380,136 @@ export async function criarTarefa(fd: FormData): Promise<Resultado> {
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Tarefa criada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ============================ PRODUÇÃO (peças) ============================ */
+
+/** Cria uma peça do backlog. Manual nasce validado=true, cadastrado_por='manual'. */
+export async function criarPeca(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const titulo = String(fd.get("titulo") || "").trim();
+    if (!titulo) return { ok: false, message: "Título é obrigatório." };
+    const tipo = String(fd.get("tipo") || "outra");
+    if (!(PECA_TIPO as readonly string[]).includes(tipo)) return { ok: false, message: "Tipo de peça inválido." };
+
+    const { error } = await supabase.from("pecas").insert({
+      titulo,
+      tipo,
+      subtipo: String(fd.get("subtipo") || "").trim() || null,
+      descricao: String(fd.get("descricao") || "").trim() || null,
+      status: "a_fazer",
+      prioridade: String(fd.get("prioridade") || "media"),
+      responsavel: String(fd.get("responsavel") || "Daniel"),
+      // processo_id NULL = inicial de caso novo (permitido pelo schema).
+      cliente_id: String(fd.get("cliente_id") || "").trim() || null,
+      processo_id: String(fd.get("processo_id") || "").trim() || null,
+      prazo_id: String(fd.get("prazo_id") || "").trim() || null,
+      intimacao_id: String(fd.get("intimacao_id") || "").trim() || null,
+      data_alvo: String(fd.get("data_alvo") || "") || null,
+      drive_file_id: String(fd.get("drive_file_id") || "").trim() || null,
+      validado: true,
+      cadastro_automatico: false,
+      cadastrado_por: "manual",
+    });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Peça criada no backlog (A fazer)." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Move a peça pelo kanban (inclui cancelar/prejudicar = troca de status; nunca DELETE). */
+export async function moverPeca(id: string, status: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!(PECA_STATUS as readonly string[]).includes(status)) {
+      return { ok: false, message: "Status inválido." };
+    }
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = { status };
+    // Protocolar manualmente também carimba a data (a baixa de prazo já faz o vínculo do andamento).
+    if (status === "protocolada") patch.protocolada_em = hoje();
+    const { error } = await supabase.from("pecas").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Peça atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Confere a peça provisória (cadastro automático): seta validado=true. */
+export async function validarPeca(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { error } = await supabase.from("pecas").update({ validado: true }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Peça conferida (validado=true)." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Edição dos campos da peça (sem mover de coluna). */
+export async function atualizarPeca(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const titulo = String(fd.get("titulo") || "").trim();
+    if (!titulo) return { ok: false, message: "Título é obrigatório." };
+    const tipo = String(fd.get("tipo") || "outra");
+    if (!(PECA_TIPO as readonly string[]).includes(tipo)) return { ok: false, message: "Tipo de peça inválido." };
+    const patch: Record<string, unknown> = {
+      titulo,
+      tipo,
+      subtipo: String(fd.get("subtipo") || "").trim() || null,
+      prioridade: String(fd.get("prioridade") || "media"),
+      responsavel: String(fd.get("responsavel") || "Daniel"),
+      drive_file_id: String(fd.get("drive_file_id") || "").trim() || null,
+    };
+    // descrição e data_alvo não vêm na view de leitura; só sobrescreve quando preenchidos (preserva atuais).
+    const descricao = String(fd.get("descricao") || "").trim();
+    if (descricao) patch.descricao = descricao;
+    const data_alvo = String(fd.get("data_alvo") || "");
+    if (data_alvo) patch.data_alvo = data_alvo;
+    const { error } = await supabase.from("pecas").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Peça atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Vincula/atualiza prazo e/ou intimação de origem de uma peça (preserva proveniência).
+ * Campos vazios desfazem o vínculo correspondente.
+ */
+export async function vincularPrazoIntimacao(
+  peca_id: string,
+  fd: FormData,
+): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!peca_id) return { ok: false, message: "Peça inválida." };
+    const supabase = await createClient();
+    const prazo_id = String(fd.get("prazo_id") || "").trim() || null;
+    const intimacao_id = String(fd.get("intimacao_id") || "").trim() || null;
+    const { error } = await supabase
+      .from("pecas")
+      .update({ prazo_id, intimacao_id })
+      .eq("id", peca_id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Vínculos da peça atualizados." };
   } catch (e) {
     return falha(e);
   }

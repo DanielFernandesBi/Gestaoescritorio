@@ -692,6 +692,78 @@ export async function getTarefas(): Promise<Tarefa[]> {
   return (data ?? []) as Tarefa[];
 }
 
+/* Produção de peças (kanban de escrita — Sugestão 20) -------------------- */
+
+export type Peca = {
+  id: string;
+  titulo: string;
+  tipo: string;
+  subtipo: string | null;
+  status: string;
+  prioridade: string | null;
+  responsavel: string | null;
+  cliente_id: string | null;
+  cliente: string | null;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  segredo: boolean;
+  prazo_id: string | null;
+  data_fatal: string | null;
+  data_interna: string | null;
+  prazo_validado: boolean | null;
+  data_efetiva: string | null;
+  dias_restantes: number | null;
+  intimacao_id: string | null;
+  origem_andamento_id: string | null;
+  tarefa_id: string | null;
+  drive_file_id: string | null;
+  cadastro_automatico: boolean;
+  validado: boolean;
+  criado_em: string | null;
+};
+
+/**
+ * Backlog/kanban de peças a produzir. Lê a view vw_pecas_pendentes, que já exclui
+ * peças protocoladas/canceladas/prejudicadas e calcula dias_restantes pela
+ * data_interna herdada do prazo (ou pela data_alvo própria quando não há prazo).
+ */
+export async function getPecas(): Promise<Peca[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_pecas_pendentes")
+    .select("*")
+    .order("dias_restantes", { ascending: true, nullsFirst: false });
+  return (data ?? []).map((r): Peca => ({
+    id: r.id as string,
+    titulo: r.titulo as string,
+    tipo: (r.tipo as string) ?? "outra",
+    subtipo: (r.subtipo as string) ?? null,
+    status: r.status as string,
+    prioridade: (r.prioridade as string) ?? null,
+    responsavel: (r.responsavel as string) ?? null,
+    cliente_id: (r.cliente_id as string) ?? null,
+    cliente: (r.cliente as string) ?? null,
+    processo_id: (r.processo_id as string) ?? null,
+    numero_cnj: (r.numero_cnj as string) ?? null,
+    numero_registro: (r.numero_registro_tribunal as string) ?? null,
+    segredo: Boolean(r.segredo_justica),
+    prazo_id: (r.prazo_id as string) ?? null,
+    data_fatal: (r.data_fatal as string) ?? null,
+    data_interna: (r.data_interna as string) ?? null,
+    prazo_validado: r.prazo_validado == null ? null : Boolean(r.prazo_validado),
+    data_efetiva: (r.data_efetiva as string) ?? null,
+    dias_restantes: r.dias_restantes == null ? null : Number(r.dias_restantes),
+    intimacao_id: (r.intimacao_id as string) ?? null,
+    origem_andamento_id: (r.origem_andamento_id as string) ?? null,
+    tarefa_id: (r.tarefa_id as string) ?? null,
+    drive_file_id: (r.drive_file_id as string) ?? null,
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    validado: Boolean(r.validado),
+    criado_em: (r.criado_em as string) ?? null,
+  }));
+}
+
 /* Auditoria -------------------------------------------------------------- */
 
 export type EventoAuditoria = {

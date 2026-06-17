@@ -156,6 +156,12 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 .task .t{font-weight:600;font-size:12.5px;color:var(--ink)}
 .task .d{font-size:11.5px;color:var(--muted);margin-top:4px}
 .task .f{display:flex;align-items:center;gap:8px;margin-top:9px;justify-content:space-between}
+.kanban.k5{grid-template-columns:repeat(5,1fr);gap:10px}
+.kcol.drop-on{outline:2px dashed var(--brass);outline-offset:-2px}
+.task[draggable="true"]{cursor:grab}
+.task[draggable="true"]:active{cursor:grabbing}
+.task .ttop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.task .prov{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:var(--amber);background:var(--amber-soft);padding:2px 7px;border-radius:6px;margin-top:7px}
 
 /* ---------- Timeline ---------- */
 .tl{position:relative;padding-left:22px}
@@ -281,7 +287,7 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 .exec-time .pm{font-size:11.5px;color:var(--muted);margin-top:1px}
 
 @media (max-width:1080px){
-  .kpis{grid-template-columns:repeat(2,1fr)} .two-col{grid-template-columns:1fr} .kanban{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(2,1fr)} .two-col{grid-template-columns:1fr} .kanban{grid-template-columns:1fr} .kanban.k5{grid-template-columns:1fr}
   .exec-counters{grid-template-columns:1fr} .exec-destaque{grid-template-columns:1fr}
 }
 @media (max-width:820px){
