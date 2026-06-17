@@ -107,6 +107,15 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
         </div>
       </div>
 
+      {rel?.cliente?.observacoes && (
+        <div className="dsec">
+          <h4>Observações</h4>
+          <p style={{ whiteSpace: "pre-wrap", margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--text)" }}>
+            {rel.cliente.observacoes}
+          </p>
+        </div>
+      )}
+
       {rel?.execucao && (rel.execucao.temDados || CUSTODIA.has(cliente.situacao_prisional ?? "")) && (
         <ExecucaoCliente exec={rel.execucao} clienteId={cliente.id} situacaoAtual={cliente.situacao_prisional} />
       )}
