@@ -1,10 +1,13 @@
 import { getPecas } from "@/lib/data";
+import { getUserEmail } from "@/lib/queries";
+import { socioDoEmail } from "@/lib/allowlist";
 import { ProducaoBoard, NovaPeca } from "@/components/modules/ProducaoBoard";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProducaoPage() {
-  const pecas = await getPecas();
+  const [pecas, email] = await Promise.all([getPecas(), getUserEmail()]);
+  const socio = socioDoEmail(email);
   return (
     <>
       <div className="page-head">
@@ -18,7 +21,7 @@ export default async function ProducaoPage() {
         </div>
         <NovaPeca />
       </div>
-      <ProducaoBoard pecas={pecas} />
+      <ProducaoBoard pecas={pecas} socio={socio} />
     </>
   );
 }

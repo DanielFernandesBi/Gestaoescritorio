@@ -1,4 +1,6 @@
 import { getTarefas, getMapaProvidenciaPeca } from "@/lib/data";
+import { getUserEmail } from "@/lib/queries";
+import { socioDoEmail } from "@/lib/allowlist";
 import { TarefasBoard } from "@/components/modules/TarefasBoard";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
@@ -8,7 +10,8 @@ import { PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 export const dynamic = "force-dynamic";
 
 export default async function TarefasPage() {
-  const [tarefas, mapa] = await Promise.all([getTarefas(), getMapaProvidenciaPeca()]);
+  const [tarefas, mapa, email] = await Promise.all([getTarefas(), getMapaProvidenciaPeca(), getUserEmail()]);
+  const socio = socioDoEmail(email);
   return (
     <>
       <div className="page-head">
@@ -37,7 +40,7 @@ export default async function TarefasPage() {
           <div><label>Data limite (opcional)</label><input type="date" name="data_limite" /></div>
         </FormModal>
       </div>
-      <TarefasBoard tarefas={tarefas} mapa={mapa} />
+      <TarefasBoard tarefas={tarefas} mapa={mapa} socio={socio} />
     </>
   );
 }

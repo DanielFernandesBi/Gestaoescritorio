@@ -4,7 +4,7 @@ import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
-import { moverTarefa, atualizarTarefa } from "@/app/actions";
+import { moverTarefa, atualizarTarefa, assumirTarefa, reatribuirTarefa } from "@/app/actions";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
@@ -15,6 +15,9 @@ type Tone = "red" | "amber" | "gray";
 const priTone = (p: string | null): Tone =>
   p === "urgente" ? "red" : p === "alta" ? "amber" : "gray";
 
+type Socio = "Daniel" | "Rodolfo";
+const oUtroSocio = (s: Socio): Socio => (s === "Daniel" ? "Rodolfo" : "Daniel");
+
 const COLS: { key: string; label: string }[] = [
   { key: "pendente", label: "Pendente" },
   { key: "em_andamento", label: "Em andamento" },
@@ -24,10 +27,13 @@ const COLS: { key: string; label: string }[] = [
 export function TarefasBoard({
   tarefas,
   mapa = null,
+  socio = null,
 }: {
   tarefas: Tarefa[];
   mapa?: MapaProvidencia | null;
+  socio?: Socio | null;
 }) {
+  const outro = socio ? oUtroSocio(socio) : null;
   const { open } = useDrawer();
 
   return (
@@ -109,6 +115,23 @@ export function TarefasBoard({
                                   acao={() => moverTarefa(t.id, "cancelada")} />
                               </div>
                             </div>
+                            {socio && (
+                              <div className="dsec">
+                                <h4>Atribuição</h4>
+                                <div className="acoes">
+                                  {t.responsavel !== socio && (
+                                    <Acao label="Assumir" titulo="Assumir tarefa"
+                                      resumo={<>Assumir <b>{t.titulo}</b> como <b>{socio}</b>?{t.status === "pendente" ? <> Será movida para <b>Em andamento</b>.</> : null}</>}
+                                      acao={() => assumirTarefa(t.id)} />
+                                  )}
+                                  {outro && t.responsavel !== outro && (
+                                    <Acao label={`Reatribuir a ${outro}`} titulo="Reatribuir tarefa"
+                                      resumo={<>Reatribuir <b>{t.titulo}</b> a <b>{outro}</b>?</>}
+                                      acao={() => reatribuirTarefa(t.id)} />
+                                  )}
+                                </div>
+                              </div>
+                            )}
                             <div className="dsec">
                               <h4>Produção</h4>
                               <div className="acoes">

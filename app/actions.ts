@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { socioDoEmail, outroSocio } from "@/lib/allowlist";
 import {
   confirmarPrazo,
   criarEventoProvisorio,
@@ -633,6 +634,85 @@ export async function criarPecaDeOrigem(
     const nomeOrigem = tipo_origem === "andamento" ? "movimentação" : tipo_origem;
     const extra = auto ? " Nasceu PROVISÓRIA (validado=false) — confira no módulo Produção." : "";
     return { ok: true, message: `Petição pendente criada a partir da ${nomeOrigem}.${extra}` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ==================== ATRIBUIÇÃO (Assumir / Reatribuir) ==================== */
+
+const SEM_SOCIO =
+  "Seu e-mail ainda não está mapeado a um sócio (Daniel/Rodolfo). Configure EMAIL_RODOLFO se for o caso.";
+
+/** Assume a peça: responsavel = sócio logado; se estiver em 'a_fazer', vai p/ 'em_elaboracao'. */
+export async function assumirPeca(id: string): Promise<Resultado> {
+  try {
+    const email = await requireUser();
+    const socio = socioDoEmail(email);
+    if (!socio) return { ok: false, message: SEM_SOCIO };
+    const supabase = await createClient();
+    const { data: pc } = await supabase.from("pecas").select("status").eq("id", id).maybeSingle();
+    if (!pc) return { ok: false, message: "Peça não encontrada." };
+    const patch: Record<string, unknown> = { responsavel: socio };
+    if (pc.status === "a_fazer") patch.status = "em_elaboracao";
+    const { error } = await supabase.from("pecas").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: `Peça assumida por ${socio}${patch.status ? " e movida para Em elaboração" : ""}.` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Reatribui a peça ao OUTRO sócio (em relação ao usuário logado). */
+export async function reatribuirPeca(id: string): Promise<Resultado> {
+  try {
+    const email = await requireUser();
+    const socio = socioDoEmail(email);
+    if (!socio) return { ok: false, message: SEM_SOCIO };
+    const alvo = outroSocio(socio);
+    const supabase = await createClient();
+    const { error } = await supabase.from("pecas").update({ responsavel: alvo }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: `Peça reatribuída a ${alvo}.` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Assume a tarefa: responsavel = sócio logado; se 'pendente', vai p/ 'em_andamento'. */
+export async function assumirTarefa(id: string): Promise<Resultado> {
+  try {
+    const email = await requireUser();
+    const socio = socioDoEmail(email);
+    if (!socio) return { ok: false, message: SEM_SOCIO };
+    const supabase = await createClient();
+    const { data: t } = await supabase.from("tarefas").select("status").eq("id", id).maybeSingle();
+    if (!t) return { ok: false, message: "Tarefa não encontrada." };
+    const patch: Record<string, unknown> = { responsavel: socio };
+    if (t.status === "pendente") patch.status = "em_andamento";
+    const { error } = await supabase.from("tarefas").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: `Tarefa assumida por ${socio}${patch.status ? " e movida para Em andamento" : ""}.` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Reatribui a tarefa ao OUTRO sócio (em relação ao usuário logado). */
+export async function reatribuirTarefa(id: string): Promise<Resultado> {
+  try {
+    const email = await requireUser();
+    const socio = socioDoEmail(email);
+    if (!socio) return { ok: false, message: SEM_SOCIO };
+    const alvo = outroSocio(socio);
+    const supabase = await createClient();
+    const { error } = await supabase.from("tarefas").update({ responsavel: alvo }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: `Tarefa reatribuída a ${alvo}.` };
   } catch (e) {
     return falha(e);
   }

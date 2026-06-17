@@ -1,5 +1,6 @@
-import { getPainelData, getUltimaVarredura } from "@/lib/queries";
+import { getPainelData, getUltimaVarredura, getUserEmail } from "@/lib/queries";
 import { getFinanceiro, getProcessosParados, getPrazosOrfaos, getPecas } from "@/lib/data";
+import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { PrazoRow } from "@/components/PrazoRow";
@@ -9,15 +10,18 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
-  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados, prazosOrfaos, varredura, pecas] = await Promise.all([
+  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados, prazosOrfaos, varredura, pecas, email] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
     getProcessosParados(30),
     getPrazosOrfaos(),
     getUltimaVarredura(),
     getPecas(),
+    getUserEmail(),
   ]);
   const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
+  const socio = socioDoEmail(email);
+  const pecasMinhas = socio ? pecas.filter((p) => p.responsavel === socio).length : 0;
 
   // Resumo do backlog de peças (vw_pecas_pendentes já exclui protocolada/cancelada/prejudicada).
   const pecasPorStatus = pecas.reduce<Record<string, number>>((acc, p) => {
@@ -283,7 +287,8 @@ export default async function PainelPage() {
               {pecas.length ? (
                 <>
                   <div className="ms" style={{ marginBottom: 10 }}>
-                    <b>{pecas.length}</b> no backlog · <b style={{ color: "var(--red)" }}>{pecasUrgentes}</b> urgentes ·{" "}
+                    <b>{pecas.length}</b> no backlog{socio && <> · <b>{pecasMinhas}</b> minhas</>} ·{" "}
+                    <b style={{ color: "var(--red)" }}>{pecasUrgentes}</b> urgentes ·{" "}
                     <b style={{ color: "var(--red)" }}>{pecasAtrasadas}</b> atrasadas
                     {proximaPeca && <> · próxima {fmtDate(proximaPeca)}</>}
                   </div>

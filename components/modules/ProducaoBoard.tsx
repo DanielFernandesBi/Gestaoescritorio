@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useDrawer } from "@/components/Drawer";
 import { Pill, SegredoTag, DiasBox, ProcRef } from "@/components/ui";
 import { Acao } from "@/components/Acao";
+import { Chips } from "@/components/Chips";
 import { FormModal } from "@/components/FormModal";
 import {
   criarPeca,
@@ -12,10 +13,15 @@ import {
   atualizarPeca,
   validarPeca,
   vincularPrazoIntimacao,
+  assumirPeca,
+  reatribuirPeca,
 } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { Peca } from "@/lib/data";
+
+type Socio = "Daniel" | "Rodolfo";
+const oUtroSocio = (s: Socio): Socio => (s === "Daniel" ? "Rodolfo" : "Daniel");
 
 type ProcLite = { id: string; label: string };
 type CliLite = { id: string; nome: string };
@@ -151,15 +157,53 @@ function ValidarRapido({ id }: { id: string }) {
   );
 }
 
+/* ---- Ação rápida "assumir" (cartão) ----------------------------------- */
+
+function AssumirRapido({ id }: { id: string }) {
+  const router = useRouter();
+  const [pend, setPend] = useState(false);
+  async function go(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPend(true);
+    const r = await assumirPeca(id);
+    setPend(false);
+    if (r.ok) router.refresh();
+  }
+  return (
+    <button className="btn sm" onClick={go} type="button" disabled={pend} style={{ padding: "2px 8px", fontSize: 11 }}>
+      {pend ? "…" : "assumir"}
+    </button>
+  );
+}
+
 /* ---- Board ------------------------------------------------------------ */
 
-export function ProducaoBoard({ pecas }: { pecas: Peca[] }) {
+export function ProducaoBoard({ pecas, socio = null }: { pecas: Peca[]; socio?: Socio | null }) {
   const { open } = useDrawer();
   const router = useRouter();
   const params = useSearchParams();
   const { prazos, intims } = useLites();
   const [dragCol, setDragCol] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState("todas");
   const autoAbertoRef = useRef(false);
+
+  // Filtro por responsável (atribuição entre os sócios).
+  const outro = socio ? oUtroSocio(socio) : null;
+  const pecasFiltradas = pecas.filter((p) => {
+    if (filtro === "minhas") return socio != null && p.responsavel === socio;
+    if (filtro === "socio") return outro != null && p.responsavel === outro;
+    if (filtro === "distribuir") return p.responsavel === "Ambos";
+    return true;
+  });
+  const nMinhas = socio ? pecas.filter((p) => p.responsavel === socio).length : 0;
+  const nSocio = outro ? pecas.filter((p) => p.responsavel === outro).length : 0;
+  const nDistribuir = pecas.filter((p) => p.responsavel === "Ambos").length;
+  const filtros = [
+    { id: "todas", label: `Todas (${pecas.length})` },
+    ...(socio ? [{ id: "minhas", label: `Minhas peças (${nMinhas})` }] : []),
+    ...(outro ? [{ id: "socio", label: `Do sócio · ${outro} (${nSocio})` }] : []),
+    { id: "distribuir", label: `A distribuir (${nDistribuir})` },
+  ];
 
   // Deep-link ?peca=<id> (vindo do dedup de "Criar petição pendente"): destaca/abre a peça.
   useEffect(() => {
@@ -226,6 +270,24 @@ export function ProducaoBoard({ pecas }: { pecas: Peca[] }) {
               <div className="field"><div className="k">Drive</div><div className="v mono" style={{ fontSize: 11 }}>{p.drive_file_id ?? "—"}</div></div>
             </div>
           </div>
+
+          {socio && (
+            <div className="dsec">
+              <h4>Atribuição</h4>
+              <div className="acoes">
+                {p.responsavel !== socio && (
+                  <Acao label="Assumir" titulo="Assumir peça"
+                    resumo={<>Assumir <b>{p.titulo}</b> como <b>{socio}</b>?{p.status === "a_fazer" ? <> Será movida para <b>Em elaboração</b>.</> : null}</>}
+                    acao={() => assumirPeca(p.id)} />
+                )}
+                {outro && p.responsavel !== outro && (
+                  <Acao label={`Reatribuir a ${outro}`} titulo="Reatribuir peça"
+                    resumo={<>Reatribuir <b>{p.titulo}</b> a <b>{outro}</b>?</>}
+                    acao={() => reatribuirPeca(p.id)} />
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="dsec">
             <h4>Prazo vinculado</h4>
@@ -315,9 +377,11 @@ export function ProducaoBoard({ pecas }: { pecas: Peca[] }) {
   }
 
   return (
-    <div className="kanban k5">
+    <>
+      {filtros.length > 1 && <Chips options={filtros} value={filtro} onChange={setFiltro} />}
+      <div className="kanban k5">
       {COLS.map((col) => {
-        const itens = pecas.filter((p) => p.status === col.key);
+        const itens = pecasFiltradas.filter((p) => p.status === col.key);
         return (
           <div
             className={`kcol${dragCol === col.key ? " drop-on" : ""}`}
@@ -365,7 +429,12 @@ export function ProducaoBoard({ pecas }: { pecas: Peca[] }) {
                         </div>
                       )}
                       <div className="f">
-                        <span className="sub">{p.responsavel ?? "—"}</span>
+                        <span className="sub">
+                          {p.responsavel ?? "—"}
+                          {socio && p.responsavel !== socio && (
+                            <> · <AssumirRapido id={p.id} /></>
+                          )}
+                        </span>
                         {p.data_efetiva && <span className="sub mono">{fmtDate(p.data_efetiva)}</span>}
                       </div>
                     </div>
@@ -378,6 +447,7 @@ export function ProducaoBoard({ pecas }: { pecas: Peca[] }) {
           </div>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
