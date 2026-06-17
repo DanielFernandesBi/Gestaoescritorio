@@ -1,13 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useDrawer } from "@/components/Drawer";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
-import { IntimacaoDetalhe } from "@/components/detalhe/IntimacaoDetalhe";
+import { RowLink } from "@/components/RowLink";
+import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
 import type { Intimacao } from "@/lib/data";
-import type { MapaProvidencia } from "@/lib/pecas";
 
 const PASSO = 50;
 
@@ -35,14 +34,7 @@ const ORIGENS = [
   { id: "eproc", label: "eproc" },
 ];
 
-export function IntimacoesList({
-  intimacoes,
-  mapa = null,
-}: {
-  intimacoes: Intimacao[];
-  mapa?: MapaProvidencia | null;
-}) {
-  const { open } = useDrawer();
+export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
   const [st, setSt] = useState("todas");
   const [orig, setOrig] = useState("todas");
   const [visiveis, setVisiveis] = useState(PASSO);
@@ -69,22 +61,6 @@ export function IntimacoesList({
         : { ...o, label: `Órfãs (${nOrfas})` },
   );
 
-  function abrir(i: Intimacao) {
-    open({
-      title: (
-        <>
-          <h2>{i.resumo ?? "Intimação"}</h2>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Pill tone={tone(i.status)}>{humano(i.status)}</Pill>
-            <SegredoTag on={i.segredo} />
-            {i.orfa && <Pill tone="amber">órfã</Pill>}
-          </div>
-        </>
-      ),
-      body: <IntimacaoDetalhe i={i} mapa={mapa} />,
-    });
-  }
-
   return (
     <>
       <Chips options={opcoesStatus} value={st} onChange={(v) => { setSt(v); setVisiveis(PASSO); }} />
@@ -104,7 +80,7 @@ export function IntimacoesList({
               </thead>
               <tbody>
                 {mostradas.map((i) => (
-                  <tr key={i.id} className="clickable" onClick={() => abrir(i)}>
+                  <RowLink key={i.id} href={linkPara("intimacao", i.id)} ariaLabel={`Abrir intimação: ${i.resumo ?? "sem resumo"}`}>
                     <td><Pill tone="gray" dot={false}>{(i.origem ?? "—").toUpperCase()}</Pill></td>
                     <td>
                       <div className="name">{i.resumo ?? "—"}</div>
@@ -124,7 +100,7 @@ export function IntimacoesList({
                     </td>
                     <td className="mono">{fmtDate(i.data_publicacao)}</td>
                     <td className="center"><Pill tone={tone(i.status)}>{humano(i.status)}</Pill></td>
-                  </tr>
+                  </RowLink>
                 ))}
               </tbody>
             </table>

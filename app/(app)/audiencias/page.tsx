@@ -1,8 +1,8 @@
 import { getAudiencias } from "@/lib/data";
 import { Pill, SegredoTag, Gate, ProcRef } from "@/components/ui";
-import { DrawerRow } from "@/components/DrawerRow";
+import { RowLink } from "@/components/RowLink";
 import { Acao } from "@/components/Acao";
-import { AudienciaDetalhe } from "@/components/detalhe/AudienciaDetalhe";
+import { linkPara } from "@/lib/links";
 import { validarAudiencia, cancelarAudiencia } from "@/app/actions";
 import { fmtDate, fmtTime, humano } from "@/lib/format";
 
@@ -42,20 +42,7 @@ export default async function AudienciasPage() {
               </thead>
               <tbody>
                 {audiencias.map((a) => (
-                  <DrawerRow
-                    key={a.id}
-                    title={
-                      <>
-                        <h2>{humano(a.tipo)}</h2>
-                        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <Pill tone={modTone(a.modalidade)}>{humano(a.modalidade)}</Pill>
-                          <SegredoTag on={a.segredo} />
-                          <Gate validado={a.validado} />
-                        </div>
-                      </>
-                    }
-                    body={<AudienciaDetalhe aud={a} />}
-                  >
+                  <RowLink key={a.id} href={linkPara("audiencia", a.id)} ariaLabel={`Abrir audiência de ${humano(a.tipo)}`}>
                     <td className="mono" style={{ fontWeight: 600 }}>
                       {fmtDate(a.data_hora)}
                       <div className="sub mono">{fmtTime(a.data_hora)}</div>
@@ -94,7 +81,7 @@ export default async function AudienciasPage() {
                         )}
                       </div>
                     </td>
-                  </DrawerRow>
+                  </RowLink>
                 ))}
               </tbody>
             </table>

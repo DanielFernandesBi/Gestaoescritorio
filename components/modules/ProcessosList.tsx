@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useDrawer } from "@/components/Drawer";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
-import { ProcessoDetalhe } from "@/components/detalhe/ProcessoDetalhe";
+import { RowLink } from "@/components/RowLink";
+import { linkPara } from "@/lib/links";
 import { humano } from "@/lib/format";
 import type { Processo } from "@/lib/data";
 
@@ -33,7 +33,6 @@ export function ProcessosList({
   processos: Processo[];
   totalAtivos: number;
 }) {
-  const { open } = useDrawer();
   const [cat, setCat] = useState("todos");
   const [resp, setResp] = useState("todos");
   const [visiveis, setVisiveis] = useState(PASSO);
@@ -67,21 +66,6 @@ export function ProcessosList({
     o.id === "todos" ? { ...o, label: `Todos (${processos.length})` } : o,
   );
 
-  function abrir(p: Processo) {
-    open({
-      title: (
-        <>
-          <h2>{p.segredo ? "Processo em segredo de justiça" : p.clientes || "Processo"}</h2>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} />
-            <SegredoTag on={p.segredo} />
-          </div>
-        </>
-      ),
-      body: <ProcessoDetalhe proc={p} />,
-    });
-  }
-
   return (
     <>
       <Chips options={opcoesCat} value={cat} onChange={(v) => { setCat(v); setVisiveis(PASSO); }} />
@@ -102,7 +86,11 @@ export function ProcessosList({
               </thead>
               <tbody>
                 {mostrados.map((p) => (
-                  <tr key={p.id} className="clickable" onClick={() => abrir(p)}>
+                  <RowLink
+                    key={p.id}
+                    href={linkPara("processo", p.id)}
+                    ariaLabel={p.segredo ? "Abrir processo em segredo de justiça" : `Abrir processo de ${p.clientes || "—"}`}
+                  >
                     <td>
                       <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} />
                       <div className="sub">
@@ -121,7 +109,7 @@ export function ProcessosList({
                     </td>
                     <td>{p.responsavel ?? "—"}</td>
                     <td className="center"><Pill tone="green">{p.status}</Pill></td>
-                  </tr>
+                  </RowLink>
                 ))}
               </tbody>
             </table>

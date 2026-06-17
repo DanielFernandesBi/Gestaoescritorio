@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useDrawer } from "@/components/Drawer";
 import { DiasBox, ProcRef, SegredoTag, Gate } from "@/components/ui";
 import { Chips } from "@/components/Chips";
-import { PrazoDetalhe } from "@/components/detalhe/PrazoDetalhe";
+import { RowLink } from "@/components/RowLink";
+import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
 import type { Prazo } from "@/lib/data";
 
@@ -17,7 +17,6 @@ const FILTROS = [
 ];
 
 export function PrazosList({ prazos }: { prazos: Prazo[] }) {
-  const { open } = useDrawer();
   const [f, setF] = useState("todos");
 
   const filtrados = useMemo(() => {
@@ -53,25 +52,7 @@ export function PrazosList({ prazos }: { prazos: Prazo[] }) {
               </thead>
               <tbody>
                 {filtrados.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="clickable"
-                    onClick={() =>
-                      open({
-                        title: (
-                          <>
-                            <h2>{p.ato}</h2>
-                            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <DiasBox dias={p.dias_restantes} />
-                              <SegredoTag on={p.segredo} />
-                              <Gate validado={p.validado} />
-                            </div>
-                          </>
-                        ),
-                        body: <PrazoDetalhe p={p} />,
-                      })
-                    }
-                  >
+                  <RowLink key={p.id} href={linkPara("prazo", p.id)} ariaLabel={`Abrir prazo: ${p.ato}`}>
                     <td style={{ width: 64 }}><DiasBox dias={p.dias_restantes} /></td>
                     <td>
                       <div className="name">{p.ato}</div>
@@ -87,7 +68,7 @@ export function PrazosList({ prazos }: { prazos: Prazo[] }) {
                     <td className="mono">{fmtDate(p.data_interna)}</td>
                     <td className="mono" style={{ color: "var(--red)", fontWeight: 600 }}>{fmtDate(p.data_fatal)}</td>
                     <td className="center"><Gate validado={p.validado} /></td>
-                  </tr>
+                  </RowLink>
                 ))}
               </tbody>
             </table>

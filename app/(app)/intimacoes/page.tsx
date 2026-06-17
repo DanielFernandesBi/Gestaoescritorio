@@ -1,4 +1,4 @@
-import { getIntimacoes, getMapaProvidenciaPeca } from "@/lib/data";
+import { getIntimacoes } from "@/lib/data";
 import { IntimacoesList } from "@/components/modules/IntimacoesList";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
@@ -8,7 +8,7 @@ import { INTIMACAO_ORIGEM } from "@/lib/enums";
 export const dynamic = "force-dynamic";
 
 export default async function IntimacoesPage() {
-  const [intimacoes, mapa] = await Promise.all([getIntimacoes(), getMapaProvidenciaPeca()]);
+  const intimacoes = await getIntimacoes();
   return (
     <>
       <div className="page-head">
@@ -39,7 +39,7 @@ export default async function IntimacoesPage() {
           </div>
         </FormModal>
       </div>
-      <IntimacoesList intimacoes={intimacoes} mapa={mapa} />
+      <IntimacoesList intimacoes={intimacoes} />
     </>
   );
 }

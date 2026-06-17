@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { FormModal } from "@/components/FormModal";
 import { FavoritoStar } from "@/components/FavoritoStar";
-import { ClienteDetalhe } from "@/components/detalhe/ClienteDetalhe";
+import { RowLink } from "@/components/RowLink";
+import { linkPara } from "@/lib/links";
 import { favoritarCliente } from "@/app/actions";
 import { fmtDate, diasAte } from "@/lib/format";
 import type { Cliente } from "@/lib/data";
@@ -36,7 +36,6 @@ function haDias(iso: string | null): string {
 }
 
 export function ClientesList({ clientes }: { clientes: Cliente[] }) {
-  const { open } = useDrawer();
   const [f, setF] = useState("todos");
   const [busca, setBusca] = useState("");
   const [visiveis, setVisiveis] = useState(PASSO);
@@ -98,19 +97,6 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
     </FormModal>
   );
 
-  function abrir(c: Cliente) {
-    const [lbl, tone] = sitDe(c.situacao_prisional);
-    open({
-      title: (
-        <>
-          <h2>{c.nome}</h2>
-          <div style={{ marginTop: 8 }}><Pill tone={tone}>{lbl}</Pill></div>
-        </>
-      ),
-      body: <ClienteDetalhe cliente={c} />,
-    });
-  }
-
   return (
     <>
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -158,7 +144,7 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
                 {mostrados.map((c) => {
                   const [lbl, tone] = sitDe(c.situacao_prisional);
                   return (
-                    <tr key={c.id} className="clickable" onClick={() => abrir(c)}>
+                    <RowLink key={c.id} href={linkPara("cliente", c.id)} ariaLabel={`Abrir ficha de ${c.nome}`}>
                       <td className="center"><FavoritoStar id={c.id} favorito={c.favorito} /></td>
                       <td>
                         <div className="name">{c.nome}</div>
@@ -181,7 +167,7 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
                           <td className="center mono">{c.prazos_abertos || "—"}</td>
                         </>
                       )}
-                    </tr>
+                    </RowLink>
                   );
                 })}
               </tbody>
