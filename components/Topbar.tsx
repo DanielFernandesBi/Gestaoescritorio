@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "./Icon";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Topbar({ iniciais }: { iniciais: string }) {
   const hoje = new Date();
@@ -26,6 +27,7 @@ export function Topbar({ iniciais }: { iniciais: string }) {
         />
       </form>
       <div className="spacer" />
+      <ThemeToggle />
       <div className="today">
         <b>{dataLonga}</b>
         <span>Ritual matinal</span>
