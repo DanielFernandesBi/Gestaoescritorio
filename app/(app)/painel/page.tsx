@@ -10,7 +10,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
-  const [{ stats, prazos, validacao, orfas, agenda, movimentacoes }, fin, parados, prazosOrfaos, varredura, pecas, email] = await Promise.all([
+  const [{ stats, prazos, validacao, orfas, agenda, movimentacoes, relatorio24h, cadastrosAuto, tarefasVencidas }, fin, parados, prazosOrfaos, varredura, pecas, email] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
     getProcessosParados(30),
@@ -391,6 +391,90 @@ export default async function PainelPage() {
             </Link>
             {stats.intimacoes_orfas === 0 && stats.andamentos_orfaos === 0 && (
               <div className="empty">Nada a triar. Tudo vinculado a um processo. 🎉</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="card section-gap">
+        <div className="card-h">
+          <h3><Icon name="shield" /> Gravado nas últimas 24h</h3>
+          <Link className="link" href="/auditoria">auditoria</Link>
+        </div>
+        <div className="card-b flush">
+          {relatorio24h.length ? (
+            <table>
+              <tbody>
+                {relatorio24h.map((e, i) => (
+                  <tr key={i}>
+                    <td style={{ width: 140 }} className="mono">{fmtDate(e.ocorrido_em)} {fmtTime(e.ocorrido_em)}</td>
+                    <td>
+                      <Pill tone="gray" dot={false}>{humano(e.tabela)}</Pill>{" "}
+                      <span className="sub">{e.operacao}</span>
+                    </td>
+                    <td className="right sub">{e.referencia ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="empty">Nada gravado nas últimas 24h.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="two-col section-gap">
+        <div className="card">
+          <div className="card-h">
+            <h3><Icon name="users" /> Cadastros automáticos de hoje — revisar</h3>
+          </div>
+          <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {cadastrosAuto.length ? (
+              cadastrosAuto.map((c) => (
+                <Link
+                  key={`${c.tipo}-${c.id}`}
+                  className="mini"
+                  href={c.tipo === "processo" ? "/processos" : "/clientes"}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <div>
+                    <div className="mt">{c.label}</div>
+                    <div className="ms">{c.tipo} · {fmtDate(c.criado_em)}</div>
+                  </div>
+                  <Pill tone="amber" dot={false}>revisar</Pill>
+                </Link>
+              ))
+            ) : (
+              <div className="empty">Nenhum cadastro automático hoje.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-h">
+            <h3><Icon name="list" /> Tarefas vencidas</h3>
+            <Link className="link" href="/tarefas">tarefas</Link>
+          </div>
+          <div className="card-b flush">
+            {tarefasVencidas.length ? (
+              <table>
+                <tbody>
+                  {tarefasVencidas.map((t) => (
+                    <tr key={t.id}>
+                      <td>
+                        <div className="name">{t.titulo}</div>
+                        <div className="sub">{t.responsavel ?? "—"}</div>
+                      </td>
+                      <td className="right">
+                        <div className="mono" style={{ color: "var(--red)" }}>{fmtDate(t.data_limite)}</div>
+                        <div className="sub" style={{ color: "var(--red)" }}>{Math.abs(t.dias)}d em atraso</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty">Nenhuma tarefa vencida. 🎉</div>
             )}
           </div>
         </div>

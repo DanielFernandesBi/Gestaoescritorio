@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { diasAte } from "@/lib/format";
 import type { Badges } from "@/lib/nav";
 
 /** Badges da navegação — contagens ao vivo do banco. */
@@ -114,6 +115,28 @@ export type MovRecente = {
   segredo: boolean;
 };
 
+export type EventoRecente = {
+  ocorrido_em: string;
+  tabela: string;
+  operacao: string;
+  referencia: string | null;
+};
+
+export type CadastroAuto = {
+  tipo: "processo" | "cliente";
+  id: string;
+  label: string;
+  criado_em: string | null;
+};
+
+export type TarefaVencida = {
+  id: string;
+  titulo: string;
+  data_limite: string | null;
+  responsavel: string | null;
+  dias: number;
+};
+
 export type PainelData = {
   stats: {
     prazos_abertos: number;
@@ -135,10 +158,14 @@ export type PainelData = {
   orfas: IntimacaoOrfa[];
   agenda: AgendaItem[];
   movimentacoes: MovRecente[];
+  relatorio24h: EventoRecente[];
+  cadastrosAuto: CadastroAuto[];
+  tarefasVencidas: TarefaVencida[];
 };
 
 export async function getPainelData(): Promise<PainelData> {
   const supabase = await createClient();
+  const hoje = new Date().toISOString().slice(0, 10);
 
   const [
     prazosAbertos,
@@ -158,6 +185,10 @@ export async function getPainelData(): Promise<PainelData> {
     orfas,
     agenda,
     movimentacoes,
+    relatorio24h,
+    procAutoHoje,
+    cliAutoHoje,
+    tarefasVenc,
   ] = await Promise.all([
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
     supabase.from("intimacoes").select("*", { count: "exact", head: true }).eq("status", "pendente"),
@@ -176,6 +207,10 @@ export async function getPainelData(): Promise<PainelData> {
     supabase.from("vw_intimacoes_orfas").select("*").order("criado_em", { ascending: false }).limit(6),
     supabase.from("vw_agenda_semana").select("*").order("data", { ascending: true }).limit(12),
     supabase.from("vw_movimentacoes_recentes").select("*").order("data", { ascending: false }).limit(6),
+    supabase.from("vw_relatorio_diario").select("*").order("ocorrido_em", { ascending: false }).limit(10),
+    supabase.from("processos").select("id, numero_cnj, numero_registro_tribunal, criado_em").eq("cadastro_automatico", true).gte("criado_em", hoje).order("criado_em", { ascending: false }).limit(20),
+    supabase.from("clientes").select("id, nome, criado_em").eq("cadastro_automatico", true).gte("criado_em", hoje).order("criado_em", { ascending: false }).limit(20),
+    supabase.from("tarefas").select("id, titulo, data_limite, responsavel").in("status", ["pendente", "em_andamento"]).lt("data_limite", hoje).order("data_limite", { ascending: true }).limit(12),
   ]);
 
   const valorAReceber = (financeiro.data ?? []).reduce(
@@ -213,6 +248,28 @@ export async function getPainelData(): Promise<PainelData> {
       processo_id: (r.processo_id as string) ?? null,
       clientes: (r.clientes as string) ?? null,
       segredo: Boolean(r.segredo_justica),
+    })),
+    relatorio24h: (relatorio24h.data ?? []) as EventoRecente[],
+    cadastrosAuto: [
+      ...((procAutoHoje.data ?? []) as Record<string, unknown>[]).map((r): CadastroAuto => ({
+        tipo: "processo",
+        id: r.id as string,
+        label: (r.numero_cnj as string) || (r.numero_registro_tribunal ? "reg " + r.numero_registro_tribunal : "processo sem nº"),
+        criado_em: (r.criado_em as string) ?? null,
+      })),
+      ...((cliAutoHoje.data ?? []) as Record<string, unknown>[]).map((r): CadastroAuto => ({
+        tipo: "cliente",
+        id: r.id as string,
+        label: (r.nome as string) ?? "cliente",
+        criado_em: (r.criado_em as string) ?? null,
+      })),
+    ].sort((a, b) => (b.criado_em ?? "").localeCompare(a.criado_em ?? "")),
+    tarefasVencidas: ((tarefasVenc.data ?? []) as Record<string, unknown>[]).map((r): TarefaVencida => ({
+      id: r.id as string,
+      titulo: r.titulo as string,
+      data_limite: (r.data_limite as string) ?? null,
+      responsavel: (r.responsavel as string) ?? null,
+      dias: diasAte(r.data_limite as string),
     })),
   };
 }
