@@ -195,14 +195,17 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
 
 export type Audiencia = {
   id: string;
+  processo_id: string;
   tipo: string;
   data_hora: string;
   modalidade: string | null;
   local_link: string | null;
   status: string;
   responsavel: string | null;
+  observacoes: string | null;
   validado: boolean;
   numero_cnj: string | null;
+  numero_registro: string | null;
   segredo: boolean;
   clientes: string;
 };
@@ -212,7 +215,7 @@ export async function getAudiencias(): Promise<Audiencia[]> {
   const { data } = await supabase
     .from("audiencias")
     .select(
-      "id, tipo, data_hora, modalidade, local_link, status, responsavel, validado, processos(numero_cnj,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
     )
     .order("data_hora", { ascending: true });
 
@@ -220,14 +223,17 @@ export async function getAudiencias(): Promise<Audiencia[]> {
     const p = r.processos as unknown as NestedProcesso;
     return {
       id: r.id as string,
+      processo_id: r.processo_id as string,
       tipo: r.tipo as string,
       data_hora: r.data_hora as string,
       modalidade: r.modalidade as string | null,
       local_link: r.local_link as string | null,
       status: r.status as string,
       responsavel: r.responsavel as string | null,
+      observacoes: r.observacoes as string | null,
       validado: Boolean(r.validado),
       numero_cnj: p?.numero_cnj ?? null,
+      numero_registro: p?.numero_registro_tribunal ?? null,
       segredo: Boolean(p?.segredo_justica),
       clientes: nomesClientes(p?.cliente_processo),
     };

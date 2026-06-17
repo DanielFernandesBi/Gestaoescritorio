@@ -127,6 +127,30 @@ type AudEvt = {
   ref: string;
 };
 
+/** Atualiza (patch) um evento de audiência já existente, sem duplicar. */
+export async function atualizarEventoAudiencia(eventId: string, a: AudEvt): Promise<boolean> {
+  const cal = cliente();
+  if (!cal) return false;
+  try {
+    const inicio = new Date(a.dataHora);
+    const fim = new Date(inicio.getTime() + 60 * 60 * 1000);
+    await cal.events.patch({
+      calendarId: CAL(),
+      eventId,
+      requestBody: {
+        summary: `Audiência (${a.tipo}) — ${a.ref}`,
+        location: a.local ?? undefined,
+        description: `Modalidade: ${a.modalidade ?? "—"}.`,
+        start: { dateTime: inicio.toISOString(), timeZone: TZ },
+        end: { dateTime: fim.toISOString(), timeZone: TZ },
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Evento de audiência (com hora). Retorna o eventId. */
 export async function criarEventoAudiencia(a: AudEvt): Promise<string | null> {
   const cal = cliente();

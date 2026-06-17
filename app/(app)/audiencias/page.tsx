@@ -2,6 +2,7 @@ import { getAudiencias } from "@/lib/data";
 import { Pill, SegredoTag, Gate, ProcRef } from "@/components/ui";
 import { DrawerRow } from "@/components/DrawerRow";
 import { Acao } from "@/components/Acao";
+import { AudienciaDetalhe } from "@/components/detalhe/AudienciaDetalhe";
 import { validarAudiencia, cancelarAudiencia } from "@/app/actions";
 import { fmtDate, fmtTime, humano } from "@/lib/format";
 
@@ -53,32 +54,7 @@ export default async function AudienciasPage() {
                         </div>
                       </>
                     }
-                    body={
-                      <>
-                        <div className="dsec">
-                          <h4>Sessão</h4>
-                          <div className="dgrid">
-                            <div className="field"><div className="k">Data</div><div className="v mono">{fmtDate(a.data_hora)}</div></div>
-                            <div className="field"><div className="k">Hora</div><div className="v mono">{fmtTime(a.data_hora)}</div></div>
-                            <div className="field"><div className="k">Modalidade</div><div className="v">{humano(a.modalidade)}</div></div>
-                            <div className="field"><div className="k">Responsável</div><div className="v">{a.responsavel ?? "—"}</div></div>
-                          </div>
-                        </div>
-                        <div className="dsec">
-                          <h4>Local / link</h4>
-                          <div className="field"><div className="v">{a.local_link ?? "—"}</div></div>
-                        </div>
-                        <div className="dsec">
-                          <h4>Processo</h4>
-                          <div className="mini">
-                            <div>
-                              <div className="mt"><ProcRef cnj={a.numero_cnj} /></div>
-                              <div className="ms">{a.segredo ? "— (sigiloso)" : a.clientes || "—"}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    }
+                    body={<AudienciaDetalhe aud={a} />}
                   >
                     <td className="mono" style={{ fontWeight: 600 }}>
                       {fmtDate(a.data_hora)}

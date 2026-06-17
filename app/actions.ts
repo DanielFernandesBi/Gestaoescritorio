@@ -8,6 +8,7 @@ import {
   confirmarPrazo,
   criarEventoProvisorio,
   criarEventoAudiencia,
+  atualizarEventoAudiencia,
   calendarConfigurado,
 } from "@/lib/calendar";
 import {
@@ -883,6 +884,53 @@ export async function validarAudienciaEditada(id: string, fd: FormData): Promise
       msg += " Evento no Calendar.";
     } else if (calendarConfigurado()) {
       msg += " (Calendar indisponível — gravado só no banco.)";
+    }
+    revalidarTudo();
+    return { ok: true, message: msg };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Edição livre de uma audiência (sem mexer no estado de validação).
+ * Útil sobretudo em inclusões automáticas de processos sigilosos, que chegam
+ * com dados incompletos. Se já validada e com evento no Calendar, re-sincroniza
+ * o evento existente (patch) em vez de duplicar.
+ */
+export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const tipo = String(fd.get("tipo") || "").trim();
+    const dataLocal = String(fd.get("data_hora") || ""); // YYYY-MM-DDTHH:mm
+    const modalidade = String(fd.get("modalidade") || "") || null;
+    const local_link = String(fd.get("local_link") || "") || null;
+    const responsavel = String(fd.get("responsavel") || "Daniel");
+    const observacoes = String(fd.get("observacoes") || "").trim() || null;
+    if (!tipo) return { ok: false, message: "Tipo é obrigatório." };
+    if (!dataLocal) return { ok: false, message: "Data e hora são obrigatórias." };
+    const data_hora = `${dataLocal}:00-03:00`; // horário de Brasília
+
+    const { data: a } = await supabase
+      .from("audiencias")
+      .select("validado, calendar_event_id, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")
+      .eq("id", id)
+      .single();
+
+    const { error } = await supabase
+      .from("audiencias")
+      .update({ tipo, data_hora, modalidade, local_link, responsavel, observacoes })
+      .eq("id", id);
+    if (error) throw error;
+
+    let msg = "Audiência atualizada.";
+    if (a?.validado && a.calendar_event_id) {
+      const ok = await atualizarEventoAudiencia(a.calendar_event_id, {
+        tipo, dataHora: data_hora, modalidade, local: local_link, ref: refProcesso(a?.processos),
+      });
+      if (ok) msg += " Evento do Calendar atualizado.";
+      else if (calendarConfigurado()) msg += " (Calendar indisponível — gravado só no banco.)";
     }
     revalidarTudo();
     return { ok: true, message: msg };
