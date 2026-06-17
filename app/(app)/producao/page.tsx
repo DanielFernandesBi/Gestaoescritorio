@@ -1,4 +1,4 @@
-import { getPecas } from "@/lib/data";
+import { getPecas, getPecasProtocoladas } from "@/lib/data";
 import { getUserEmail } from "@/lib/queries";
 import { socioDoEmail } from "@/lib/allowlist";
 import { ProducaoBoard, NovaPeca } from "@/components/modules/ProducaoBoard";
@@ -6,7 +6,7 @@ import { ProducaoBoard, NovaPeca } from "@/components/modules/ProducaoBoard";
 export const dynamic = "force-dynamic";
 
 export default async function ProducaoPage() {
-  const [pecas, email] = await Promise.all([getPecas(), getUserEmail()]);
+  const [pecas, protocoladas, email] = await Promise.all([getPecas(), getPecasProtocoladas(), getUserEmail()]);
   const socio = socioDoEmail(email);
   return (
     <>
@@ -21,7 +21,7 @@ export default async function ProducaoPage() {
         </div>
         <NovaPeca />
       </div>
-      <ProducaoBoard pecas={pecas} socio={socio} />
+      <ProducaoBoard pecas={pecas} protocoladas={protocoladas} socio={socio} />
     </>
   );
 }

@@ -719,6 +719,7 @@ export type Peca = {
   origem_andamento_id: string | null;
   tarefa_id: string | null;
   drive_file_id: string | null;
+  protocolada_em: string | null;
   cadastro_automatico: boolean;
   validado: boolean;
   criado_em: string | null;
@@ -759,10 +760,65 @@ export async function getPecas(): Promise<Peca[]> {
     origem_andamento_id: (r.origem_andamento_id as string) ?? null,
     tarefa_id: (r.tarefa_id as string) ?? null,
     drive_file_id: (r.drive_file_id as string) ?? null,
+    protocolada_em: (r.protocolada_em as string) ?? null,
     cadastro_automatico: Boolean(r.cadastro_automatico),
     validado: Boolean(r.validado),
     criado_em: (r.criado_em as string) ?? null,
   }));
+}
+
+/**
+ * Peças já protocoladas (status terminal fora da vw_pecas_pendentes). Lidas direto
+ * da tabela para manter visíveis no filtro "Protocoladas" do board — acesso rápido
+ * dos sócios ao que já foi protocolado.
+ */
+export async function getPecasProtocoladas(limit = 200): Promise<Peca[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("pecas")
+    .select(
+      "id, titulo, tipo, subtipo, status, prioridade, responsavel, cliente_id, processo_id, prazo_id, intimacao_id, origem_andamento_id, tarefa_id, andamento_id, drive_file_id, protocolada_em, cadastro_automatico, validado, criado_em, clientes(nome), processos(numero_cnj,numero_registro_tribunal,segredo_justica)",
+    )
+    .eq("status", "protocolada")
+    .order("protocolada_em", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  return (data ?? []).map((r): Peca => {
+    const cli = r.clientes as unknown as { nome: string } | null;
+    const proc = r.processos as unknown as {
+      numero_cnj: string | null;
+      numero_registro_tribunal: string | null;
+      segredo_justica: boolean | null;
+    } | null;
+    return {
+      id: r.id as string,
+      titulo: r.titulo as string,
+      tipo: (r.tipo as string) ?? "outra",
+      subtipo: (r.subtipo as string) ?? null,
+      status: r.status as string,
+      prioridade: (r.prioridade as string) ?? null,
+      responsavel: (r.responsavel as string) ?? null,
+      cliente_id: (r.cliente_id as string) ?? null,
+      cliente: cli?.nome ?? null,
+      processo_id: (r.processo_id as string) ?? null,
+      numero_cnj: proc?.numero_cnj ?? null,
+      numero_registro: proc?.numero_registro_tribunal ?? null,
+      segredo: Boolean(proc?.segredo_justica),
+      prazo_id: (r.prazo_id as string) ?? null,
+      data_fatal: null,
+      data_interna: null,
+      prazo_validado: null,
+      data_efetiva: null,
+      dias_restantes: null,
+      intimacao_id: (r.intimacao_id as string) ?? null,
+      origem_andamento_id: (r.origem_andamento_id as string) ?? null,
+      tarefa_id: (r.tarefa_id as string) ?? null,
+      drive_file_id: (r.drive_file_id as string) ?? null,
+      protocolada_em: (r.protocolada_em as string) ?? null,
+      cadastro_automatico: Boolean(r.cadastro_automatico),
+      validado: Boolean(r.validado),
+      criado_em: (r.criado_em as string) ?? null,
+    };
+  });
 }
 
 /**

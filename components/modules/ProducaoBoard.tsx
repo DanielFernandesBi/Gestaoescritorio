@@ -178,7 +178,15 @@ function AssumirRapido({ id }: { id: string }) {
 
 /* ---- Board ------------------------------------------------------------ */
 
-export function ProducaoBoard({ pecas, socio = null }: { pecas: Peca[]; socio?: Socio | null }) {
+export function ProducaoBoard({
+  pecas,
+  protocoladas = [],
+  socio = null,
+}: {
+  pecas: Peca[];
+  protocoladas?: Peca[];
+  socio?: Socio | null;
+}) {
   const { open } = useDrawer();
   const router = useRouter();
   const params = useSearchParams();
@@ -203,6 +211,7 @@ export function ProducaoBoard({ pecas, socio = null }: { pecas: Peca[]; socio?: 
     ...(socio ? [{ id: "minhas", label: `Minhas peças (${nMinhas})` }] : []),
     ...(outro ? [{ id: "socio", label: `Do sócio · ${outro} (${nSocio})` }] : []),
     { id: "distribuir", label: `A distribuir (${nDistribuir})` },
+    { id: "protocoladas", label: `Protocoladas (${protocoladas.length})` },
   ];
 
   // Deep-link ?peca=<id> (vindo do dedup de "Criar petição pendente"): destaca/abre a peça.
@@ -210,13 +219,13 @@ export function ProducaoBoard({ pecas, socio = null }: { pecas: Peca[]; socio?: 
     if (autoAbertoRef.current) return;
     const id = params.get("peca");
     if (!id) return;
-    const p = pecas.find((x) => x.id === id);
+    const p = pecas.find((x) => x.id === id) ?? protocoladas.find((x) => x.id === id);
     if (p) {
       autoAbertoRef.current = true;
       abrir(p);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, pecas]);
+  }, [params, pecas, protocoladas]);
 
   function onDragStart(e: DragEvent, p: Peca) {
     e.dataTransfer.setData("text/plain", JSON.stringify({ id: p.id, status: p.status }));
@@ -266,7 +275,11 @@ export function ProducaoBoard({ pecas, socio = null }: { pecas: Peca[]; socio?: 
               <div className="field"><div className="k">Responsável</div><div className="v">{p.responsavel ?? "—"}</div></div>
               <div className="field"><div className="k">Cliente</div><div className="v">{p.cliente ?? "—"}</div></div>
               <div className="field"><div className="k">Processo</div><div className="v mono">{pecaProcLabel(p)}</div></div>
-              <div className="field"><div className="k">Data efetiva</div><div className="v mono">{fmtDate(p.data_efetiva)}</div></div>
+              {p.status === "protocolada" ? (
+                <div className="field"><div className="k">Protocolada em</div><div className="v mono">{fmtDate(p.protocolada_em)}</div></div>
+              ) : (
+                <div className="field"><div className="k">Data efetiva</div><div className="v mono">{fmtDate(p.data_efetiva)}</div></div>
+              )}
               <div className="field"><div className="k">Drive</div><div className="v mono" style={{ fontSize: 11 }}>{p.drive_file_id ?? "—"}</div></div>
             </div>
           </div>
@@ -374,6 +387,39 @@ export function ProducaoBoard({ pecas, socio = null }: { pecas: Peca[]; socio?: 
         </>
       ),
     });
+  }
+
+  if (filtro === "protocoladas") {
+    return (
+      <>
+        <Chips options={filtros} value={filtro} onChange={setFiltro} />
+        {protocoladas.length ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
+            {protocoladas.map((p) => (
+              <div key={p.id} className="task" style={{ cursor: "pointer" }} onClick={() => abrir(p)}>
+                <div className="ttop">
+                  <div className="t">{p.titulo}</div>
+                  <Pill tone="green" dot={false}>protocolada</Pill>
+                </div>
+                <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <Pill tone="blue" dot={false}>{humano(p.tipo)}{p.subtipo ? ` · ${p.subtipo}` : ""}</Pill>
+                </div>
+                <div className="d">
+                  {p.cliente ?? "—"} · {p.numero_cnj || p.numero_registro ? <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} /> : pecaProcLabel(p)}
+                </div>
+                {p.segredo && <div style={{ marginTop: 6 }}><SegredoTag on /></div>}
+                <div className="f">
+                  <span className="sub">{p.responsavel ?? "—"}</span>
+                  {p.protocolada_em && <span className="sub mono">protocolada {fmtDate(p.protocolada_em)}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="card"><div className="card-b"><div className="empty">Nenhuma peça protocolada ainda.</div></div></div>
+        )}
+      </>
+    );
   }
 
   return (
