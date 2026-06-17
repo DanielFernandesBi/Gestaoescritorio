@@ -102,6 +102,18 @@ export type AgendaItem = {
   responsavel: string | null;
 };
 
+export type MovRecente = {
+  id: string;
+  data: string;
+  tipo: string;
+  origem: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  processo_id: string | null;
+  clientes: string | null;
+  segredo: boolean;
+};
+
 export type PainelData = {
   stats: {
     prazos_abertos: number;
@@ -122,6 +134,7 @@ export type PainelData = {
   validacao: PendenteValidacao[];
   orfas: IntimacaoOrfa[];
   agenda: AgendaItem[];
+  movimentacoes: MovRecente[];
 };
 
 export async function getPainelData(): Promise<PainelData> {
@@ -144,6 +157,7 @@ export async function getPainelData(): Promise<PainelData> {
     validacao,
     orfas,
     agenda,
+    movimentacoes,
   ] = await Promise.all([
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
     supabase.from("intimacoes").select("*", { count: "exact", head: true }).eq("status", "pendente"),
@@ -161,6 +175,7 @@ export async function getPainelData(): Promise<PainelData> {
     supabase.from("vw_pendentes_validacao").select("*").order("criado_em", { ascending: false }).limit(8),
     supabase.from("vw_intimacoes_orfas").select("*").order("criado_em", { ascending: false }).limit(6),
     supabase.from("vw_agenda_semana").select("*").order("data", { ascending: true }).limit(12),
+    supabase.from("vw_movimentacoes_recentes").select("*").order("data", { ascending: false }).limit(6),
   ]);
 
   const valorAReceber = (financeiro.data ?? []).reduce(
@@ -188,6 +203,17 @@ export async function getPainelData(): Promise<PainelData> {
     validacao: (validacao.data ?? []) as PendenteValidacao[],
     orfas: (orfas.data ?? []) as IntimacaoOrfa[],
     agenda: (agenda.data ?? []) as AgendaItem[],
+    movimentacoes: ((movimentacoes.data ?? []) as Record<string, unknown>[]).map((r): MovRecente => ({
+      id: r.id as string,
+      data: r.data as string,
+      tipo: r.tipo as string,
+      origem: (r.origem as string) ?? null,
+      numero_cnj: (r.numero_cnj as string) ?? null,
+      numero_registro: (r.numero_registro_tribunal as string) ?? null,
+      processo_id: (r.processo_id as string) ?? null,
+      clientes: (r.clientes as string) ?? null,
+      segredo: Boolean(r.segredo_justica),
+    })),
   };
 }
 

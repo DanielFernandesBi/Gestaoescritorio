@@ -2,15 +2,15 @@ import { getPainelData, getUltimaVarredura, getUserEmail } from "@/lib/queries";
 import { getFinanceiro, getProcessosParados, getPrazosOrfaos, getPecas } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
-import { Pill } from "@/components/ui";
+import { Pill, ProcRef, SegredoTag } from "@/components/ui";
 import { PrazoRow } from "@/components/PrazoRow";
-import { fmtBRL, fmtDate, fmtTime, fmtNum } from "@/lib/format";
+import { fmtBRL, fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
-  const [{ stats, prazos, validacao, orfas, agenda }, fin, parados, prazosOrfaos, varredura, pecas, email] = await Promise.all([
+  const [{ stats, prazos, validacao, orfas, agenda, movimentacoes }, fin, parados, prazosOrfaos, varredura, pecas, email] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
     getProcessosParados(30),
@@ -336,6 +336,63 @@ export default async function PainelPage() {
           ) : (
             <div className="empty">Agenda vazia para os próximos 7 dias.</div>
           )}
+        </div>
+      </div>
+
+      <div className="two-col section-gap">
+        <div className="card">
+          <div className="card-h">
+            <h3><Icon name="activity" /> Movimentações recentes (7 dias)</h3>
+            <Link className="link" href="/andamentos">ver todas</Link>
+          </div>
+          <div className="card-b flush">
+            {movimentacoes.length ? (
+              <table>
+                <tbody>
+                  {movimentacoes.map((m) => (
+                    <tr key={m.id}>
+                      <td style={{ width: 96 }} className="mono">{fmtDate(m.data)}</td>
+                      <td>
+                        <div className="name">{humano(m.tipo)}</div>
+                        <div className="sub">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</div>
+                      </td>
+                      <td className="right">
+                        <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} />
+                        <div className="sub">{(m.origem ?? "").toUpperCase()}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty">Nenhuma movimentação nos últimos 7 dias.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-h">
+            <h3><Icon name="inbox" /> Órfãs a triar</h3>
+          </div>
+          <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            <Link className="mini" href="/intimacoes" style={{ textDecoration: "none", color: "inherit" }}>
+              <div>
+                <div className="mt">Intimações órfãs</div>
+                <div className="ms">sem processo identificado — promover na triagem</div>
+              </div>
+              <Pill tone={stats.intimacoes_orfas ? "amber" : "gray"}>{stats.intimacoes_orfas}</Pill>
+            </Link>
+            <Link className="mini" href="/andamentos" style={{ textDecoration: "none", color: "inherit" }}>
+              <div>
+                <div className="mt">Andamentos órfãos</div>
+                <div className="ms">aba “Órfãos / triagem” — assistente Promover</div>
+              </div>
+              <Pill tone={stats.andamentos_orfaos ? "amber" : "gray"}>{stats.andamentos_orfaos}</Pill>
+            </Link>
+            {stats.intimacoes_orfas === 0 && stats.andamentos_orfaos === 0 && (
+              <div className="empty">Nada a triar. Tudo vinculado a um processo. 🎉</div>
+            )}
+          </div>
         </div>
       </div>
 
