@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fernandes &amp; Fernandes — Frontend v2 (proposta)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN SYSTEM v2 — proposta (restyle moderno + dark mode)
+   Identidade preservada (serif Spectral + brass heritage),
+   accent modernizado (indigo), tokens de espaço/tipo/elevação.
+   ============================================================ */
+:root{
+  /* base neutra (clara) — mais fria/moderna que o paper atual */
+  --bg:#f4f6fa; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
+  --border:#e4e9f1; --border-soft:#eef2f7;
+  --text:#1b2433; --text-2:#3b4759; --muted:#5d6b7e; --muted-2:#8a97a8;
+  /* accent moderno (indigo) — ações, links, foco */
+  --accent:#4f46e5; --accent-strong:#4338ca; --accent-soft:#eef0fe; --accent-contrast:#ffffff;
+  /* heritage brass — wordmark e detalhes editoriais */
+  --brass:#b08d57; --brass-soft:#f3ebdd;
+  /* semânticos (mais contraste, tom moderno) */
+  --red:#e0483d; --red-soft:#fdecea; --amber:#c67c0c; --amber-soft:#fbf0d8;
+  --green:#138a5e; --green-soft:#e1f4ec; --blue:#2f74d0; --blue-soft:#e8f1fc;
+  /* rail (sidebar) — sempre escuro nos dois temas */
+  --rail:#121a2b; --rail-2:#1c2740; --rail-text:#aeb7cc; --rail-text-strong:#ffffff; --rail-muted:#6b7593;
+  /* tipografia / raio / elevação / espaço */
+  --serif:'Spectral',Georgia,serif; --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  --r-sm:9px; --r-md:13px; --r-lg:18px;
+  --e1:0 1px 2px rgba(16,24,40,.05); --e2:0 2px 4px rgba(16,24,40,.05),0 6px 16px rgba(16,24,40,.06); --e3:0 12px 32px rgba(16,24,40,.12);
+  --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+  --focus:0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+html[data-theme="dark"]{
+  --bg:#0a0e16; --surface:#141a25; --surface-2:#0f1622; --surface-3:#1a2230;
+  --border:#243044; --border-soft:#1b2433;
+  --text:#e7ebf2; --text-2:#c4ccd9; --muted:#94a1b3; --muted-2:#6c7889;
+  --accent:#818cf8; --accent-strong:#a5b4fc; --accent-soft:#1e2540; --accent-contrast:#0a0e16;
+  --brass:#cda86a; --brass-soft:#2a2418;
+  --red:#f0635a; --red-soft:#2c1a1a; --amber:#e0a23a; --amber-soft:#2a2212;
+  --green:#3cbd8a; --green-soft:#13241d; --blue:#62a0ef; --blue-soft:#15212f;
+  --rail:#0c121d; --rail-2:#18212f; --rail-text:#9aa6ba; --rail-text-strong:#ffffff; --rail-muted:#5d6886;
+  --e1:0 1px 2px rgba(0,0,0,.3); --e2:0 2px 6px rgba(0,0,0,.35); --e3:0 16px 40px rgba(0,0,0,.5);
+  --focus:0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px}
+
+.app{display:grid;grid-template-columns:256px 1fr;min-height:100vh}
+
+/* ---- Sidebar ---- */
+.sidebar{background:var(--rail);color:var(--rail-text);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand .mark{font-family:var(--serif);font-weight:600;font-size:19px;color:#fff;line-height:1.15}
+.brand .mark .amp{color:var(--brass)}
+.brand .sub{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--rail-muted);margin-top:6px}
+.nav{padding:14px 12px;flex:1;overflow:auto}
+.nav h4{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--rail-muted);padding:8px 12px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:var(--rail-text);font-size:13.5px;font-weight:500;position:relative;transition:.12s}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:var(--rail-2);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.nav-item .ic{width:8px;height:8px;border-radius:3px;background:currentColor;opacity:.5}
+.nav-item .badge{margin-left:auto;background:rgba(255,255,255,.1);color:#dfe3ee;font-size:11px;padding:1px 8px;border-radius:20px;font-weight:600;font-family:var(--mono)}
+.nav-item .badge.alert{background:var(--red);color:#fff}
+.nav-item .badge.warn{background:var(--amber);color:#fff}
+
+/* ---- Main ---- */
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{position:sticky;top:0;z-index:10;background:color-mix(in srgb, var(--bg) 82%, transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:13px 30px;display:flex;align-items:center;gap:18px}
+.search{flex:1;max-width:460px;position:relative}
+.search input{width:100%;padding:10px 13px 10px 38px;border:1px solid var(--border);background:var(--surface);border-radius:10px;font-size:13.5px;font-family:inherit;color:var(--text)}
+.search input:focus{outline:none;border-color:var(--accent);box-shadow:var(--focus)}
+.search .si{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted-2)}
+.kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--muted-2);border:1px solid var(--border);border-radius:6px;padding:1px 6px}
+.spacer{flex:1}
+.toggle{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);padding:7px 12px;border-radius:9px;font-size:12.5px;font-weight:600}
+.toggle:hover{border-color:var(--muted-2)}
+.who{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;font-family:var(--serif)}
+
+.content{padding:28px 30px 60px;max-width:1320px;width:100%}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:var(--s5)}
+.eyebrow{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:5px}
+.page-head h1{font-family:var(--serif);font-weight:600;font-size:27px;letter-spacing:-.01em;color:var(--text)}
+.page-head p{color:var(--muted);font-size:13.5px;margin-top:4px}
+
+/* ---- Hero "Hoje" (ritual matinal) ---- */
+.hoje{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--s4);margin-bottom:var(--s5)}
+.hero-card{background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--e2);padding:20px 22px}
+.hero-card h3{font-size:12.5px;font-weight:700;letter-spacing:.04em;color:var(--text-2);display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.hero-card h3 .link{color:var(--accent);font-size:12px}
+.deadline{display:flex;align-items:center;gap:13px;padding:11px 0;border-bottom:1px solid var(--border-soft)}
+.deadline:last-child{border-bottom:none}
+.ddays{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;padding:7px 6px;border-radius:11px;font-family:var(--mono)}
+.ddays b{font-size:18px;font-weight:600;line-height:1}
+.ddays span{font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-top:2px;font-weight:600}
+.ddays.crit{background:var(--red-soft);color:var(--red)} .ddays.warn{background:var(--amber-soft);color:var(--amber)} .ddays.ok{background:var(--green-soft);color:var(--green)}
+.deadline .dl-main{flex:1;min-width:0}
+.deadline .dl-t{font-weight:600;color:var(--text)}
+.deadline .dl-s{font-size:12px;color:var(--muted);margin-top:1px}
+
+/* ---- KPIs ---- */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);margin-bottom:var(--s5)}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:17px 18px;box-shadow:var(--e1);position:relative;overflow:hidden;transition:.14s}
+.kpi:hover{box-shadow:var(--e3);transform:translateY(-2px);border-color:var(--muted-2)}
+.kpi .label{font-size:11.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+.kpi .val{font-family:var(--serif);font-size:32px;font-weight:600;color:var(--text);margin-top:8px;line-height:1;letter-spacing:-.01em}
+.kpi .meta{font-size:11.5px;margin-top:8px;color:var(--muted)}
+.kpi .accent{position:absolute;left:0;top:0;bottom:0;width:3px}
+.kpi.red .accent{background:var(--red)} .kpi.amber .accent{background:var(--amber)} .kpi.green .accent{background:var(--green)} .kpi.blue .accent{background:var(--accent)}
+
+/* ---- Card + tabela ---- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--e1);margin-bottom:var(--s4)}
+.card-h{padding:15px 18px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between}
+.card-h h3{font-size:14px;font-weight:600;color:var(--text)}
+.card-h .link{font-size:12px;color:var(--accent);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:11px 18px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+tbody td{padding:13px 18px;border-bottom:1px solid var(--border-soft);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.clickable:hover{background:var(--surface-2);cursor:pointer}
+.name{font-weight:600;color:var(--text)}
+.sub{font-size:11.5px;color:var(--muted);margin-top:1px}
+.cnj{font-family:var(--mono);font-size:12px;color:var(--accent);border-bottom:1px dotted var(--border)}
+
+/* ---- Pills / status / chips / botões ---- */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.red{background:var(--red-soft);color:var(--red)} .pill.amber{background:var(--amber-soft);color:var(--amber)}
+.pill.green{background:var(--green-soft);color:var(--green)} .pill.blue{background:var(--blue-soft);color:var(--blue)}
+.pill.gray{background:var(--surface-3);color:var(--muted)} .pill.brass{background:var(--brass-soft);color:var(--brass)}
+.gate{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:8px}
+.gate.wait{background:var(--amber-soft);color:var(--amber)} .gate.done{background:var(--green-soft);color:var(--green)}
+.lock{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--brass);background:var(--brass-soft);padding:2px 9px;border-radius:7px}
+.chips{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.chip{padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--muted)}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:.12s}
+.btn:hover{border-color:var(--muted-2)}
+.btn.primary{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-strong)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.section-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:8px 0 12px}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.sw{width:84px}
+.sw i{display:block;height:46px;border-radius:10px;border:1px solid var(--border)}
+.sw small{display:block;font-size:10.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
+.note{font-size:12px;color:var(--muted);margin-top:6px}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{display:none}.hoje{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.content{padding:18px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">Fernandes <span class="amp">&amp;</span> Fernandes</div>
+      <div class="sub">Advocacia Criminal</div>
+    </div>
+    <nav class="nav">
+      <h4>Operação</h4>
+      <div class="nav-item active"><span class="ic"></span><span>Painel — Ritual matinal</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Validação de Daniel</span><span class="badge warn">3</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Prazos penais</span><span class="badge">12</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Audiências</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Intimações</span><span class="badge alert">5</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Produção de peças</span></div>
+      <h4>Acervo</h4>
+      <div class="nav-item"><span class="ic"></span><span>Processos</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Clientes</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Estudos de caso</span></div>
+      <h4>Gestão</h4>
+      <div class="nav-item"><span class="ic"></span><span>Financeiro</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Auditoria</span></div>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search">
+        <span class="si">⌕</span>
+        <input placeholder="Buscar cliente, CNJ, registro…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <div class="spacer"></div>
+      <button class="toggle" onclick="t()">◐ <span id="tl">Tema escuro</span></button>
+      <div class="who">DF</div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Ritual matinal · 17 jun 2026</div>
+          <h1>Bom dia, Daniel.</h1>
+          <p>Conferência cruzada com a auditoria ok. 3 validações e 5 intimações órfãs aguardam você.</p>
+        </div>
+        <button class="btn primary">Rodar triagem de hoje</button>
+      </div>
+
+      <!-- HERO: o que o manual manda vir primeiro -->
+      <div class="hoje">
+        <div class="hero-card">
+          <h3>Prazos críticos <a class="link">ver todos →</a></h3>
+          <div class="deadline"><span class="ddays crit"><b>1</b><span>dia</span></span><div class="dl-main"><div class="dl-t">Razões de apelação <span class="lock">🔒 segredo</span></div><div class="dl-s">Cliente reservado · <span class="cnj">0875189-21.2025.8.10.0001</span> · CPP 600</div></div><span class="gate wait">provisório</span></div>
+          <div class="deadline"><span class="ddays warn"><b>3</b><span>dias</span></span><div class="dl-main"><div class="dl-t">Contrarrazões — RESE</div><div class="dl-s">João da Silva · <span class="cnj">0889701-09.2025.8.10.0001</span></div></div><span class="gate done">✓ validado</span></div>
+          <div class="deadline"><span class="ddays ok"><b>6</b><span>dias</span></span><div class="dl-main"><div class="dl-t">Memoriais — alegações finais</div><div class="dl-s">Maria Souza · <span class="cnj">1002033-55.2024.8.26.0050</span></div></div><span class="gate wait">provisório</span></div>
+        </div>
+        <div class="hero-card">
+          <h3>Pendentes de validação <a class="link">abrir →</a></h3>
+          <div class="deadline"><span class="pill amber"><span class="dot"></span>prazo</span><div class="dl-main"><div class="dl-t">Embargos de declaração</div><div class="dl-s">cadastro automático · cowork</div></div></div>
+          <div class="deadline"><span class="pill blue"><span class="dot"></span>audiência</span><div class="dl-main"><div class="dl-t">Instrução — videoconferência</div><div class="dl-s">20/06 14:00 · revisar local</div></div></div>
+          <div class="deadline"><span class="pill amber"><span class="dot"></span>peça</span><div class="dl-main"><div class="dl-t">Apelação (a_fazer)</div><div class="dl-s">gerada da intimação · revisar</div></div></div>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi red"><span class="accent"></span><div class="label">Prazos abertos</div><div class="val">12</div><div class="meta">2 críticos (≤2 dias)</div></div>
+        <div class="kpi amber"><span class="accent"></span><div class="label">A validar</div><div class="val">3</div><div class="meta">prazos + audiências</div></div>
+        <div class="kpi blue"><span class="accent"></span><div class="label">Processos ativos</div><div class="val">248</div><div class="meta">14 em segredo</div></div>
+        <div class="kpi green"><span class="accent"></span><div class="label">A receber</div><div class="val">R$ 38k</div><div class="meta">6 parcelas no mês</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Cadastros automáticos de hoje — revisar</h3><a class="link">auditoria →</a></div>
+        <table>
+          <thead><tr><th>Registro</th><th>Tipo</th><th>Origem</th><th style="text-align:right">Estado</th></tr></thead>
+          <tbody>
+            <tr class="clickable"><td><span class="cnj">0875189-21.2025.8.10.0001</span></td><td>processo</td><td class="sub">DJEN · 17/06</td><td style="text-align:right"><span class="pill amber"><span class="dot"></span>revisar</span></td></tr>
+            <tr class="clickable"><td><span class="name">Adão Rodrigues dos Santos</span></td><td>cliente</td><td class="sub">e-mail · 17/06</td><td style="text-align:right"><span class="pill amber"><span class="dot"></span>revisar</span></td></tr>
+            <tr class="clickable"><td><span class="name">Razões de apelação</span><div class="sub">prazo órfão — sem processo</div></td><td>prazo</td><td class="sub">push · 17/06</td><td style="text-align:right"><span class="pill gray"><span class="dot"></span>órfão</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title">Componentes &amp; tokens</div>
+      <div class="card"><div class="card-h"><h3>Paleta</h3></div>
+        <div style="padding:16px 18px">
+          <div class="swatches">
+            <div class="sw"><i style="background:var(--accent)"></i><small>accent</small></div>
+            <div class="sw"><i style="background:var(--brass)"></i><small>brass</small></div>
+            <div class="sw"><i style="background:var(--red)"></i><small>red</small></div>
+            <div class="sw"><i style="background:var(--amber)"></i><small>amber</small></div>
+            <div class="sw"><i style="background:var(--green)"></i><small>green</small></div>
+            <div class="sw"><i style="background:var(--blue)"></i><small>blue</small></div>
+            <div class="sw"><i style="background:var(--surface);border-color:var(--border)"></i><small>surface</small></div>
+            <div class="sw"><i style="background:var(--bg)"></i><small>bg</small></div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary">Ação primária</button>
+            <button class="btn">Secundária</button>
+            <span class="pill green"><span class="dot"></span>validado</span>
+            <span class="pill red"><span class="dot"></span>crítico</span>
+            <span class="gate wait">provisório</span>
+            <span class="lock">🔒 segredo de justiça</span>
+          </div>
+          <div class="chips" style="margin-top:14px">
+            <span class="chip on">Todos</span><span class="chip">Pendentes</span><span class="chip">Órfãs</span><span class="chip">Favoritos</span>
+          </div>
+          <p class="note">Acessibilidade: foco visível (anel indigo) em todos os controles · contraste de texto revisado para AA · escala de espaço/tipo/elevação consistente · raio de canto maior (moderno) · dark mode no botão acima.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+function t(){var h=document.documentElement;var d=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',d?'light':'dark');document.getElementById('tl').textContent=d?'Tema escuro':'Tema claro';}
+</script>
+</body>
+</html>
