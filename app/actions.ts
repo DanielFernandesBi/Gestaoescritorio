@@ -1110,11 +1110,123 @@ export async function criarProcesso(fd: FormData): Promise<Resultado> {
   }
 }
 
+type CosturaResultado = { ok: true; procId: string; msg: string } | { ok: false; message: string };
+
 /**
- * Promove um prazo ÓRFÃO (sem processo): costura/identifica o processo (dedup por
- * CNJ/registro, completando o CNJ num registro existente quando for o caso),
- * vincula o cliente e grava prazos.processo_id. Só então (CHECK satisfeito) pode
- * validar. Reaproveita a lógica de criação/validação já existente.
+ * Costura/identifica o processo (dedup por CNJ/registro, resolvendo tombstones de
+ * merge para o canônico via fn_resolver_processo, e completando o CNJ num registro
+ * existente sem sobrescrever o preenchido) e vincula o cliente (existente ou novo).
+ * Núcleo compartilhado pelos assistentes "promover órfã" (prazo/intimação/andamento).
+ */
+async function costurarProcessoCliente(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  fd: FormData,
+): Promise<CosturaResultado> {
+  let procId = String(fd.get("processo_id") || "").trim();
+  const cnj = String(fd.get("numero_cnj") || "").trim() || null;
+  const reg = String(fd.get("numero_registro_tribunal") || "").trim() || null;
+  const tribunal = String(fd.get("tribunal") || "").trim();
+  let msg = "";
+
+  if (procId) {
+    // Processo existente selecionado: seguir o merge se for um tombstone (Sugestão 28).
+    const alvo = await resolverProcesso(supabase, procId);
+    if (alvo !== procId) { procId = alvo; msg += "Processo selecionado estava mesclado; seguido para o canônico vivo. "; }
+    // completar CNJ se faltava e foi informado (nunca sobrescreve preenchido).
+    if (cnj) {
+      const { data: ex } = await supabase.from("processos").select("numero_cnj").eq("id", procId).single();
+      if (ex && !ex.numero_cnj) {
+        const { data: dup } = await supabase.from("processos").select("id").eq("numero_cnj", cnj).neq("id", procId).maybeSingle();
+        if (dup) return { ok: false, message: "Já existe outro processo com este CNJ." };
+        await supabase.from("processos").update({ numero_cnj: cnj }).eq("id", procId);
+        msg += "CNJ completado no processo existente. ";
+      }
+    }
+  } else {
+    // Sem seleção: dedup por CNJ/registro (regra do manual).
+    if (!cnj && !reg) return { ok: false, message: "Selecione um processo existente ou informe CNJ/registro para criar." };
+    const ors: string[] = [];
+    if (cnj) ors.push(`numero_cnj.eq.${cnj}`);
+    if (reg) ors.push(`numero_registro_tribunal.eq.${reg}`);
+    const { data: existentes } = await supabase
+      .from("processos")
+      .select("id, numero_cnj, numero_registro_tribunal")
+      .or(ors.join(","));
+    if (existentes && existentes.length === 1) {
+      // Seguir o merge se o achado for um tombstone (Sugestão 28).
+      procId = await resolverProcesso(supabase, existentes[0].id as string);
+      const { data: canon } = await supabase.from("processos").select("numero_cnj").eq("id", procId).single();
+      if (cnj && canon && !canon.numero_cnj) {
+        await supabase.from("processos").update({ numero_cnj: cnj }).eq("id", procId);
+        msg += "Processo localizado por registro; CNJ completado no mesmo registro. ";
+      } else {
+        msg += "Processo já existente reaproveitado. ";
+      }
+    } else if (existentes && existentes.length > 1) {
+      return { ok: false, message: "Mais de um processo corresponde — abra pela busca e selecione manualmente." };
+    } else {
+      if (!tribunal) return { ok: false, message: "Tribunal é obrigatório para criar o processo." };
+      const { data: novo, error } = await supabase
+        .from("processos")
+        .insert({
+          numero_cnj: cnj,
+          numero_registro_tribunal: reg,
+          tribunal,
+          vara_comarca: String(fd.get("vara_comarca") || "").trim() || null,
+          uf: String(fd.get("uf") || "").trim() || null,
+          instancia: String(fd.get("instancia") || "1grau"),
+          area: String(fd.get("area") || "criminal"),
+          status: "ativo",
+          responsavel: String(fd.get("responsavel") || "Daniel"),
+          segredo_justica: fd.get("segredo_justica") === "on",
+          cadastro_automatico: false,
+          cadastrado_por: "manual",
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      procId = novo.id as string;
+      msg += "Processo criado. ";
+    }
+  }
+
+  if (!procId) return { ok: false, message: "Não foi possível resolver o processo." };
+
+  // Cliente: existente ou novo (opcional, mas recomendado).
+  let cliente_id = String(fd.get("cliente_id") || "").trim();
+  const novoNome = String(fd.get("novo_cliente_nome") || "").trim();
+  if (!cliente_id && novoNome) {
+    const { data: c, error: cErr } = await supabase
+      .from("clientes")
+      .insert({ nome: novoNome, situacao_prisional: "solto", ativo: true, cadastro_automatico: false, cadastrado_por: "manual" })
+      .select("id")
+      .single();
+    if (cErr) throw cErr;
+    cliente_id = c.id as string;
+    msg += "Cliente criado. ";
+  }
+  if (cliente_id) {
+    const { data: ja } = await supabase
+      .from("cliente_processo")
+      .select("id")
+      .eq("processo_id", procId)
+      .eq("cliente_id", cliente_id)
+      .maybeSingle();
+    if (!ja) {
+      const { error: vErr } = await supabase
+        .from("cliente_processo")
+        .insert({ processo_id: procId, cliente_id, papel: String(fd.get("papel") || "reu") });
+      if (vErr) throw vErr;
+      msg += "Cliente vinculado. ";
+    }
+  }
+
+  return { ok: true, procId, msg };
+}
+
+/**
+ * Promove um prazo ÓRFÃO (sem processo): costura/identifica o processo, vincula o
+ * cliente e grava prazos.processo_id. Só então (CHECK satisfeito) pode validar.
  */
 export async function promoverPrazoOrfao(prazo_id: string, fd: FormData): Promise<Resultado> {
   try {
@@ -1126,107 +1238,12 @@ export async function promoverPrazoOrfao(prazo_id: string, fd: FormData): Promis
     if (!pr) return { ok: false, message: "Prazo não encontrado." };
     if (pr.processo_id) return { ok: false, message: "Este prazo já tem processo vinculado (não é órfão)." };
 
-    let procId = String(fd.get("processo_id") || "").trim();
-    const cnj = String(fd.get("numero_cnj") || "").trim() || null;
-    const reg = String(fd.get("numero_registro_tribunal") || "").trim() || null;
-    const tribunal = String(fd.get("tribunal") || "").trim();
-    let msg = "";
-
-    if (procId) {
-      // Processo existente selecionado: seguir o merge se for um tombstone (Sugestão 28).
-      const alvo = await resolverProcesso(supabase, procId);
-      if (alvo !== procId) { procId = alvo; msg += "Processo selecionado estava mesclado; seguido para o canônico vivo. "; }
-      // completar CNJ se faltava e foi informado.
-      if (cnj) {
-        const { data: ex } = await supabase.from("processos").select("numero_cnj").eq("id", procId).single();
-        if (ex && !ex.numero_cnj) {
-          const { data: dup } = await supabase.from("processos").select("id").eq("numero_cnj", cnj).neq("id", procId).maybeSingle();
-          if (dup) return { ok: false, message: "Já existe outro processo com este CNJ." };
-          await supabase.from("processos").update({ numero_cnj: cnj }).eq("id", procId);
-          msg += "CNJ completado no processo existente. ";
-        }
-      }
-    } else {
-      // Sem seleção: dedup por CNJ/registro (regra do manual).
-      if (!cnj && !reg) return { ok: false, message: "Selecione um processo existente ou informe CNJ/registro para criar." };
-      const ors: string[] = [];
-      if (cnj) ors.push(`numero_cnj.eq.${cnj}`);
-      if (reg) ors.push(`numero_registro_tribunal.eq.${reg}`);
-      const { data: existentes } = await supabase
-        .from("processos")
-        .select("id, numero_cnj, numero_registro_tribunal")
-        .or(ors.join(","));
-      if (existentes && existentes.length === 1) {
-        // Seguir o merge se o achado for um tombstone (Sugestão 28).
-        procId = await resolverProcesso(supabase, existentes[0].id as string);
-        const { data: canon } = await supabase.from("processos").select("numero_cnj").eq("id", procId).single();
-        if (cnj && canon && !canon.numero_cnj) {
-          await supabase.from("processos").update({ numero_cnj: cnj }).eq("id", procId);
-          msg += "Processo localizado por registro; CNJ completado no mesmo registro. ";
-        } else {
-          msg += "Processo já existente reaproveitado. ";
-        }
-      } else if (existentes && existentes.length > 1) {
-        return { ok: false, message: "Mais de um processo corresponde — abra pela busca e selecione manualmente." };
-      } else {
-        if (!tribunal) return { ok: false, message: "Tribunal é obrigatório para criar o processo." };
-        const { data: novo, error } = await supabase
-          .from("processos")
-          .insert({
-            numero_cnj: cnj,
-            numero_registro_tribunal: reg,
-            tribunal,
-            vara_comarca: String(fd.get("vara_comarca") || "").trim() || null,
-            uf: String(fd.get("uf") || "").trim() || null,
-            instancia: String(fd.get("instancia") || "1grau"),
-            area: String(fd.get("area") || "criminal"),
-            status: "ativo",
-            responsavel: String(fd.get("responsavel") || "Daniel"),
-            segredo_justica: fd.get("segredo_justica") === "on",
-            cadastro_automatico: false,
-            cadastrado_por: "manual",
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        procId = novo.id as string;
-        msg += "Processo criado. ";
-      }
-    }
-
-    if (!procId) return { ok: false, message: "Não foi possível resolver o processo." };
-
-    // Cliente: existente ou novo (opcional, mas recomendado).
-    let cliente_id = String(fd.get("cliente_id") || "").trim();
-    const novoNome = String(fd.get("novo_cliente_nome") || "").trim();
-    if (!cliente_id && novoNome) {
-      const { data: c, error: cErr } = await supabase
-        .from("clientes")
-        .insert({ nome: novoNome, situacao_prisional: "solto", ativo: true, cadastro_automatico: false, cadastrado_por: "manual" })
-        .select("id")
-        .single();
-      if (cErr) throw cErr;
-      cliente_id = c.id as string;
-      msg += "Cliente criado. ";
-    }
-    if (cliente_id) {
-      const { data: ja } = await supabase
-        .from("cliente_processo")
-        .select("id")
-        .eq("processo_id", procId)
-        .eq("cliente_id", cliente_id)
-        .maybeSingle();
-      if (!ja) {
-        const { error: vErr } = await supabase
-          .from("cliente_processo")
-          .insert({ processo_id: procId, cliente_id, papel: String(fd.get("papel") || "reu") });
-        if (vErr) throw vErr;
-        msg += "Cliente vinculado. ";
-      }
-    }
+    const cost = await costurarProcessoCliente(supabase, fd);
+    if (!cost.ok) return cost;
+    let msg = cost.msg;
 
     // Costura o prazo ao processo — a partir daqui o CHECK do banco está satisfeito.
-    const { error: upErr } = await supabase.from("prazos").update({ processo_id: procId }).eq("id", prazo_id);
+    const { error: upErr } = await supabase.from("prazos").update({ processo_id: cost.procId }).eq("id", prazo_id);
     if (upErr) throw upErr;
     msg += "Prazo vinculado (saiu da fila de órfãos).";
 
@@ -1235,6 +1252,44 @@ export async function promoverPrazoOrfao(prazo_id: string, fd: FormData): Promis
       const r = await validarPrazo(prazo_id);
       msg += r.ok ? ` ${r.message}` : ` (Validação falhou: ${r.message})`;
     }
+
+    revalidarTudo();
+    return { ok: true, message: msg.trim() };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Promove uma INTIMAÇÃO ou ANDAMENTO órfão: costura/identifica o processo (mesma
+ * lógica/dedup do prazo órfão, resolvendo tombstones) e grava o processo_id no item.
+ * Fase 2 (RLS, auditada, nunca delete); resumo+confirmação acontecem na UI.
+ */
+export async function promoverOrfa(
+  tipo: "intimacao" | "andamento",
+  origem_id: string,
+  fd: FormData,
+): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!["intimacao", "andamento"].includes(tipo)) return { ok: false, message: "Tipo de origem inválido." };
+    if (!origem_id) return { ok: false, message: "Item inválido." };
+    const supabase = await createClient();
+    const tabela = tipo === "intimacao" ? "intimacoes" : "andamentos";
+
+    const { data: row } = await supabase.from(tabela).select("id, processo_id").eq("id", origem_id).maybeSingle();
+    if (!row) return { ok: false, message: tipo === "intimacao" ? "Intimação não encontrada." : "Andamento não encontrado." };
+    if (row.processo_id) return { ok: false, message: "Este item já tem processo vinculado (não é órfão)." };
+
+    const cost = await costurarProcessoCliente(supabase, fd);
+    if (!cost.ok) return cost;
+    let msg = cost.msg;
+
+    const { error: upErr } = await supabase.from(tabela).update({ processo_id: cost.procId }).eq("id", origem_id);
+    if (upErr) throw upErr;
+    msg += tipo === "intimacao"
+      ? "Intimação vinculada ao processo (saiu da fila de órfãs)."
+      : "Andamento vinculado ao processo (saiu da fila de órfãos).";
 
     revalidarTudo();
     return { ok: true, message: msg.trim() };

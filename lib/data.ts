@@ -671,6 +671,39 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
   }));
 }
 
+/* Andamentos órfãos (triagem) -------------------------------------------- */
+
+export type AndamentoOrfao = {
+  id: string;
+  data: string | null;
+  tipo: string;
+  descricao: string;
+  autor: string | null;
+  origem: string | null;
+  cadastrado_por: string | null;
+  cadastro_automatico: boolean;
+  criado_em: string | null;
+};
+
+export async function getAndamentosOrfaos(): Promise<AndamentoOrfao[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_andamentos_orfaos")
+    .select("*")
+    .order("data", { ascending: false, nullsFirst: false });
+  return (data ?? []).map((r): AndamentoOrfao => ({
+    id: r.id as string,
+    data: (r.data as string) ?? null,
+    tipo: (r.tipo as string) ?? "outro",
+    descricao: (r.descricao as string) ?? "",
+    autor: (r.autor as string) ?? null,
+    origem: (r.origem as string) ?? null,
+    cadastrado_por: (r.cadastrado_por as string) ?? null,
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    criado_em: (r.criado_em as string) ?? null,
+  }));
+}
+
 /* Tarefas ---------------------------------------------------------------- */
 
 export type Tarefa = {

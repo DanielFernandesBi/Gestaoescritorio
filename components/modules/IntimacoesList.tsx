@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDrawer } from "@/components/Drawer";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
-import { atualizarIntimacao, atualizarIntimacaoCampos } from "@/app/actions";
+import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa } from "@/app/actions";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
+import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm";
 import { fmtDate, humano } from "@/lib/format";
 import type { Intimacao } from "@/lib/data";
 import type { MapaProvidencia } from "@/lib/pecas";
@@ -49,6 +50,15 @@ export function IntimacoesList({
   const [st, setSt] = useState("todas");
   const [orig, setOrig] = useState("todas");
   const [visiveis, setVisiveis] = useState(PASSO);
+  const [procs, setProcs] = useState<{ id: string; label: string }[]>([]);
+  const [clis, setClis] = useState<{ id: string; nome: string }[]>([]);
+
+  useEffect(() => {
+    let vivo = true;
+    fetch("/api/processos-lite").then((r) => r.json()).then((d) => vivo && setProcs(d.processos ?? [])).catch(() => {});
+    fetch("/api/clientes-lite").then((r) => r.json()).then((d) => vivo && setClis(d.clientes ?? [])).catch(() => {});
+    return () => { vivo = false; };
+  }, []);
 
   const filtradas = useMemo(
     () =>
@@ -100,10 +110,26 @@ export function IntimacoesList({
             <div className="dsec"><h4>Providência</h4><div className="field"><div className="v">{i.providencia}</div></div></div>
           )}
           {i.orfa && (
-            <div className="banner" style={{ margin: "0 0 24px" }}>
-              <span className="ico">⚠</span>
-              <div><b>Intimação órfã.</b> Processo não identificado — triagem humana antes de vincular.</div>
-            </div>
+            <>
+              <div className="banner" style={{ margin: "0 0 16px" }}>
+                <span className="ico">⚠</span>
+                <div><b>Intimação órfã.</b> Processo não identificado — triagem humana antes de vincular.</div>
+              </div>
+              <div className="dsec">
+                <h4>Promover órfã</h4>
+                <div className="acoes">
+                  <PromoverProcessoForm
+                    titulo="Promover intimação órfã"
+                    descricao="Identifica/cadastra o processo (dedup + resolução de mesclagem) e vincula a intimação. Auditado; nada é apagado."
+                    acao={promoverOrfa.bind(null, "intimacao", i.id)}
+                    procs={procs}
+                    clis={clis}
+                    enviarLabel="Vincular intimação"
+                    header={<p className="sub" style={{ marginTop: 0 }}>{i.resumo ?? "—"}</p>}
+                  />
+                </div>
+              </div>
+            </>
           )}
           <div className="dsec">
             <h4>Ações</h4>
