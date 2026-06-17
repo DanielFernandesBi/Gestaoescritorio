@@ -5,7 +5,7 @@ import { Icon } from "@/components/Icon";
 import { Pill, ProcRef, SegredoTag } from "@/components/ui";
 import { PrazoRow } from "@/components/PrazoRow";
 import { fmtBRL, fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
-import { linkPara } from "@/lib/links";
+import { linkPara, tipoDeTabela, linkNavegavel } from "@/lib/links";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -413,7 +413,15 @@ export default async function PainelPage() {
                       <Pill tone="gray" dot={false}>{humano(e.tabela)}</Pill>{" "}
                       <span className="sub">{e.operacao}</span>
                     </td>
-                    <td className="right sub">{e.referencia ?? ""}</td>
+                    <td className="right">
+                      {(() => {
+                        const tipo = tipoDeTabela(e.tabela);
+                        const href = tipo && e.registro_id ? linkNavegavel(tipo, e.registro_id) : null;
+                        return href
+                          ? <Link className="link" href={href}>{e.referencia ?? "abrir"}</Link>
+                          : <span className="sub">{e.referencia ?? ""}</span>;
+                      })()}
+                    </td>
                   </tr>
                 ))}
               </tbody>

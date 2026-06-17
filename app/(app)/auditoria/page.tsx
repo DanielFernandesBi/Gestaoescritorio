@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { getAuditoria } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { fmtNum } from "@/lib/format";
+import { tipoDeTabela, linkNavegavel } from "@/lib/links";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,14 @@ function quando(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/** Referência clicável quando o registro tem página de detalhe; senão, texto. */
+function Referencia({ tabela, registroId, texto }: { tabela: string; registroId: string | null; texto: string | null }) {
+  const tipo = tipoDeTabela(tabela);
+  const href = tipo && registroId ? linkNavegavel(tipo, registroId) : null;
+  if (href) return <Link className="link" href={href}>{texto ?? "abrir"}</Link>;
+  return <span className="sub">{texto ?? "—"}</span>;
 }
 
 export default async function AuditoriaPage() {
@@ -54,7 +64,7 @@ export default async function AuditoriaPage() {
                     <td className="mono">{quando(e.ocorrido_em)}</td>
                     <td><Pill tone="gray" dot={false}>{e.tabela}</Pill></td>
                     <td><Pill tone={opTone(e.operacao)} dot={false}>{e.operacao}</Pill></td>
-                    <td className="sub">{e.referencia ?? "—"}</td>
+                    <td><Referencia tabela={e.tabela} registroId={e.registro_id} texto={e.referencia} /></td>
                   </tr>
                 ))}
               </tbody>

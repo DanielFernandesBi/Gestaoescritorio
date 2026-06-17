@@ -920,6 +920,7 @@ export type EventoAuditoria = {
   tabela: string;
   operacao: string;
   referencia: string | null;
+  registro_id: string | null;
 };
 
 export async function getAuditoria(): Promise<{
