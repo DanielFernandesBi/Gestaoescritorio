@@ -240,6 +240,37 @@ export async function getAudiencias(): Promise<Audiencia[]> {
   });
 }
 
+/** Uma audiência pelo id, na mesma forma de `getAudiencias`. */
+export async function getAudienciaPorId(id: string): Promise<Audiencia | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("audiencias")
+    .select(
+      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!r) return null;
+  const p = r.processos as unknown as NestedProcesso;
+  return {
+    id: r.id as string,
+    processo_id: r.processo_id as string,
+    tipo: r.tipo as string,
+    data_hora: r.data_hora as string,
+    modalidade: r.modalidade as string | null,
+    local_link: r.local_link as string | null,
+    status: r.status as string,
+    responsavel: r.responsavel as string | null,
+    observacoes: r.observacoes as string | null,
+    validado: Boolean(r.validado),
+    numero_cnj: p?.numero_cnj ?? null,
+    numero_registro: p?.numero_registro_tribunal ?? null,
+    segredo: Boolean(p?.segredo_justica),
+    clientes: nomesClientes(p?.cliente_processo),
+  };
+}
+
 /* Processos -------------------------------------------------------------- */
 
 export type Processo = {
@@ -397,6 +428,42 @@ export async function getClientes(): Promise<Cliente[]> {
       ultima_atividade: a?.ult ?? null,
     };
   });
+}
+
+/** Um cliente pelo id (inclusive inativo), na mesma forma de `getClientes`. */
+export async function getClientePorId(id: string): Promise<Cliente | null> {
+  const supabase = await createClient();
+  const [base, situacao, atividade] = await Promise.all([
+    supabase
+      .from("clientes")
+      .select("id, nome, cpf, uf, situacao_prisional, unidade_prisional, cadastro_automatico, favorito")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase.from("vw_situacao_cliente").select("*").eq("cliente_id", id).maybeSingle(),
+    supabase.from("vw_cliente_ultima_atividade").select("cliente_id, ultima_movimentacao, ultima_intimacao, ultima_atividade").eq("cliente_id", id).maybeSingle(),
+  ]);
+
+  const c = base.data;
+  if (!c) return null;
+  const s = situacao.data ?? {};
+  const a = atividade.data;
+  return {
+    id: c.id as string,
+    nome: c.nome as string,
+    cpf: c.cpf as string | null,
+    uf: c.uf as string | null,
+    situacao_prisional: c.situacao_prisional as string | null,
+    unidade_prisional: c.unidade_prisional as string | null,
+    cadastro_automatico: Boolean(c.cadastro_automatico),
+    favorito: Boolean(c.favorito),
+    total_processos: Number((s as Record<string, unknown>).total_processos ?? 0),
+    processos_ativos: Number((s as Record<string, unknown>).processos_ativos ?? 0),
+    prazos_abertos: Number((s as Record<string, unknown>).prazos_abertos ?? 0),
+    audiencias_futuras: Number((s as Record<string, unknown>).audiencias_futuras ?? 0),
+    ultima_movimentacao: (a?.ultima_movimentacao as string) ?? null,
+    ultima_intimacao: (a?.ultima_intimacao as string) ?? null,
+    ultima_atividade: (a?.ultima_atividade as string) ?? null,
+  };
 }
 
 /* Financeiro ------------------------------------------------------------- */

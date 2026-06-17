@@ -40,10 +40,10 @@ export function isEntidadeTipo(x: string): x is EntidadeTipo {
  */
 const TEM_PAGINA: Record<EntidadeTipo, boolean> = {
   processo: true, // Fase 1
-  cliente: false, // Fase 3
-  audiencia: false,
-  intimacao: false,
-  prazo: false,
+  cliente: true, // Fase 3
+  audiencia: true, // Fase 3
+  intimacao: false, // Fase 3b (extrair IntimacaoDetalhe)
+  prazo: false, // Fase 3b (extrair PrazoDetalhe)
 };
 
 /** Existe página de detalhe para este tipo hoje? */

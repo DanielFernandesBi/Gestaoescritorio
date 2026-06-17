@@ -443,7 +443,7 @@ export default async function PainelPage() {
                 <Link
                   key={`${c.tipo}-${c.id}`}
                   className="mini"
-                  href={c.tipo === "processo" ? linkPara("processo", c.id) : "/clientes"}
+                  href={linkPara(c.tipo, c.id)}
                   style={{ textDecoration: "none", color: "inherit" }}
                 >
                   <div>
