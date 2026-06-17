@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { Pill, ProcRef, SegredoTag } from "@/components/ui";
 import { PrazoRow } from "@/components/PrazoRow";
 import { fmtBRL, fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
+import { linkPara } from "@/lib/links";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -434,7 +435,7 @@ export default async function PainelPage() {
                 <Link
                   key={`${c.tipo}-${c.id}`}
                   className="mini"
-                  href={c.tipo === "processo" ? "/processos" : "/clientes"}
+                  href={c.tipo === "processo" ? linkPara("processo", c.id) : "/clientes"}
                   style={{ textDecoration: "none", color: "inherit" }}
                 >
                   <div>

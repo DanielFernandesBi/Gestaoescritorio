@@ -293,6 +293,38 @@ export async function getProcessos(limit = 250): Promise<Processo[]> {
   });
 }
 
+/** Um processo pelo id (qualquer status), na mesma forma de `getProcessos`. */
+export async function getProcessoPorId(id: string): Promise<Processo | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("processos")
+    .select(
+      "id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, status, responsavel, segredo_justica, cadastro_automatico, cliente_processo(papel,clientes(nome))",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!r) return null;
+  const cp = r.cliente_processo as unknown as (NestedCliente & { papel: string | null })[] | null;
+  return {
+    id: r.id as string,
+    numero_cnj: r.numero_cnj as string | null,
+    numero_registro: r.numero_registro_tribunal as string | null,
+    tribunal: r.tribunal as string | null,
+    vara_comarca: r.vara_comarca as string | null,
+    uf: r.uf as string | null,
+    instancia: r.instancia as string | null,
+    area: r.area as string | null,
+    classe: r.classe as string | null,
+    status: r.status as string,
+    responsavel: r.responsavel as string | null,
+    segredo: Boolean(r.segredo_justica),
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    clientes: nomesClientes(cp),
+    papel: cp?.[0]?.papel ?? null,
+  };
+}
+
 /* Clientes --------------------------------------------------------------- */
 
 export type Cliente = {
