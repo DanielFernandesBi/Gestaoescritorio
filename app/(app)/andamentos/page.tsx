@@ -1,10 +1,10 @@
-import { getAndamentos } from "@/lib/data";
+import { getAndamentos, getMapaProvidenciaPeca } from "@/lib/data";
 import { AndamentosTimeline } from "@/components/modules/AndamentosTimeline";
 
 export const dynamic = "force-dynamic";
 
 export default async function AndamentosPage() {
-  const movimentacoes = await getAndamentos();
+  const [movimentacoes, mapa] = await Promise.all([getAndamentos(), getMapaProvidenciaPeca()]);
   return (
     <>
       <div className="page-head">
@@ -19,7 +19,7 @@ export default async function AndamentosPage() {
       </div>
       <div className="card">
         <div className="card-b">
-          <AndamentosTimeline movimentacoes={movimentacoes} />
+          <AndamentosTimeline movimentacoes={movimentacoes} mapa={mapa} />
         </div>
       </div>
     </>

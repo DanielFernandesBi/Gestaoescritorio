@@ -2,8 +2,10 @@
 
 import { useDrawer } from "@/components/Drawer";
 import { ProcRef, SegredoTag } from "@/components/ui";
+import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { fmtDate, humano } from "@/lib/format";
 import type { Movimentacao } from "@/lib/data";
+import type { MapaProvidencia } from "@/lib/pecas";
 
 const cor = (tipo: string) => {
   if (tipo.includes("sentenca")) return "red";
@@ -12,7 +14,13 @@ const cor = (tipo: string) => {
   return "";
 };
 
-export function AndamentosTimeline({ movimentacoes }: { movimentacoes: Movimentacao[] }) {
+export function AndamentosTimeline({
+  movimentacoes,
+  mapa = null,
+}: {
+  movimentacoes: Movimentacao[];
+  mapa?: MapaProvidencia | null;
+}) {
   const { open } = useDrawer();
 
   if (!movimentacoes.length) {
@@ -51,6 +59,12 @@ export function AndamentosTimeline({ movimentacoes }: { movimentacoes: Movimenta
                       <div className="field"><div className="k">Tribunal</div><div className="v">{m.tribunal ?? "—"}</div></div>
                       <div className="field"><div className="k">Autor</div><div className="v">{m.autor ?? "—"}</div></div>
                       <div className="field"><div className="k">Cliente</div><div className="v">{m.segredo ? "— (sigiloso)" : m.clientes ?? "—"}</div></div>
+                    </div>
+                  </div>
+                  <div className="dsec">
+                    <h4>Produção</h4>
+                    <div className="acoes">
+                      <CriarPecaPendente tipoOrigem="andamento" origemId={m.id} texto={m.descricao} mapa={mapa} />
                     </div>
                   </div>
                 </>

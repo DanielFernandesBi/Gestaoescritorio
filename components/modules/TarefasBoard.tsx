@@ -5,9 +5,11 @@ import { Pill } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { moverTarefa, atualizarTarefa } from "@/app/actions";
+import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { Tarefa } from "@/lib/data";
+import type { MapaProvidencia } from "@/lib/pecas";
 
 type Tone = "red" | "amber" | "gray";
 const priTone = (p: string | null): Tone =>
@@ -19,7 +21,13 @@ const COLS: { key: string; label: string }[] = [
   { key: "concluida", label: "Concluída" },
 ];
 
-export function TarefasBoard({ tarefas }: { tarefas: Tarefa[] }) {
+export function TarefasBoard({
+  tarefas,
+  mapa = null,
+}: {
+  tarefas: Tarefa[];
+  mapa?: MapaProvidencia | null;
+}) {
   const { open } = useDrawer();
 
   return (
@@ -99,6 +107,18 @@ export function TarefasBoard({ tarefas }: { tarefas: Tarefa[] }) {
                                 <Acao label="Cancelar" variant="danger" titulo="Cancelar tarefa"
                                   resumo={<>Cancelar <b>{t.titulo}</b>?</>}
                                   acao={() => moverTarefa(t.id, "cancelada")} />
+                              </div>
+                            </div>
+                            <div className="dsec">
+                              <h4>Produção</h4>
+                              <div className="acoes">
+                                <CriarPecaPendente
+                                  tipoOrigem="tarefa"
+                                  origemId={t.id}
+                                  texto={[t.titulo, t.descricao].filter(Boolean).join(" — ")}
+                                  baseTitulo={t.titulo}
+                                  mapa={mapa}
+                                />
                               </div>
                             </div>
                           </>

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { diasAte } from "@/lib/format";
+import type { MapaProvidencia } from "@/lib/pecas";
 
 /* Helpers ---------------------------------------------------------------- */
 
@@ -762,6 +763,27 @@ export async function getPecas(): Promise<Peca[]> {
     validado: Boolean(r.validado),
     criado_em: (r.criado_em as string) ?? null,
   }));
+}
+
+/**
+ * Mapa providência→peça (config_sistema/mapa_providencia_peca). Lido pela sessão do
+ * usuário (RLS auth_read). `valor` é texto JSON; degradação segura: null se ausente/ilegível.
+ */
+export async function getMapaProvidenciaPeca(): Promise<MapaProvidencia | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("config_sistema")
+    .select("valor")
+    .eq("chave", "mapa_providencia_peca")
+    .maybeSingle();
+  const raw = data?.valor;
+  if (!raw) return null;
+  try {
+    const v = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return v as MapaProvidencia;
+  } catch {
+    return null;
+  }
 }
 
 /* Auditoria -------------------------------------------------------------- */

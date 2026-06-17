@@ -7,8 +7,10 @@ import { Chips } from "@/components/Chips";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { atualizarIntimacao, atualizarIntimacaoCampos } from "@/app/actions";
+import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { fmtDate, humano } from "@/lib/format";
 import type { Intimacao } from "@/lib/data";
+import type { MapaProvidencia } from "@/lib/pecas";
 
 const PASSO = 50;
 
@@ -36,7 +38,13 @@ const ORIGENS = [
   { id: "eproc", label: "eproc" },
 ];
 
-export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
+export function IntimacoesList({
+  intimacoes,
+  mapa = null,
+}: {
+  intimacoes: Intimacao[];
+  mapa?: MapaProvidencia | null;
+}) {
   const { open } = useDrawer();
   const [st, setSt] = useState("todas");
   const [orig, setOrig] = useState("todas");
@@ -110,6 +118,13 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
                 <div><label>Teor (preencher se faltar)</label><textarea name="teor" placeholder="Cole o teor integral se ainda não houver" /></div>
                 <p className="sub" style={{ margin: 0 }}>Só grava os campos preenchidos. Datas em dias corridos — confira ciência e feriados locais antes de gerar prazo.</p>
               </FormModal>
+              <CriarPecaPendente
+                tipoOrigem="intimacao"
+                origemId={i.id}
+                texto={i.providencia || i.resumo}
+                baseTitulo={i.resumo}
+                mapa={mapa}
+              />
               <Acao
                 label="Em análise"
                 titulo="Marcar em análise"

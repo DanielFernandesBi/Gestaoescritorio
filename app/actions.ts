@@ -515,6 +515,129 @@ export async function vincularPrazoIntimacao(
   }
 }
 
+/**
+ * Cria uma peça a partir de um item de origem (andamento/intimação/tarefa),
+ * capturando o trabalho de escrita no momento da avaliação. Herda processo/cliente
+ * da origem, preserva a proveniência (origem_andamento_id/intimacao_id/tarefa_id),
+ * sugere o prazo aberto do processo e respeita o gate: origem de automação →
+ * peça provisória (validado=false). DEDUP por origem: não recria; aponta a existente.
+ */
+export async function criarPecaDeOrigem(
+  tipo_origem: "andamento" | "intimacao" | "tarefa",
+  origem_id: string,
+  fd: FormData,
+): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!["andamento", "intimacao", "tarefa"].includes(tipo_origem)) {
+      return { ok: false, message: "Tipo de origem inválido." };
+    }
+    if (!origem_id) return { ok: false, message: "Item de origem inválido." };
+    const supabase = await createClient();
+
+    const colOrigem =
+      tipo_origem === "andamento" ? "origem_andamento_id" : tipo_origem === "intimacao" ? "intimacao_id" : "tarefa_id";
+
+    // DEDUP: já existe peça para esta origem (qualquer status) → não recriar.
+    const { data: existente } = await supabase
+      .from("pecas")
+      .select("id, titulo, status")
+      .eq(colOrigem, origem_id)
+      .limit(1)
+      .maybeSingle();
+    if (existente) {
+      return {
+        ok: false,
+        message: `Já existe uma peça para esta origem: "${existente.titulo}" (${humano(existente.status as string)}). Abra-a no módulo Produção em vez de criar outra.`,
+      };
+    }
+
+    // Herda processo/cliente e a proveniência (cadastro automático → gate provisório).
+    let processo_id: string | null = null;
+    let cliente_id: string | null = null;
+    let auto = false;
+    if (tipo_origem === "andamento") {
+      const { data: a } = await supabase.from("andamentos").select("processo_id, cadastro_automatico").eq("id", origem_id).maybeSingle();
+      if (!a) return { ok: false, message: "Andamento de origem não encontrado." };
+      processo_id = (a.processo_id as string) ?? null;
+      auto = Boolean(a.cadastro_automatico);
+    } else if (tipo_origem === "intimacao") {
+      const { data: i } = await supabase.from("intimacoes").select("processo_id, cadastrado_por").eq("id", origem_id).maybeSingle();
+      if (!i) return { ok: false, message: "Intimação de origem não encontrada." };
+      processo_id = (i.processo_id as string) ?? null;
+      auto = (i.cadastrado_por as string) === "cowork";
+    } else {
+      const { data: t } = await supabase.from("tarefas").select("processo_id, cliente_id").eq("id", origem_id).maybeSingle();
+      if (!t) return { ok: false, message: "Tarefa de origem não encontrada." };
+      processo_id = (t.processo_id as string) ?? null;
+      cliente_id = (t.cliente_id as string) ?? null;
+    }
+
+    // Cliente único do processo (quando não herdado da tarefa) — só quando inequívoco.
+    if (!cliente_id && processo_id) {
+      const { data: cps } = await supabase.from("cliente_processo").select("cliente_id").eq("processo_id", processo_id);
+      if (cps && cps.length === 1) cliente_id = cps[0].cliente_id as string;
+    }
+
+    // Prazo: override do formulário; senão sugere o prazo aberto do processo
+    // (preferindo o vinculado à mesma intimação, depois o de fatal mais próxima).
+    let prazo_id: string | null = String(fd.get("prazo_id") || "").trim() || null;
+    if (!prazo_id && processo_id) {
+      const { data: prz } = await supabase
+        .from("prazos")
+        .select("id, intimacao_id, data_fatal")
+        .eq("processo_id", processo_id)
+        .eq("status", "aberto")
+        .order("data_fatal", { ascending: true });
+      if (prz && prz.length) {
+        const casaIntim = tipo_origem === "intimacao" ? prz.find((p) => p.intimacao_id === origem_id) : undefined;
+        prazo_id = ((casaIntim?.id as string) ?? (prz[0].id as string)) || null;
+      }
+    }
+
+    const titulo = String(fd.get("titulo") || "").trim();
+    if (!titulo) return { ok: false, message: "Título é obrigatório." };
+    const tipo = String(fd.get("tipo") || "outra");
+    if (!(PECA_TIPO as readonly string[]).includes(tipo)) return { ok: false, message: "Tipo de peça inválido." };
+
+    const insert: Record<string, unknown> = {
+      titulo,
+      tipo,
+      subtipo: String(fd.get("subtipo") || "").trim() || null,
+      descricao: String(fd.get("descricao") || "").trim() || null,
+      status: "a_fazer",
+      prioridade: String(fd.get("prioridade") || "media"),
+      responsavel: String(fd.get("responsavel") || "Daniel"),
+      cliente_id,
+      processo_id,
+      prazo_id,
+      [colOrigem]: origem_id,
+      data_alvo: String(fd.get("data_alvo") || "") || null,
+      drive_file_id: String(fd.get("drive_file_id") || "").trim() || null,
+      // Gate do manual: origem de automação nasce provisória (conferir no board).
+      validado: !auto,
+      cadastro_automatico: auto,
+      cadastrado_por: auto ? "cowork" : "manual",
+    };
+
+    const { error } = await supabase.from("pecas").insert(insert);
+    if (error) {
+      // ux_pecas_intimacao_auto (1 peça automática por intimação) — corrida rara.
+      if ((error as { code?: string }).code === "23505") {
+        return { ok: false, message: "Já existe peça para esta origem (dedup do banco)." };
+      }
+      throw error;
+    }
+
+    revalidarTudo();
+    const nomeOrigem = tipo_origem === "andamento" ? "movimentação" : tipo_origem;
+    const extra = auto ? " Nasceu PROVISÓRIA (validado=false) — confira no módulo Produção." : "";
+    return { ok: true, message: `Petição pendente criada a partir da ${nomeOrigem}.${extra}` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /* ============================ ANDAMENTOS ============================ */
 
 export async function criarAndamento(fd: FormData): Promise<Resultado> {

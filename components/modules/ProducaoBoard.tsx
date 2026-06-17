@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, type DragEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDrawer } from "@/components/Drawer";
 import { Pill, SegredoTag, DiasBox, ProcRef } from "@/components/ui";
 import { Acao } from "@/components/Acao";
@@ -156,8 +156,23 @@ function ValidarRapido({ id }: { id: string }) {
 export function ProducaoBoard({ pecas }: { pecas: Peca[] }) {
   const { open } = useDrawer();
   const router = useRouter();
+  const params = useSearchParams();
   const { prazos, intims } = useLites();
   const [dragCol, setDragCol] = useState<string | null>(null);
+  const autoAbertoRef = useRef(false);
+
+  // Deep-link ?peca=<id> (vindo do dedup de "Criar petição pendente"): destaca/abre a peça.
+  useEffect(() => {
+    if (autoAbertoRef.current) return;
+    const id = params.get("peca");
+    if (!id) return;
+    const p = pecas.find((x) => x.id === id);
+    if (p) {
+      autoAbertoRef.current = true;
+      abrir(p);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, pecas]);
 
   function onDragStart(e: DragEvent, p: Peca) {
     e.dataTransfer.setData("text/plain", JSON.stringify({ id: p.id, status: p.status }));
