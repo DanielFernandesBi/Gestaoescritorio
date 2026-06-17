@@ -75,6 +75,39 @@ export async function getPrazos(): Promise<Prazo[]> {
   });
 }
 
+/** Um prazo pelo id (qualquer status), na mesma forma de `getPrazos`. */
+export async function getPrazoPorId(id: string): Promise<Prazo | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("prazos")
+    .select(
+      "id, ato, data_fatal, data_interna, tipo_contagem, status, validado, responsavel, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome)))",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!r) return null;
+  const p = r.processos as unknown as NestedProcesso;
+  return {
+    id: r.id as string,
+    ato: r.ato as string,
+    data_fatal: r.data_fatal as string,
+    data_interna: r.data_interna as string | null,
+    tipo_contagem: r.tipo_contagem as string | null,
+    status: r.status as string,
+    validado: Boolean(r.validado),
+    responsavel: r.responsavel as string | null,
+    numero_cnj: p?.numero_cnj ?? null,
+    numero_registro: p?.numero_registro_tribunal ?? null,
+    tribunal: p?.tribunal ?? null,
+    vara_comarca: p?.vara_comarca ?? null,
+    segredo: Boolean(p?.segredo_justica),
+    clientes: nomesClientes(p?.cliente_processo),
+    dias_restantes: diasAte(r.data_fatal as string),
+    orfao: r.processo_id == null,
+  };
+}
+
 /* Prazos órfãos (triagem) ------------------------------------------------ */
 
 export type PrazoOrfao = {
@@ -189,6 +222,36 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
       orfa: r.processo_id == null,
     };
   });
+}
+
+/** Uma intimação pelo id, na mesma forma de `getIntimacoes`. */
+export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("intimacoes")
+    .select(
+      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica)",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!r) return null;
+  const p = r.processos as unknown as NestedProcesso;
+  return {
+    id: r.id as string,
+    origem: r.origem as string | null,
+    resumo: r.resumo as string | null,
+    status: r.status as string,
+    data_publicacao: r.data_publicacao as string | null,
+    data_ciencia: r.data_ciencia as string | null,
+    providencia: r.providencia as string | null,
+    codigo_publicacao: r.codigo_publicacao as string | null,
+    numero_cnj: p?.numero_cnj ?? null,
+    numero_registro: p?.numero_registro_tribunal ?? null,
+    tribunal: p?.tribunal ?? null,
+    segredo: Boolean(p?.segredo_justica),
+    orfa: r.processo_id == null,
+  };
 }
 
 /* Audiências ------------------------------------------------------------- */
