@@ -101,7 +101,7 @@ body.nav-locked{overflow:hidden}
 .theme-toggle{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;font-size:15px;transition:.12s}
 .theme-toggle:hover{border-color:var(--muted-2);color:var(--text)}
 
-.content{padding:28px 30px 60px;max-width:1320px;width:100%}
+.content{padding:28px 34px 60px;width:100%}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px}
 .page-head h1{font-family:var(--serif);font-weight:600;font-size:25px;letter-spacing:-.01em;color:var(--ink)}
 .page-head p{color:var(--muted);font-size:13.5px;margin-top:3px}
