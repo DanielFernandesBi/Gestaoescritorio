@@ -1,4 +1,5 @@
 import { ddClass, ddLabel } from "@/lib/format";
+import { ProcLink } from "@/components/ProcLink";
 
 /** Semáforo de prazo (dias restantes). */
 export function DiasBox({ dias }: { dias: number }) {
@@ -15,25 +16,34 @@ export function SegredoTag({ on }: { on?: boolean | null }) {
   return <span className="lock">🔒 segredo de justiça</span>;
 }
 
-/** Referência do processo: CNJ ou nº de registro do tribunal. */
+/**
+ * Referência do processo: CNJ ou nº de registro do tribunal.
+ * Quando `id` é informado, vira link para a página/modal do processo.
+ */
 export function ProcRef({
   cnj,
   registro,
+  id,
 }: {
   cnj?: string | null;
   registro?: string | null;
+  id?: string | null;
 }) {
-  if (cnj) return <span className="cnj">{cnj}</span>;
-  if (registro)
-    return (
-      <span
-        className="num-reg"
-        title="Processo identificado por nº de registro do tribunal"
-      >
-        reg {registro}
-      </span>
-    );
-  return <span className="sub">sem CNJ</span>;
+  const inner = cnj ? (
+    <span className="cnj">{cnj}</span>
+  ) : registro ? (
+    <span
+      className="num-reg"
+      title="Processo identificado por nº de registro do tribunal"
+    >
+      reg {registro}
+    </span>
+  ) : (
+    <span className="sub">sem CNJ</span>
+  );
+
+  if (id && (cnj || registro)) return <ProcLink id={id}>{inner}</ProcLink>;
+  return inner;
 }
 
 type PillTone = "red" | "amber" | "green" | "blue" | "gray" | "brass";

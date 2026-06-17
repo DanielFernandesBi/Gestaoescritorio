@@ -358,7 +358,7 @@ export default async function PainelPage() {
                         <div className="sub">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</div>
                       </td>
                       <td className="right">
-                        <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} />
+                        <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} id={m.processo_id} />
                         <div className="sub">{(m.origem ?? "").toUpperCase()}</div>
                       </td>
                     </tr>

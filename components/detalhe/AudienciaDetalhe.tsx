@@ -55,7 +55,7 @@ export function AudienciaDetalhe({ aud }: { aud: Audiencia }) {
         <div className="mini">
           <div>
             <div className="mt">
-              <ProcRef cnj={aud.numero_cnj} registro={aud.numero_registro} /> <SegredoTag on={aud.segredo} />
+              <ProcRef cnj={aud.numero_cnj} registro={aud.numero_registro} id={aud.processo_id} /> <SegredoTag on={aud.segredo} />
             </div>
             <div className="ms">{aud.clientes || "Sem cliente identificado"}</div>
           </div>

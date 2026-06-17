@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ProcRef } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa } from "@/app/actions";
@@ -38,7 +39,7 @@ export function IntimacaoDetalhe({
         <h4>Dados</h4>
         <div className="dgrid">
           <div className="field"><div className="k">Origem</div><div className="v">{(i.origem ?? "—").toUpperCase()}</div></div>
-          <div className="field"><div className="k">Processo</div><div className="v mono">{i.numero_cnj ?? (i.numero_registro ? "reg " + i.numero_registro : "—")}</div></div>
+          <div className="field"><div className="k">Processo</div><div className="v">{i.orfa ? <span className="sub">—</span> : <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} id={i.processo_id} />}</div></div>
           <div className="field"><div className="k">Publicação</div><div className="v mono">{fmtDate(i.data_publicacao)}</div></div>
           <div className="field"><div className="k">Ciência</div><div className="v mono">{fmtDate(i.data_ciencia)}</div></div>
           <div className="field"><div className="k">Código publicação</div><div className="v mono" style={{ fontSize: 11 }}>{i.codigo_publicacao ?? "—"}</div></div>

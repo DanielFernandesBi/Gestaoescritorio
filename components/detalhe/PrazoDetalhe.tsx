@@ -42,7 +42,7 @@ export function PrazoDetalhe({ p }: { p: Prazo }) {
         <div className="mini">
           <div>
             <div className="mt">
-              <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} />
+              <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} id={p.processo_id} />
             </div>
             <div className="ms">{[p.tribunal, p.vara_comarca].filter(Boolean).join(" · ") || "—"}</div>
             <div className="ms">{p.clientes || "—"}</div>

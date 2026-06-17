@@ -172,7 +172,7 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
                   <div className="mini" key={p.id}>
                     <div>
                       <div className="mt">
-                        <ProcRef cnj={p.numero_cnj} registro={p.numero_registro_tribunal} />{" "}
+                        <ProcRef cnj={p.numero_cnj} registro={p.numero_registro_tribunal} id={p.id} />{" "}
                         <SegredoTag on={p.segredo_justica} />
                       </div>
                       <div className="ms">{p.tribunal ?? "—"} · {humano(p.area)} · papel: {p.papel ?? "—"}</div>

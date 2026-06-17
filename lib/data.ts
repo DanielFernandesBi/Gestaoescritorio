@@ -32,6 +32,7 @@ export type Prazo = {
   status: string;
   validado: boolean;
   responsavel: string | null;
+  processo_id: string | null;
   numero_cnj: string | null;
   numero_registro: string | null;
   tribunal: string | null;
@@ -69,6 +70,7 @@ export async function getPrazos(): Promise<Prazo[]> {
       vara_comarca: p?.vara_comarca ?? null,
       segredo: Boolean(p?.segredo_justica),
       clientes: nomesClientes(p?.cliente_processo),
+      processo_id: (r.processo_id as string) ?? null,
       dias_restantes: diasAte(r.data_fatal as string),
       orfao: r.processo_id == null,
     };
@@ -103,6 +105,7 @@ export async function getPrazoPorId(id: string): Promise<Prazo | null> {
     vara_comarca: p?.vara_comarca ?? null,
     segredo: Boolean(p?.segredo_justica),
     clientes: nomesClientes(p?.cliente_processo),
+    processo_id: (r.processo_id as string) ?? null,
     dias_restantes: diasAte(r.data_fatal as string),
     orfao: r.processo_id == null,
   };
@@ -187,6 +190,7 @@ export type Intimacao = {
   data_ciencia: string | null;
   providencia: string | null;
   codigo_publicacao: string | null;
+  processo_id: string | null;
   numero_cnj: string | null;
   numero_registro: string | null;
   tribunal: string | null;
@@ -219,6 +223,7 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
       numero_registro: p?.numero_registro_tribunal ?? null,
       tribunal: p?.tribunal ?? null,
       segredo: Boolean(p?.segredo_justica),
+      processo_id: (r.processo_id as string) ?? null,
       orfa: r.processo_id == null,
     };
   });
@@ -250,6 +255,7 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
     numero_registro: p?.numero_registro_tribunal ?? null,
     tribunal: p?.tribunal ?? null,
     segredo: Boolean(p?.segredo_justica),
+    processo_id: (r.processo_id as string) ?? null,
     orfa: r.processo_id == null,
   };
 }
@@ -1196,6 +1202,7 @@ export async function buscaGlobal(termoRaw: string): Promise<ResultadosBusca> {
       numero_registro: p?.numero_registro_tribunal ?? null,
       tribunal: p?.tribunal ?? null,
       segredo: Boolean(p?.segredo_justica),
+      processo_id: (r.processo_id as string) ?? null,
       orfa: r.processo_id == null,
     };
   });
