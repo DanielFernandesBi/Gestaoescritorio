@@ -3,7 +3,15 @@
 import { Icon } from "./Icon";
 import { ThemeToggle } from "./ThemeToggle";
 
-export function Topbar({ iniciais }: { iniciais: string }) {
+export function Topbar({
+  iniciais,
+  onMenu,
+  navOpen = false,
+}: {
+  iniciais: string;
+  onMenu?: () => void;
+  navOpen?: boolean;
+}) {
   const hoje = new Date();
   const dataLonga = hoje
     .toLocaleDateString("pt-BR", {
@@ -15,6 +23,16 @@ export function Topbar({ iniciais }: { iniciais: string }) {
 
   return (
     <header className="topbar">
+      <button
+        type="button"
+        className="nav-menu-btn"
+        onClick={onMenu}
+        aria-label="Abrir menu"
+        aria-controls="app-nav"
+        aria-expanded={navOpen}
+      >
+        <Icon name="menu" className="" />
+      </button>
       <form className="search" action="/busca" method="get">
         <span className="si">
           <Icon name="search" className="" />

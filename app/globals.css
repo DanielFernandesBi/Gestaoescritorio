@@ -11,8 +11,8 @@
   /* Títulos / texto forte — inverte no tema escuro */
   --ink:#141b2e;
   /* Superfícies e neutros — base fria, moderna */
-  --paper:#f4f6fa; --surface:#ffffff; --surface-2:#f7f9fc;
-  --line:#e4e9f1; --line-soft:#eef2f7;
+  --paper:#eceff5; --surface:#ffffff; --surface-2:#f5f7fb;
+  --line:#dce2ec; --line-soft:#e8ecf3;
   --text:#1b2433; --muted:#5d6b7e; --muted-2:#8a97a8;
   /* Accent índigo — ações, links, foco */
   --accent:#4f46e5; --accent-strong:#4338ca; --accent-soft:#eef0fe; --accent-contrast:#ffffff;
@@ -25,7 +25,7 @@
   --blue:#2f6fc4; --blue-soft:#e9f0fa;
   /* Raio / elevação (sombras em camadas) / foco */
   --radius:12px; --radius-sm:9px; --radius-lg:16px;
-  --shadow:0 1px 2px rgba(16,24,40,.04),0 4px 8px rgba(16,24,40,.04),0 10px 20px rgba(16,24,40,.05);
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 10px rgba(16,24,40,.06),0 14px 26px rgba(16,24,40,.07);
   --shadow-lg:0 2px 4px rgba(16,24,40,.05),0 12px 28px rgba(16,24,40,.12);
   --focus:0 0 0 3px color-mix(in srgb,var(--accent) 32%,transparent);
   /* Grade de 8px (múltiplos de 4) */
@@ -61,7 +61,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 /* ---------- Layout ---------- */
 .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
 .sidebar{background:var(--rail);color:#c9cedd;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
-.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand{position:relative;padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
 .brand .mark{font-family:var(--serif);font-weight:600;font-size:19px;color:#fff;letter-spacing:.2px;line-height:1.15}
 .brand .mark .amp{color:var(--brass)}
 .brand .sub{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7e879e;margin-top:6px}
@@ -78,6 +78,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .nav-item .badge.warn{background:var(--amber);color:#fff}
 .side-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:#717a92}
 .side-foot b{color:#cdd3e2;font-weight:600}
+
+/* Navegação mobile (off-canvas) — controles ocultos no desktop */
+.nav-menu-btn{display:none;width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);place-items:center;flex:none}
+.nav-menu-btn:hover{border-color:var(--muted-2)}
+.sidebar .nav-close{display:none;position:absolute;top:16px;right:14px;width:32px;height:32px;border-radius:8px;color:#aab1c6;place-items:center}
+.sidebar .nav-close:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-scrim{position:fixed;inset:0;background:rgba(8,12,20,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:44}
+.nav-scrim.open{opacity:1;pointer-events:auto}
+body.nav-locked{overflow:hidden}
 
 .main{display:flex;flex-direction:column;min-width:0}
 .topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:18px}
@@ -326,6 +335,11 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
   .exec-counters{grid-template-columns:1fr} .exec-destaque{grid-template-columns:1fr}
 }
 @media (max-width:820px){
-  .app{grid-template-columns:1fr} .sidebar{display:none} .content{padding:18px}
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;top:0;left:0;z-index:45;width:268px;max-width:84vw;height:100vh;transform:translateX(-100%);transition:transform .26s cubic-bezier(.4,0,.2,1)}
+  .sidebar.mobile-open{transform:translateX(0);box-shadow:14px 0 40px rgba(0,0,0,.4)}
+  .sidebar .nav-close{display:grid}
+  .nav-menu-btn{display:grid}
+  .content{padding:18px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}

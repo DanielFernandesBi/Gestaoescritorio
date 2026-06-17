@@ -1,5 +1,4 @@
-import { Sidebar } from "@/components/Sidebar";
-import { Topbar } from "@/components/Topbar";
+import { AppShell } from "@/components/AppShell";
 import { DrawerProvider } from "@/components/Drawer";
 import { getBadges, getUserEmail, iniciaisDoEmail } from "@/lib/queries";
 
@@ -14,13 +13,9 @@ export default async function AppLayout({
 
   return (
     <DrawerProvider>
-      <div className="app">
-        <Sidebar badges={badges} />
-        <div className="main">
-          <Topbar iniciais={iniciaisDoEmail(email)} />
-          <main className="content">{children}</main>
-        </div>
-      </div>
+      <AppShell badges={badges} iniciais={iniciaisDoEmail(email)}>
+        {children}
+      </AppShell>
       {modal}
     </DrawerProvider>
   );

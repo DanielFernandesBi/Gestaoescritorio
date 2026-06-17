@@ -5,16 +5,36 @@ import { usePathname } from "next/navigation";
 import { NAV, type Badges } from "@/lib/nav";
 import { Icon } from "./Icon";
 
-export function Sidebar({ badges }: { badges: Badges }) {
+export function Sidebar({
+  badges,
+  mobileOpen = false,
+  onClose,
+}: {
+  badges: Badges;
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
-    <aside className="sidebar">
+    <aside
+      id="app-nav"
+      className={`sidebar${mobileOpen ? " mobile-open" : ""}`}
+      aria-label="Navegação principal"
+    >
       <div className="brand">
         <div className="mark">
           Fernandes <span className="amp">&amp;</span> Fernandes
         </div>
         <div className="sub">Advocacia Criminal</div>
+        <button
+          type="button"
+          className="nav-close"
+          onClick={onClose}
+          aria-label="Fechar menu"
+        >
+          <Icon name="x" className="" />
+        </button>
       </div>
 
       <nav className="nav">
