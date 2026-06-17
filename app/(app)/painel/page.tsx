@@ -45,11 +45,20 @@ export default async function PainelPage() {
   const statusTone = (s: string): "green" | "amber" | "red" =>
     s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
 
+  const horaSP = Number(
+    new Intl.DateTimeFormat("pt-BR", {
+      hour: "2-digit",
+      hourCycle: "h23",
+      timeZone: "America/Sao_Paulo",
+    }).format(new Date()),
+  );
+  const saudacao = horaSP < 12 ? "Bom dia" : horaSP < 18 ? "Boa tarde" : "Boa noite";
+
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Bom dia</div>
+          <div className="eyebrow">{saudacao}</div>
           <h1>Painel do dia</h1>
           <p>Conferência cruzada com a auditoria · prioridades, validações e agenda.</p>
         </div>
@@ -70,97 +79,9 @@ export default async function PainelPage() {
         </div>
       </div>
 
-      <div className="card section-gap">
-        <div className="card-h">
-          <h3>
-            <Icon name="shield" /> Cobertura da última varredura
-          </h3>
-          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
-        </div>
-        <div className="card-b">
-          {!varredura ? (
-            <div className="empty">Nenhuma varredura registrada ainda.</div>
-          ) : (
-            <>
-              <div className="ms" style={{ marginBottom: 10, color: "var(--muted)" }}>
-                Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
-                {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
-              </div>
-              <div className="ms" style={{ marginBottom: 12 }}>
-                processados <b>{fmtNum(varredura.itens_processados)}</b> · intimações novas{" "}
-                <b>{fmtNum(varredura.intimacoes_novas)}</b> · andamentos novos{" "}
-                <b>{fmtNum(varredura.andamentos_novos)}</b> · prazos criados{" "}
-                <b>{fmtNum(varredura.prazos_criados)}</b>
-              </div>
-              {varredura.diagnostico_oab && varredura.diagnostico_oab.length ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {varredura.diagnostico_oab.map((d) => (
-                    <div className="mini" key={d.oab}>
-                      <div>
-                        <div className="mt mono">{d.oab}</div>
-                        <div className="ms">
-                          acervo {fmtNum(d.acervo_total)} · {fmtNum(d.itens_janela)} na janela
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty">
-                  DJEN sem diagnóstico nesta execução (degradação) — ver anomalias.
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="kpis">
-        <Link className="kpi red" href="/prazos">
-          <div className="accent" />
-          <div className="label">
-            <Icon name="clock" size={14} /> Prazos abertos
-          </div>
-          <div className="val">{stats.prazos_abertos}</div>
-          <div className="meta">
-            {prazos[0]
-              ? <>próximo fatal em <b style={{ color: "var(--red)" }}>{prazos[0].dias_restantes} dias</b></>
-              : "sem prazos abertos"}
-          </div>
-        </Link>
-
-        <Link className="kpi amber" href="/intimacoes">
-          <div className="accent" />
-          <div className="label">
-            <Icon name="inbox" size={14} /> Intimações pendentes
-          </div>
-          <div className="val">
-            {stats.intimacoes_pendentes} <small>· {stats.intimacoes_orfas} órfãs</small>
-          </div>
-          <div className="meta">triagem humana pendente</div>
-        </Link>
-
-        <Link className="kpi blue" href="/processos">
-          <div className="accent" />
-          <div className="label">
-            <Icon name="folder" size={14} /> Processos ativos
-          </div>
-          <div className="val">{fmtNum(stats.processos_ativos)}</div>
-          <div className="meta">
-            {stats.processos_sem_cnj} sem CNJ · {stats.processos_sigilosos} sigilosos
-          </div>
-        </Link>
-
-        <Link className="kpi green" href="/financeiro">
-          <div className="accent" />
-          <div className="label">
-            <Icon name="wallet" size={14} /> A receber
-          </div>
-          <div className="val" style={{ fontSize: 24 }}>
-            {fmtBRL(stats.valor_a_receber)}
-          </div>
-          <div className="meta">{stats.parcelas_pendentes} parcelas em aberto</div>
-        </Link>
+      <div className="section-title">
+        Foco de hoje
+        <span className="rest">prazos fatais e validações pendentes</span>
       </div>
 
       <div className="two-col section-gap">
@@ -307,6 +228,59 @@ export default async function PainelPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="section-title">
+        Panorama
+        <span className="rest">números do acervo e financeiro</span>
+      </div>
+
+      <div className="kpis">
+        <Link className="kpi red" href="/prazos">
+          <div className="accent" />
+          <div className="label">
+            <Icon name="clock" size={14} /> Prazos abertos
+          </div>
+          <div className="val">{stats.prazos_abertos}</div>
+          <div className="meta">
+            {prazos[0]
+              ? <>próximo fatal em <b style={{ color: "var(--red)" }}>{prazos[0].dias_restantes} dias</b></>
+              : "sem prazos abertos"}
+          </div>
+        </Link>
+
+        <Link className="kpi amber" href="/intimacoes">
+          <div className="accent" />
+          <div className="label">
+            <Icon name="inbox" size={14} /> Intimações pendentes
+          </div>
+          <div className="val">
+            {stats.intimacoes_pendentes} <small>· {stats.intimacoes_orfas} órfãs</small>
+          </div>
+          <div className="meta">triagem humana pendente</div>
+        </Link>
+
+        <Link className="kpi blue" href="/processos">
+          <div className="accent" />
+          <div className="label">
+            <Icon name="folder" size={14} /> Processos ativos
+          </div>
+          <div className="val">{fmtNum(stats.processos_ativos)}</div>
+          <div className="meta">
+            {stats.processos_sem_cnj} sem CNJ · {stats.processos_sigilosos} sigilosos
+          </div>
+        </Link>
+
+        <Link className="kpi green" href="/financeiro">
+          <div className="accent" />
+          <div className="label">
+            <Icon name="wallet" size={14} /> A receber
+          </div>
+          <div className="val" style={{ fontSize: 24 }}>
+            {fmtBRL(stats.valor_a_receber)}
+          </div>
+          <div className="meta">{stats.parcelas_pendentes} parcelas em aberto</div>
+        </Link>
       </div>
 
       <div className="card section-gap">
@@ -536,6 +510,56 @@ export default async function PainelPage() {
               <div className="empty">Nenhum processo parado há ≥30 dias. 🎉</div>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="section-title">
+        Diagnóstico
+        <span className="rest">cobertura da varredura e anomalias</span>
+      </div>
+
+      <div className="card">
+        <div className="card-h">
+          <h3>
+            <Icon name="shield" /> Cobertura da última varredura
+          </h3>
+          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
+        </div>
+        <div className="card-b">
+          {!varredura ? (
+            <div className="empty">Nenhuma varredura registrada ainda.</div>
+          ) : (
+            <>
+              <div className="ms" style={{ marginBottom: 10, color: "var(--muted)" }}>
+                Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
+                {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
+              </div>
+              <div className="ms" style={{ marginBottom: 12 }}>
+                processados <b>{fmtNum(varredura.itens_processados)}</b> · intimações novas{" "}
+                <b>{fmtNum(varredura.intimacoes_novas)}</b> · andamentos novos{" "}
+                <b>{fmtNum(varredura.andamentos_novos)}</b> · prazos criados{" "}
+                <b>{fmtNum(varredura.prazos_criados)}</b>
+              </div>
+              {varredura.diagnostico_oab && varredura.diagnostico_oab.length ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {varredura.diagnostico_oab.map((d) => (
+                    <div className="mini" key={d.oab}>
+                      <div>
+                        <div className="mt mono">{d.oab}</div>
+                        <div className="ms">
+                          acervo {fmtNum(d.acervo_total)} · {fmtNum(d.itens_janela)} na janela
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  DJEN sem diagnóstico nesta execução (degradação) — ver anomalias.
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
