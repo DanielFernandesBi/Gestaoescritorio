@@ -1,5 +1,5 @@
 import { getPainelData, getUltimaVarredura, getUserEmail } from "@/lib/queries";
-import { getFinanceiro, getProcessosParados, getPrazosOrfaos, getPecas } from "@/lib/data";
+import { getFinanceiro, getProcessosParados, getPecas } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
 import { Pill, ProcRef, SegredoTag } from "@/components/ui";
@@ -11,11 +11,10 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function PainelPage() {
-  const [{ stats, prazos, validacao, orfas, agenda, movimentacoes, relatorio24h, cadastrosAuto, tarefasVencidas }, fin, parados, prazosOrfaos, varredura, pecas, email] = await Promise.all([
+  const [{ stats, prazos, validacao, agenda, movimentacoes, relatorio24h, cadastrosAuto, tarefasVencidas }, fin, parados, varredura, pecas, email] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
     getProcessosParados(30),
-    getPrazosOrfaos(),
     getUltimaVarredura(),
     getPecas(),
     getUserEmail(),
@@ -54,9 +53,6 @@ export default async function PainelPage() {
   );
   const saudacao = horaSP < 12 ? "Bom dia" : horaSP < 18 ? "Boa tarde" : "Boa noite";
 
-  const totalOrfas =
-    stats.intimacoes_orfas + stats.andamentos_orfaos + prazosOrfaos.length;
-
   return (
     <>
       <div className="page-head">
@@ -81,9 +77,6 @@ export default async function PainelPage() {
           suspensões de expediente devem ser conferidos por Daniel.
         </div>
       </div>
-
-      <div className="painel-shell">
-      <div className="painel-main">
 
       <div className="section-title">
         Foco de hoje
@@ -248,9 +241,10 @@ export default async function PainelPage() {
                       {fmtDate(e.data)}
                     </td>
                     <td>
-                      <Pill tone={e.tipo?.toUpperCase().includes("AUDI") ? "blue" : "amber"}>
-                        {e.tipo === "PRAZO" ? "Prazo" : e.tipo === "AUDIÊNCIA" ? "Audiência" : e.tipo} · {e.descricao}
+                      <Pill tone={e.tipo?.toUpperCase().includes("AUDI") ? "blue" : "amber"} dot={false}>
+                        {e.tipo === "PRAZO" ? "Prazo" : e.tipo === "AUDIÊNCIA" ? "Audiência" : e.tipo}
                       </Pill>
+                      <div className="sub" style={{ marginTop: 4 }}>{e.descricao}</div>
                     </td>
                     <td className="right sub">{e.numero_cnj ?? e.responsavel ?? ""}</td>
                   </tr>
@@ -520,86 +514,6 @@ export default async function PainelPage() {
           )}
         </div>
       </div>
-
-      </div>{/* /painel-main */}
-
-      <aside className="orfas-rail" aria-label="Fila de triagem de órfãs">
-        <div className="rail-head">
-          <span className="lhs"><Icon name="inbox" size={14} /> Fila de triagem</span>
-          <span className={`rail-count${totalOrfas === 0 ? " zero" : ""}`}>{totalOrfas}</span>
-        </div>
-
-        {totalOrfas === 0 ? (
-          <div className="card">
-            <div className="empty">Nada a triar. Tudo vinculado a um processo. 🎉</div>
-          </div>
-        ) : (
-          <>
-            <div className="card">
-              <div className="card-h">
-                <h3>
-                  <Icon name="inbox" /> Intimações órfãs
-                  {stats.intimacoes_orfas > 0 && <span className="badge alert" style={{ marginLeft: 8 }}>{stats.intimacoes_orfas}</span>}
-                </h3>
-                <Link className="link" href="/intimacoes">triagem</Link>
-              </div>
-              <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {orfas.length ? (
-                  orfas.map((i) => (
-                    <div className="mini" key={i.id}>
-                      <div>
-                        <div className="mt">{i.resumo ?? i.teor_inicio ?? "—"}</div>
-                        <div className="ms">{(i.origem ?? "").toUpperCase()} · {fmtDate(i.criado_em)}</div>
-                      </div>
-                      <Pill tone="gray" dot={false}>sem processo</Pill>
-                    </div>
-                  ))
-                ) : (
-                  <div className="empty">Nenhuma intimação órfã. 🎉</div>
-                )}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-h">
-                <h3>
-                  <Icon name="clock" /> Prazos órfãos
-                  {prazosOrfaos.length > 0 && <span className="badge alert" style={{ marginLeft: 8 }}>{prazosOrfaos.length}</span>}
-                </h3>
-                <Link className="link" href="/prazos">triagem</Link>
-              </div>
-              <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {prazosOrfaos.length ? (
-                  prazosOrfaos.slice(0, 6).map((p) => (
-                    <div className="mini" key={p.prazo_id}>
-                      <div>
-                        <div className="mt">{p.ato}</div>
-                        <div className="ms">fatal {fmtDate(p.data_fatal)} · sem processo</div>
-                      </div>
-                      <Pill tone={p.dias_restantes <= 2 ? "red" : p.dias_restantes <= 7 ? "amber" : "gray"}>{p.dias_restantes}d</Pill>
-                    </div>
-                  ))
-                ) : (
-                  <div className="empty">Nenhuma fatal sem processo. 🎉</div>
-                )}
-              </div>
-            </div>
-
-            {stats.andamentos_orfaos > 0 && (
-              <Link className="card" href="/andamentos" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-                <div className="card-b" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                  <div>
-                    <div className="mt">Andamentos órfãos</div>
-                    <div className="ms">aba “Órfãos / triagem” — assistente Promover</div>
-                  </div>
-                  <Pill tone="amber">{stats.andamentos_orfaos}</Pill>
-                </div>
-              </Link>
-            )}
-          </>
-        )}
-      </aside>
-      </div>{/* /painel-shell */}
     </>
   );
 }

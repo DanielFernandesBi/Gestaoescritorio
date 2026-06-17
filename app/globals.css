@@ -135,7 +135,7 @@ body.nav-locked{overflow:hidden}
 
 /* ---------- Cards / grid ---------- */
 .grid{display:grid;gap:16px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
 .card-h{padding:15px 18px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;gap:12px}
 .card-h h3{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
 .card-h h3 .ico{color:var(--muted)}
@@ -249,18 +249,27 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 .section-title:first-child{margin-top:0}
 .section-title .rest{color:var(--muted);letter-spacing:normal;text-transform:none;font-weight:500;font-size:12px}
 
-/* Painel: conteúdo + trilho fixo de órfãs (fila de triagem) */
-.painel-shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;align-items:start}
-.painel-main{min-width:0}
-.orfas-rail{position:sticky;top:80px;display:flex;flex-direction:column;gap:13px;max-height:calc(100vh - 100px);overflow:auto}
-.rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-weight:600;padding:2px 2px 0}
-.rail-head .lhs{display:flex;align-items:center;gap:7px}
+/* Trilho de órfãs — 3ª coluna do shell (só no painel, via slot @rail).
+   Vira coluna apenas em telas largas; abaixo de 1181px fica oculto. */
+.orfas-rail{display:none}
+@media (min-width:1181px){
+  .app:has(.orfas-rail){grid-template-columns:248px minmax(0,1fr) 320px}
+  .orfas-rail{display:block;border-left:1px solid var(--line);background:var(--surface-2);position:sticky;top:0;height:100vh;overflow:auto;padding:20px 16px}
+}
+.rail-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-weight:600;padding:6px 4px 14px}
+.rail-top .lhs{display:flex;align-items:center;gap:7px}
 .rail-count{font-family:var(--mono);font-size:11px;background:var(--accent-soft);color:var(--accent);padding:2px 9px;border-radius:20px;letter-spacing:normal;font-weight:600}
 .rail-count.zero{background:var(--green-soft);color:var(--green)}
-@media (max-width:1180px){
-  .painel-shell{grid-template-columns:1fr}
-  .orfas-rail{position:static;max-height:none;overflow:visible}
-}
+.sup-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.sup-card .sh{padding:11px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line-soft)}
+.sup-card .sh h4{font-size:11.5px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.05em}
+.sup-card .sh .ct{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent-contrast);background:var(--accent);border-radius:20px;padding:1px 9px}
+.orf{display:block;padding:11px 14px;border-bottom:1px solid var(--line-soft);transition:background .12s}
+.orf:last-child{border-bottom:none}
+.orf:hover{background:var(--surface-2)}
+.orf .ot{font-size:12.5px;font-weight:600;color:var(--ink)}
+.orf .os{font-size:11px;color:var(--muted);margin-top:2px}
+.sup-empty{padding:18px 14px;text-align:center;color:var(--muted-2);font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
 .empty{padding:34px;text-align:center;color:var(--muted-2);font-size:13px}
 .suggest{border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;background:var(--surface);margin-bottom:12px}
 .suggest .st{font-weight:600;color:var(--ink);font-size:13.5px;display:flex;justify-content:space-between;gap:10px;align-items:center}

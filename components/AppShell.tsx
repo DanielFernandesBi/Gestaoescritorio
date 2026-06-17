@@ -14,10 +14,12 @@ export function AppShell({
   badges,
   iniciais,
   children,
+  rail,
 }: {
   badges: Badges;
   iniciais: string;
   children: React.ReactNode;
+  rail?: React.ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
   const pathname = usePathname();
@@ -57,6 +59,7 @@ export function AppShell({
         <Topbar iniciais={iniciais} onMenu={() => setNavOpen(true)} navOpen={navOpen} />
         <main className="content">{children}</main>
       </div>
+      {rail}
     </div>
   );
 }
