@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light" data-palette="navy">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fernandes &amp; Fernandes — Frontend v2: comparação de direções</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* =================================================================
+   COMPARADOR DE DIREÇÕES — Frontend v2
+   Troque a PALETA (Índigo A / Navy B / Brass C) e o TEMA (claro/escuro)
+   nos botões do topo. Mesma estrutura, mesmas funções criminais.
+   Grid de 8px · sombras em camadas · densidade confortável.
+   ================================================================= */
+
+/* ---------- NEUTROS POR TEMA (cool por padrão) ---------- */
+:root{
+  --bg:#f4f6fa; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
+  --border:#e4e9f1; --border-soft:#eef2f7;
+  --text:#1b2433; --text-2:#3b4759; --muted:#5d6b7e; --muted-2:#8a97a8;
+  --red:#cf4036; --red-soft:#fbeceb; --amber:#bd7708; --amber-soft:#f8efdb;
+  --green:#127a54; --green-soft:#e3f1ea; --blue:#2f6fc4; --blue-soft:#e9f0fa;
+  --serif:'Spectral',Georgia,serif; --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+  /* sombras em camadas (estilo Radix/Tailwind) */
+  --e1:0 1px 2px rgba(16,24,40,.04);
+  --e2:0 1px 2px rgba(16,24,40,.04),0 4px 8px rgba(16,24,40,.04),0 10px 20px rgba(16,24,40,.05);
+  --e3:0 2px 4px rgba(16,24,40,.05),0 12px 28px rgba(16,24,40,.12),0 30px 50px rgba(16,24,40,.08);
+  /* grade de 8px (múltiplos de 4) */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+}
+html[data-theme="dark"]{
+  --bg:#0a0e16; --surface:#141a25; --surface-2:#0f1622; --surface-3:#1a2230;
+  --border:#243044; --border-soft:#1b2433;
+  --text:#e7ebf2; --text-2:#c4ccd9; --muted:#94a1b3; --muted-2:#6c7889;
+  --red:#ef6258; --red-soft:#2a1817; --amber:#dca23c; --amber-soft:#281f11;
+  --green:#34b483; --green-soft:#11231c; --blue:#5f9aea; --blue-soft:#142031;
+  --e1:0 1px 2px rgba(0,0,0,.3);
+  --e2:0 1px 2px rgba(0,0,0,.35),0 6px 16px rgba(0,0,0,.4);
+  --e3:0 18px 44px rgba(0,0,0,.55);
+}
+
+/* ---------- PALETAS (accent + heritage + rail) ---------- */
+/* A — ÍNDIGO (minha 1ª proposta) */
+html[data-palette="indigo"]{ --accent:#4f46e5; --accent-strong:#4338ca; --accent-soft:#eef0fe; --accent-contrast:#fff;
+  --brass:#b08d57; --brass-soft:#f3ebdd; --rail:#121a2b; --rail-2:#1c2740; }
+html[data-palette="indigo"][data-theme="dark"]{ --accent:#818cf8; --accent-strong:#a5b4fc; --accent-soft:#1e2540; --accent-contrast:#0a0e16; --rail:#0c121d; --rail-2:#18212f; }
+
+/* B — NAVY / azul-militar (proposta do comentário) */
+html[data-palette="navy"]{ --accent:#234a77; --accent-strong:#1a3a60; --accent-soft:#e9eef6; --accent-contrast:#fff;
+  --brass:#a8814e; --brass-soft:#f2e9d8; --rail:#0f1b2d; --rail-2:#1b2c44; }
+html[data-palette="navy"][data-theme="dark"]{ --accent:#6f9bd1; --accent-strong:#94b6e0; --accent-soft:#16263a; --accent-contrast:#091018; --rail:#0a1320; --rail-2:#16263b; }
+
+/* C — BRASS / heritage editorial (3ª opção, neutros quentes) */
+html[data-palette="brass"]{ --accent:#a8814e; --accent-strong:#8b6736; --accent-soft:#f1e7d5; --accent-contrast:#fff;
+  --brass:#a8814e; --brass-soft:#f1e7d5; --rail:#1a1712; --rail-2:#2a251c;
+  --bg:#f6f3ec; --surface:#fffdf9; --surface-2:#faf6ee; --surface-3:#f1ebdf;
+  --border:#e8e0d2; --border-soft:#f0e9da; --text:#221f1a; --text-2:#4a4339; --muted:#6f6757; --muted-2:#9c9384;
+  --blue:#3f6aa0; --blue-soft:#eceef4; }
+html[data-palette="brass"][data-theme="dark"]{ --accent:#cda86a; --accent-strong:#e0c189; --accent-soft:#2a2417; --accent-contrast:#15120b; --rail:#100e09; --rail-2:#241f15;
+  --bg:#13110b; --surface:#1d1a12; --surface-2:#16140d; --surface-3:#252114;
+  --border:#2e2819; --border-soft:#221e14; --text:#ece5d6; --text-2:#cbc2ad; --muted:#9c9277; --muted-2:#6f6750; }
+
+/* ---------- BASE ---------- */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent);border-radius:6px}
+
+.app{display:grid;grid-template-columns:256px minmax(0,1fr) 312px;min-height:100vh}
+
+/* ---- Sidebar nav ---- */
+.sidebar{background:var(--rail);color:#aeb7cc;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:var(--s5) var(--s5) var(--s4);border-bottom:1px solid rgba(255,255,255,.07)}
+.brand .mark{font-family:var(--serif);font-weight:600;font-size:19px;color:#fff;line-height:1.15}
+.brand .mark .amp{color:var(--brass)}
+.brand .sub{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.42);margin-top:6px}
+.nav{padding:var(--s3) var(--s2);flex:1;overflow:auto}
+.nav h4{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.36);padding:10px 12px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#aeb7cc;font-size:13.5px;font-weight:500;position:relative;transition:.12s;margin-bottom:1px}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:var(--rail-2);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--brass)}
+.nav-item .ic{width:8px;height:8px;border-radius:3px;background:currentColor;opacity:.5}
+.nav-item .badge{margin-left:auto;background:rgba(255,255,255,.1);color:#dfe3ee;font-size:11px;padding:1px 8px;border-radius:20px;font-weight:600;font-family:var(--mono)}
+.nav-item .badge.alert{background:var(--red);color:#fff} .nav-item .badge.warn{background:var(--amber);color:#fff}
+
+/* ---- Main ---- */
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 84%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:var(--s3) var(--s6);display:flex;align-items:center;gap:var(--s4)}
+.search{flex:1;max-width:440px;position:relative}
+.search input{width:100%;padding:10px 13px 10px 38px;border:1px solid var(--border);background:var(--surface);border-radius:10px;font-size:13.5px;font-family:inherit;color:var(--text)}
+.search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.search .si{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted-2)}
+.kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--muted-2);border:1px solid var(--border);border-radius:6px;padding:1px 6px}
+.spacer{flex:1}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--surface)}
+.seg button{padding:7px 11px;font-size:12px;font-weight:600;color:var(--muted);border-right:1px solid var(--border)}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--accent);color:var(--accent-contrast)}
+.toggle{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);padding:7px 12px;border-radius:9px;font-size:12.5px;font-weight:600}
+.who{width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center;font-weight:700;font-size:13px;font-family:var(--serif)}
+
+.content{padding:var(--s6) var(--s6) var(--s7);width:100%}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s4);margin-bottom:var(--s5)}
+.eyebrow{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px}
+.page-head h1{font-family:var(--serif);font-weight:600;font-size:28px;letter-spacing:-.01em;color:var(--text)}
+.page-head p{color:var(--muted);font-size:13.5px;margin-top:5px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:.12s}
+.btn:hover{border-color:var(--muted-2)}
+.btn.primary{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent)} .btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+
+/* ---- Hero "Hoje" ---- */
+.hoje{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--s4);margin-bottom:var(--s5)}
+.hcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--e2);padding:var(--s5)}
+.hcard h3{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--text-2);display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s4)}
+.hcard h3 .link{color:var(--accent);font-size:12px}
+.deadline{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border-soft)}
+.deadline:last-child{border-bottom:none}
+.ddays{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;padding:8px 6px;border-radius:12px;font-family:var(--mono)}
+.ddays b{font-size:19px;font-weight:600;line-height:1}.ddays span{font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-top:3px;font-weight:600}
+.ddays.crit{background:var(--red-soft);color:var(--red)} .ddays.warn{background:var(--amber-soft);color:var(--amber)} .ddays.ok{background:var(--green-soft);color:var(--green)}
+.deadline .dl-main{flex:1;min-width:0}.deadline .dl-t{font-weight:600;color:var(--text)}.deadline .dl-s{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ---- Cobertura da última varredura ---- */
+.scan{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--e1);margin-bottom:var(--s5);overflow:hidden}
+.scan-h{padding:15px var(--s5);border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.scan-h h3{font-size:14px;font-weight:600}
+.scan-grid{display:grid;grid-template-columns:1fr 1fr}
+.oab{padding:var(--s4) var(--s5)}
+.oab:first-child{border-right:1px solid var(--border-soft)}
+.oab .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.metric{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:10px;padding:10px 12px}
+.metric b{font-family:var(--serif);font-size:21px;font-weight:600;display:block;line-height:1}
+.metric span{font-size:11px;color:var(--muted);margin-top:4px;display:block}
+
+/* ---- KPIs ---- */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);margin-bottom:var(--s5)}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:18px;box-shadow:var(--e1);position:relative;overflow:hidden;transition:.14s}
+.kpi:hover{box-shadow:var(--e3);transform:translateY(-2px)}
+.kpi .label{font-size:11.5px;color:var(--muted);font-weight:600}
+.kpi .val{font-family:var(--serif);font-size:32px;font-weight:600;margin-top:8px;line-height:1;letter-spacing:-.01em}
+.kpi .meta{font-size:11.5px;margin-top:8px;color:var(--muted)}
+.kpi .accent{position:absolute;left:0;top:0;bottom:0;width:3px}
+.kpi.red .accent{background:var(--red)}.kpi.amber .accent{background:var(--amber)}.kpi.green .accent{background:var(--green)}.kpi.blue .accent{background:var(--accent)}
+
+/* ---- Card + tabela ---- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--e1);overflow:hidden}
+.card-h{padding:15px var(--s5);border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between}
+.card-h h3{font-size:14px;font-weight:600}.card-h .link{font-size:12px;color:var(--accent);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:11px var(--s5);border-bottom:1px solid var(--border);background:var(--surface-2)}
+tbody td{padding:14px var(--s5);border-bottom:1px solid var(--border-soft);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.clickable:hover{background:var(--surface-2);cursor:pointer}
+.name{font-weight:600}.sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.cnj{font-family:var(--mono);font-size:12px;color:var(--accent);border-bottom:1px dotted var(--border)}
+
+/* ---- Pills / gates / chips ---- */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.red{background:var(--red-soft);color:var(--red)}.pill.amber{background:var(--amber-soft);color:var(--amber)}
+.pill.green{background:var(--green-soft);color:var(--green)}.pill.blue{background:var(--blue-soft);color:var(--blue)}
+.pill.gray{background:var(--surface-3);color:var(--muted)}
+.gate{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:8px}
+.gate.wait{background:var(--amber-soft);color:var(--amber)}.gate.done{background:var(--green-soft);color:var(--green)}
+.lock{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--brass);background:var(--brass-soft);padding:2px 9px;border-radius:7px}
+
+/* ---- Support rail (órfãs) ---- */
+.support{padding:var(--s5) var(--s4);border-left:1px solid var(--border);background:var(--surface-2);position:sticky;top:0;height:100vh;overflow:auto}
+.sup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--e1);margin-bottom:var(--s4);overflow:hidden}
+.sup-card .sh{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-soft)}
+.sup-card .sh h4{font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em}
+.sup-card .sh .ct{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent-contrast);background:var(--accent);border-radius:20px;padding:1px 9px}
+.orf{padding:11px 14px;border-bottom:1px solid var(--border-soft)}.orf:last-child{border-bottom:none}
+.orf .ot{font-size:12.5px;font-weight:600}.orf .os{font-size:11px;color:var(--muted);margin-top:2px}
+.orf .oa{margin-top:8px;display:flex;gap:6px}
+.mini{font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface)}
+.mini.go{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent)}
+
+.legend{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);box-shadow:var(--e3);border-radius:12px;padding:9px 14px;font-size:12px;color:var(--muted);z-index:50;display:flex;gap:10px;align-items:center}
+.legend b{color:var(--text)}
+
+@media(max-width:1180px){.app{grid-template-columns:256px 1fr}.support{display:none}}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{display:none}.hoje{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.scan-grid{grid-template-columns:1fr}.oab:first-child{border-right:none;border-bottom:1px solid var(--border-soft)}.content{padding:var(--s4)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="mark">Fernandes <span class="amp">&amp;</span> Fernandes</div><div class="sub">Advocacia Criminal</div></div>
+    <nav class="nav">
+      <h4>Operação</h4>
+      <div class="nav-item active"><span class="ic"></span><span>Painel — Ritual matinal</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Validação de Daniel</span><span class="badge warn">3</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Prazos fatais</span><span class="badge">12</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Audiências</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Intimações</span><span class="badge alert">5</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Produção de peças</span></div>
+      <h4>Acervo</h4>
+      <div class="nav-item"><span class="ic"></span><span>Processos</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Clientes</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Estudos de caso</span></div>
+      <h4>Gestão</h4>
+      <div class="nav-item"><span class="ic"></span><span>Financeiro</span></div>
+      <div class="nav-item"><span class="ic"></span><span>Auditoria</span></div>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search"><span class="si">⌕</span><input placeholder="Buscar cliente, CNJ, registro…"><span class="kbd">⌘K</span></div>
+      <div class="spacer"></div>
+      <div class="seg" title="Trocar direção visual">
+        <button onclick="pal('indigo')" id="p-indigo">A · Índigo</button>
+        <button onclick="pal('navy')" id="p-navy" class="on">B · Navy</button>
+        <button onclick="pal('brass')" id="p-brass">C · Brass</button>
+      </div>
+      <button class="toggle" onclick="th()">◐ <span id="tl">Escuro</span></button>
+      <div class="who">DF</div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow" id="eye">Ritual matinal · 17 jun 2026 · direção B (Navy)</div>
+          <h1>Bom dia, Daniel.</h1>
+          <p>Última varredura concluída às 06:12 · 3 validações e 5 intimações órfãs aguardam você.</p>
+        </div>
+        <button class="btn primary">Rodar triagem de hoje</button>
+      </div>
+
+      <!-- HERO: prazos fatais + audiências -->
+      <div class="hoje">
+        <div class="hcard">
+          <h3>Prazos fatais <a class="link">ver todos →</a></h3>
+          <div class="deadline"><span class="ddays crit"><b>1</b><span>dia</span></span><div class="dl-main"><div class="dl-t">Razões de apelação <span class="lock">🔒 segredo</span></div><div class="dl-s">Cliente reservado · <span class="cnj">0875189-21.2025.8.10.0001</span> · CPP art. 600</div></div><span class="gate wait">provisório</span></div>
+          <div class="deadline"><span class="ddays warn"><b>3</b><span>dias</span></span><div class="dl-main"><div class="dl-t">Contrarrazões — RESE</div><div class="dl-s">João da Silva · <span class="cnj">0889701-09.2025.8.10.0001</span> · CPP art. 588</div></div><span class="gate done">✓ validado</span></div>
+          <div class="deadline"><span class="ddays ok"><b>6</b><span>dias</span></span><div class="dl-main"><div class="dl-t">Memoriais — alegações finais</div><div class="dl-s">Maria Souza · <span class="cnj">1002033-55.2024.8.26.0050</span> · CPP art. 403</div></div><span class="gate wait">provisório</span></div>
+        </div>
+        <div class="hcard">
+          <h3>Audiências próximas <a class="link">agenda →</a></h3>
+          <div class="deadline"><span class="ddays warn"><b>20</b><span>jun</span></span><div class="dl-main"><div class="dl-t">Instrução e julgamento</div><div class="dl-s">14:00 · videoconferência · revisar local</div></div><span class="pill blue"><span class="dot"></span>a validar</span></div>
+          <div class="deadline"><span class="ddays ok"><b>24</b><span>jun</span></span><div class="dl-main"><div class="dl-t">Oitiva de testemunhas</div><div class="dl-s">09:30 · Fórum Criminal · 1ª Vara</div></div><span class="gate done">✓ validado</span></div>
+        </div>
+      </div>
+
+      <!-- COBERTURA DA ÚLTIMA VARREDURA -->
+      <div class="scan">
+        <div class="scan-h"><h3>Cobertura da última varredura</h3><span class="pill amber"><span class="dot"></span>fonte: AMBAS · parcial</span></div>
+        <div class="scan-grid">
+          <div class="oab">
+            <div class="lbl"><span>OAB/SP 352447</span> <span class="pill green"><span class="dot"></span>ok</span></div>
+            <div class="metrics">
+              <div class="metric"><b>184</b><span>processados</span></div>
+              <div class="metric"><b>7</b><span>intimações novas</span></div>
+              <div class="metric"><b>23</b><span>andamentos novos</span></div>
+              <div class="metric"><b>4</b><span>prazos criados</span></div>
+            </div>
+          </div>
+          <div class="oab">
+            <div class="lbl"><span>OAB/RJ 252708</span> <span class="pill amber"><span class="dot"></span>parcial</span></div>
+            <div class="metrics">
+              <div class="metric"><b>64</b><span>processados</span></div>
+              <div class="metric"><b>3</b><span>intimações novas</span></div>
+              <div class="metric"><b>9</b><span>andamentos novos</span></div>
+              <div class="metric"><b>1</b><span>prazo criado</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi red"><span class="accent"></span><div class="label">Prazos abertos</div><div class="val">12</div><div class="meta">2 fatais (≤2 dias)</div></div>
+        <div class="kpi amber"><span class="accent"></span><div class="label">A validar</div><div class="val">3</div><div class="meta">prazos + audiências</div></div>
+        <div class="kpi blue"><span class="accent"></span><div class="label">Processos ativos</div><div class="val">248</div><div class="meta">14 em segredo</div></div>
+        <div class="kpi green"><span class="accent"></span><div class="label">A receber</div><div class="val">R$ 38k</div><div class="meta">6 parcelas no mês</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Cadastros automáticos de hoje — revisar</h3><a class="link">auditoria →</a></div>
+        <table>
+          <thead><tr><th>Registro</th><th>Tipo</th><th>Origem</th><th style="text-align:right">Estado</th></tr></thead>
+          <tbody>
+            <tr class="clickable"><td><span class="cnj">0875189-21.2025.8.10.0001</span></td><td>processo</td><td class="sub">DJEN · 17/06</td><td style="text-align:right"><span class="pill amber"><span class="dot"></span>revisar</span></td></tr>
+            <tr class="clickable"><td><span class="name">Adão Rodrigues dos Santos</span></td><td>cliente</td><td class="sub">e-mail · 17/06</td><td style="text-align:right"><span class="pill amber"><span class="dot"></span>revisar</span></td></tr>
+            <tr class="clickable"><td><span class="name">Embargos de declaração</span><div class="sub">gerado da intimação · cowork</div></td><td>peça</td><td class="sub">push · 17/06</td><td style="text-align:right"><span class="pill gray"><span class="dot"></span>a_fazer</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPPORT RAIL: órfãs -->
+  <aside class="support">
+    <div class="sup-card">
+      <div class="sh"><h4>Intimações órfãs</h4><span class="ct">5</span></div>
+      <div class="orf"><div class="ot">Intimação sem processo vinculado</div><div class="os">DJEN · OAB/SP · 17/06 06:12</div><div class="oa"><button class="mini go">Vincular</button><button class="mini">Ignorar</button></div></div>
+      <div class="orf"><div class="ot">Prazo penal órfão — apelação</div><div class="os">push · sem CNJ identificado</div><div class="oa"><button class="mini go">Vincular</button><button class="mini">Ignorar</button></div></div>
+      <div class="orf"><div class="ot">Intimação — pauta de audiência</div><div class="os">DJEN · OAB/RJ · parcial</div><div class="oa"><button class="mini go">Vincular</button><button class="mini">Ignorar</button></div></div>
+    </div>
+    <div class="sup-card">
+      <div class="sh"><h4>Andamentos órfãos</h4><span class="ct">2</span></div>
+      <div class="orf"><div class="ot">Movimento sem processo no acervo</div><div class="os">TJSP · classe não mapeada</div><div class="oa"><button class="mini go">Vincular</button><button class="mini">Ignorar</button></div></div>
+      <div class="orf"><div class="ot">Decisão publicada — réu não localizado</div><div class="os">TJRJ · 16/06</div><div class="oa"><button class="mini go">Vincular</button><button class="mini">Ignorar</button></div></div>
+    </div>
+  </aside>
+</div>
+
+<div class="legend"><b>Comparador:</b> use <b>A/B/C</b> (paleta) e <b>◐</b> (claro/escuro) no topo. Mesma estrutura e dados nas três.</div>
+
+<script>
+function pal(p){var h=document.documentElement;h.setAttribute('data-palette',p);['indigo','navy','brass'].forEach(function(x){document.getElementById('p-'+x).classList.toggle('on',x===p);});var n={indigo:'A (Índigo)',navy:'B (Navy)',brass:'C (Brass)'};document.getElementById('eye').textContent='Ritual matinal · 17 jun 2026 · direção '+n[p];}
+function th(){var h=document.documentElement;var d=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',d?'light':'dark');document.getElementById('tl').textContent=d?'Escuro':'Claro';}
+</script>
+</body>
+</html>
