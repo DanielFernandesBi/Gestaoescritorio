@@ -43,11 +43,29 @@ export function IntimacaoDetalhe({
           <div className="field"><div className="k">Origem</div><div className="v">{(i.origem ?? "—").toUpperCase()}</div></div>
           <div className="field"><div className="k">Processo</div><div className="v">{i.orfa ? <span className="sub">—</span> : <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} id={i.processo_id} />}</div></div>
           <div className="field"><div className="k">Cliente</div><div className="v">{i.orfa ? <span className="sub">—</span> : (i.cliente ?? <span className="sub" style={{ color: "var(--amber)" }}>Sem cliente vinculado</span>)}</div></div>
+          <div className="field"><div className="k">Tribunal</div><div className="v">{i.tribunal ?? <span className="sub">—</span>}</div></div>
+          <div className="field"><div className="k">Grau / instância</div><div className="v">{i.instancia ? i.instancia.toUpperCase() : <span className="sub">—</span>}</div></div>
+          <div className="field"><div className="k">Vara / comarca</div><div className="v">{i.vara_comarca ?? <span className="sub">—</span>}</div></div>
           <div className="field"><div className="k">Publicação</div><div className="v mono">{fmtDate(i.data_publicacao)}</div></div>
           <div className="field"><div className="k">Ciência</div><div className="v mono">{fmtDate(i.data_ciencia)}</div></div>
           <div className="field"><div className="k">Código publicação</div><div className="v mono" style={{ fontSize: 11 }}>{i.codigo_publicacao ?? "—"}</div></div>
         </div>
       </div>
+
+      <div className="dsec">
+        <h4>Teor integral</h4>
+        {i.teor?.trim() ? (
+          <p style={{ whiteSpace: "pre-wrap", margin: 0, fontSize: 13, lineHeight: 1.65, color: "var(--text)" }}>{i.teor}</p>
+        ) : i.resumo ? (
+          <p style={{ whiteSpace: "pre-wrap", margin: 0, fontSize: 13, lineHeight: 1.65, color: "var(--text)" }}>
+            {i.resumo}
+            <span className="sub" style={{ display: "block", marginTop: 6 }}>Teor integral não capturado — exibindo o resumo. Cole o teor em “Editar dados”.</span>
+          </p>
+        ) : (
+          <div className="field"><div className="v sub">Sem teor disponível.</div></div>
+        )}
+      </div>
+
       {i.providencia && (
         <div className="dsec"><h4>Providência</h4><div className="field"><div className="v">{i.providencia}</div></div></div>
       )}
@@ -153,6 +171,13 @@ export function IntimacaoDetalhe({
           />
         </div>
       </div>
+      {(i.cadastrado_por || i.criado_em) && (
+        <p className="sub" style={{ marginTop: 4 }}>
+          {i.cadastrado_por ? `Cadastrada por ${i.cadastrado_por}` : "Cadastrada"}
+          {i.criado_em ? ` · ${fmtDate(i.criado_em)}` : ""}
+          {i.atualizado_em ? ` · atualizada ${fmtDate(i.atualizado_em)}` : ""}
+        </p>
+      )}
     </>
   );
 }

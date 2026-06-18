@@ -198,6 +198,15 @@ export type Intimacao = {
   segredo: boolean;
   orfa: boolean;
   cliente: string | null;
+  // Preenchidos no detalhe (getIntimacaoPorId):
+  teor?: string | null;
+  cadastrado_por?: string | null;
+  criado_em?: string | null;
+  atualizado_em?: string | null;
+  instancia?: string | null;
+  vara_comarca?: string | null;
+  uf?: string | null;
+  area?: string | null;
 };
 
 export async function getIntimacoes(): Promise<Intimacao[]> {
@@ -238,14 +247,22 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
   const { data: r } = await supabase
     .from("intimacoes")
     .select(
-      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, origem, resumo, teor, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, cadastrado_por, criado_em, atualizado_em, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,uf,instancia,area,segredo_justica,cliente_processo(clientes(nome)))",
     )
     .eq("id", id)
     .maybeSingle();
 
   if (!r) return null;
-  const p = r.processos as unknown as NestedProcesso;
+  const p = r.processos as unknown as NestedProcesso & { instancia?: string | null; area?: string | null };
   return {
+    teor: (r.teor as string | null) ?? null,
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    criado_em: (r.criado_em as string | null) ?? null,
+    atualizado_em: (r.atualizado_em as string | null) ?? null,
+    instancia: p?.instancia ?? null,
+    vara_comarca: p?.vara_comarca ?? null,
+    uf: p?.uf ?? null,
+    area: p?.area ?? null,
     id: r.id as string,
     origem: r.origem as string | null,
     resumo: r.resumo as string | null,
