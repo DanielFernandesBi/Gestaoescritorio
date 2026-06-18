@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getProcessosParados, getClientesPresos } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill, ProcRef, SegredoTag } from "@/components/ui";
+import { CriarAlerta } from "@/components/CriarAlerta";
 import { fmtDate, humano } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export default async function AlertasPage({
             audiência ou atualização) há um tempo, e réus presos para priorizar.
           </p>
         </div>
+        <CriarAlerta />
       </div>
 
       <div className="banner">
@@ -41,16 +43,22 @@ export default async function AlertasPage({
         </div>
       </div>
 
-      <div className="card section-gap">
-        <div className="card-h">
-          <h3><Icon name="clock" /> Processos sem movimentação ({parados.length}{presosParados > 0 && <span className="sub"> · {presosParados} com réu preso</span>})</h3>
-          <div style={{ display: "flex", gap: 6 }}>
+      <div className="card op-card" style={{ marginBottom: 16 }}>
+        <div className="card-h"><h3><Icon name="list" /> Filtros</h3></div>
+        <div className="card-b">
+          <div className="chips" style={{ marginBottom: 0 }}>
             {FAIXAS.map((f) => (
-              <Link key={f} href={`/alertas?dias=${f}`} className={`chip${f === dias ? " on" : ""}`} style={{ fontSize: 12 }}>
-                ≥{f}d
+              <Link key={f} href={`/alertas?dias=${f}`} className={`chip${f === dias ? " on" : ""}`}>
+                sem mov. ≥ {f} dias
               </Link>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="card op-card">
+        <div className="card-h">
+          <h3><Icon name="clock" /> Processos sem movimentação ({parados.length}{presosParados > 0 && <span className="sub"> · {presosParados} com réu preso</span>})</h3>
         </div>
         <div className="card-b flush">
           {parados.length ? (
