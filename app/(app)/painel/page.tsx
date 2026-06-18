@@ -303,7 +303,7 @@ export default async function PainelPage() {
             {tarefasVencidas.length ? (
               <VerMais max={6}>
                 {tarefasVencidas.map((t) => (
-                  <div className="op-row" key={t.id}>
+                  <Link className="op-row" key={t.id} href={linkPara("tarefa", t.id)}>
                     <div>
                       <div className="ot">{t.titulo}</div>
                       <div className="os">{t.responsavel ?? "—"}</div>
@@ -312,7 +312,7 @@ export default async function PainelPage() {
                       <div className="mono" style={{ color: "var(--red)", fontWeight: 600 }}>{fmtDate(t.data_limite)}</div>
                       <div className="os" style={{ color: "var(--red)" }}>{Math.abs(t.dias)}d atraso</div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </VerMais>
             ) : (
@@ -330,13 +330,13 @@ export default async function PainelPage() {
             {atrasadas.length ? (
               <VerMais max={6}>
                 {atrasadas.map((p) => (
-                  <div className="op-row" key={p.id}>
+                  <Link className="op-row" key={p.id} href={p.contrato_id ? linkPara("contrato", p.contrato_id) : "/financeiro"}>
                     <div>
                       <div className="ot">{p.cliente}</div>
-                      <div className="os" style={{ color: "var(--red)" }}>{p.dias_atraso}d em atraso</div>
+                      <div className="os" style={{ color: "var(--red)" }}>parcela {p.numero_parcela} · {p.dias_atraso}d em atraso</div>
                     </div>
                     <div className="money">{fmtBRL(p.valor)}</div>
-                  </div>
+                  </Link>
                 ))}
               </VerMais>
             ) : (

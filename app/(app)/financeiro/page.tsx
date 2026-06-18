@@ -4,10 +4,12 @@ import { Acao } from "@/components/Acao";
 import { Icon } from "@/components/Icon";
 import { FormModal } from "@/components/FormModal";
 import { ContratosList } from "@/components/modules/ContratosList";
+import { RowLink } from "@/components/RowLink";
 import {
   marcarPago, rodarMarcarAtrasados, criarContrato, criarDespesa, marcarDespesaReembolsada,
 } from "@/app/actions";
 import { DESPESA_CATEGORIA } from "@/lib/enums";
+import { linkPara } from "@/lib/links";
 import { fmtBRL, fmtDate, humano } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -110,7 +112,7 @@ export default async function FinanceiroPage() {
               </thead>
               <tbody>
                 {parcelas.map((p) => (
-                  <tr key={p.id}>
+                  <RowLink key={p.id} href={p.contrato_id ? linkPara("contrato", p.contrato_id) : "/financeiro"} ariaLabel={`Abrir contrato de ${p.cliente}`}>
                     <td className="name">{p.cliente}</td>
                     <td className="sub">{p.objeto ?? "—"}</td>
                     <td className="center mono">{p.numero_parcela}</td>
@@ -122,7 +124,7 @@ export default async function FinanceiroPage() {
                         resumo={<>Registrar a parcela {p.numero_parcela} de <b>{p.cliente}</b> ({fmtBRL(p.valor)}) como <b>paga</b> hoje?</>}
                         acao={marcarPago.bind(null, p.id)} />
                     </td>
-                  </tr>
+                  </RowLink>
                 ))}
               </tbody>
             </table>

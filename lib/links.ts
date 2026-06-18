@@ -8,7 +8,7 @@
  * conhecer a estrutura de rotas (chega na Fase 2).
  */
 
-export type EntidadeTipo = "processo" | "cliente" | "audiencia" | "intimacao" | "prazo";
+export type EntidadeTipo = "processo" | "cliente" | "audiencia" | "intimacao" | "prazo" | "tarefa" | "contrato";
 
 const ROTA: Record<EntidadeTipo, string> = {
   processo: "/processos",
@@ -16,6 +16,8 @@ const ROTA: Record<EntidadeTipo, string> = {
   audiencia: "/audiencias",
   intimacao: "/intimacoes",
   prazo: "/prazos",
+  tarefa: "/tarefas",
+  contrato: "/contratos",
 };
 
 /** URL canônica de um registro específico, ex.: linkPara("processo", id) → "/processos/<id>". */
@@ -44,6 +46,8 @@ const TEM_PAGINA: Record<EntidadeTipo, boolean> = {
   audiencia: true, // Fase 3
   intimacao: true, // Fase 3b
   prazo: true, // Fase 3b
+  tarefa: true, // integração painel
+  contrato: true, // integração painel
 };
 
 /** Existe página de detalhe para este tipo hoje? */
@@ -67,6 +71,8 @@ export function tipoDeTabela(tabela: string | null): EntidadeTipo | null {
     case "audiencias": return "audiencia";
     case "intimacoes": return "intimacao";
     case "prazos": return "prazo";
+    case "tarefas": return "tarefa";
+    case "contratos": return "contrato";
     default: return null;
   }
 }

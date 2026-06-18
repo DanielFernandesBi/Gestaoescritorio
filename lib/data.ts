@@ -539,6 +539,7 @@ export async function getClientePorId(id: string): Promise<Cliente | null> {
 
 export type Parcela = {
   id: string;
+  contrato_id: string | null;
   cliente: string;
   objeto: string | null;
   numero_parcela: number;
@@ -559,7 +560,7 @@ export async function getFinanceiro(): Promise<{
   const [fin, contratosVig, contratosAll] = await Promise.all([
     supabase
       .from("pagamentos")
-      .select("id, numero_parcela, valor, vencimento, status, contratos(objeto, clientes(nome))")
+      .select("id, contrato_id, numero_parcela, valor, vencimento, status, contratos(objeto, clientes(nome))")
       .in("status", ["a_vencer", "atrasado"])
       .order("vencimento", { ascending: true }),
     supabase.from("contratos").select("*", { count: "exact", head: true }).eq("status", "vigente"),
@@ -571,6 +572,7 @@ export async function getFinanceiro(): Promise<{
     const dias = diasAte(r.vencimento as string);
     return {
       id: r.id as string,
+      contrato_id: (r.contrato_id as string | null) ?? null,
       cliente: c?.clientes?.nome ?? "—",
       objeto: c?.objeto ?? null,
       numero_parcela: Number(r.numero_parcela ?? 0),
@@ -624,16 +626,11 @@ export type Contrato = {
   parcelas: ParcelaContrato[];
 };
 
-export async function getContratos(): Promise<Contrato[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("contratos")
-    .select(
-      "id, cliente_id, objeto, contratante, valor_total, forma_pagamento, status, data_contrato, observacoes, clientes(nome), processos(numero_cnj), pagamentos(id, numero_parcela, valor, valor_pago, vencimento, pago_em, status)",
-    )
-    .order("data_contrato", { ascending: false });
+const CONTRATO_SELECT =
+  "id, cliente_id, objeto, contratante, valor_total, forma_pagamento, status, data_contrato, observacoes, clientes(nome), processos(numero_cnj), pagamentos(id, numero_parcela, valor, valor_pago, vencimento, pago_em, status)";
 
-  return (data ?? []).map((c) => {
+function mapContrato(c: Record<string, unknown>): Contrato {
+  {
     const cli = c.clientes as unknown as { nome: string } | null;
     const proc = c.processos as unknown as { numero_cnj: string | null } | null;
     const pags = (c.pagamentos ?? []) as unknown as Array<Record<string, unknown>>;
@@ -678,7 +675,26 @@ export async function getContratos(): Promise<Contrato[]> {
       qtd_parcelas: parcelas.length,
       parcelas,
     };
-  });
+  }
+}
+
+export async function getContratos(): Promise<Contrato[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("contratos")
+    .select(CONTRATO_SELECT)
+    .order("data_contrato", { ascending: false });
+  return (data ?? []).map((c) => mapContrato(c as Record<string, unknown>));
+}
+
+export async function getContratoPorId(id: string): Promise<Contrato | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("contratos")
+    .select(CONTRATO_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+  return data ? mapContrato(data as Record<string, unknown>) : null;
 }
 
 export type Despesa = {
@@ -898,6 +914,16 @@ export async function getTarefas(): Promise<Tarefa[]> {
     .order("data_limite", { ascending: true, nullsFirst: false })
     .limit(300);
   return (data ?? []) as Tarefa[];
+}
+
+export async function getTarefaPorId(id: string): Promise<Tarefa | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tarefas")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite")
+    .eq("id", id)
+    .maybeSingle();
+  return (data as Tarefa) ?? null;
 }
 
 /* Produção de peças (kanban de escrita — Sugestão 20) -------------------- */
