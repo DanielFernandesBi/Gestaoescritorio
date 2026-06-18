@@ -277,6 +277,8 @@ export type Audiencia = {
   numero_registro: string | null;
   segredo: boolean;
   clientes: string;
+  redesignada_de?: string | null;
+  data_anterior?: string | null;
 };
 
 export async function getAudiencias(): Promise<Audiencia[]> {
@@ -315,14 +317,25 @@ export async function getAudienciaPorId(id: string): Promise<Audiencia | null> {
   const { data: r } = await supabase
     .from("audiencias")
     .select(
-      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, redesignada_de, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
     )
     .eq("id", id)
     .maybeSingle();
 
   if (!r) return null;
   const p = r.processos as unknown as NestedProcesso;
+  let data_anterior: string | null = null;
+  if (r.redesignada_de) {
+    const { data: ant } = await supabase
+      .from("audiencias")
+      .select("data_hora")
+      .eq("id", r.redesignada_de as string)
+      .maybeSingle();
+    data_anterior = (ant?.data_hora as string | null) ?? null;
+  }
   return {
+    redesignada_de: (r.redesignada_de as string | null) ?? null,
+    data_anterior,
     id: r.id as string,
     processo_id: r.processo_id as string,
     tipo: r.tipo as string,

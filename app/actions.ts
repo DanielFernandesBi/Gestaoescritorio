@@ -1427,6 +1427,56 @@ export async function cancelarAudiencia(id: string, motivo: string): Promise<Res
   }
 }
 
+/**
+ * Redesigna uma audiência: marca a antiga como `redesignada` (preserva a data
+ * original no histórico) e cria uma NOVA audiência já vinculada à anterior
+ * (redesignada_de), nascendo validado=false — a fatal/Calendar entra na validação.
+ */
+export async function redesignarAudiencia(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const dataLocal = String(fd.get("data_hora") || ""); // YYYY-MM-DDTHH:mm
+    if (!dataLocal) return { ok: false, message: "Nova data e hora são obrigatórias." };
+    const data_hora = `${dataLocal}:00-03:00`;
+    const modalidade = String(fd.get("modalidade") || "") || null;
+    const local_link = String(fd.get("local_link") || "") || null;
+    const observacoes = String(fd.get("observacoes") || "").trim() || null;
+
+    const { data: ant } = await supabase
+      .from("audiencias")
+      .select("processo_id, tipo, responsavel")
+      .eq("id", id)
+      .single();
+    if (!ant) return { ok: false, message: "Audiência original não encontrada." };
+
+    const { error: eUp } = await supabase
+      .from("audiencias")
+      .update({ status: "redesignada" })
+      .eq("id", id);
+    if (eUp) throw eUp;
+
+    const { error: eIns } = await supabase.from("audiencias").insert({
+      processo_id: ant.processo_id,
+      tipo: String(fd.get("tipo") || ant.tipo),
+      data_hora,
+      modalidade,
+      local_link,
+      responsavel: String(fd.get("responsavel") || ant.responsavel || "Daniel"),
+      observacoes,
+      status: "designada",
+      validado: false,
+      redesignada_de: id,
+    });
+    if (eIns) throw eIns;
+
+    revalidarTudo();
+    return { ok: true, message: "Audiência redesignada — nova data criada (aguardando validação)." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /* ==================== FINANCEIRO: contratos, parcelas, despesas ==================== */
 
 function valorNumerico(v: FormDataEntryValue | null): number {

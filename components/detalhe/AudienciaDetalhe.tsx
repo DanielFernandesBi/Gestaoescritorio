@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Pill, ProcRef, SegredoTag } from "@/components/ui";
+import { Icon } from "@/components/Icon";
 import { FormModal } from "@/components/FormModal";
-import { atualizarAudiencia, vincularClienteProcesso } from "@/app/actions";
+import { atualizarAudiencia, vincularClienteProcesso, redesignarAudiencia } from "@/app/actions";
 import { AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE, PAPEL, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, fmtTime, humano } from "@/lib/format";
 import type { Audiencia } from "@/lib/data";
@@ -26,6 +27,16 @@ export function AudienciaDetalhe({ aud }: { aud: Audiencia }) {
 
   return (
     <>
+      {aud.data_anterior && (
+        <div className="banner" style={{ marginBottom: 20 }}>
+          <span className="ico"><Icon name="clock" /></span>
+          <div>
+            Audiência <b>redesignada</b>. Data anterior:{" "}
+            <b>{fmtDate(aud.data_anterior)} {fmtTime(aud.data_anterior)}</b>.
+          </div>
+        </div>
+      )}
+
       <div className="dsec">
         <h4>Sessão</h4>
         <div className="dgrid">
@@ -89,6 +100,24 @@ export function AudienciaDetalhe({ aud }: { aud: Audiencia }) {
             </div>
             <div><label>Local / link</label><input name="local_link" defaultValue={aud.local_link ?? ""} placeholder="Sala, endereço ou link da videoconferência" /></div>
             <div><label>Observações</label><textarea name="observacoes" defaultValue={aud.observacoes ?? ""} placeholder="Anotações sobre a sessão." /></div>
+          </FormModal>
+
+          <FormModal
+            label={<><Icon name="clock" size={14} /> Redesignar</>}
+            titulo="Redesignar audiência"
+            descricao="Cria uma nova data e marca esta como redesignada — a data anterior fica registrada no histórico."
+            acao={redesignarAudiencia.bind(null, aud.id)}
+            enviarLabel="Redesignar"
+            variant="default"
+          >
+            <div><label>Tipo</label><select name="tipo" defaultValue={aud.tipo}>{AUDIENCIA_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
+            <div><label>Nova data e hora</label><input type="datetime-local" name="data_hora" required /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Modalidade</label><select name="modalidade" defaultValue={aud.modalidade ?? "presencial"}>{AUDIENCIA_MODALIDADE.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
+              <div><label>Responsável</label><select name="responsavel" defaultValue={aud.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+            </div>
+            <div><label>Local / link</label><input name="local_link" placeholder="Sala, endereço ou link da videoconferência" /></div>
+            <div><label>Observações</label><textarea name="observacoes" placeholder="Motivo / detalhes da redesignação." /></div>
           </FormModal>
 
           <FormModal
