@@ -80,21 +80,24 @@ export default async function FinanceiroPage() {
         </div>
       </div>
 
-      <div className="kpis" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
-        <div className="kpi green"><div className="accent" /><div className="label">A receber (pendente)</div><div className="val" style={{ fontSize: 23 }}>{fmtBRL(totalReceber)}</div><div className="meta">{parcelas.length} parcelas em aberto</div></div>
-        <div className="kpi red"><div className="accent" /><div className="label">Em atraso</div><div className="val" style={{ fontSize: 23 }}>{fmtBRL(totalAtraso)}</div><div className="meta">cobrança prioritária</div></div>
-        <div className="kpi"><div className="label">Recebido (acumulado)</div><div className="val" style={{ fontSize: 23 }}>{fmtBRL(totalRecebido)}</div><div className="meta">parcelas pagas</div></div>
-        <div className="kpi brass"><div className="accent" /><div className="label">Contratos vigentes</div><div className="val">{contratosVigentes}</div><div className="meta">{contratos.length} no total</div></div>
+      <div className="scan">
+        <div className="scan-h"><h3><Icon name="wallet" /> Panorama financeiro</h3></div>
+        <div className="scan-metrics">
+          <div className="metric"><b>{fmtBRL(totalReceber)}</b><span>A receber · {parcelas.length} parcelas em aberto</span></div>
+          <div className="metric"><b style={{ color: "var(--red)" }}>{fmtBRL(totalAtraso)}</b><span>Em atraso · cobrança prioritária</span></div>
+          <div className="metric"><b>{fmtBRL(totalRecebido)}</b><span>Recebido (acumulado) · parcelas pagas</span></div>
+          <div className="metric"><b>{contratosVigentes}</b><span>Contratos vigentes · {contratos.length} no total</span></div>
+        </div>
       </div>
 
       <div className="card section-gap">
         <div className="card-h"><h3><Icon name="wallet" /> Fechamento de {mesLabel}</h3></div>
         <div className="card-b">
-          <div className="kpis" style={{ gridTemplateColumns: "repeat(4,1fr)", margin: 0 }}>
-            <div className="kpi green"><div className="accent" /><div className="label">Recebido no mês</div><div className="val" style={{ fontSize: 22 }}>{fmtBRL(fechamento.recebido)}</div><div className="meta">{fechamento.qtdPagas} parcelas pagas</div></div>
-            <div className="kpi brass"><div className="accent" /><div className="label">Sócio (50%)</div><div className="val" style={{ fontSize: 22 }}>{fmtBRL(fechamento.socio)}</div><div className="meta">rateio do recebido</div></div>
-            <div className="kpi amber"><div className="accent" /><div className="label">A receber no mês</div><div className="val" style={{ fontSize: 22 }}>{fmtBRL(fechamento.aReceber)}</div><div className="meta">{fmtBRL(fechamento.emAtraso)} em atraso</div></div>
-            <div className="kpi"><div className="label">Despesas no mês</div><div className="val" style={{ fontSize: 22 }}>{fmtBRL(fechamento.despesas)}</div><div className="meta">líquido sócio: {fmtBRL(fechamento.socio - fechamento.despesas / 2)}</div></div>
+          <div className="scan-metrics" style={{ padding: 0 }}>
+            <div className="metric"><b>{fmtBRL(fechamento.recebido)}</b><span>Recebido no mês · {fechamento.qtdPagas} pagas</span></div>
+            <div className="metric"><b>{fmtBRL(fechamento.socio)}</b><span>Sócio (50%) · rateio do recebido</span></div>
+            <div className="metric"><b>{fmtBRL(fechamento.aReceber)}</b><span>A receber no mês · {fmtBRL(fechamento.emAtraso)} em atraso</span></div>
+            <div className="metric"><b>{fmtBRL(fechamento.despesas)}</b><span>Despesas · líquido sócio {fmtBRL(fechamento.socio - fechamento.despesas / 2)}</span></div>
           </div>
         </div>
       </div>
@@ -103,7 +106,7 @@ export default async function FinanceiroPage() {
       <ContratosList contratos={contratos} />
 
       <div className="card section-gap">
-        <div className="card-h"><h3>Parcelas a vencer / atrasadas</h3></div>
+        <div className="card-h"><h3><Icon name="wallet" /> Parcelas a vencer / atrasadas</h3></div>
         <div className="card-b flush">
           {parcelas.length ? (
             <table>
@@ -135,7 +138,7 @@ export default async function FinanceiroPage() {
       </div>
 
       <div className="card section-gap">
-        <div className="card-h"><h3>Despesas {despesasAbertas.length > 0 && <span className="sub">· {despesasAbertas.length} a reembolsar</span>}</h3></div>
+        <div className="card-h"><h3><Icon name="wallet" /> Despesas {despesasAbertas.length > 0 && <span className="sub">· {despesasAbertas.length} a reembolsar</span>}</h3></div>
         <div className="card-b flush">
           {despesas.length ? (
             <table>

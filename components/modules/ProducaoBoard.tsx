@@ -6,6 +6,8 @@ import { useDrawer } from "@/components/Drawer";
 import { Pill, SegredoTag, DiasBox, ProcRef } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { Chips } from "@/components/Chips";
+import { Icon } from "@/components/Icon";
+import { FiltrosCard } from "@/components/FiltrosCard";
 import { FormModal } from "@/components/FormModal";
 import {
   criarPeca,
@@ -392,7 +394,10 @@ export function ProducaoBoard({
   if (filtro === "protocoladas") {
     return (
       <>
-        <Chips options={filtros} value={filtro} onChange={setFiltro} />
+        <FiltrosCard><Chips options={filtros} value={filtro} onChange={setFiltro} /></FiltrosCard>
+        <div className="card op-card">
+          <div className="card-h"><h3><Icon name="book" /> Protocoladas</h3><span className="sub">{protocoladas.length}</span></div>
+          <div className="card-b">
         {protocoladas.length ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
             {protocoladas.map((p) => (
@@ -416,15 +421,23 @@ export function ProducaoBoard({
             ))}
           </div>
         ) : (
-          <div className="card"><div className="card-b"><div className="empty">Nenhuma peça protocolada ainda.</div></div></div>
+          <div className="empty">Nenhuma peça protocolada ainda.</div>
         )}
+          </div>
+        </div>
       </>
     );
   }
 
   return (
     <>
-      {filtros.length > 1 && <Chips options={filtros} value={filtro} onChange={setFiltro} />}
+      {filtros.length > 1 && <FiltrosCard><Chips options={filtros} value={filtro} onChange={setFiltro} /></FiltrosCard>}
+      <div className="card op-card">
+        <div className="card-h">
+          <h3><Icon name="book" /> Backlog de produção</h3>
+          <span className="sub">{pecasFiltradas.length} peças</span>
+        </div>
+        <div className="card-b">
       <div className="kanban k5">
       {COLS.map((col) => {
         const itens = pecasFiltradas.filter((p) => p.status === col.key);
@@ -493,6 +506,8 @@ export function ProducaoBoard({
           </div>
         );
       })}
+      </div>
+        </div>
       </div>
     </>
   );
