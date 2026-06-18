@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DiasBox } from "@/components/ui";
+import { Icon } from "@/components/Icon";
 import { FormModal } from "@/components/FormModal";
 import { promoverPrazoOrfao } from "@/app/actions";
 import { PAPEL, PROCESSO_INSTANCIA, PROCESSO_AREA } from "@/lib/enums";
@@ -94,7 +95,8 @@ export function PrazosOrfaosList({ orfaos }: { orfaos: PrazoOrfao[] }) {
           Nenhuma fatal fica invisível: promova cada uma costurando o processo e o cliente para liberar a validação.
         </div>
       </div>
-      <div className="card">
+      <div className="card op-card">
+        <div className="card-h"><h3><Icon name="shield" /> Órfãos / triagem ({orfaos.length})</h3></div>
         <div className="card-b flush">
           {orfaos.length ? (
             <table>

@@ -1,5 +1,6 @@
 import { getPrazos, getPrazosOrfaos } from "@/lib/data";
 import { PrazosModulo } from "@/components/modules/PrazosModulo";
+import { CadastrarPrazo } from "@/components/CadastrarPrazo";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export default async function PrazosPage() {
             semana/feriado prorroga para o 1º dia útil — conferir feriado local.
           </p>
         </div>
+        <CadastrarPrazo />
       </div>
       <PrazosModulo prazos={prazos} orfaos={orfaos} />
     </>

@@ -1,41 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { DiasBox, ProcRef, SegredoTag, Gate } from "@/components/ui";
-import { Chips } from "@/components/Chips";
+import { Icon } from "@/components/Icon";
 import { RowLink } from "@/components/RowLink";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
 import type { Prazo } from "@/lib/data";
 
-const FILTROS = [
-  { id: "todos", label: "Todos" },
-  { id: "crit", label: "Críticos (≤2d)" },
-  { id: "semana", label: "Esta semana" },
-  { id: "Daniel", label: "Daniel" },
-  { id: "Rodolfo", label: "Rodolfo" },
-];
-
-export function PrazosList({ prazos }: { prazos: Prazo[] }) {
-  const [f, setF] = useState("todos");
-
+export function PrazosList({ prazos, filtro = "todos" }: { prazos: Prazo[]; filtro?: string }) {
   const filtrados = useMemo(() => {
     return prazos.filter((p) => {
-      if (f === "crit") return p.dias_restantes <= 2;
-      if (f === "semana") return p.dias_restantes >= 0 && p.dias_restantes <= 7;
-      if (f === "Daniel" || f === "Rodolfo") return p.responsavel === f;
+      if (filtro === "crit") return p.dias_restantes <= 2;
+      if (filtro === "semana") return p.dias_restantes >= 0 && p.dias_restantes <= 7;
+      if (filtro === "Daniel" || filtro === "Rodolfo") return p.responsavel === filtro;
       return true;
     });
-  }, [prazos, f]);
-
-  const opcoes = FILTROS.map((o) =>
-    o.id === "todos" ? { ...o, label: `Todos (${prazos.length})` } : o,
-  );
+  }, [prazos, filtro]);
 
   return (
     <>
-      <Chips options={opcoes} value={f} onChange={setF} />
-      <div className="card">
+      <div className="card op-card">
+        <div className="card-h">
+          <h3><Icon name="clock" /> Prazos</h3>
+          <span className="sub">{filtrados.length} no filtro</span>
+        </div>
         <div className="card-b flush">
           {filtrados.length ? (
             <table>
