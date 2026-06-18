@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
+import { Icon } from "@/components/Icon";
 import { RowLink } from "@/components/RowLink";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
@@ -36,7 +36,7 @@ const ORIGENS = [
   { id: "eproc", label: "eproc" },
 ];
 
-export function IntimacoesList({ intimacoes, cabecalho }: { intimacoes: Intimacao[]; cabecalho?: ReactNode }) {
+export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
   // Abre na triagem do que ainda precisa de ação (como um inbox profissional).
   const [st, setSt] = useState("pendentes");
   const [orig, setOrig] = useState("todas");
@@ -81,38 +81,29 @@ export function IntimacoesList({ intimacoes, cabecalho }: { intimacoes: Intimaca
 
   return (
     <>
-      <Chips options={opcoesStatus} value={st} onChange={(v) => { setSt(v); setVisiveis(PASSO); }} />
-      <Chips options={ORIGENS} value={orig} onChange={(v) => { setOrig(v); setVisiveis(PASSO); }} />
-
-      <div className="kpis" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
-        <button type="button" className={`kpi amber${st === "pendentes" ? " kpi-on" : ""}`} onClick={() => irPara("pendentes")}>
-          <div className="accent" />
-          <div className="label">Pendentes</div>
-          <div className="val">{nPend}</div>
-          <div className="meta">aguardando ação</div>
-        </button>
-        <button type="button" className={`kpi blue${st === "em_analise" ? " kpi-on" : ""}`} onClick={() => irPara("em_analise")}>
-          <div className="accent" />
-          <div className="label">Em análise</div>
-          <div className="val">{nAnalise}</div>
-          <div className="meta">em estudo</div>
-        </button>
-        <button type="button" className={`kpi red${st === "orfas" ? " kpi-on" : ""}`} onClick={() => irPara("orfas")}>
-          <div className="accent" />
-          <div className="label">Órfãs</div>
-          <div className="val">{nOrfas}</div>
-          <div className="meta">sem processo — triagem</div>
-        </button>
-        <button type="button" className={`kpi${st === "todas" ? " kpi-on" : ""}`} onClick={() => irPara("todas")}>
-          <div className="label">Total</div>
-          <div className="val">{intimacoes.length}</div>
-          <div className="meta">no acervo recente</div>
-        </button>
+      <div className="card op-card">
+        <div className="card-h"><h3><Icon name="list" /> Filtros</h3></div>
+        <div className="card-b">
+          <Chips options={opcoesStatus} value={st} onChange={(v) => { setSt(v); setVisiveis(PASSO); }} />
+          <Chips options={ORIGENS} value={orig} onChange={(v) => { setOrig(v); setVisiveis(PASSO); }} />
+        </div>
       </div>
 
-      {cabecalho}
+      <div className="scan">
+        <div className="scan-h"><h3><Icon name="inbox" /> Panorama das intimações</h3></div>
+        <div className="scan-metrics">
+          <button type="button" className={`metric${st === "pendentes" ? " metric-on" : ""}`} onClick={() => irPara("pendentes")}><b>{nPend}</b><span>Pendentes · aguardando ação</span></button>
+          <button type="button" className={`metric${st === "em_analise" ? " metric-on" : ""}`} onClick={() => irPara("em_analise")}><b>{nAnalise}</b><span>Em análise · em estudo</span></button>
+          <button type="button" className={`metric${st === "orfas" ? " metric-on" : ""}`} onClick={() => irPara("orfas")}><b>{nOrfas}</b><span>Órfãs · sem processo</span></button>
+          <button type="button" className={`metric${st === "todas" ? " metric-on" : ""}`} onClick={() => irPara("todas")}><b>{intimacoes.length}</b><span>Total · acervo recente</span></button>
+        </div>
+      </div>
 
-      <div className="card">
+      <div className="card op-card">
+        <div className="card-h">
+          <h3><Icon name="inbox" /> Intimações</h3>
+          <span className="sub">{filtradas.length} no filtro</span>
+        </div>
         <div className="card-b flush">
           {mostradas.length ? (
             <table>
