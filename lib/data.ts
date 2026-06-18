@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { diasAte } from "@/lib/format";
+import { linkPara } from "@/lib/links";
 import type { MapaProvidencia } from "@/lib/pecas";
 
 /* Helpers ---------------------------------------------------------------- */
@@ -1746,4 +1747,117 @@ export async function getProcessosReconciliacao(): Promise<ProcessoReconciliacao
     clientes: (r.clientes as string) ?? null,
     criado_em: (r.criado_em as string) ?? null,
   }));
+}
+
+/* ============== Itens de uma varredura (drill-down dos tiles) ============== */
+
+export type VarreduraTipo = "intimacoes" | "andamentos" | "prazos";
+
+export type VarreduraItem = {
+  id: string;
+  href: string;
+  titulo: string;
+  cliente: string | null;
+  numero_cnj: string | null;
+  data: string | null;
+  tag: string | null;
+};
+
+const VARREDURA_TITULO: Record<VarreduraTipo, string> = {
+  intimacoes: "Intimações novas",
+  andamentos: "Andamentos novos",
+  prazos: "Prazos criados",
+};
+
+/**
+ * Reconstrói os itens contabilizados na ÚLTIMA varredura. Como a tabela
+ * `varreduras` guarda apenas contadores, usamos a janela de inserção: itens
+ * criados em ±30 min do horário da varredura — o que reproduz exatamente os
+ * números dos tiles na prática.
+ */
+export async function getVarreduraItens(
+  tipo: VarreduraTipo,
+): Promise<{ titulo: string; quando: string | null; itens: VarreduraItem[] }> {
+  const supabase = await createClient();
+  const titulo = VARREDURA_TITULO[tipo];
+
+  const { data: v } = await supabase
+    .from("varreduras")
+    .select("criado_em")
+    .order("criado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!v?.criado_em) return { titulo, quando: null, itens: [] };
+
+  const base = new Date(v.criado_em as string).getTime();
+  const lo = new Date(base - 30 * 60_000).toISOString();
+  const hi = new Date(base + 30 * 60_000).toISOString();
+  const quando = v.criado_em as string;
+  const procSel = "processos(numero_cnj,cliente_processo(clientes(nome)))";
+
+  if (tipo === "intimacoes") {
+    const { data } = await supabase
+      .from("intimacoes")
+      .select(`id, resumo, origem, status, data_publicacao, ${procSel}`)
+      .gte("criado_em", lo)
+      .lte("criado_em", hi)
+      .order("data_publicacao", { ascending: false });
+    const itens = (data ?? []).map((r) => {
+      const p = r.processos as unknown as NestedProcesso;
+      return {
+        id: r.id as string,
+        href: linkPara("intimacao", r.id as string),
+        titulo: (r.resumo as string | null)?.trim() || "(sem resumo)",
+        cliente: nomesClientes(p?.cliente_processo) || null,
+        numero_cnj: p?.numero_cnj ?? null,
+        data: (r.data_publicacao as string | null) ?? null,
+        tag: (r.origem as string | null) ?? (r.status as string | null) ?? null,
+      };
+    });
+    return { titulo, quando, itens };
+  }
+
+  if (tipo === "prazos") {
+    const { data } = await supabase
+      .from("prazos")
+      .select(`id, ato, status, data_fatal, ${procSel}`)
+      .gte("criado_em", lo)
+      .lte("criado_em", hi)
+      .order("data_fatal", { ascending: true });
+    const itens = (data ?? []).map((r) => {
+      const p = r.processos as unknown as NestedProcesso;
+      return {
+        id: r.id as string,
+        href: linkPara("prazo", r.id as string),
+        titulo: (r.ato as string | null) || "(prazo)",
+        cliente: nomesClientes(p?.cliente_processo) || null,
+        numero_cnj: p?.numero_cnj ?? null,
+        data: (r.data_fatal as string | null) ?? null,
+        tag: (r.status as string | null) ?? null,
+      };
+    });
+    return { titulo, quando, itens };
+  }
+
+  // andamentos — sem página própria: o link leva ao processo
+  const { data } = await supabase
+    .from("andamentos")
+    .select(`id, tipo, descricao, data, processo_id, ${procSel}`)
+    .gte("criado_em", lo)
+    .lte("criado_em", hi)
+    .order("data", { ascending: false });
+  const itens = (data ?? []).map((r) => {
+    const p = r.processos as unknown as NestedProcesso;
+    const procId = r.processo_id as string | null;
+    return {
+      id: r.id as string,
+      href: procId ? linkPara("processo", procId) : "#",
+      titulo: (r.descricao as string | null)?.trim() || (r.tipo as string | null) || "(andamento)",
+      cliente: nomesClientes(p?.cliente_processo) || null,
+      numero_cnj: p?.numero_cnj ?? null,
+      data: (r.data as string | null) ?? null,
+      tag: (r.tipo as string | null) ?? null,
+    };
+  });
+  return { titulo, quando, itens };
 }

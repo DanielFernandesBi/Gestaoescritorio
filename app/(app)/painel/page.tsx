@@ -154,9 +154,9 @@ export default async function PainelPage() {
             </div>
             <div className="scan-metrics">
               <div className="metric"><b>{fmtNum(varredura.itens_processados)}</b><span>processados</span></div>
-              <div className="metric"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações novas</span></div>
-              <div className="metric"><b>{fmtNum(varredura.andamentos_novos)}</b><span>andamentos novos</span></div>
-              <div className="metric"><b>{fmtNum(varredura.prazos_criados)}</b><span>prazos criados</span></div>
+              <Link className="metric metric-link" href="/varredura/intimacoes"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações novas</span></Link>
+              <Link className="metric metric-link" href="/varredura/andamentos"><b>{fmtNum(varredura.andamentos_novos)}</b><span>andamentos novos</span></Link>
+              <Link className="metric metric-link" href="/varredura/prazos"><b>{fmtNum(varredura.prazos_criados)}</b><span>prazos criados</span></Link>
             </div>
             {varredura.diagnostico_oab && varredura.diagnostico_oab.length > 0 && (
               <div className="scan-grid">
