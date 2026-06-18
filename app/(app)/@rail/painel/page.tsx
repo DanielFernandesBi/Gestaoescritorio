@@ -18,21 +18,19 @@ export default async function PainelRail() {
   const total =
     stats.intimacoes_orfas + stats.andamentos_orfaos + prazosOrfaos.length;
 
+  // Nada a triar: não renderiza o trilho — a coluna some e o conteúdo ocupa tudo.
+  if (total === 0) return null;
+
   return (
     <aside className="orfas-rail" aria-label="Fila de triagem de órfãs">
       <div className="rail-top">
         <span className="lhs">
           <Icon name="inbox" size={14} /> Fila de triagem
         </span>
-        <span className={`rail-count${total === 0 ? " zero" : ""}`}>{total}</span>
+        <span className="rail-count">{total}</span>
       </div>
 
-      {total === 0 ? (
-        <div className="sup-empty">
-          Nada a triar. Tudo vinculado a um processo. 🎉
-        </div>
-      ) : (
-        <>
+      <>
           <div className="sup-card">
             <div className="sh">
               <h4>Intimações órfãs</h4>
@@ -87,8 +85,7 @@ export default async function PainelRail() {
               </Link>
             </div>
           )}
-        </>
-      )}
+      </>
     </aside>
   );
 }

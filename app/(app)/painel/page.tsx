@@ -1,48 +1,49 @@
 import { getPainelData, getUltimaVarredura, getUserEmail } from "@/lib/queries";
-import { getFinanceiro, getProcessosParados, getPecas } from "@/lib/data";
+import { getFinanceiro, getProcessosParados, getAudiencias } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
-import { Pill, ProcRef, SegredoTag } from "@/components/ui";
-import { PrazoRow } from "@/components/PrazoRow";
-import { fmtBRL, fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
-import { linkPara, tipoDeTabela, linkNavegavel } from "@/lib/links";
+import { Pill, ProcRef, SegredoTag, DiasBox } from "@/components/ui";
+import { VerMais } from "@/components/VerMais";
+import { fmtBRL, fmtDate, fmtTime, fmtNum, humano, diasAte } from "@/lib/format";
+import { linkPara } from "@/lib/links";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+const statusTone = (s: string): "green" | "amber" | "red" =>
+  s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
+
+// Caixinha de data (dia + mês) para audiências, com tom por proximidade.
+function diaMes(iso: string) {
+  const d = new Date(iso);
+  return {
+    dia: d.getDate(),
+    mes: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+  };
+}
+function audTone(dias: number): "crit" | "warn" | "ok" {
+  return dias <= 2 ? "crit" : dias <= 7 ? "warn" : "ok";
+}
+
 export default async function PainelPage() {
-  const [{ stats, prazos, validacao, agenda, movimentacoes, relatorio24h, cadastrosAuto, tarefasVencidas }, fin, parados, varredura, pecas, email] = await Promise.all([
+  const [
+    { stats, prazos, agenda, movimentacoes, cadastrosAuto, tarefasVencidas },
+    fin,
+    parados,
+    varredura,
+    audiencias,
+    email,
+  ] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
     getProcessosParados(30),
     getUltimaVarredura(),
-    getPecas(),
+    getAudiencias(),
     getUserEmail(),
   ]);
-  const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
-  const socio = socioDoEmail(email);
-  const pecasMinhas = socio ? pecas.filter((p) => p.responsavel === socio).length : 0;
 
-  // Resumo do backlog de peças (vw_pecas_pendentes já exclui protocolada/cancelada/prejudicada).
-  const pecasPorStatus = pecas.reduce<Record<string, number>>((acc, p) => {
-    acc[p.status] = (acc[p.status] ?? 0) + 1;
-    return acc;
-  }, {});
-  const pecasUrgentes = pecas.filter((p) => p.prioridade === "urgente").length;
-  const pecasAtrasadas = pecas.filter((p) => p.dias_restantes != null && p.dias_restantes < 0).length;
-  const proximaPeca = pecas
-    .map((p) => p.data_efetiva)
-    .filter((d): d is string => Boolean(d))
-    .sort()[0] ?? null;
-  const PECA_COLS: { key: string; label: string }[] = [
-    { key: "a_fazer", label: "A fazer" },
-    { key: "em_elaboracao", label: "Em elaboração" },
-    { key: "em_revisao", label: "Em revisão" },
-    { key: "aguardando_insumo", label: "Aguardando insumo" },
-    { key: "pronta", label: "Pronta" },
-  ];
-  const statusTone = (s: string): "green" | "amber" | "red" =>
-    s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
+  const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
+  const nome = socioDoEmail(email);
 
   const horaSP = Number(
     new Intl.DateTimeFormat("pt-BR", {
@@ -53,136 +54,131 @@ export default async function PainelPage() {
   );
   const saudacao = horaSP < 12 ? "Bom dia" : horaSP < 18 ? "Boa tarde" : "Boa noite";
 
+  const agora = Date.now();
+  const audProximas = audiencias
+    .filter((a) => new Date(a.data_hora).getTime() >= agora - 12 * 3600 * 1000)
+    .slice(0, 4);
+
   return (
     <>
-      <div className="page-head">
+      <div className="painel-head">
         <div>
-          <div className="eyebrow">{saudacao}</div>
-          <h1>Painel do dia</h1>
-          <p>Conferência cruzada com a auditoria · prioridades, validações e agenda.</p>
+          <div className="eyebrow">Ritual matinal</div>
+          <h1>{saudacao}{nome ? `, ${nome}` : ""}.</h1>
+          <p>
+            {varredura && <>Última varredura concluída às <b>{fmtTime(varredura.criado_em)}</b> · </>}
+            {stats.pendentes_validacao} validações e {stats.intimacoes_orfas} intimações órfãs aguardam você.
+          </p>
         </div>
         <Link className="btn primary" href="/validacao">
           <Icon name="check" size={15} /> Revisar validações ({stats.pendentes_validacao})
         </Link>
       </div>
 
-      <div className="banner">
-        <span className="ico">
-          <Icon name="shield" />
-        </span>
-        <div>
-          <b>Relatório conferido contra a auditoria.</b> {fmtNum(stats.auditoria_total)}{" "}
-          eventos registrados · {stats.processos_auto} processos e {stats.clientes_auto}{" "}
-          clientes em cadastro automático aguardam revisão. Feriados locais e
-          suspensões de expediente devem ser conferidos por Daniel.
-        </div>
-      </div>
-
-      <div className="section-title">
-        Foco de hoje
-        <span className="rest">prazos fatais e validações pendentes</span>
-      </div>
-
-      <div className="two-col section-gap">
-        <div className="card">
-          <div className="card-h">
-            <h3>
-              <Icon name="clock" /> Prazos mais próximos
-            </h3>
-            <Link className="link" href="/prazos">
-              ver todos
-            </Link>
-          </div>
-          <div className="card-b flush">
-            {prazos.length ? (
-              <table>
-                <tbody>
-                  {prazos.slice(0, 5).map((p) => (
-                    <PrazoRow key={p.prazo_id} p={p} />
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="empty">Nenhum prazo aberto.</div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid">
-          <div className="card">
-            <div className="card-h">
-              <h3>
-                <Icon name="check" /> Aguardando validação
-              </h3>
-              <Link className="link" href="/validacao">
-                abrir
+      {/* HERO: prazos fatais + audiências próximas */}
+      <div className="hoje">
+        <div className="hcard">
+          <h3>
+            <span className="lhs"><Icon name="clock" /> Prazos fatais</span>
+            <Link className="link" href="/prazos">ver todos →</Link>
+          </h3>
+          {prazos.length ? (
+            prazos.slice(0, 4).map((p) => (
+              <Link className="deadline" key={p.prazo_id} href={linkPara("prazo", p.prazo_id)}>
+                <DiasBox dias={p.dias_restantes} />
+                <div className="dl-main">
+                  <div className="dl-t">{p.ato}</div>
+                  <div className="dl-s">
+                    {p.clientes ?? "—"}
+                    {p.numero_cnj && <> · <span className="cnj">{p.numero_cnj}</span></>}
+                  </div>
+                </div>
+                <div className="dl-r mono">
+                  {fmtDate(p.data_fatal)}
+                  <div className="dl-s">interna {fmtDate(p.data_interna)}</div>
+                </div>
               </Link>
-            </div>
-            <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-              {validacao.length ? (
-                validacao.map((v) => (
-                  <div className="mini" key={v.id}>
-                    <div>
-                      <div className="mt">{v.descricao}</div>
-                      <div className="ms">
-                        {v.numero_cnj ?? "sem CNJ"} · {fmtDate(v.data_relevante)}
-                      </div>
-                    </div>
-                    <Pill tone={v.tipo?.toLowerCase().includes("audi") ? "blue" : "amber"}>
-                      {v.tipo?.toLowerCase()}
-                    </Pill>
-                  </div>
-                ))
-              ) : (
-                <div className="empty">Nada aguardando validação.</div>
-              )}
-            </div>
-          </div>
+            ))
+          ) : (
+            <div className="empty">Nenhum prazo aberto.</div>
+          )}
+        </div>
 
-          <div className="card">
-            <div className="card-h">
-              <h3>
-                <Icon name="book" /> Peças pendentes
-                {pecasAtrasadas > 0 && <span className="badge alert" style={{ marginLeft: 8 }}>{pecasAtrasadas} atrasadas</span>}
-              </h3>
-              <Link className="link" href="/producao">produção</Link>
-            </div>
-            <div className="card-b">
-              {pecas.length ? (
-                <>
-                  <div className="ms" style={{ marginBottom: 10 }}>
-                    <b>{pecas.length}</b> no backlog{socio && <> · <b>{pecasMinhas}</b> minhas</>} ·{" "}
-                    <b style={{ color: "var(--red)" }}>{pecasUrgentes}</b> urgentes ·{" "}
-                    <b style={{ color: "var(--red)" }}>{pecasAtrasadas}</b> atrasadas
-                    {proximaPeca && <> · próxima {fmtDate(proximaPeca)}</>}
+        <div className="hcard">
+          <h3>
+            <span className="lhs"><Icon name="gavel" /> Audiências próximas</span>
+            <Link className="link" href="/audiencias">agenda →</Link>
+          </h3>
+          {audProximas.length ? (
+            audProximas.map((a) => {
+              const { dia, mes } = diaMes(a.data_hora);
+              return (
+                <Link className="deadline" key={a.id} href={linkPara("audiencia", a.id)}>
+                  <span className={`ddays ${audTone(diasAte(a.data_hora))}`}>
+                    <b>{dia}</b>
+                    <span>{mes}</span>
+                  </span>
+                  <div className="dl-main">
+                    <div className="dl-t">{a.segredo ? "Audiência (sigilo)" : humano(a.tipo)}</div>
+                    <div className="dl-s">
+                      {fmtTime(a.data_hora)} · {humano(a.modalidade)}
+                      {a.local_link ? ` · ${a.local_link}` : ""}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {PECA_COLS.filter((c) => pecasPorStatus[c.key]).map((c) => (
-                      <Pill key={c.key} tone="gray" dot={false}>
-                        {c.label}: {pecasPorStatus[c.key]}
-                      </Pill>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="empty">Nenhuma peça pendente. 🎉</div>
-              )}
-            </div>
-          </div>
+                  <span className={`gate ${a.validado ? "done" : "wait"}`}>
+                    {a.validado ? "✓ validado" : "a validar"}
+                  </span>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="empty">Nenhuma audiência próxima.</div>
+          )}
         </div>
       </div>
 
-      <div className="section-title">
-        Panorama
-        <span className="rest">números do acervo e financeiro</span>
+      {/* COBERTURA DA ÚLTIMA VARREDURA */}
+      <div className="scan">
+        <div className="scan-h">
+          <h3><Icon name="shield" /> Cobertura da última varredura</h3>
+          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
+        </div>
+        {!varredura ? (
+          <div className="empty">Nenhuma varredura registrada ainda.</div>
+        ) : (
+          <>
+            <div className="scan-sub">
+              Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
+              {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
+            </div>
+            <div className="scan-metrics">
+              <div className="metric"><b>{fmtNum(varredura.itens_processados)}</b><span>processados</span></div>
+              <div className="metric"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações novas</span></div>
+              <div className="metric"><b>{fmtNum(varredura.andamentos_novos)}</b><span>andamentos novos</span></div>
+              <div className="metric"><b>{fmtNum(varredura.prazos_criados)}</b><span>prazos criados</span></div>
+            </div>
+            {varredura.diagnostico_oab && varredura.diagnostico_oab.length > 0 && (
+              <div className="scan-grid">
+                {varredura.diagnostico_oab.map((d) => (
+                  <div className="oab" key={d.oab}>
+                    <div className="lbl">{d.oab}</div>
+                    <div className="metrics">
+                      <div className="metric"><b>{fmtNum(d.acervo_total)}</b><span>no acervo</span></div>
+                      <div className="metric"><b>{fmtNum(d.itens_janela)}</b><span>na janela</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
+      {/* KPIs — panorama do acervo e financeiro */}
       <div className="kpis">
         <Link className="kpi red" href="/prazos">
           <div className="accent" />
-          <div className="label">
-            <Icon name="clock" size={14} /> Prazos abertos
-          </div>
+          <div className="label"><Icon name="clock" size={14} /> Prazos abertos</div>
           <div className="val">{stats.prazos_abertos}</div>
           <div className="meta">
             {prazos[0]
@@ -191,97 +187,79 @@ export default async function PainelPage() {
           </div>
         </Link>
 
-        <Link className="kpi amber" href="/intimacoes">
+        <Link className="kpi amber" href="/validacao">
           <div className="accent" />
-          <div className="label">
-            <Icon name="inbox" size={14} /> Intimações pendentes
-          </div>
-          <div className="val">
-            {stats.intimacoes_pendentes} <small>· {stats.intimacoes_orfas} órfãs</small>
-          </div>
-          <div className="meta">triagem humana pendente</div>
+          <div className="label"><Icon name="check" size={14} /> A validar</div>
+          <div className="val">{stats.pendentes_validacao}</div>
+          <div className="meta">prazos + audiências</div>
         </Link>
 
         <Link className="kpi blue" href="/processos">
           <div className="accent" />
-          <div className="label">
-            <Icon name="folder" size={14} /> Processos ativos
-          </div>
+          <div className="label"><Icon name="folder" size={14} /> Processos ativos</div>
           <div className="val">{fmtNum(stats.processos_ativos)}</div>
-          <div className="meta">
-            {stats.processos_sem_cnj} sem CNJ · {stats.processos_sigilosos} sigilosos
-          </div>
+          <div className="meta">{stats.processos_sem_cnj} sem CNJ · {stats.processos_sigilosos} sigilosos</div>
         </Link>
 
         <Link className="kpi green" href="/financeiro">
           <div className="accent" />
-          <div className="label">
-            <Icon name="wallet" size={14} /> A receber
-          </div>
-          <div className="val" style={{ fontSize: 24 }}>
-            {fmtBRL(stats.valor_a_receber)}
-          </div>
+          <div className="label"><Icon name="wallet" size={14} /> A receber</div>
+          <div className="val" style={{ fontSize: 24 }}>{fmtBRL(stats.valor_a_receber)}</div>
           <div className="meta">{stats.parcelas_pendentes} parcelas em aberto</div>
         </Link>
       </div>
 
-      <div className="card section-gap">
-        <div className="card-h">
-          <h3>
-            <Icon name="grid" /> Agenda dos próximos 7 dias
-          </h3>
-        </div>
-        <div className="card-b flush">
-          {agenda.length ? (
-            <table>
-              <tbody>
-                {agenda.map((e, idx) => (
-                  <tr key={idx}>
-                    <td style={{ width: 120 }} className="mono">
-                      {fmtDate(e.data)}
-                    </td>
-                    <td>
+      {/* Agenda + movimentações — meia tela cada */}
+      <div className="two-eq">
+        <div className="card op-card">
+          <div className="card-h">
+            <h3><Icon name="grid" /> Agenda dos próximos 7 dias</h3>
+          </div>
+          <div className="op-list">
+            {agenda.length ? (
+              <VerMais max={6}>
+                {agenda.map((e, i) => (
+                  <div className="op-row" key={i}>
+                    <div>
                       <Pill tone={e.tipo?.toUpperCase().includes("AUDI") ? "blue" : "amber"} dot={false}>
                         {e.tipo === "PRAZO" ? "Prazo" : e.tipo === "AUDIÊNCIA" ? "Audiência" : e.tipo}
                       </Pill>
-                      <div className="sub" style={{ marginTop: 4 }}>{e.descricao}</div>
-                    </td>
-                    <td className="right sub">{e.numero_cnj ?? e.responsavel ?? ""}</td>
-                  </tr>
+                      <div className="os" style={{ marginTop: 4 }}>{e.descricao}</div>
+                    </div>
+                    <div className="dl-r os mono">
+                      {fmtDate(e.data)}
+                      {e.numero_cnj && <div className="os">{e.numero_cnj}</div>}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="empty">Agenda vazia para os próximos 7 dias.</div>
-          )}
+              </VerMais>
+            ) : (
+              <div className="empty">Agenda vazia para os próximos 7 dias.</div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="section-gap">
-        <div className="card">
+        <div className="card op-card">
           <div className="card-h">
             <h3><Icon name="activity" /> Movimentações recentes (7 dias)</h3>
             <Link className="link" href="/andamentos">ver todas</Link>
           </div>
-          <div className="card-b flush">
+          <div className="op-list">
             {movimentacoes.length ? (
-              <table>
-                <tbody>
-                  {movimentacoes.map((m) => (
-                    <tr key={m.id}>
-                      <td style={{ width: 96 }} className="mono">{fmtDate(m.data)}</td>
-                      <td>
-                        <div className="name">{humano(m.tipo)}</div>
-                        <div className="sub">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</div>
-                      </td>
-                      <td className="right">
-                        <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} id={m.processo_id} />
-                        <div className="sub">{(m.origem ?? "").toUpperCase()}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <VerMais max={6}>
+                {movimentacoes.map((m) => (
+                  <div className="op-row" key={m.id}>
+                    <div>
+                      <div className="ot">{humano(m.tipo)}</div>
+                      <div className="os">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</div>
+                    </div>
+                    <div className="dl-r">
+                      <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} id={m.processo_id} />
+                      <div className="os">{(m.origem ?? "").toUpperCase()} · {fmtDate(m.data)}</div>
+                    </div>
+                  </div>
+                ))}
+              </VerMais>
             ) : (
               <div className="empty">Nenhuma movimentação nos últimos 7 dias.</div>
             )}
@@ -289,229 +267,132 @@ export default async function PainelPage() {
         </div>
       </div>
 
-      <div className="card section-gap">
-        <div className="card-h">
-          <h3><Icon name="shield" /> Gravado nas últimas 24h</h3>
-          <Link className="link" href="/auditoria">auditoria</Link>
-        </div>
-        <div className="card-b flush">
-          {relatorio24h.length ? (
-            <table>
-              <tbody>
-                {relatorio24h.map((e, i) => (
-                  <tr key={i}>
-                    <td style={{ width: 140 }} className="mono">{fmtDate(e.ocorrido_em)} {fmtTime(e.ocorrido_em)}</td>
-                    <td>
-                      <Pill tone="gray" dot={false}>{humano(e.tabela)}</Pill>{" "}
-                      <span className="sub">{e.operacao}</span>
-                    </td>
-                    <td className="right">
-                      {(() => {
-                        const tipo = tipoDeTabela(e.tabela);
-                        const href = tipo && e.registro_id ? linkNavegavel(tipo, e.registro_id) : null;
-                        return href
-                          ? <Link className="link" href={href}>{e.referencia ?? "abrir"}</Link>
-                          : <span className="sub">{e.referencia ?? ""}</span>;
-                      })()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="empty">Nada gravado nas últimas 24h.</div>
-          )}
-        </div>
-      </div>
-
-      <div className="two-col section-gap">
-        <div className="card">
+      {/* Operacional — 5 cards de tamanho igual */}
+      <div className="cards-row">
+        <div className="card op-card">
           <div className="card-h">
-            <h3><Icon name="users" /> Cadastros automáticos de hoje — revisar</h3>
+            <h3><Icon name="users" /> Cadastros automáticos</h3>
+            <Link className="link" href="/auditoria">auditoria</Link>
           </div>
-          <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <div className="op-list">
             {cadastrosAuto.length ? (
-              cadastrosAuto.map((c) => (
-                <Link
-                  key={`${c.tipo}-${c.id}`}
-                  className="mini"
-                  href={linkPara(c.tipo, c.id)}
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  <div>
-                    <div className="mt">{c.label}</div>
-                    <div className="ms">{c.tipo} · {fmtDate(c.criado_em)}</div>
-                  </div>
-                  <Pill tone="amber" dot={false}>revisar</Pill>
-                </Link>
-              ))
+              <VerMais max={6}>
+                {cadastrosAuto.map((c) => (
+                  <Link className="op-row" key={`${c.tipo}-${c.id}`} href={linkPara(c.tipo, c.id)}>
+                    <div>
+                      <div className="ot">{c.label}</div>
+                      <div className="os">{c.tipo} · {fmtDate(c.criado_em)}</div>
+                    </div>
+                    <Pill tone="amber" dot={false}>revisar</Pill>
+                  </Link>
+                ))}
+              </VerMais>
             ) : (
               <div className="empty">Nenhum cadastro automático hoje.</div>
             )}
           </div>
         </div>
 
-        <div className="card">
+        <div className="card op-card">
           <div className="card-h">
             <h3><Icon name="list" /> Tarefas vencidas</h3>
             <Link className="link" href="/tarefas">tarefas</Link>
           </div>
-          <div className="card-b flush">
+          <div className="op-list">
             {tarefasVencidas.length ? (
-              <table>
-                <tbody>
-                  {tarefasVencidas.map((t) => (
-                    <tr key={t.id}>
-                      <td>
-                        <div className="name">{t.titulo}</div>
-                        <div className="sub">{t.responsavel ?? "—"}</div>
-                      </td>
-                      <td className="right">
-                        <div className="mono" style={{ color: "var(--red)" }}>{fmtDate(t.data_limite)}</div>
-                        <div className="sub" style={{ color: "var(--red)" }}>{Math.abs(t.dias)}d em atraso</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <VerMais max={6}>
+                {tarefasVencidas.map((t) => (
+                  <div className="op-row" key={t.id}>
+                    <div>
+                      <div className="ot">{t.titulo}</div>
+                      <div className="os">{t.responsavel ?? "—"}</div>
+                    </div>
+                    <div className="dl-r">
+                      <div className="mono" style={{ color: "var(--red)", fontWeight: 600 }}>{fmtDate(t.data_limite)}</div>
+                      <div className="os" style={{ color: "var(--red)" }}>{Math.abs(t.dias)}d atraso</div>
+                    </div>
+                  </div>
+                ))}
+              </VerMais>
             ) : (
               <div className="empty">Nenhuma tarefa vencida. 🎉</div>
             )}
           </div>
         </div>
-      </div>
 
-      <div className="two-col section-gap">
-        <div className="card">
+        <div className="card op-card">
           <div className="card-h">
             <h3><Icon name="wallet" /> Cobranças atrasadas</h3>
             <Link className="link" href="/financeiro">financeiro</Link>
           </div>
-          <div className="card-b flush">
+          <div className="op-list">
             {atrasadas.length ? (
-              <table>
-                <tbody>
-                  {atrasadas.slice(0, 6).map((p) => (
-                    <tr key={p.id}>
-                      <td className="name">{p.cliente}</td>
-                      <td className="right money">{fmtBRL(p.valor)}</td>
-                      <td className="right sub" style={{ color: "var(--red)" }}>{p.dias_atraso}d</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <VerMais max={6}>
+                {atrasadas.map((p) => (
+                  <div className="op-row" key={p.id}>
+                    <div>
+                      <div className="ot">{p.cliente}</div>
+                      <div className="os" style={{ color: "var(--red)" }}>{p.dias_atraso}d em atraso</div>
+                    </div>
+                    <div className="money">{fmtBRL(p.valor)}</div>
+                  </div>
+                ))}
+              </VerMais>
             ) : (
               <div className="empty">Nenhuma parcela atrasada. 🎉</div>
             )}
           </div>
         </div>
 
-        <div className="card">
+        <div className="card op-card">
           <div className="card-h">
-            <h3><Icon name="shield" /> Radar — processos parados (≥30d)</h3>
-            <Link className="link" href="/alertas">ver alertas</Link>
+            <h3><Icon name="shield" /> Radar — parados ≥30d</h3>
+            <Link className="link" href="/alertas">alertas</Link>
           </div>
-          <div className="card-b flush">
+          <div className="op-list">
             {parados.length ? (
-              <table>
-                <tbody>
-                  {parados.slice(0, 6).map((p) => (
-                    <tr key={p.processo_id}>
-                      <td className="mono">{p.numero_cnj ?? p.numero_registro_tribunal ?? "—"}</td>
-                      <td className="sub">{p.clientes ?? "—"}{p.tem_preso && <span style={{ color: "var(--red)" }}> · preso</span>}</td>
-                      <td className="right"><Pill tone={p.dias_parado >= 90 ? "red" : "amber"}>{p.dias_parado}d</Pill></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <VerMais max={6}>
+                {parados.map((p) => (
+                  <Link className="op-row" key={p.processo_id} href={linkPara("processo", p.processo_id)}>
+                    <div>
+                      <div className="ot mono">{p.numero_cnj ?? p.numero_registro_tribunal ?? "—"}</div>
+                      <div className="os">{p.clientes ?? "—"}{p.tem_preso && <span style={{ color: "var(--red)" }}> · preso</span>}</div>
+                    </div>
+                    <Pill tone={p.dias_parado >= 90 ? "red" : "amber"}>{p.dias_parado}d</Pill>
+                  </Link>
+                ))}
+              </VerMais>
             ) : (
-              <div className="empty">Nenhum processo parado há ≥30 dias. 🎉</div>
+              <div className="empty">Nenhum processo parado. 🎉</div>
             )}
           </div>
         </div>
-      </div>
 
-      <div className="section-title">
-        Diagnóstico
-        <span className="rest">cobertura da varredura e anomalias</span>
-      </div>
-
-      <div className="card">
-        <div className="card-h">
-          <h3>
-            <Icon name="shield" /> Cobertura da última varredura
-          </h3>
-          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
-        </div>
-        <div className="card-b">
-          {!varredura ? (
-            <div className="empty">Nenhuma varredura registrada ainda.</div>
-          ) : (
-            <>
-              <div className="ms" style={{ marginBottom: 10, color: "var(--muted)" }}>
-                Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
-                {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
-              </div>
-              <div className="ms" style={{ marginBottom: 12 }}>
-                processados <b>{fmtNum(varredura.itens_processados)}</b> · intimações novas{" "}
-                <b>{fmtNum(varredura.intimacoes_novas)}</b> · andamentos novos{" "}
-                <b>{fmtNum(varredura.andamentos_novos)}</b> · prazos criados{" "}
-                <b>{fmtNum(varredura.prazos_criados)}</b>
-              </div>
-              {varredura.diagnostico_oab && varredura.diagnostico_oab.length ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {varredura.diagnostico_oab.map((d) => (
-                    <div className="mini" key={d.oab}>
-                      <div>
-                        <div className="mt mono">{d.oab}</div>
-                        <div className="ms">
-                          acervo {fmtNum(d.acervo_total)} · {fmtNum(d.itens_janela)} na janela
-                        </div>
+        <div className="card op-card">
+          <div className="card-h">
+            <h3><Icon name="shield" /> Anomalias</h3>
+            {varredura && varredura.status !== "concluida" && (
+              <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>
+            )}
+          </div>
+          <div className="op-list">
+            {varredura?.anomalias && varredura.anomalias.length ? (
+              <VerMais max={6}>
+                {varredura.anomalias.map((a, idx) => (
+                  <div className="op-row" key={idx}>
+                    <div>
+                      <div className="ot" style={varredura.status !== "concluida" ? { color: "var(--red)" } : undefined}>
+                        {a.fonte.toUpperCase()} · {a.tipo}
                       </div>
+                      <div className="os">{a.detalhe}</div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty">
-                  DJEN sem diagnóstico nesta execução (degradação) — ver anomalias.
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="card section-gap">
-        <div className="card-h">
-          <h3>
-            <Icon name="shield" /> Anomalias
-          </h3>
-          {varredura && varredura.status !== "concluida" && (
-            <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>
-          )}
-        </div>
-        <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {!varredura ? (
-            <div className="empty">Nenhuma varredura registrada ainda.</div>
-          ) : varredura.anomalias && varredura.anomalias.length ? (
-            varredura.anomalias.map((a, idx) => (
-              <div className="mini" key={idx}>
-                <div>
-                  <div
-                    className="mt"
-                    style={varredura.status !== "concluida" ? { color: "var(--red)" } : undefined}
-                  >
-                    {a.fonte.toUpperCase()} · {a.tipo}
                   </div>
-                  <div className="ms">{a.detalhe}</div>
-                </div>
-              </div>
-            ))
-          ) : varredura.status === "concluida" ? (
-            <div className="empty">Sem anomalias nesta varredura. 🎉</div>
-          ) : (
-            <div className="empty">Sem anomalias listadas nesta execução.</div>
-          )}
+                ))}
+              </VerMais>
+            ) : (
+              <div className="empty">Sem anomalias. 🎉</div>
+            )}
+          </div>
         </div>
       </div>
     </>
