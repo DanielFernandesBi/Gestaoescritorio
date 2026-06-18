@@ -207,6 +207,22 @@ export type Intimacao = {
   vara_comarca?: string | null;
   uf?: string | null;
   area?: string | null;
+  orgao?: string | null;
+  classe?: string | null;
+  prazo_dias?: number | null;
+  fundamento?: string | null;
+  data_disponibilizacao?: string | null;
+  // Valores próprios da intimação (sem fallback do processo) p/ o formulário:
+  proprio?: {
+    tribunal: string | null;
+    orgao: string | null;
+    instancia: string | null;
+    classe: string | null;
+    area: string | null;
+    prazo_dias: number | null;
+    fundamento: string | null;
+    data_disponibilizacao: string | null;
+  };
 };
 
 export async function getIntimacoes(): Promise<Intimacao[]> {
@@ -247,22 +263,39 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
   const { data: r } = await supabase
     .from("intimacoes")
     .select(
-      "id, origem, resumo, teor, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, cadastrado_por, criado_em, atualizado_em, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,uf,instancia,area,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, origem, resumo, teor, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, cadastrado_por, criado_em, atualizado_em, processo_id, tribunal, orgao, instancia, classe, area, prazo_dias, fundamento, data_disponibilizacao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,uf,instancia,area,classe,segredo_justica,cliente_processo(clientes(nome)))",
     )
     .eq("id", id)
     .maybeSingle();
 
   if (!r) return null;
-  const p = r.processos as unknown as NestedProcesso & { instancia?: string | null; area?: string | null };
+  const p = r.processos as unknown as NestedProcesso & { instancia?: string | null; area?: string | null; classe?: string | null };
+  const num = (v: unknown): number | null => (v == null || v === "" ? null : Number(v));
   return {
     teor: (r.teor as string | null) ?? null,
     cadastrado_por: (r.cadastrado_por as string | null) ?? null,
     criado_em: (r.criado_em as string | null) ?? null,
     atualizado_em: (r.atualizado_em as string | null) ?? null,
-    instancia: p?.instancia ?? null,
+    // Efetivos = valor próprio da intimação, com fallback no processo vinculado.
+    instancia: (r.instancia as string | null) ?? p?.instancia ?? null,
     vara_comarca: p?.vara_comarca ?? null,
     uf: p?.uf ?? null,
-    area: p?.area ?? null,
+    area: (r.area as string | null) ?? p?.area ?? null,
+    orgao: (r.orgao as string | null) ?? null,
+    classe: (r.classe as string | null) ?? p?.classe ?? null,
+    prazo_dias: num(r.prazo_dias),
+    fundamento: (r.fundamento as string | null) ?? null,
+    data_disponibilizacao: (r.data_disponibilizacao as string | null) ?? null,
+    proprio: {
+      tribunal: (r.tribunal as string | null) ?? null,
+      orgao: (r.orgao as string | null) ?? null,
+      instancia: (r.instancia as string | null) ?? null,
+      classe: (r.classe as string | null) ?? null,
+      area: (r.area as string | null) ?? null,
+      prazo_dias: num(r.prazo_dias),
+      fundamento: (r.fundamento as string | null) ?? null,
+      data_disponibilizacao: (r.data_disponibilizacao as string | null) ?? null,
+    },
     id: r.id as string,
     origem: r.origem as string | null,
     resumo: r.resumo as string | null,
@@ -273,7 +306,7 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
     codigo_publicacao: r.codigo_publicacao as string | null,
     numero_cnj: p?.numero_cnj ?? null,
     numero_registro: p?.numero_registro_tribunal ?? null,
-    tribunal: p?.tribunal ?? null,
+    tribunal: (r.tribunal as string | null) ?? p?.tribunal ?? null,
     segredo: Boolean(p?.segredo_justica),
     processo_id: (r.processo_id as string) ?? null,
     orfa: r.processo_id == null,

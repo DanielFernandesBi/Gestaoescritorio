@@ -309,6 +309,25 @@ export async function atualizarIntimacaoCampos(id: string, fd: FormData): Promis
     if (teor) patch.teor = teor;
     if (data_publicacao) patch.data_publicacao = data_publicacao;
     if (data_ciencia) patch.data_ciencia = data_ciencia;
+
+    // Campos próprios da intimação (independem do processo — úteis p/ órfãs).
+    const tribunal = String(fd.get("tribunal") || "").trim();
+    const orgao = String(fd.get("orgao") || "").trim();
+    const instancia = String(fd.get("instancia") || "").trim();
+    const classe = String(fd.get("classe") || "").trim();
+    const area = String(fd.get("area") || "").trim();
+    const fundamento = String(fd.get("fundamento") || "").trim();
+    const prazo_dias = String(fd.get("prazo_dias") || "").trim();
+    const data_disponibilizacao = String(fd.get("data_disponibilizacao") || "");
+    if (tribunal) patch.tribunal = tribunal;
+    if (orgao) patch.orgao = orgao;
+    if (instancia) patch.instancia = instancia;
+    if (classe) patch.classe = classe;
+    if (area) patch.area = area;
+    if (fundamento) patch.fundamento = fundamento;
+    if (prazo_dias && Number.isFinite(Number(prazo_dias))) patch.prazo_dias = Number(prazo_dias);
+    if (data_disponibilizacao) patch.data_disponibilizacao = data_disponibilizacao;
+
     if (!Object.keys(patch).length) return { ok: false, message: "Nada para atualizar." };
     const { error } = await supabase.from("intimacoes").update(patch).eq("id", id);
     if (error) throw error;

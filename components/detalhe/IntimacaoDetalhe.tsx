@@ -8,7 +8,7 @@ import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa, vincularCli
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm";
-import { PAPEL } from "@/lib/enums";
+import { PAPEL, PROCESSO_INSTANCIA, PROCESSO_AREA } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { Intimacao } from "@/lib/data";
 import type { MapaProvidencia } from "@/lib/pecas";
@@ -44,8 +44,12 @@ export function IntimacaoDetalhe({
           <div className="field"><div className="k">Processo</div><div className="v">{i.orfa ? <span className="sub">—</span> : <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} id={i.processo_id} />}</div></div>
           <div className="field"><div className="k">Cliente</div><div className="v">{i.orfa ? <span className="sub">—</span> : (i.cliente ?? <span className="sub" style={{ color: "var(--amber)" }}>Sem cliente vinculado</span>)}</div></div>
           <div className="field"><div className="k">Tribunal</div><div className="v">{i.tribunal ?? <span className="sub">—</span>}</div></div>
+          <div className="field"><div className="k">Órgão / vara</div><div className="v">{i.orgao ?? i.vara_comarca ?? <span className="sub">—</span>}</div></div>
           <div className="field"><div className="k">Grau / instância</div><div className="v">{i.instancia ? i.instancia.toUpperCase() : <span className="sub">—</span>}</div></div>
-          <div className="field"><div className="k">Vara / comarca</div><div className="v">{i.vara_comarca ?? <span className="sub">—</span>}</div></div>
+          <div className="field"><div className="k">Área</div><div className="v">{i.area ? humano(i.area) : <span className="sub">—</span>}</div></div>
+          <div className="field"><div className="k">Classe</div><div className="v">{i.classe ?? <span className="sub">—</span>}</div></div>
+          <div className="field"><div className="k">Prazo legal</div><div className="v">{i.prazo_dias ? `${i.prazo_dias} dias` : <span className="sub">—</span>}{i.fundamento ? <span className="sub"> · {i.fundamento}</span> : null}</div></div>
+          <div className="field"><div className="k">Disponibilização</div><div className="v mono">{fmtDate(i.data_disponibilizacao)}</div></div>
           <div className="field"><div className="k">Publicação</div><div className="v mono">{fmtDate(i.data_publicacao)}</div></div>
           <div className="field"><div className="k">Ciência</div><div className="v mono">{fmtDate(i.data_ciencia)}</div></div>
           <div className="field"><div className="k">Código publicação</div><div className="v mono" style={{ fontSize: 11 }}>{i.codigo_publicacao ?? "—"}</div></div>
@@ -96,13 +100,29 @@ export function IntimacaoDetalhe({
         <div className="acoes">
           <FormModal label="Editar dados" titulo="Editar intimação" acao={atualizarIntimacaoCampos.bind(null, i.id)} enviarLabel="Salvar" variant="default">
             <div><label>Resumo</label><input name="resumo" defaultValue={i.resumo ?? ""} placeholder="Resumo da intimação" /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div><label>Publicação</label><input type="date" name="data_publicacao" defaultValue={i.data_publicacao?.slice(0, 10) ?? ""} /></div>
-              <div><label>Ciência</label><input type="date" name="data_ciencia" defaultValue={i.data_ciencia?.slice(0, 10) ?? ""} /></div>
-            </div>
+            <div><label>Teor integral</label><textarea name="teor" rows={6} defaultValue={i.teor ?? ""} placeholder="Cole o teor integral da intimação." /></div>
             <div><label>Providência</label><textarea name="providencia" defaultValue={i.providencia ?? ""} placeholder="Providência a tomar / tomada" /></div>
-            <div><label>Teor (preencher se faltar)</label><textarea name="teor" placeholder="Cole o teor integral se ainda não houver" /></div>
-            <p className="sub" style={{ margin: 0 }}>Só grava os campos preenchidos. Datas em dias corridos — confira ciência e feriados locais antes de gerar prazo.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Disponibilização (DJEN)</label><input type="date" name="data_disponibilizacao" defaultValue={i.proprio?.data_disponibilizacao?.slice(0, 10) ?? ""} /></div>
+              <div><label>Publicação</label><input type="date" name="data_publicacao" defaultValue={i.data_publicacao?.slice(0, 10) ?? ""} /></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Ciência</label><input type="date" name="data_ciencia" defaultValue={i.data_ciencia?.slice(0, 10) ?? ""} /></div>
+              <div><label>Tribunal</label><input name="tribunal" defaultValue={i.proprio?.tribunal ?? ""} placeholder="Ex.: TJSP" /></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Órgão / vara</label><input name="orgao" defaultValue={i.proprio?.orgao ?? ""} placeholder="Ex.: 1ª Câmara Criminal" /></div>
+              <div><label>Classe</label><input name="classe" defaultValue={i.proprio?.classe ?? ""} placeholder="Ex.: Apelação Criminal" /></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Grau / instância</label><select name="instancia" defaultValue={i.proprio?.instancia ?? ""}><option value="">—</option>{PROCESSO_INSTANCIA.map((x) => <option key={x} value={x}>{x.toUpperCase()}</option>)}</select></div>
+              <div><label>Área</label><select name="area" defaultValue={i.proprio?.area ?? ""}><option value="">—</option>{PROCESSO_AREA.map((x) => <option key={x} value={x}>{humano(x)}</option>)}</select></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+              <div><label>Prazo (dias)</label><input type="number" name="prazo_dias" min={0} defaultValue={i.proprio?.prazo_dias ?? ""} /></div>
+              <div><label>Fundamento</label><input name="fundamento" defaultValue={i.proprio?.fundamento ?? ""} placeholder="Ex.: CPP art. 593" /></div>
+            </div>
+            <p className="sub" style={{ margin: 0 }}>Só grava os campos preenchidos (não apaga o que já existe). Tribunal/grau/classe ficam na própria intimação — úteis inclusive para as órfãs. Prazos penais em dias corridos: confira ciência e feriados locais.</p>
           </FormModal>
           {!i.orfa && i.processo_id && (
             <FormModal
