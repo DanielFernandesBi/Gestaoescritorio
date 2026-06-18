@@ -4,6 +4,7 @@ import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
 import { Pill, ProcRef, SegredoTag, DiasBox } from "@/components/ui";
 import { VerMais } from "@/components/VerMais";
+import { AnomaliaRow } from "@/components/AnomaliaRow";
 import { fmtBRL, fmtDate, fmtTime, fmtNum, humano, diasAte } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import Link from "next/link";
@@ -379,14 +380,7 @@ export default async function PainelPage() {
             {varredura?.anomalias && varredura.anomalias.length ? (
               <VerMais max={6}>
                 {varredura.anomalias.map((a, idx) => (
-                  <div className="op-row" key={idx}>
-                    <div>
-                      <div className="ot" style={varredura.status !== "concluida" ? { color: "var(--red)" } : undefined}>
-                        {a.fonte.toUpperCase()} · {a.tipo}
-                      </div>
-                      <div className="os">{a.detalhe}</div>
-                    </div>
-                  </div>
+                  <AnomaliaRow key={idx} a={a} critico={varredura.status !== "concluida"} />
                 ))}
               </VerMais>
             ) : (

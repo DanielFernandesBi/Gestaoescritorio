@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ProcRef } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
-import { validarPrazo, baixarPrazo, cancelarPrazo, atualizarPrazo } from "@/app/actions";
-import { TIPO_CONTAGEM, RESPONSAVEIS } from "@/lib/enums";
+import {
+  validarPrazo, baixarPrazo, cancelarPrazo, atualizarPrazo,
+  criarTarefa, criarPeca, vincularClienteProcesso,
+} from "@/app/actions";
+import { TIPO_CONTAGEM, RESPONSAVEIS, PRIORIDADES, PECA_TIPO, PAPEL } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { Prazo } from "@/lib/data";
 
@@ -14,6 +18,21 @@ import type { Prazo } from "@/lib/data";
  * página canônica /prazos/[id].
  */
 export function PrazoDetalhe({ p }: { p: Prazo }) {
+  const [clientesLite, setClientesLite] = useState<{ id: string; nome: string }[]>([]);
+  const dataAlvo = (p.data_interna ?? p.data_fatal)?.slice(0, 10);
+
+  useEffect(() => {
+    if (!p.processo_id) return;
+    let vivo = true;
+    fetch("/api/clientes-lite")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => vivo && setClientesLite(d.clientes ?? []))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [p.processo_id]);
+
   return (
     <>
       <div className="dsec">
@@ -107,6 +126,71 @@ export function PrazoDetalhe({ p }: { p: Prazo }) {
             campoTexto={{ label: "Motivo", placeholder: "Ex.: prazo duplicado / intimação revista.", obrigatorio: true }}
             acao={(t) => cancelarPrazo(p.id, t)}
           />
+        </div>
+      </div>
+
+      <div className="dsec">
+        <h4>Atalhos</h4>
+        <div className="acoes">
+          <FormModal
+            label={<><Icon name="list" size={14} /> Criar tarefa</>}
+            titulo="Nova tarefa deste prazo"
+            descricao="Cria uma tarefa já vinculada ao processo do prazo."
+            acao={criarTarefa}
+            enviarLabel="Criar tarefa"
+            variant="default"
+          >
+            <input type="hidden" name="processo_id" defaultValue={p.processo_id ?? ""} />
+            <div><label>Título</label><input name="titulo" required defaultValue={p.ato} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Prioridade</label><select name="prioridade" defaultValue="alta">{PRIORIDADES.map((x) => <option key={x} value={x}>{humano(x)}</option>)}</select></div>
+              <div><label>Responsável</label><select name="responsavel" defaultValue={p.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+            </div>
+            <div><label>Prazo (data limite)</label><input type="date" name="data_limite" defaultValue={dataAlvo} /></div>
+            <div><label>Descrição</label><textarea name="descricao" placeholder="Detalhes da tarefa." /></div>
+          </FormModal>
+
+          <FormModal
+            label={<><Icon name="book" size={14} /> Produção de peça</>}
+            titulo="Nova peça (produção)"
+            descricao="Abre uma peça no backlog já ligada a este prazo e processo."
+            acao={criarPeca}
+            enviarLabel="Criar peça"
+            variant="default"
+          >
+            <input type="hidden" name="processo_id" defaultValue={p.processo_id ?? ""} />
+            <input type="hidden" name="prazo_id" defaultValue={p.id} />
+            <div><label>Título</label><input name="titulo" required defaultValue={p.ato} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Tipo</label><select name="tipo" defaultValue="outra">{PECA_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
+              <div><label>Prioridade</label><select name="prioridade" defaultValue="alta">{PRIORIDADES.map((x) => <option key={x} value={x}>{humano(x)}</option>)}</select></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Responsável</label><select name="responsavel" defaultValue={p.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+              <div><label>Data alvo</label><input type="date" name="data_alvo" defaultValue={dataAlvo} /></div>
+            </div>
+            <div><label>Descrição</label><textarea name="descricao" placeholder="Tese / observações." /></div>
+          </FormModal>
+
+          {p.processo_id && (
+            <FormModal
+              label={<><Icon name="users" size={14} /> Vincular cliente</>}
+              titulo="Vincular cliente ao processo"
+              descricao="Use se a extração trouxe o cliente errado ou faltando."
+              acao={vincularClienteProcesso.bind(null, p.processo_id)}
+              enviarLabel="Vincular"
+              variant="default"
+            >
+              <div>
+                <label>Cliente</label>
+                <select name="cliente_id" required defaultValue="">
+                  <option value="" disabled>Selecione…</option>
+                  {clientesLite.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </div>
+              <div><label>Papel</label><select name="papel" defaultValue="reu">{PAPEL.map((x) => <option key={x} value={x}>{humano(x)}</option>)}</select></div>
+            </FormModal>
+          )}
         </div>
       </div>
     </>

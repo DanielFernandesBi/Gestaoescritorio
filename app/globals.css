@@ -228,7 +228,7 @@ td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 /* ---------- Drawer ---------- */
 .scrim{position:fixed;inset:0;background:rgba(8,12,20,.5);opacity:0;pointer-events:none;transition:.2s;z-index:40;backdrop-filter:blur(2px)}
 .scrim.open{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;height:100vh;width:600px;max-width:94vw;background:var(--paper);box-shadow:var(--shadow-lg);transform:translateX(100%);transition:transform .26s cubic-bezier(.4,0,.2,1);z-index:50;display:flex;flex-direction:column}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:clamp(600px,34vw,880px);max-width:94vw;background:var(--paper);box-shadow:var(--shadow-lg);transform:translateX(100%);transition:transform .26s cubic-bezier(.4,0,.2,1);z-index:50;display:flex;flex-direction:column}
 .drawer.open{transform:translateX(0)}
 .drawer-h{padding:20px 26px;border-bottom:1px solid var(--line);background:var(--surface);display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex:none}
 .drawer-h h2{font-family:var(--serif);font-size:21px;font-weight:600;color:var(--ink);line-height:1.25}
@@ -330,6 +330,9 @@ a.deadline:hover .dl-t{color:var(--accent)}
 .op-row .dl-r{text-align:right;flex:none}
 a.op-row{text-decoration:none;color:inherit;transition:background .12s}
 a.op-row:hover{background:var(--surface-2)}
+.op-row.op-click{cursor:pointer;transition:background .12s}
+.op-row.op-click:hover{background:var(--surface-2)}
+.op-row.op-click:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .ver-mais{display:block;width:100%;text-align:center;padding:9px;font-size:12px;font-weight:600;color:var(--accent);border-top:1px solid var(--line-soft);background:var(--surface);margin-top:auto}
 .ver-mais:hover{background:var(--surface-2)}
 
