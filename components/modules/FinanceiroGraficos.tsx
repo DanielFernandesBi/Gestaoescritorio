@@ -16,10 +16,10 @@ function FluxoCaixa({ fluxo, ano }: { fluxo: FluxoMes[]; ano: number }) {
   const W = 540, H = 280, L = 58, R = 14, T = 18, B = 34;
   const plotW = W - L - R, plotH = H - T - B;
   const maxV = Math.max(1, ...fluxo.flatMap((f) => [f.previsto, f.realizado, f.pendente]));
-  const x = (m: number) => L + (fluxo.length > 1 ? (m * plotW) / (fluxo.length - 1) : 0);
-  const y = (v: number) => T + plotH * (1 - v / maxV);
-  const linha = (key: keyof FluxoMes) =>
-    fluxo.map((f) => `${x(f.mes).toFixed(1)},${y(f[key] as number).toFixed(1)}`).join(" ");
+  const slotW = plotW / fluxo.length;
+  const grupoW = slotW * 0.7;
+  const barW = grupoW / 3;
+  const centro = (m: number) => L + slotW * m + slotW / 2;
   const series: { key: keyof FluxoMes; cor: string; nome: string }[] = [
     { key: "previsto", cor: "var(--blue)", nome: "Previsto" },
     { key: "realizado", cor: "var(--green)", nome: "Realizado" },
@@ -49,16 +49,32 @@ function FluxoCaixa({ fluxo, ano }: { fluxo: FluxoMes[]; ano: number }) {
             );
           })}
           {fluxo.map((f) => (
-            <text key={f.mes} x={x(f.mes)} y={H - 12} textAnchor="middle" fontSize={10} fill="var(--muted)">{MESES[f.mes]}</text>
+            <text key={f.mes} x={centro(f.mes)} y={H - 12} textAnchor="middle" fontSize={10} fill="var(--muted)">{MESES[f.mes]}</text>
           ))}
-          {series.map((s) => (
-            <g key={s.key}>
-              <polyline points={linha(s.key)} fill="none" stroke={s.cor} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-              {fluxo.map((f) => (
-                <circle key={f.mes} cx={x(f.mes)} cy={y(f[s.key] as number)} r={2.5} fill={s.cor} />
-              ))}
-            </g>
-          ))}
+          {fluxo.map((f) => {
+            const base = centro(f.mes) - grupoW / 2;
+            return (
+              <g key={f.mes}>
+                {series.map((s, i) => {
+                  const v = f[s.key] as number;
+                  const h = (v / maxV) * plotH;
+                  return (
+                    <rect
+                      key={s.key}
+                      x={base + i * barW}
+                      y={T + plotH - h}
+                      width={barW - 1.5}
+                      height={Math.max(0, h)}
+                      rx={1.5}
+                      fill={s.cor}
+                    >
+                      <title>{`${MESES[f.mes]} · ${s.nome}: ${fmtBRL(v)}`}</title>
+                    </rect>
+                  );
+                })}
+              </g>
+            );
+          })}
         </svg>
       </div>
     </div>
