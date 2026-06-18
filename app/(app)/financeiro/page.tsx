@@ -4,6 +4,7 @@ import { Acao } from "@/components/Acao";
 import { Icon } from "@/components/Icon";
 import { FormModal } from "@/components/FormModal";
 import { ContratosList } from "@/components/modules/ContratosList";
+import { FinanceiroGraficos } from "@/components/modules/FinanceiroGraficos";
 import { RowLink } from "@/components/RowLink";
 import {
   marcarPago, rodarMarcarAtrasados, criarContrato, criarDespesa, marcarDespesaReembolsada,
@@ -27,6 +28,40 @@ export default async function FinanceiroPage() {
   const totalRecebido = contratos.reduce((s, c) => s + c.total_pago, 0);
   const contratosVigentes = contratos.filter((c) => c.status === "vigente").length;
   const despesasAbertas = despesas.filter((d) => d.reembolsavel && !d.reembolsada);
+  const aVencer = totalReceber - totalAtraso; // a receber NÃO atrasado
+  const nAVencer = parcelas.filter((p) => p.status === "a_vencer").length;
+  const totalPorContrato = new Map(contratos.map((c) => [c.id, c.qtd_parcelas]));
+
+  // Fluxo de caixa anual (ano corrente) e receita por cliente — para os gráficos.
+  const anoAtual = new Date().getFullYear();
+  const previsto = Array(12).fill(0) as number[];
+  const realizado = Array(12).fill(0) as number[];
+  for (const c of contratos) {
+    for (const p of c.parcelas) {
+      if (!p.vencimento) continue;
+      const d = new Date(p.vencimento);
+      if (d.getFullYear() !== anoAtual) continue;
+      const m = d.getMonth();
+      previsto[m] += p.valor;
+      if (p.status === "pago") realizado[m] += p.valor_pago ?? p.valor;
+    }
+  }
+  const fluxo = previsto.map((prev, m) => ({
+    mes: m,
+    previsto: prev,
+    realizado: realizado[m],
+    pendente: Math.max(0, prev - realizado[m]),
+  }));
+  const receitaPorCliente = [...contratos
+    .reduce((map, c) => {
+      map.set(c.cliente, (map.get(c.cliente) ?? 0) + c.total_pago);
+      return map;
+    }, new Map<string, number>())
+    .entries()]
+    .map(([cliente, valor]) => ({ cliente, valor }))
+    .filter((x) => x.valor > 0)
+    .sort((a, b) => b.valor - a.valor)
+    .slice(0, 8);
 
   return (
     <>
@@ -83,10 +118,10 @@ export default async function FinanceiroPage() {
       <div className="scan">
         <div className="scan-h"><h3><Icon name="wallet" /> Panorama financeiro</h3></div>
         <div className="scan-metrics">
-          <div className="metric"><b>{fmtBRL(totalReceber)}</b><span>A receber · {parcelas.length} parcelas em aberto</span></div>
+          <div className="metric"><b style={{ color: "var(--green)" }}>{fmtBRL(aVencer)}</b><span>A receber (a vencer) · {nAVencer} parcelas</span></div>
           <div className="metric"><b style={{ color: "var(--red)" }}>{fmtBRL(totalAtraso)}</b><span>Em atraso · cobrança prioritária</span></div>
-          <div className="metric"><b>{fmtBRL(totalRecebido)}</b><span>Recebido (acumulado) · parcelas pagas</span></div>
-          <div className="metric"><b>{contratosVigentes}</b><span>Contratos vigentes · {contratos.length} no total</span></div>
+          <div className="metric"><b style={{ color: "var(--blue)" }}>{fmtBRL(totalRecebido)}</b><span>Recebido (acumulado) · parcelas pagas</span></div>
+          <div className="metric"><b style={{ color: "var(--ink)" }}>{contratosVigentes}</b><span>Contratos vigentes · {contratos.length} no total</span></div>
         </div>
       </div>
 
@@ -102,8 +137,9 @@ export default async function FinanceiroPage() {
         </div>
       </div>
 
-      <h3 className="section-gap" style={{ marginBottom: 12 }}>Contratos</h3>
-      <ContratosList contratos={contratos} />
+      <div className="section-gap">
+        <ContratosList contratos={contratos} />
+      </div>
 
       <div className="card section-gap">
         <div className="card-h"><h3><Icon name="wallet" /> Parcelas a vencer / atrasadas</h3></div>
@@ -118,7 +154,7 @@ export default async function FinanceiroPage() {
                   <RowLink key={p.id} href={p.contrato_id ? linkPara("contrato", p.contrato_id) : "/financeiro"} ariaLabel={`Abrir contrato de ${p.cliente}`}>
                     <td className="name">{p.cliente}</td>
                     <td className="sub">{p.objeto ?? "—"}</td>
-                    <td className="center mono">{p.numero_parcela}</td>
+                    <td className="center mono">{p.numero_parcela}{p.contrato_id && totalPorContrato.has(p.contrato_id) ? `/${totalPorContrato.get(p.contrato_id)}` : ""}</td>
                     <td className="right money">{fmtBRL(p.valor)}</td>
                     <td className="mono">{fmtDate(p.vencimento)}{p.dias_atraso > 0 && <div className="sub" style={{ color: "var(--red)" }}>{p.dias_atraso} dias</div>}</td>
                     <td className="center"><Pill tone={p.status === "atrasado" ? "red" : "amber"}>{p.status === "atrasado" ? "atrasado" : "a vencer"}</Pill></td>
@@ -173,6 +209,8 @@ export default async function FinanceiroPage() {
           )}
         </div>
       </div>
+
+      <FinanceiroGraficos fluxo={fluxo} ano={anoAtual} receitaPorCliente={receitaPorCliente} />
     </>
   );
 }

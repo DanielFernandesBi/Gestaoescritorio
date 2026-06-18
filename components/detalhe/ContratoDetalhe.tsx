@@ -72,13 +72,14 @@ export function ContratoDetalhe({ contrato: c }: { contrato: Contrato }) {
         <h4>Parcelas ({c.parcelas.length})</h4>
         {c.parcelas.length ? (
           <table>
-            <thead><tr><th className="center">#</th><th className="right">Valor</th><th>Vencimento</th><th className="right">Sócio 50%</th><th className="center">Status</th><th className="center">Ação</th></tr></thead>
+            <thead><tr><th className="center">#</th><th className="right">Valor</th><th>Vencimento</th><th>Pagamento</th><th className="right">Sócio 50%</th><th className="center">Status</th><th className="center">Ação</th></tr></thead>
             <tbody>
               {c.parcelas.map((p) => (
                 <tr key={p.id}>
-                  <td className="center mono">{p.numero_parcela}</td>
+                  <td className="center mono">{p.numero_parcela}/{c.qtd_parcelas}</td>
                   <td className="right money">{fmtBRL(p.valor)}</td>
                   <td className="mono">{fmtDate(p.vencimento)}{p.dias_atraso > 0 && <div className="sub" style={{ color: "var(--red)" }}>{p.dias_atraso} dias</div>}</td>
+                  <td className="mono">{p.pago_em ? <span style={{ color: "var(--green)" }}>{fmtDate(p.pago_em)}</span> : <span className="sub">—</span>}</td>
                   <td className="right money sub">{fmtBRL(p.valor / 2)}</td>
                   <td className="center"><Pill tone={p.status === "pago" ? "green" : p.status === "atrasado" ? "red" : p.status === "a_vencer" ? "amber" : "gray"}>{humano(p.status)}</Pill></td>
                   <td className="center">
