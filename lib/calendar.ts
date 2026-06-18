@@ -119,6 +119,41 @@ export async function confirmarPrazo(
   }
 }
 
+/**
+ * Baixa/encerramento de um evento de prazo ao fechar o ciclo: recolore para
+ * GRAFITE (8), marca como livre (transparency FREE) e prefixa o título com
+ * "✅ CUMPRIDO — " (cumprido) ou "❌ ENCERRADO — " (cancelado/prejudicado),
+ * preservando o restante. Idempotente (pula se já estiver em grafite) e
+ * best-effort: NUNCA apaga nem move o evento; falha só retorna false.
+ */
+export async function encerrarEventoPrazo(eventId: string, cumprido: boolean): Promise<boolean> {
+  const cal = cliente();
+  if (!cal) return false;
+  try {
+    const ev = await cal.events.get({ calendarId: CAL(), eventId });
+    if (ev.data.colorId === "8") return true; // já baixado — idempotente
+    const prefixoOk = "✅ CUMPRIDO — ";
+    const prefixoNok = "❌ ENCERRADO — ";
+    const prefixo = cumprido ? prefixoOk : prefixoNok;
+    const atual = ev.data.summary ?? "";
+    const limpo = atual.startsWith(prefixoOk) ? atual.slice(prefixoOk.length)
+      : atual.startsWith(prefixoNok) ? atual.slice(prefixoNok.length)
+        : atual;
+    await cal.events.patch({
+      calendarId: CAL(),
+      eventId,
+      requestBody: {
+        summary: prefixo + limpo,
+        colorId: "8",
+        transparency: "transparent", // disponibilidade: FREE
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 type AudEvt = {
   tipo: string;
   dataHora: string; // ISO timestamptz

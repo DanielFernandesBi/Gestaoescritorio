@@ -10,6 +10,7 @@ import {
   criarEventoAudiencia,
   atualizarEventoAudiencia,
   criarEventoCompromisso,
+  encerrarEventoPrazo,
   calendarConfigurado,
 } from "@/lib/calendar";
 import {
@@ -106,13 +107,29 @@ export async function validarPrazo(id: string): Promise<Resultado> {
   }
 }
 
+/**
+ * Baixa os dois eventos do prazo no Google Calendar (provisório/interno e fatal),
+ * quando existirem. best-effort: falha do Calendar não derruba a baixa no banco.
+ */
+async function baixarEventosPrazo(
+  evId: string | null,
+  evFatalId: string | null,
+  cumprido: boolean,
+): Promise<boolean> {
+  let algum = false;
+  for (const ev of [evId, evFatalId]) {
+    if (ev && (await encerrarEventoPrazo(ev, cumprido))) algum = true;
+  }
+  return algum;
+}
+
 export async function baixarPrazo(id: string, descricao?: string): Promise<Resultado> {
   try {
     await requireUser();
     const supabase = await createClient();
     const { data: pr, error } = await supabase
       .from("prazos")
-      .select("id, ato, processo_id, intimacao_id, status")
+      .select("id, ato, processo_id, intimacao_id, status, calendar_event_id, calendar_event_id_fatal")
       .eq("id", id)
       .single();
     if (error || !pr) throw new Error("Prazo não encontrado.");
@@ -125,6 +142,10 @@ export async function baixarPrazo(id: string, descricao?: string): Promise<Resul
     if (upErr) throw upErr;
 
     let msg = "Prazo dado como cumprido.";
+    // Sugestão 37: baixa dos eventos no Calendar (grafite + ✅), best-effort.
+    if (await baixarEventosPrazo(pr.calendar_event_id as string | null, pr.calendar_event_id_fatal as string | null, true)) {
+      msg += " Eventos do Calendar baixados.";
+    }
     let andamentoId: string | null = null;
     if (pr.processo_id) {
       const { data: and, error: andErr } = await supabase
@@ -179,13 +200,23 @@ export async function cancelarPrazo(id: string, motivo: string): Promise<Resulta
     await requireUser();
     if (!motivo?.trim()) return { ok: false, message: "Informe o motivo do cancelamento." };
     const supabase = await createClient();
+    const { data: pr } = await supabase
+      .from("prazos")
+      .select("calendar_event_id, calendar_event_id_fatal")
+      .eq("id", id)
+      .single();
     const { error } = await supabase
       .from("prazos")
       .update({ status: "cancelado", observacoes: `Cancelado: ${motivo.trim()}` })
       .eq("id", id);
     if (error) throw error;
+    let msg = "Prazo cancelado (registrado na auditoria).";
+    // Sugestão 37: baixa dos eventos no Calendar (grafite + ❌), best-effort.
+    if (await baixarEventosPrazo((pr?.calendar_event_id as string | null) ?? null, (pr?.calendar_event_id_fatal as string | null) ?? null, false)) {
+      msg += " Eventos do Calendar encerrados.";
+    }
     revalidarTudo();
-    return { ok: true, message: "Prazo cancelado (registrado na auditoria)." };
+    return { ok: true, message: msg };
   } catch (e) {
     return falha(e);
   }

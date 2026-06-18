@@ -13,6 +13,9 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      // Sugestão 37: carimba o canal de origem; a auditoria (fn_auditar) lê este
+      // cabeçalho via current_setting('request.headers') e grava em auditoria.origem.
+      global: { headers: { "x-app-origem": "frontend" } },
       cookies: {
         getAll() {
           return cookieStore.getAll();
