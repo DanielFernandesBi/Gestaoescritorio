@@ -29,6 +29,26 @@ export function AppShell({
     setNavOpen(false);
   }, [pathname]);
 
+  // Selecionar texto dentro de uma linha/link clicável não deve navegar nem
+  // perder a seleção: se há texto selecionado dentro do alvo clicado, o clique
+  // de navegação é suprimido (capture, antes dos handlers do React/Next).
+  useEffect(() => {
+    const onClickCapture = (e: MouseEvent) => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+      const alvo = e.target as HTMLElement | null;
+      const clicavel = alvo?.closest("a, [role='link'], .clickable, .op-click");
+      if (!clicavel) return;
+      const node = sel.anchorNode;
+      if (node && clicavel.contains(node)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    document.addEventListener("click", onClickCapture, true);
+    return () => document.removeEventListener("click", onClickCapture, true);
+  }, []);
+
   // Esc fecha e o scroll do corpo trava enquanto o menu mobile está aberto.
   useEffect(() => {
     if (!navOpen) return;

@@ -52,7 +52,8 @@ html[data-theme="dark"]{
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{font-family:var(--sans);background:var(--paper);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
-::selection{background:var(--accent-soft);color:var(--accent-strong)}
+::selection{background:color-mix(in srgb,var(--accent) 32%,transparent);color:var(--ink)}
+::-moz-selection{background:color-mix(in srgb,var(--accent) 32%,transparent);color:var(--ink)}
 /* Scrollbars finas e temáticas */
 *{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 *::-webkit-scrollbar{width:10px;height:10px}
