@@ -53,7 +53,7 @@ export function Sidebar({
                 >
                   <Icon name={it.ico} />
                   <span>{it.label}</span>
-                  {count != null && (
+                  {count != null && count > 0 && (
                     <span className={`badge ${it.kind ?? ""}`}>{count}</span>
                   )}
                 </Link>
