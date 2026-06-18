@@ -1,5 +1,6 @@
 import { getAudiencias } from "@/lib/data";
 import { Pill, SegredoTag, Gate, ProcRef } from "@/components/ui";
+import { Icon } from "@/components/Icon";
 import { RowLink } from "@/components/RowLink";
 import { Acao } from "@/components/Acao";
 import { linkPara } from "@/lib/links";
@@ -24,7 +25,11 @@ export default async function AudienciasPage() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card op-card">
+        <div className="card-h">
+          <h3><Icon name="gavel" /> Audiências</h3>
+          <span className="sub">{audiencias.length} designações</span>
+        </div>
         <div className="card-b flush">
           {audiencias.length ? (
             <table>

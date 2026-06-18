@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
+import { Icon } from "@/components/Icon";
+import { FiltrosCard } from "@/components/FiltrosCard";
 import { RowLink } from "@/components/RowLink";
 import { linkPara } from "@/lib/links";
 import { humano } from "@/lib/format";
@@ -68,9 +70,15 @@ export function ProcessosList({
 
   return (
     <>
-      <Chips options={opcoesCat} value={cat} onChange={(v) => { setCat(v); setVisiveis(PASSO); }} />
-      <Chips options={RESPS} value={resp} onChange={(v) => { setResp(v); setVisiveis(PASSO); }} />
-      <div className="card">
+      <FiltrosCard>
+        <Chips options={opcoesCat} value={cat} onChange={(v) => { setCat(v); setVisiveis(PASSO); }} />
+        <Chips options={RESPS} value={resp} onChange={(v) => { setResp(v); setVisiveis(PASSO); }} />
+      </FiltrosCard>
+      <div className="card op-card">
+        <div className="card-h">
+          <h3><Icon name="folder" /> Processos</h3>
+          <span className="sub">{filtrados.length} no filtro</span>
+        </div>
         <div className="card-b flush">
           {mostrados.length ? (
             <table>

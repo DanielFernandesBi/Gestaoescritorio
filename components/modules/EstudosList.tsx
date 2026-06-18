@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
+import { Icon } from "@/components/Icon";
+import { FiltrosCard } from "@/components/FiltrosCard";
 import { EstudoDetalhe } from "@/components/detalhe/EstudoDetalhe";
 import { fmtDate, humano } from "@/lib/format";
 import type { EstudoResumo } from "@/lib/data";
@@ -49,8 +51,14 @@ export function EstudosList({ estudos }: { estudos: EstudoResumo[] }) {
 
   return (
     <>
-      <Chips options={opcoes} value={f} onChange={setF} />
-      <div className="card">
+      <FiltrosCard>
+        <Chips options={opcoes} value={f} onChange={setF} />
+      </FiltrosCard>
+      <div className="card op-card">
+        <div className="card-h">
+          <h3><Icon name="book" /> Estudos de caso</h3>
+          <span className="sub">{filtrados.length} no filtro</span>
+        </div>
         <div className="card-b flush">
           {filtrados.length ? (
             <table>

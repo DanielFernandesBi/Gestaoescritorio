@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
+import { Icon } from "@/components/Icon";
+import { FiltrosCard } from "@/components/FiltrosCard";
 import { FormModal } from "@/components/FormModal";
 import { FavoritoStar } from "@/components/FavoritoStar";
 import { RowLink } from "@/components/RowLink";
@@ -99,24 +101,30 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
 
   return (
     <>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <Chips options={opcoes} value={f} onChange={(v) => { setF(v); setVisiveis(PASSO); }} />
-        <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center", marginBottom: 18 }}>
-          {f === "favoritos" && botaoAddFavorito}
-          <input
-            className="filtro-nome"
-            placeholder="Filtrar por nome…"
-            value={busca}
-            onChange={(e) => { setBusca(e.target.value); setVisiveis(PASSO); }}
-            style={{
-              padding: "6px 12px",
-              border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit",
-              background: "var(--surface)", color: "var(--text)", minWidth: 200,
-            }}
-          />
+      <FiltrosCard>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <Chips options={opcoes} value={f} onChange={(v) => { setF(v); setVisiveis(PASSO); }} />
+          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+            {f === "favoritos" && botaoAddFavorito}
+            <input
+              className="filtro-nome"
+              placeholder="Filtrar por nome…"
+              value={busca}
+              onChange={(e) => { setBusca(e.target.value); setVisiveis(PASSO); }}
+              style={{
+                padding: "6px 12px",
+                border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit",
+                background: "var(--surface)", color: "var(--text)", minWidth: 200,
+              }}
+            />
+          </div>
         </div>
-      </div>
-      <div className="card">
+      </FiltrosCard>
+      <div className="card op-card">
+        <div className="card-h">
+          <h3><Icon name="users" /> Clientes</h3>
+          <span className="sub">{filtrados.length} no filtro</span>
+        </div>
         <div className="card-b flush">
           {mostrados.length ? (
             <table>

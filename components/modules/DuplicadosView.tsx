@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Chips } from "@/components/Chips";
+import { Icon } from "@/components/Icon";
+import { FiltrosCard } from "@/components/FiltrosCard";
 import { Pill, SegredoTag } from "@/components/ui";
 import { mesclarCliente, mesclarProcesso } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
@@ -210,10 +212,13 @@ export function DuplicadosView({ clusters, processos }: { clusters: ClienteDupli
 
   return (
     <>
-      <Chips options={abas} value={aba} onChange={setAba} />
+      <FiltrosCard>
+        <Chips options={abas} value={aba} onChange={setAba} />
+      </FiltrosCard>
 
       {aba === "clientes" ? (
-        <div className="card">
+        <div className="card op-card">
+          <div className="card-h"><h3><Icon name="users" /> Clientes duplicados</h3><span className="sub">{clusters.length} grupos</span></div>
           <div className="card-b flush">
             {clusters.length ? (
               <table>
@@ -248,7 +253,8 @@ export function DuplicadosView({ clusters, processos }: { clusters: ClienteDupli
           </div>
         </div>
       ) : (
-        <div className="card">
+        <div className="card op-card">
+          <div className="card-h"><h3><Icon name="folder" /> Processos sem CNJ</h3><span className="sub">{processos.length} a revisar</span></div>
           <div className="card-b flush">
             {processos.length ? (
               <table>
