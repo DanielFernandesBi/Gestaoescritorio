@@ -81,6 +81,9 @@ export function IntimacoesList({ intimacoes, cabecalho }: { intimacoes: Intimaca
 
   return (
     <>
+      <Chips options={opcoesStatus} value={st} onChange={(v) => { setSt(v); setVisiveis(PASSO); }} />
+      <Chips options={ORIGENS} value={orig} onChange={(v) => { setOrig(v); setVisiveis(PASSO); }} />
+
       <div className="kpis" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
         <button type="button" className={`kpi amber${st === "pendentes" ? " kpi-on" : ""}`} onClick={() => irPara("pendentes")}>
           <div className="accent" />
@@ -106,9 +109,6 @@ export function IntimacoesList({ intimacoes, cabecalho }: { intimacoes: Intimaca
           <div className="meta">no acervo recente</div>
         </button>
       </div>
-
-      <Chips options={opcoesStatus} value={st} onChange={(v) => { setSt(v); setVisiveis(PASSO); }} />
-      <Chips options={ORIGENS} value={orig} onChange={(v) => { setOrig(v); setVisiveis(PASSO); }} />
 
       {cabecalho}
 
