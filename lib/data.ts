@@ -197,6 +197,7 @@ export type Intimacao = {
   tribunal: string | null;
   segredo: boolean;
   orfa: boolean;
+  cliente: string | null;
 };
 
 export async function getIntimacoes(): Promise<Intimacao[]> {
@@ -204,7 +205,7 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
   const { data } = await supabase
     .from("intimacoes")
     .select(
-      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica)",
+      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica,cliente_processo(clientes(nome)))",
     )
     .order("data_publicacao", { ascending: false, nullsFirst: false })
     .limit(300);
@@ -226,6 +227,7 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
       segredo: Boolean(p?.segredo_justica),
       processo_id: (r.processo_id as string) ?? null,
       orfa: r.processo_id == null,
+      cliente: nomesClientes(p?.cliente_processo) || null,
     };
   });
 }
@@ -236,7 +238,7 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
   const { data: r } = await supabase
     .from("intimacoes")
     .select(
-      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica)",
+      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica,cliente_processo(clientes(nome)))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -258,6 +260,7 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
     segredo: Boolean(p?.segredo_justica),
     processo_id: (r.processo_id as string) ?? null,
     orfa: r.processo_id == null,
+    cliente: nomesClientes(p?.cliente_processo) || null,
   };
 }
 
@@ -1199,7 +1202,7 @@ export async function buscaGlobal(termoRaw: string): Promise<ResultadosBusca> {
     supabase
       .from("intimacoes")
       .select(
-        "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica)",
+        "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica,cliente_processo(clientes(nome)))",
       )
       .ilike("resumo", like)
       .order("data_publicacao", { ascending: false, nullsFirst: false })
@@ -1244,6 +1247,7 @@ export async function buscaGlobal(termoRaw: string): Promise<ResultadosBusca> {
       segredo: Boolean(p?.segredo_justica),
       processo_id: (r.processo_id as string) ?? null,
       orfa: r.processo_id == null,
+      cliente: nomesClientes(p?.cliente_processo) || null,
     };
   });
 

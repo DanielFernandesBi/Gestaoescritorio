@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { ProcRef } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
-import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa } from "@/app/actions";
+import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa, vincularClienteProcesso } from "@/app/actions";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm";
-import { fmtDate } from "@/lib/format";
+import { PAPEL } from "@/lib/enums";
+import { fmtDate, humano } from "@/lib/format";
 import type { Intimacao } from "@/lib/data";
 import type { MapaProvidencia } from "@/lib/pecas";
 
@@ -40,6 +41,7 @@ export function IntimacaoDetalhe({
         <div className="dgrid">
           <div className="field"><div className="k">Origem</div><div className="v">{(i.origem ?? "—").toUpperCase()}</div></div>
           <div className="field"><div className="k">Processo</div><div className="v">{i.orfa ? <span className="sub">—</span> : <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} id={i.processo_id} />}</div></div>
+          <div className="field"><div className="k">Cliente</div><div className="v">{i.orfa ? <span className="sub">—</span> : (i.cliente ?? <span className="sub" style={{ color: "var(--amber)" }}>Sem cliente vinculado</span>)}</div></div>
           <div className="field"><div className="k">Publicação</div><div className="v mono">{fmtDate(i.data_publicacao)}</div></div>
           <div className="field"><div className="k">Ciência</div><div className="v mono">{fmtDate(i.data_ciencia)}</div></div>
           <div className="field"><div className="k">Código publicação</div><div className="v mono" style={{ fontSize: 11 }}>{i.codigo_publicacao ?? "—"}</div></div>
@@ -83,6 +85,25 @@ export function IntimacaoDetalhe({
             <div><label>Teor (preencher se faltar)</label><textarea name="teor" placeholder="Cole o teor integral se ainda não houver" /></div>
             <p className="sub" style={{ margin: 0 }}>Só grava os campos preenchidos. Datas em dias corridos — confira ciência e feriados locais antes de gerar prazo.</p>
           </FormModal>
+          {!i.orfa && i.processo_id && (
+            <FormModal
+              label="Vincular cliente"
+              titulo="Vincular cliente ao processo"
+              descricao="Atribui (ou corrige) o cliente do processo desta intimação — útil quando a captação automática veio sem partes ou errada."
+              acao={vincularClienteProcesso.bind(null, i.processo_id)}
+              enviarLabel="Vincular"
+              variant="default"
+            >
+              <div>
+                <label>Cliente</label>
+                <select name="cliente_id" required defaultValue="">
+                  <option value="" disabled>Selecione…</option>
+                  {clis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </div>
+              <div><label>Papel</label><select name="papel" defaultValue="reu">{PAPEL.map((p) => <option key={p} value={p}>{humano(p)}</option>)}</select></div>
+            </FormModal>
+          )}
           <CriarPecaPendente
             tipoOrigem="intimacao"
             origemId={i.id}

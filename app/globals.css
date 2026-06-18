@@ -161,6 +161,10 @@ body.nav-locked{overflow:hidden}
 .kpi.red .accent{background:var(--red)} .kpi.amber .accent{background:var(--amber)}
 .kpi.green .accent{background:var(--green)} .kpi.blue .accent{background:var(--blue)}
 .kpi.brass .accent{background:var(--brass)}
+button.kpi{font:inherit;text-align:left;width:100%;cursor:pointer;transition:border-color .12s,box-shadow .12s,transform .12s}
+button.kpi:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kpi.kpi-on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 a.kpi{cursor:pointer;text-decoration:none;color:inherit;transition:.12s}
 a.kpi:hover{border-color:var(--muted-2);box-shadow:0 6px 18px rgba(22,28,45,.10);transform:translateY(-2px)}
 a.kpi:hover .val{color:var(--ink)}

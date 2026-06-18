@@ -24,6 +24,9 @@ export default async function IntimacaoModal({
       title={
         <>
           <h2>{i.resumo ?? "Intimação"}</h2>
+          {!i.orfa && (
+            <div className="sub" style={{ marginTop: 4 }}>{i.cliente ?? "Sem cliente vinculado"}</div>
+          )}
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Pill tone={tone(i.status)}>{humano(i.status)}</Pill>
             <SegredoTag on={i.segredo} />
