@@ -151,6 +151,37 @@ export async function atualizarEventoAudiencia(eventId: string, a: AudEvt): Prom
   }
 }
 
+type CompromissoEvt = {
+  titulo: string;
+  dataHora: string; // ISO timestamptz
+  local: string | null;
+  descricao: string | null;
+};
+
+/** Evento de compromisso genérico (com hora, Sálvia/9). Retorna o eventId. */
+export async function criarEventoCompromisso(c: CompromissoEvt): Promise<string | null> {
+  const cal = cliente();
+  if (!cal) return null;
+  try {
+    const inicio = new Date(c.dataHora);
+    const fim = new Date(inicio.getTime() + 60 * 60 * 1000);
+    const r = await cal.events.insert({
+      calendarId: CAL(),
+      requestBody: {
+        summary: `Compromisso — ${c.titulo}`,
+        location: c.local ?? undefined,
+        description: c.descricao ?? undefined,
+        colorId: "9",
+        start: { dateTime: inicio.toISOString(), timeZone: TZ },
+        end: { dateTime: fim.toISOString(), timeZone: TZ },
+      },
+    });
+    return r.data.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Evento de audiência (com hora). Retorna o eventId. */
 export async function criarEventoAudiencia(a: AudEvt): Promise<string | null> {
   const cal = cliente();

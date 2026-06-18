@@ -1,9 +1,10 @@
 "use client";
 
 import { Acao } from "@/components/Acao";
+import { Icon } from "@/components/Icon";
 import { FormModal } from "@/components/FormModal";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
-import { moverTarefa, atualizarTarefa, assumirTarefa, reatribuirTarefa } from "@/app/actions";
+import { moverTarefa, atualizarTarefa, assumirTarefa, reatribuirTarefa, criarCompromisso } from "@/app/actions";
 import { PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { Tarefa } from "@/lib/data";
@@ -96,6 +97,31 @@ export function TarefaDetalhe({
           </div>
         </div>
       )}
+      <div className="dsec">
+        <h4>Agenda</h4>
+        <div className="acoes">
+          <FormModal
+            label={<><Icon name="clock" size={14} /> Criar compromisso</>}
+            titulo="Novo compromisso na agenda"
+            descricao="Cria um compromisso (reunião, diligência, lembrete) na agenda do escritório e no Google Calendar."
+            acao={criarCompromisso}
+            enviarLabel="Criar compromisso"
+            variant="default"
+          >
+            <input type="hidden" name="tarefa_id" defaultValue={t.id} />
+            {t.processo_id && <input type="hidden" name="processo_id" defaultValue={t.processo_id} />}
+            {t.cliente_id && <input type="hidden" name="cliente_id" defaultValue={t.cliente_id} />}
+            <div><label>Título</label><input name="titulo" required defaultValue={t.titulo} /></div>
+            <div><label>Data e hora</label><input type="datetime-local" name="data_hora" required defaultValue={t.data_limite ? `${t.data_limite.slice(0, 10)}T09:00` : ""} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label>Responsável</label><select name="responsavel" defaultValue={t.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+              <div><label>Local</label><input name="local" placeholder="Sala, endereço ou link" /></div>
+            </div>
+            <div><label>Descrição</label><textarea name="descricao" defaultValue={t.descricao ?? ""} placeholder="Detalhes do compromisso." /></div>
+          </FormModal>
+        </div>
+      </div>
+
       <div className="dsec">
         <h4>Produção</h4>
         <div className="acoes">

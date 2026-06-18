@@ -220,19 +220,20 @@ export default async function PainelPage() {
             {agenda.length ? (
               <VerMais max={6}>
                 {agenda.map((e, i) => {
-                  const isAudi = e.tipo?.toUpperCase().includes("AUDI");
+                  const tp = e.tipo?.toUpperCase() ?? "";
+                  const isAudi = tp.includes("AUDI");
+                  const isComp = tp.includes("COMPROM");
+                  const ent = isAudi ? "audiencia" : isComp ? "compromisso" : "prazo";
+                  const label = isAudi ? "Audiência" : isComp ? "Compromisso" : "Prazo";
+                  const ptone = isAudi ? "blue" : isComp ? "green" : "amber";
                   return (
-                    <Link
-                      className="op-row"
-                      key={i}
-                      href={isAudi ? linkPara("audiencia", e.ref_id) : linkPara("prazo", e.ref_id)}
-                    >
+                    <Link className="op-row" key={i} href={linkPara(ent, e.ref_id)}>
                       <div>
                         <div className="ot">{e.descricao}</div>
                         <div className="os">{e.cliente ?? "—"}{e.responsavel ? ` · ${e.responsavel}` : ""}</div>
                       </div>
                       <div className="dl-r">
-                        <Pill tone={isAudi ? "blue" : "amber"} dot={false}>{isAudi ? "Audiência" : "Prazo"}</Pill>
+                        <Pill tone={ptone} dot={false}>{label}</Pill>
                         <div className="os mono" style={{ marginTop: 4 }}>{fmtDate(e.data)}</div>
                       </div>
                     </Link>

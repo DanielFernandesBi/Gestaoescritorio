@@ -921,13 +921,15 @@ export type Tarefa = {
   prioridade: string | null;
   responsavel: string | null;
   data_limite: string | null;
+  processo_id: string | null;
+  cliente_id: string | null;
 };
 
 export async function getTarefas(): Promise<Tarefa[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tarefas")
-    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id")
     .order("data_limite", { ascending: true, nullsFirst: false })
     .limit(300);
   return (data ?? []) as Tarefa[];
@@ -937,7 +939,7 @@ export async function getTarefaPorId(id: string): Promise<Tarefa | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tarefas")
-    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id")
     .eq("id", id)
     .maybeSingle();
   return (data as Tarefa) ?? null;
@@ -1864,4 +1866,53 @@ export async function getVarreduraItens(
     };
   });
   return { titulo, quando, itens };
+}
+
+/* ============================ Compromissos ============================ */
+
+export type Compromisso = {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  data_hora: string;
+  local: string | null;
+  responsavel: string | null;
+  status: string;
+  cliente_id: string | null;
+  cliente: string | null;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  segredo: boolean;
+  tarefa_id: string | null;
+};
+
+export async function getCompromissoPorId(id: string): Promise<Compromisso | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("compromissos")
+    .select(
+      "id, titulo, descricao, data_hora, local, responsavel, status, cliente_id, processo_id, tarefa_id, clientes(nome), processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (!r) return null;
+  const p = r.processos as unknown as NestedProcesso;
+  const cliDireto = (r.clientes as unknown as { nome: string } | null)?.nome ?? null;
+  return {
+    id: r.id as string,
+    titulo: r.titulo as string,
+    descricao: (r.descricao as string | null) ?? null,
+    data_hora: r.data_hora as string,
+    local: (r.local as string | null) ?? null,
+    responsavel: (r.responsavel as string | null) ?? null,
+    status: r.status as string,
+    cliente_id: (r.cliente_id as string | null) ?? null,
+    cliente: cliDireto ?? (nomesClientes(p?.cliente_processo) || null),
+    processo_id: (r.processo_id as string | null) ?? null,
+    numero_cnj: p?.numero_cnj ?? null,
+    numero_registro: p?.numero_registro_tribunal ?? null,
+    segredo: Boolean(p?.segredo_justica),
+    tarefa_id: (r.tarefa_id as string | null) ?? null,
+  };
 }

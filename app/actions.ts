@@ -9,6 +9,7 @@ import {
   criarEventoProvisorio,
   criarEventoAudiencia,
   atualizarEventoAudiencia,
+  criarEventoCompromisso,
   calendarConfigurado,
 } from "@/lib/calendar";
 import {
@@ -1472,6 +1473,61 @@ export async function redesignarAudiencia(id: string, fd: FormData): Promise<Res
 
     revalidarTudo();
     return { ok: true, message: "Audiência redesignada — nova data criada (aguardando validação)." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ============================ COMPROMISSOS ============================ */
+
+/** Cria um compromisso na agenda (e tenta espelhar no Google Calendar). */
+export async function criarCompromisso(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const titulo = String(fd.get("titulo") || "").trim();
+    if (!titulo) return { ok: false, message: "Título é obrigatório." };
+    const dataLocal = String(fd.get("data_hora") || ""); // YYYY-MM-DDTHH:mm
+    if (!dataLocal) return { ok: false, message: "Data e hora são obrigatórias." };
+    const data_hora = `${dataLocal}:00-03:00`;
+    const descricao = String(fd.get("descricao") || "").trim() || null;
+    const local = String(fd.get("local") || "").trim() || null;
+    const responsavel = String(fd.get("responsavel") || "Daniel");
+    const cliente_id = String(fd.get("cliente_id") || "") || null;
+    const processo_id = String(fd.get("processo_id") || "") || null;
+    const tarefa_id = String(fd.get("tarefa_id") || "") || null;
+
+    const { data: ins, error } = await supabase
+      .from("compromissos")
+      .insert({ titulo, descricao, data_hora, local, responsavel, cliente_id, processo_id, tarefa_id, status: "agendado" })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    let msg = "Compromisso criado na agenda.";
+    const evId = await criarEventoCompromisso({ titulo, dataHora: data_hora, local, descricao });
+    if (evId) {
+      await supabase.from("compromissos").update({ calendar_event_id: evId }).eq("id", ins.id);
+      msg += " Evento criado no Google Calendar.";
+    } else if (calendarConfigurado()) {
+      msg += " (Calendar indisponível agora — gravado só no banco.)";
+    }
+    revalidarTudo();
+    return { ok: true, message: msg };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Cancela um compromisso (não apaga — muda o status; auditado). */
+export async function cancelarCompromisso(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { error } = await supabase.from("compromissos").update({ status: "cancelado" }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Compromisso cancelado." };
   } catch (e) {
     return falha(e);
   }
