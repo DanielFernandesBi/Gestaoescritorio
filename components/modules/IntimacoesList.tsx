@@ -81,7 +81,7 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
 
   return (
     <>
-      <div className="card op-card">
+      <div className="card op-card" style={{ marginBottom: 16 }}>
         <div className="card-h"><h3><Icon name="list" /> Filtros</h3></div>
         <div className="card-b">
           <Chips options={opcoesStatus} value={st} onChange={(v) => { setSt(v); setVisiveis(PASSO); }} />
