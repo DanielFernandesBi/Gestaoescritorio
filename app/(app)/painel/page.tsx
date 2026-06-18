@@ -219,20 +219,25 @@ export default async function PainelPage() {
           <div className="op-list">
             {agenda.length ? (
               <VerMais max={6}>
-                {agenda.map((e, i) => (
-                  <div className="op-row" key={i}>
-                    <div>
-                      <Pill tone={e.tipo?.toUpperCase().includes("AUDI") ? "blue" : "amber"} dot={false}>
-                        {e.tipo === "PRAZO" ? "Prazo" : e.tipo === "AUDIÊNCIA" ? "Audiência" : e.tipo}
-                      </Pill>
-                      <div className="os" style={{ marginTop: 4 }}>{e.descricao}</div>
-                    </div>
-                    <div className="dl-r os mono">
-                      {fmtDate(e.data)}
-                      {e.numero_cnj && <div className="os">{e.numero_cnj}</div>}
-                    </div>
-                  </div>
-                ))}
+                {agenda.map((e, i) => {
+                  const isAudi = e.tipo?.toUpperCase().includes("AUDI");
+                  return (
+                    <Link
+                      className="op-row"
+                      key={i}
+                      href={isAudi ? linkPara("audiencia", e.ref_id) : linkPara("prazo", e.ref_id)}
+                    >
+                      <div>
+                        <div className="ot">{e.descricao}</div>
+                        <div className="os">{e.cliente ?? "—"}{e.responsavel ? ` · ${e.responsavel}` : ""}</div>
+                      </div>
+                      <div className="dl-r">
+                        <Pill tone={isAudi ? "blue" : "amber"} dot={false}>{isAudi ? "Audiência" : "Prazo"}</Pill>
+                        <div className="os mono" style={{ marginTop: 4 }}>{fmtDate(e.data)}</div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </VerMais>
             ) : (
               <div className="empty">Agenda vazia para os próximos 7 dias.</div>

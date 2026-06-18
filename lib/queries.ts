@@ -101,6 +101,9 @@ export type AgendaItem = {
   descricao: string;
   numero_cnj: string | null;
   responsavel: string | null;
+  ref_id: string;
+  processo_id: string | null;
+  cliente: string | null;
 };
 
 export type MovRecente = {
