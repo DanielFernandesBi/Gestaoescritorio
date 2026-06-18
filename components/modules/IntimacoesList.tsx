@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { RowLink } from "@/components/RowLink";
@@ -35,7 +36,7 @@ const ORIGENS = [
   { id: "eproc", label: "eproc" },
 ];
 
-export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
+export function IntimacoesList({ intimacoes, cabecalho }: { intimacoes: Intimacao[]; cabecalho?: ReactNode }) {
   // Abre na triagem do que ainda precisa de ação (como um inbox profissional).
   const [st, setSt] = useState("pendentes");
   const [orig, setOrig] = useState("todas");
@@ -108,6 +109,8 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
 
       <Chips options={opcoesStatus} value={st} onChange={(v) => { setSt(v); setVisiveis(PASSO); }} />
       <Chips options={ORIGENS} value={orig} onChange={(v) => { setOrig(v); setVisiveis(PASSO); }} />
+
+      {cabecalho}
 
       <div className="card">
         <div className="card-b flush">
