@@ -156,6 +156,7 @@ export type PainelData = {
     clientes_auto: number;
     andamentos_orfaos: number;
     pendentes_validacao: number;
+    conferencias_pendentes: number;
   };
   prazos: PrazoAberto[];
   validacao: PendenteValidacao[];
@@ -183,6 +184,7 @@ export async function getPainelData(): Promise<PainelData> {
     auditoria,
     andOrfaos,
     pendValid,
+    confPend,
     financeiro,
     prazos,
     validacao,
@@ -205,6 +207,7 @@ export async function getPainelData(): Promise<PainelData> {
     supabase.from("auditoria").select("*", { count: "exact", head: true }),
     supabase.from("vw_andamentos_orfaos").select("*", { count: "exact", head: true }),
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
+    supabase.from("tarefas").select("*", { count: "exact", head: true }).in("status", ["pendente", "em_andamento"]).eq("cadastro_automatico", true).eq("cadastrado_por", "cowork"),
     supabase.from("vw_financeiro_pendente").select("valor"),
     supabase.from("vw_prazos_abertos").select("*").order("data_fatal", { ascending: true }).limit(6),
     supabase.from("vw_pendentes_validacao").select("*").order("criado_em", { ascending: false }).limit(8),
@@ -237,6 +240,7 @@ export async function getPainelData(): Promise<PainelData> {
       clientes_auto: cliAuto.count ?? 0,
       andamentos_orfaos: andOrfaos.count ?? 0,
       pendentes_validacao: pendValid.count ?? 0,
+      conferencias_pendentes: confPend.count ?? 0,
     },
     prazos: (prazos.data ?? []) as PrazoAberto[],
     validacao: (validacao.data ?? []) as PendenteValidacao[],

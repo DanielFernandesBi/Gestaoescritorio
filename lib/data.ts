@@ -973,13 +973,20 @@ export type Tarefa = {
   data_limite: string | null;
   processo_id: string | null;
   cliente_id: string | null;
+  // Sugestão 33 — proveniência (conferências automáticas do Cowork):
+  cadastro_automatico?: boolean;
+  cadastrado_por?: string | null;
+  andamento_id?: string | null;
+  // Preenchidos no detalhe (getTarefaPorId), via processo vinculado:
+  numero_cnj?: string | null;
+  segredo?: boolean;
 };
 
 export async function getTarefas(): Promise<Tarefa[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tarefas")
-    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id")
     .order("data_limite", { ascending: true, nullsFirst: false })
     .limit(300);
   return (data ?? []) as Tarefa[];
@@ -987,12 +994,29 @@ export async function getTarefas(): Promise<Tarefa[]> {
 
 export async function getTarefaPorId(id: string): Promise<Tarefa | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data: r } = await supabase
     .from("tarefas")
-    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, processos(numero_cnj,segredo_justica)")
     .eq("id", id)
     .maybeSingle();
-  return (data as Tarefa) ?? null;
+  if (!r) return null;
+  const p = r.processos as unknown as { numero_cnj: string | null; segredo_justica: boolean | null } | null;
+  return {
+    id: r.id as string,
+    titulo: r.titulo as string,
+    descricao: (r.descricao as string | null) ?? null,
+    status: r.status as string,
+    prioridade: (r.prioridade as string | null) ?? null,
+    responsavel: (r.responsavel as string | null) ?? null,
+    data_limite: (r.data_limite as string | null) ?? null,
+    processo_id: (r.processo_id as string | null) ?? null,
+    cliente_id: (r.cliente_id as string | null) ?? null,
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    andamento_id: (r.andamento_id as string | null) ?? null,
+    numero_cnj: p?.numero_cnj ?? null,
+    segredo: Boolean(p?.segredo_justica),
+  };
 }
 
 /* Produção de peças (kanban de escrita — Sugestão 20) -------------------- */

@@ -19,6 +19,10 @@ const priTone = (p: string | null): Tone =>
 type Socio = "Daniel" | "Rodolfo";
 const oUtroSocio = (s: Socio): Socio => (s === "Daniel" ? "Rodolfo" : "Daniel");
 
+/** Conferência automática criada pela triagem do Cowork a partir de um andamento. */
+const ehConferencia = (t: Tarefa): boolean =>
+  Boolean(t.cadastro_automatico) && t.cadastrado_por === "cowork" && t.andamento_id != null;
+
 const COLS: { key: string; label: string }[] = [
   { key: "pendente", label: "Pendente" },
   { key: "em_andamento", label: "Em andamento" },
@@ -46,7 +50,8 @@ export function TarefasBoard({
       filtro === "minhas" ? socio != null && t.responsavel === socio
         : filtro === "socio" ? outro != null && t.responsavel === outro
           : filtro === "distribuir" ? t.responsavel === "Ambos"
-            : true;
+            : filtro === "conferencias" ? ehConferencia(t)
+              : true;
     const okPri = pri === "todas" ? true : t.prioridade === pri;
     return okAtr && okPri;
   });
@@ -54,11 +59,13 @@ export function TarefasBoard({
   const nMinhas = socio ? tarefas.filter((t) => t.responsavel === socio).length : 0;
   const nSocio = outro ? tarefas.filter((t) => t.responsavel === outro).length : 0;
   const nDistribuir = tarefas.filter((t) => t.responsavel === "Ambos").length;
+  const nConf = tarefas.filter(ehConferencia).length;
   const atribuicao = [
     { id: "todas", label: `Todas (${tarefas.length})` },
     ...(socio ? [{ id: "minhas", label: `Minhas (${nMinhas})` }] : []),
     ...(outro ? [{ id: "socio", label: `${outro} (${nSocio})` }] : []),
     { id: "distribuir", label: `A distribuir (${nDistribuir})` },
+    ...(nConf > 0 ? [{ id: "conferencias", label: `Conferências Cowork (${nConf})` }] : []),
   ];
   const prioridades = [
     { id: "todas", label: "Toda prioridade" },
@@ -89,6 +96,9 @@ export function TarefasBoard({
         }
       >
         <div className="t">{t.titulo}</div>
+        {ehConferencia(t) && (
+          <div style={{ marginTop: 6 }}><Pill tone="blue" dot={false}>conferência automática</Pill></div>
+        )}
         {t.descricao && <div className="d">{t.descricao}</div>}
         <div className="f">
           <Pill tone={priTone(t.prioridade)}>{humano(t.prioridade)}</Pill>

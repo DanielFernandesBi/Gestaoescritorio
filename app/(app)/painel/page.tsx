@@ -195,6 +195,13 @@ export default async function PainelPage() {
           <div className="meta">prazos + audiências</div>
         </Link>
 
+        <Link className={`kpi ${stats.conferencias_pendentes > 0 ? "amber" : ""}`} href="/tarefas">
+          <div className="accent" />
+          <div className="label"><Icon name="list" size={14} /> Conferências pendentes</div>
+          <div className="val">{stats.conferencias_pendentes}</div>
+          <div className="meta">tarefas automáticas do Cowork</div>
+        </Link>
+
         <Link className="kpi blue" href="/processos">
           <div className="accent" />
           <div className="label"><Icon name="folder" size={14} /> Processos ativos</div>

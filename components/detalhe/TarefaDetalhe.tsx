@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
+import { SegredoTag } from "@/components/ui";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { moverTarefa, atualizarTarefa, assumirTarefa, reatribuirTarefa } from "@/app/actions";
@@ -27,9 +29,29 @@ export function TarefaDetalhe({
   socio?: Socio | null;
 }) {
   const outro = socio ? oUtroSocio(socio) : null;
+  const conferencia = Boolean(t.cadastro_automatico) && t.cadastrado_por === "cowork";
 
   return (
     <>
+      {(conferencia || t.cadastrado_por) && (
+        <div className="dsec">
+          <h4>Proveniência</h4>
+          <div className="mini">
+            <div>
+              <div className="mt">
+                {conferencia ? "Conferência criada pela triagem (Cowork)" : `Cadastro: ${humano(t.cadastrado_por)}`}
+                {" "}<SegredoTag on={Boolean(t.segredo)} />
+              </div>
+              <div className="ms">
+                {t.numero_cnj ? `Processo ${t.numero_cnj}` : "Sem processo vinculado"}
+              </div>
+            </div>
+            {conferencia && t.andamento_id && (
+              <Link className="link" href={`/ir/andamento/${t.andamento_id}`}>ver movimentação</Link>
+            )}
+          </div>
+        </div>
+      )}
       <div className="dsec">
         <h4>Descrição</h4>
         <div className="field"><div className="v">{t.descricao ?? "—"}</div></div>

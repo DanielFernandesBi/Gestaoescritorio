@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { isEntidadeTipo, linkNavegavel, linkLista } from "@/lib/links";
+import { createClient } from "@/lib/supabase/server";
+import { isEntidadeTipo, linkNavegavel, linkLista, linkPara } from "@/lib/links";
 
 /**
  * Resolver universal de links: `/ir/<tipo>/<id>`.
@@ -17,6 +18,15 @@ export default async function IrPage({
   params: Promise<{ tipo: string; id: string }>;
 }) {
   const { tipo, id } = await params;
+
+  // Andamentos não têm página própria: resolvem para o processo da movimentação
+  // (a timeline vive na ficha do processo); órfão cai na lista de andamentos.
+  if (tipo === "andamento") {
+    const supabase = await createClient();
+    const { data } = await supabase.from("andamentos").select("processo_id").eq("id", id).maybeSingle();
+    redirect(data?.processo_id ? linkPara("processo", data.processo_id as string) : "/andamentos");
+  }
+
   if (!isEntidadeTipo(tipo)) redirect("/painel");
   redirect(linkNavegavel(tipo, id) ?? linkLista(tipo));
 }
