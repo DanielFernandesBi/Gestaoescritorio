@@ -6,6 +6,7 @@ import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
+import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { criarAndamento, criarPrazo, atualizarProcesso, arquivarProcesso, vincularClienteProcesso } from "@/app/actions";
 import {
   ANDAMENTO_TIPO, ANDAMENTO_ORIGEM, TIPO_CONTAGEM, RESPONSAVEIS,
@@ -125,6 +126,8 @@ export function ProcessoDetalhe({ proc }: { proc: Processo }) {
               <div><label>Responsável</label><select name="responsavel" defaultValue="Daniel">{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
             </div>
           </FormModal>
+
+          <CriarCompromisso processoId={proc.id} />
         </div>
       </div>
 

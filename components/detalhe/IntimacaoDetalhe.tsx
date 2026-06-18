@@ -6,6 +6,7 @@ import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa, vincularClienteProcesso } from "@/app/actions";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
+import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm";
 import { PAPEL } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
@@ -139,6 +140,16 @@ export function IntimacaoDetalhe({
             confirmarLabel="Arquivar"
             resumo={<>Arquivar esta intimação? (muda o status para <b>arquivada</b>, auditado)</>}
             acao={() => atualizarIntimacao(i.id, "arquivada")}
+          />
+        </div>
+      </div>
+      <div className="dsec">
+        <h4>Agenda</h4>
+        <div className="acoes">
+          <CriarCompromisso
+            tituloPadrao={i.resumo ?? ""}
+            dataPadrao={i.data_publicacao}
+            processoId={i.processo_id}
           />
         </div>
       </div>

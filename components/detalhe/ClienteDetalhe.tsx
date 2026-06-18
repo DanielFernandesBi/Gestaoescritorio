@@ -7,6 +7,7 @@ import { Acao } from "@/components/Acao";
 import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
 import { ExecucaoCliente } from "@/components/detalhe/ExecucaoCliente";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
+import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { atualizarCliente, desativarCliente } from "@/app/actions";
 import { SITUACAO_PRISIONAL } from "@/lib/enums";
 import { fmtDate, fmtTime, humano, diasAte } from "@/lib/format";
@@ -153,6 +154,13 @@ export function ClienteDetalhe({ cliente }: { cliente: Cliente }) {
           </div>
         </div>
       )}
+
+      <div className="dsec">
+        <h4>Agenda</h4>
+        <div className="acoes">
+          <CriarCompromisso clienteId={cliente.id} />
+        </div>
+      </div>
 
       {erro && (
         <div className="banner" style={{ margin: "0 0 24px" }}>
