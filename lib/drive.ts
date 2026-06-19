@@ -21,6 +21,9 @@ import { google } from "googleapis";
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 
+/** Escopo amplo: o app cria subpastas dentro da pasta existente Sistema/Clientes. */
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
+
 /** Pasta Sistema/Clientes (descoberta no Drive do escritório); sobreponível por env. */
 function clientesFolderId(): string {
   return process.env.GOOGLE_DRIVE_CLIENTES_FOLDER_ID || "1lZ1kkEgK6SeP9DDlY8kHVbghZlyMhzOc";
@@ -32,6 +35,44 @@ export function driveConfigurado(): boolean {
       process.env.GOOGLE_OAUTH_CLIENT_SECRET &&
       process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
   );
+}
+
+/** Client id/secret presentes (basta isto para INICIAR o fluxo de autorização). */
+export function oauthCredsConfigurado(): boolean {
+  return Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET);
+}
+
+/** OAuth2 client para o fluxo de autorização (com redirect_uri da rota /api/drive/callback). */
+function authClient(redirectUri: string) {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_OAUTH_CLIENT_ID,
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    redirectUri,
+  );
+}
+
+/** URL de consentimento do Google (offline + prompt=consent garante o refresh token). */
+export function urlAutorizacaoDrive(redirectUri: string): string | null {
+  if (!oauthCredsConfigurado()) return null;
+  return authClient(redirectUri).generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    scope: [DRIVE_SCOPE],
+  });
+}
+
+/** Troca o código do callback pelo refresh token (a credencial a colar no Vercel). */
+export async function trocarCodigoPorRefreshToken(
+  code: string,
+  redirectUri: string,
+): Promise<string | null> {
+  if (!oauthCredsConfigurado()) return null;
+  try {
+    const { tokens } = await authClient(redirectUri).getToken(code);
+    return tokens.refresh_token ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function cliente() {
