@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getContratoPorId } from "@/lib/data";
+import { getContratoPorId, getDocumentosContrato } from "@/lib/data";
 import { ContratoDetalhe } from "@/components/detalhe/ContratoDetalhe";
 import { Pill } from "@/components/ui";
 import { fmtBRL, humano } from "@/lib/format";
@@ -15,6 +15,7 @@ export default async function ContratoPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const c = await getContratoPorId(id);
   if (!c) notFound();
+  const documentos = await getDocumentosContrato(id);
 
   return (
     <>
@@ -30,7 +31,7 @@ export default async function ContratoPage({ params }: { params: Promise<{ id: s
       </div>
       <div className="card">
         <div className="card-b">
-          <ContratoDetalhe contrato={c} />
+          <ContratoDetalhe contrato={c} documentos={documentos} />
         </div>
       </div>
     </>

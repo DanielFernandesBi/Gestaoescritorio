@@ -13,6 +13,7 @@ import {
   encerrarEventoPrazo,
   calendarConfigurado,
 } from "@/lib/calendar";
+import { driveConfigurado, uploadParaDrive } from "@/lib/drive";
 import {
   INTIMACAO_STATUS,
   TAREFA_STATUS,
@@ -455,6 +456,7 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
       tipo,
       subtipo: String(fd.get("subtipo") || "").trim() || null,
       descricao: String(fd.get("descricao") || "").trim() || null,
+      observacoes: String(fd.get("observacoes") || "").trim() || null,
       status: "a_fazer",
       prioridade: String(fd.get("prioridade") || "media"),
       responsavel: String(fd.get("responsavel") || "Daniel"),
@@ -528,9 +530,11 @@ export async function atualizarPeca(id: string, fd: FormData): Promise<Resultado
       responsavel: String(fd.get("responsavel") || "Daniel"),
       drive_file_id: String(fd.get("drive_file_id") || "").trim() || null,
     };
-    // descrição e data_alvo não vêm na view de leitura; só sobrescreve quando preenchidos (preserva atuais).
-    const descricao = String(fd.get("descricao") || "").trim();
-    if (descricao) patch.descricao = descricao;
+    // data_alvo só sobrescreve quando preenchida (preserva a atual).
+    // descricao/observacoes agora vêm na view de leitura: o form envia o valor
+    // atual como default, então gravamos sempre (inclusive limpar = string vazia → null).
+    patch.descricao = String(fd.get("descricao") || "").trim() || null;
+    patch.observacoes = String(fd.get("observacoes") || "").trim() || null;
     const data_alvo = String(fd.get("data_alvo") || "");
     if (data_alvo) patch.data_alvo = data_alvo;
     const { error } = await supabase.from("pecas").update(patch).eq("id", id);
@@ -1957,39 +1961,116 @@ export async function atualizarObjetivo(id: string, fd: FormData): Promise<Resul
 /* ==================== DOCUMENTOS (acervo do Drive) ==================== */
 
 /**
- * Registra o ponteiro de um arquivo do Drive ligado ao caso. O conteúdo segue
- * vivendo no Drive — o banco guarda só metadados (manual: tabela `documentos`).
- * Respeita o CHECK de vínculo (ao menos processo/cliente/intimação) e o enum de tipo.
+ * Registra um documento do caso. Dois caminhos:
+ *  - ARQUIVO anexado + Drive configurado → faz upload para
+ *    `Sistema/Clientes/<nome>/{<processo> | Financeiro}` (cria subpastas) e grava
+ *    o ponteiro (drive_file_id/url/tamanho). É o fluxo principal.
+ *  - Sem arquivo (ou Drive não configurado) → registra o ponteiro por id colado
+ *    à mão (degradação segura, comportamento antigo preservado).
+ * Aceita vínculo a processo/cliente/intimação e também a contrato/pagamento
+ * (acervo financeiro). O CHECK exige ao menos um vínculo.
  */
 export async function criarDocumento(fd: FormData): Promise<Resultado> {
   try {
     await requireUser();
     const supabase = await createClient();
     const processo_id = String(fd.get("processo_id") || "").trim() || null;
-    const cliente_id = String(fd.get("cliente_id") || "").trim() || null;
+    let cliente_id = String(fd.get("cliente_id") || "").trim() || null;
     const intimacao_id = String(fd.get("intimacao_id") || "").trim() || null;
-    if (!processo_id && !cliente_id && !intimacao_id) {
-      return { ok: false, message: "Vincule o documento a um processo, cliente ou intimação." };
+    const contrato_id = String(fd.get("contrato_id") || "").trim() || null;
+    const pagamento_id = String(fd.get("pagamento_id") || "").trim() || null;
+    if (!processo_id && !cliente_id && !intimacao_id && !contrato_id && !pagamento_id) {
+      return { ok: false, message: "Vincule o documento a um processo, cliente, intimação, contrato ou pagamento." };
     }
     const tipo = String(fd.get("tipo") || "outro");
     if (!(DOCUMENTO_TIPO as readonly string[]).includes(tipo)) {
       return { ok: false, message: "Tipo de documento inválido." };
     }
-    const nome = String(fd.get("nome") || "").trim();
-    if (!nome) return { ok: false, message: "Informe o nome do documento." };
-    const drive_file_id = String(fd.get("drive_file_id") || "").trim() || null;
-    if (!drive_file_id) return { ok: false, message: "Informe o id do arquivo no Drive (drive_file_id)." };
+
+    // Resolve contrato a partir da parcela (para a pasta e o vínculo), se faltar.
+    let contratoIdFinal = contrato_id;
+    if (pagamento_id && !contratoIdFinal) {
+      const { data: pg } = await supabase.from("pagamentos").select("contrato_id").eq("id", pagamento_id).maybeSingle();
+      if (pg?.contrato_id) contratoIdFinal = pg.contrato_id as string;
+    }
+    // Resolve o cliente (para a pasta no Drive e para o doc aparecer na ficha do cliente).
+    if (!cliente_id && contratoIdFinal) {
+      const { data: ct } = await supabase.from("contratos").select("cliente_id").eq("id", contratoIdFinal).maybeSingle();
+      if (ct?.cliente_id) cliente_id = ct.cliente_id as string;
+    }
+    if (!cliente_id && processo_id) {
+      const { data: cp } = await supabase.from("cliente_processo").select("cliente_id").eq("processo_id", processo_id).limit(1).maybeSingle();
+      if (cp?.cliente_id) cliente_id = cp.cliente_id as string;
+    }
+
+    const arquivo = fd.get("arquivo");
+    const temArquivo = arquivo instanceof File && arquivo.size > 0;
+    let nome = String(fd.get("nome") || "").trim();
+    let drive_file_id = String(fd.get("drive_file_id") || "").trim() || null;
+    let drive_url = String(fd.get("drive_url") || "").trim() || null;
+    let mime_type = String(fd.get("mime_type") || "").trim() || null;
+    let tamanho_bytes: number | null = null;
+    let origem = String(fd.get("origem") || "").trim() || "drive";
+
+    if (temArquivo) {
+      const file = arquivo as File;
+      if (!driveConfigurado()) {
+        return {
+          ok: false,
+          message: "Upload ao Drive não configurado neste ambiente. Cole o id do arquivo do Drive ou configure as credenciais OAuth (GOOGLE_OAUTH_*).",
+        };
+      }
+      // Nome do cliente para a pasta; rótulo do processo para a subpasta.
+      let nomeCliente = "";
+      if (cliente_id) {
+        const { data: cl } = await supabase.from("clientes").select("nome").eq("id", cliente_id).maybeSingle();
+        nomeCliente = (cl?.nome as string) || "";
+      }
+      let procLabel = "";
+      if (processo_id) {
+        const { data: pr } = await supabase.from("processos").select("numero_cnj, numero_registro_tribunal").eq("id", processo_id).maybeSingle();
+        procLabel = (pr?.numero_cnj as string) || (pr?.numero_registro_tribunal ? `reg ${pr.numero_registro_tribunal}` : "") || "Processo";
+      }
+      // Caminho sob Sistema/Clientes: cliente → (Financeiro | processo | raiz do cliente).
+      const caminho: string[] = [];
+      if (nomeCliente) caminho.push(nomeCliente);
+      if (contratoIdFinal || pagamento_id) caminho.push("Financeiro");
+      else if (processo_id) caminho.push(procLabel);
+
+      const buf = Buffer.from(await file.arrayBuffer());
+      const up = await uploadParaDrive({
+        caminho,
+        nome: nome || file.name,
+        mimeType: file.type || null,
+        bytes: buf,
+      });
+      if (!up) {
+        return { ok: false, message: "Falha ao enviar o arquivo ao Drive. Tente novamente ou cole o id manualmente." };
+      }
+      nome = up.nome;
+      drive_file_id = up.drive_file_id;
+      drive_url = up.drive_url;
+      mime_type = up.mime_type;
+      tamanho_bytes = up.tamanho_bytes;
+      origem = "upload";
+    } else {
+      if (!nome) return { ok: false, message: "Informe o nome do documento." };
+      if (!drive_file_id) return { ok: false, message: "Anexe um arquivo ou informe o id do arquivo no Drive (drive_file_id)." };
+    }
 
     const { error } = await supabase.from("documentos").insert({
       processo_id,
       cliente_id,
       intimacao_id,
+      contrato_id: contratoIdFinal,
+      pagamento_id,
       nome,
       tipo,
       drive_file_id,
-      mime_type: String(fd.get("mime_type") || "").trim() || null,
-      origem: String(fd.get("origem") || "").trim() || "drive",
-      drive_url: String(fd.get("drive_url") || "").trim() || null,
+      mime_type,
+      origem,
+      drive_url,
+      tamanho_bytes,
       observacoes: String(fd.get("observacoes") || "").trim() || null,
       ativo: true,
       cadastro_automatico: false,
@@ -2003,7 +2084,7 @@ export async function criarDocumento(fd: FormData): Promise<Resultado> {
       throw error;
     }
     revalidarTudo();
-    return { ok: true, message: "Documento registrado no acervo." };
+    return { ok: true, message: temArquivo ? "Arquivo enviado ao Drive e registrado no acervo." : "Documento registrado no acervo." };
   } catch (e) {
     return falha(e);
   }

@@ -86,7 +86,11 @@ function CamposBasicos({ p }: { p?: Peca }) {
         <div><label>Data alvo (opcional)</label><input type="date" name="data_alvo" />{editar && <span className="sub">Em branco mantém a atual.</span>}</div>
         <div><label>Drive (id da minuta)</label><input name="drive_file_id" defaultValue={p?.drive_file_id ?? ""} placeholder="opcional" /></div>
       </div>
-      <div><label>Descrição</label><textarea name="descricao" placeholder={editar ? "Deixe em branco para manter a descrição atual." : "Detalhes da peça…"} /></div>
+      <div><label>Descrição</label><textarea name="descricao" defaultValue={p?.descricao ?? ""} placeholder="Detalhes da peça…" /></div>
+      <div>
+        <label>Anotações (o que observar ao redigir)</label>
+        <textarea name="observacoes" defaultValue={p?.observacoes ?? ""} placeholder="Teses, pontos de atenção, instruções para quem for fazer a peça…" />
+      </div>
     </>
   );
 }
@@ -285,6 +289,23 @@ export function ProducaoBoard({
               <div className="field"><div className="k">Drive</div><div className="v mono" style={{ fontSize: 11 }}>{p.drive_file_id ?? "—"}</div></div>
             </div>
           </div>
+
+          {(p.descricao || p.observacoes) && (
+            <div className="dsec">
+              {p.descricao && (
+                <>
+                  <h4>Descrição</h4>
+                  <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text)", whiteSpace: "pre-wrap" }}>{p.descricao}</p>
+                </>
+              )}
+              {p.observacoes && (
+                <div className="banner" style={{ margin: p.descricao ? "12px 0 0" : 0 }}>
+                  <span className="ico">📝</span>
+                  <div><b>Anotações — observar ao redigir:</b><br /><span style={{ whiteSpace: "pre-wrap" }}>{p.observacoes}</span></div>
+                </div>
+              )}
+            </div>
+          )}
 
           {socio && (
             <div className="dsec">

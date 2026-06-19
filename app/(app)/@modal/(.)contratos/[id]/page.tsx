@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getContratoPorId } from "@/lib/data";
+import { getContratoPorId, getDocumentosContrato } from "@/lib/data";
 import { RouteModal } from "@/components/RouteModal";
 import { ContratoDetalhe } from "@/components/detalhe/ContratoDetalhe";
 import { Pill } from "@/components/ui";
@@ -15,6 +15,7 @@ export default async function ContratoModal({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const c = await getContratoPorId(id);
   if (!c) notFound();
+  const documentos = await getDocumentosContrato(id);
 
   return (
     <RouteModal
@@ -28,7 +29,7 @@ export default async function ContratoModal({ params }: { params: Promise<{ id: 
         </>
       }
     >
-      <ContratoDetalhe contrato={c} />
+      <ContratoDetalhe contrato={c} documentos={documentos} />
     </RouteModal>
   );
 }

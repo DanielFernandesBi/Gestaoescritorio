@@ -17,30 +17,35 @@ export function DocumentosCaso({
   documentos,
   vinculo,
   segredo,
+  titulo = "Documentos",
+  tipoPadrao = "peca",
 }: {
   documentos: Documento[];
-  vinculo: { campo: "processo_id" | "cliente_id"; id: string };
+  vinculo: { campo: "processo_id" | "cliente_id" | "contrato_id" | "pagamento_id"; id: string };
   segredo?: boolean;
+  titulo?: string;
+  tipoPadrao?: string;
 }) {
   return (
     <div className="dsec">
-      <h4>Documentos ({documentos.length}) {segredo && <SegredoTag on />}</h4>
+      <h4>{titulo} ({documentos.length}) {segredo && <SegredoTag on />}</h4>
       <div className="acoes" style={{ marginBottom: 10 }}>
         <FormModal
           label="Adicionar documento"
-          titulo="Registrar documento do Drive"
-          descricao="Registra o ponteiro do arquivo no Drive (o conteúdo continua no Drive; o banco guarda só os metadados)."
+          titulo="Enviar documento ao Drive"
+          descricao="Anexe um arquivo: ele é enviado para a pasta do cliente no Drive (Sistema/Clientes) e registrado no acervo. Sem credenciais de upload, dá para colar o id de um arquivo já no Drive."
           acao={criarDocumento}
-          enviarLabel="Registrar"
+          enviarLabel="Enviar / registrar"
           variant="default"
         >
           <input type="hidden" name={vinculo.campo} defaultValue={vinculo.id} />
-          <div><label>Nome</label><input name="nome" required placeholder="Ex.: Apelação — razões.pdf" /></div>
+          <div><label>Arquivo</label><input type="file" name="arquivo" /></div>
+          <div><label>Nome (opcional)</label><input name="nome" placeholder="Em branco usa o nome do arquivo enviado." /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><label>Tipo</label><select name="tipo" defaultValue="peca">{DOCUMENTO_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
-            <div><label>Origem</label><input name="origem" defaultValue="drive" placeholder="drive / upload / email" /></div>
+            <div><label>Tipo</label><select name="tipo" defaultValue={tipoPadrao}>{DOCUMENTO_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
+            <div><label>Origem</label><input name="origem" defaultValue="upload" placeholder="upload / drive / email" /></div>
           </div>
-          <div><label>Drive file id</label><input name="drive_file_id" required placeholder="id do arquivo no Drive" /></div>
+          <div><label>Drive file id (alternativa ao upload)</label><input name="drive_file_id" placeholder="cole o id se o arquivo já estiver no Drive" /></div>
           <div><label>Observações</label><textarea name="observacoes" placeholder="Opcional." /></div>
         </FormModal>
       </div>

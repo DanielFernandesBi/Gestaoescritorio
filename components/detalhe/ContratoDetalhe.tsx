@@ -3,16 +3,17 @@
 import { Pill } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
+import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
 import { marcarPago, atualizarContrato, criarParcela } from "@/app/actions";
 import { CONTRATO_STATUS } from "@/lib/enums";
 import { fmtBRL, fmtDate, humano } from "@/lib/format";
-import type { Contrato } from "@/lib/data";
+import type { Contrato, Documento } from "@/lib/data";
 
 const TONE: Record<string, "green" | "amber" | "red" | "gray"> = {
   vigente: "green", quitado: "gray", rescindido: "red", inadimplente: "red",
 };
 
-export function ContratoDetalhe({ contrato: c }: { contrato: Contrato }) {
+export function ContratoDetalhe({ contrato: c, documentos = [] }: { contrato: Contrato; documentos?: Documento[] }) {
   const socio = c.valor_total / 2;
   return (
     <>
@@ -97,6 +98,13 @@ export function ContratoDetalhe({ contrato: c }: { contrato: Contrato }) {
           <div className="empty">Sem parcelas — use “Adicionar parcela”.</div>
         )}
       </div>
+
+      <DocumentosCaso
+        documentos={documentos}
+        vinculo={{ campo: "contrato_id", id: c.id }}
+        titulo="Documentos financeiros"
+        tipoPadrao="outro"
+      />
     </>
   );
 }

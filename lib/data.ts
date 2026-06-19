@@ -1049,6 +1049,8 @@ export type Peca = {
   cadastro_automatico: boolean;
   validado: boolean;
   criado_em: string | null;
+  descricao: string | null;
+  observacoes: string | null;
 };
 
 /**
@@ -1090,6 +1092,8 @@ export async function getPecas(): Promise<Peca[]> {
     cadastro_automatico: Boolean(r.cadastro_automatico),
     validado: Boolean(r.validado),
     criado_em: (r.criado_em as string) ?? null,
+    descricao: (r.descricao as string) ?? null,
+    observacoes: (r.observacoes as string) ?? null,
   }));
 }
 
@@ -1103,7 +1107,7 @@ export async function getPecasProtocoladas(limit = 200): Promise<Peca[]> {
   const { data } = await supabase
     .from("pecas")
     .select(
-      "id, titulo, tipo, subtipo, status, prioridade, responsavel, cliente_id, processo_id, prazo_id, intimacao_id, origem_andamento_id, tarefa_id, andamento_id, drive_file_id, protocolada_em, cadastro_automatico, validado, criado_em, clientes(nome), processos(numero_cnj,numero_registro_tribunal,segredo_justica)",
+      "id, titulo, tipo, subtipo, status, prioridade, responsavel, cliente_id, processo_id, prazo_id, intimacao_id, origem_andamento_id, tarefa_id, andamento_id, drive_file_id, protocolada_em, cadastro_automatico, validado, criado_em, descricao, observacoes, clientes(nome), processos(numero_cnj,numero_registro_tribunal,segredo_justica)",
     )
     .eq("status", "protocolada")
     .order("protocolada_em", { ascending: false, nullsFirst: false })
@@ -1143,6 +1147,8 @@ export async function getPecasProtocoladas(limit = 200): Promise<Peca[]> {
       cadastro_automatico: Boolean(r.cadastro_automatico),
       validado: Boolean(r.validado),
       criado_em: (r.criado_em as string) ?? null,
+      descricao: (r.descricao as string) ?? null,
+      observacoes: (r.observacoes as string) ?? null,
     };
   });
 }
@@ -1721,6 +1727,8 @@ export type Documento = {
   intimacao_id: string | null;
   cliente_id: string | null;
   cliente_nome: string | null;
+  contrato_id: string | null;
+  pagamento_id: string | null;
   cadastro_automatico: boolean;
   cadastrado_por: string | null;
   criado_em: string | null;
@@ -1743,6 +1751,8 @@ function mapDocumento(r: Record<string, unknown>): Documento {
     intimacao_id: (r.intimacao_id as string) ?? null,
     cliente_id: (r.cliente_id as string) ?? null,
     cliente_nome: (r.cliente_nome as string) ?? null,
+    contrato_id: (r.contrato_id as string) ?? null,
+    pagamento_id: (r.pagamento_id as string) ?? null,
     cadastro_automatico: Boolean(r.cadastro_automatico),
     cadastrado_por: (r.cadastrado_por as string) ?? null,
     criado_em: (r.criado_em as string) ?? null,
@@ -1767,6 +1777,17 @@ export async function getDocumentosCliente(cliente_id: string): Promise<Document
     .from("vw_documentos_processo")
     .select("*")
     .eq("cliente_id", cliente_id)
+    .order("criado_em", { ascending: false });
+  return (data ?? []).map((r) => mapDocumento(r as Record<string, unknown>));
+}
+
+/** Documentos financeiros do Drive vinculados a um contrato (recibos, comprovantes…). */
+export async function getDocumentosContrato(contrato_id: string): Promise<Documento[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_documentos_processo")
+    .select("*")
+    .eq("contrato_id", contrato_id)
     .order("criado_em", { ascending: false });
   return (data ?? []).map((r) => mapDocumento(r as Record<string, unknown>));
 }
