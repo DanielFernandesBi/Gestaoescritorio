@@ -56,7 +56,7 @@ export const AUDIENCIA_TIPO = [
   "instrucao", "custodia", "interrogatorio", "juri", "sessao_julgamento",
   "conciliacao", "justificacao", "admonitoria", "outra",
 ] as const;
-export const AUDIENCIA_MODALIDADE = ["presencial", "videoconferencia", "hibrida"] as const;
+export const AUDIENCIA_MODALIDADE = ["presencial", "videoconferencia", "hibrida", "virtual"] as const;
 
 export const AUDIENCIA_STATUS = ["designada", "realizada", "redesignada", "cancelada"] as const;
 export const PAGAMENTO_STATUS = ["a_vencer", "pago", "atrasado", "renegociado", "cancelado"] as const;

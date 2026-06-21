@@ -46,7 +46,7 @@ export function ProcRef({
   return inner;
 }
 
-type PillTone = "red" | "amber" | "green" | "blue" | "gray" | "brass";
+type PillTone = "red" | "amber" | "green" | "blue" | "gray" | "brass" | "violet";
 
 export function Pill({
   tone = "gray",

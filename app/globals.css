@@ -139,6 +139,7 @@ body.nav-locked{overflow:hidden}
 .pill.blue{background:var(--blue-soft);color:var(--blue)}
 .pill.gray{background:var(--line-soft);color:var(--muted)}
 .pill.brass{background:var(--brass-soft);color:#8a6a3a}
+.pill.violet{background:var(--accent-soft);color:var(--accent)}
 .lock{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#8a6a3a;background:var(--brass-soft);padding:2px 8px;border-radius:6px}
 
 /* ---------- Cards / grid ---------- */

@@ -49,6 +49,24 @@ function pecaProcLabel(p: Peca): string {
   return p.processo_id ? "—" : "inicial — sem processo";
 }
 
+/**
+ * Link clicável para a minuta no Drive (Sugestão 46 — fiação do redator
+ * agendado/Sug. 42). `stop` evita abrir o drawer do card ao clicar no link.
+ */
+function MinutaLink({ id, stop = false }: { id: string; stop?: boolean }) {
+  return (
+    <a
+      className="link"
+      href={`https://drive.google.com/file/d/${id}/view`}
+      target="_blank"
+      rel="noreferrer"
+      onClick={stop ? (e) => e.stopPropagation() : undefined}
+    >
+      📄 abrir minuta
+    </a>
+  );
+}
+
 /* ---- Lite lists (seletores) ------------------------------------------- */
 
 function useLites() {
@@ -286,7 +304,7 @@ export function ProducaoBoard({
               ) : (
                 <div className="field"><div className="k">Data efetiva</div><div className="v mono">{fmtDate(p.data_efetiva)}</div></div>
               )}
-              <div className="field"><div className="k">Drive</div><div className="v mono" style={{ fontSize: 11 }}>{p.drive_file_id ?? "—"}</div></div>
+              <div className="field"><div className="k">Minuta (Drive)</div><div className="v">{p.drive_file_id ? <MinutaLink id={p.drive_file_id} /> : "—"}</div></div>
             </div>
           </div>
 
@@ -434,6 +452,7 @@ export function ProducaoBoard({
                   {p.cliente ?? "—"} · {p.numero_cnj || p.numero_registro ? <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} /> : pecaProcLabel(p)}
                 </div>
                 {p.segredo && <div style={{ marginTop: 6 }}><SegredoTag on /></div>}
+                {p.drive_file_id && <div style={{ marginTop: 6, fontSize: 12 }}><MinutaLink id={p.drive_file_id} stop /></div>}
                 <div className="f">
                   <span className="sub">{p.responsavel ?? "—"}</span>
                   {p.protocolada_em && <span className="sub mono">protocolada {fmtDate(p.protocolada_em)}</span>}
@@ -503,6 +522,7 @@ export function ProducaoBoard({
                         {p.cliente ?? "—"} · {p.numero_cnj || p.numero_registro ? <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} /> : pecaProcLabel(p)}
                       </div>
                       {p.segredo && <div style={{ marginTop: 6 }}><SegredoTag on /></div>}
+                      {p.drive_file_id && <div style={{ marginTop: 6, fontSize: 12 }}><MinutaLink id={p.drive_file_id} stop /></div>}
                       {provisorio && (
                         <div className="prov">
                           ⚠ PROVISÓRIO – conferir <ValidarRapido id={p.id} />

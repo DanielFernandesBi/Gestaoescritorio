@@ -13,7 +13,7 @@ import { fmtDate, fmtTime, humano } from "@/lib/format";
 import type { Audiencia } from "@/lib/data";
 
 const modTone = (m: string | null) =>
-  m === "presencial" ? "gray" : m === "videoconferencia" ? "blue" : "amber";
+  m === "presencial" ? "gray" : m === "videoconferencia" ? "blue" : m === "virtual" ? "violet" : "amber";
 
 const statusTone = (s: string) =>
   s === "realizada" ? "green" : s === "cancelada" ? "red" : s === "redesignada" ? "gray" : "brass";

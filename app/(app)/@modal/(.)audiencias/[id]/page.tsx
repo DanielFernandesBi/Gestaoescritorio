@@ -8,7 +8,7 @@ import { humano } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 const modTone = (m: string | null) =>
-  m === "presencial" ? "gray" : m === "videoconferencia" ? "blue" : "amber";
+  m === "presencial" ? "gray" : m === "videoconferencia" ? "blue" : m === "virtual" ? "violet" : "amber";
 
 export default async function AudienciaModal({
   params,
