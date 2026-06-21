@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Pill, ProcRef, SegredoTag } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { FormModal } from "@/components/FormModal";
-import { atualizarAudiencia, vincularClienteProcesso, redesignarAudiencia } from "@/app/actions";
+import { Acao } from "@/components/Acao";
+import { atualizarAudiencia, vincularClienteProcesso, redesignarAudiencia, baixarAudiencia, cancelarAudiencia } from "@/app/actions";
 import { AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE, PAPEL, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, fmtTime, humano } from "@/lib/format";
 import type { Audiencia } from "@/lib/data";
@@ -24,9 +25,17 @@ export function AudienciaDetalhe({ aud }: { aud: Audiencia }) {
   }, []);
 
   const semCliente = !aud.clientes;
+  const ativa = aud.status === "designada";
+  const statusTone = aud.status === "realizada" ? "green" : aud.status === "cancelada" ? "red" : "gray";
 
   return (
     <>
+      {!ativa && (
+        <div style={{ marginBottom: 16 }}>
+          <Pill tone={statusTone} dot={false}>Audiência {humano(aud.status)}</Pill>
+        </div>
+      )}
+
       {aud.data_anterior && (
         <div className="banner" style={{ marginBottom: 20 }}>
           <span className="ico"><Icon name="clock" /></span>
@@ -102,6 +111,18 @@ export function AudienciaDetalhe({ aud }: { aud: Audiencia }) {
             <div><label>Observações</label><textarea name="observacoes" defaultValue={aud.observacoes ?? ""} placeholder="Anotações sobre a sessão." /></div>
           </FormModal>
 
+          {ativa && (
+            <Acao
+              label={<><Icon name="check" size={14} /> Dar baixa / Realizada</>}
+              variant="ok"
+              titulo="Dar baixa na audiência"
+              confirmarLabel="Marcar realizada"
+              resumo={<>Marcar a audiência de <b>{humano(aud.tipo)}</b> como <b>realizada</b>? O evento no Google Calendar é baixado (grafite + ✅), nunca apagado nem movido.</>}
+              acao={() => baixarAudiencia(aud.id)}
+            />
+          )}
+
+          {ativa && (
           <FormModal
             label={<><Icon name="clock" size={14} /> Redesignar</>}
             titulo="Redesignar audiência"
@@ -119,6 +140,19 @@ export function AudienciaDetalhe({ aud }: { aud: Audiencia }) {
             <div><label>Local / link</label><input name="local_link" placeholder="Sala, endereço ou link da videoconferência" /></div>
             <div><label>Observações</label><textarea name="observacoes" placeholder="Motivo / detalhes da redesignação." /></div>
           </FormModal>
+          )}
+
+          {ativa && (
+            <Acao
+              label="Cancelar"
+              variant="danger"
+              titulo="Cancelar audiência"
+              confirmarLabel="Cancelar"
+              resumo={<>Cancelar a audiência? Não é apagada — muda para <b>cancelada</b> (auditado) e o evento do Calendar é encerrado.</>}
+              campoTexto={{ label: "Motivo (opcional)", placeholder: "Ex.: redesignada / acordo." }}
+              acao={cancelarAudiencia.bind(null, aud.id)}
+            />
+          )}
 
           <FormModal
             label={semCliente ? "Identificar cliente" : "Vincular outro cliente"}

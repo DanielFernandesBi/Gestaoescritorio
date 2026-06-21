@@ -120,25 +120,31 @@ export async function confirmarPrazo(
 }
 
 /**
- * Baixa/encerramento de um evento de prazo ao fechar o ciclo: recolore para
- * GRAFITE (8), marca como livre (transparency FREE) e prefixa o título com
- * "✅ CUMPRIDO — " (cumprido) ou "❌ ENCERRADO — " (cancelado/prejudicado),
- * preservando o restante. Idempotente (pula se já estiver em grafite) e
- * best-effort: NUNCA apaga nem move o evento; falha só retorna false.
+ * Núcleo da BAIXA não-destrutiva de um evento (prazo ou audiência): recolore para
+ * GRAFITE (8), marca como livre (transparency FREE) e troca o prefixo do título
+ * pelo informado, preservando o restante. Idempotente (pula se já estiver em
+ * grafite) e best-effort: NUNCA apaga nem move o evento; falha só retorna false.
+ * `prefixosConhecidos` são removidos do título atual antes de aplicar o novo
+ * prefixo (evita acúmulo em reentrâncias).
  */
-export async function encerrarEventoPrazo(eventId: string, cumprido: boolean): Promise<boolean> {
+async function baixarEvento(
+  eventId: string,
+  prefixo: string,
+  prefixosConhecidos: string[],
+): Promise<boolean> {
   const cal = cliente();
   if (!cal) return false;
   try {
     const ev = await cal.events.get({ calendarId: CAL(), eventId });
     if (ev.data.colorId === "8") return true; // já baixado — idempotente
-    const prefixoOk = "✅ CUMPRIDO — ";
-    const prefixoNok = "❌ ENCERRADO — ";
-    const prefixo = cumprido ? prefixoOk : prefixoNok;
     const atual = ev.data.summary ?? "";
-    const limpo = atual.startsWith(prefixoOk) ? atual.slice(prefixoOk.length)
-      : atual.startsWith(prefixoNok) ? atual.slice(prefixoNok.length)
-        : atual;
+    let limpo = atual;
+    for (const p of prefixosConhecidos) {
+      if (limpo.startsWith(p)) {
+        limpo = limpo.slice(p.length);
+        break;
+      }
+    }
     await cal.events.patch({
       calendarId: CAL(),
       eventId,
@@ -152,6 +158,29 @@ export async function encerrarEventoPrazo(eventId: string, cumprido: boolean): P
   } catch {
     return false;
   }
+}
+
+const PREF_PRAZO_OK = "✅ CUMPRIDO — ";
+const PREF_PRAZO_NOK = "❌ ENCERRADO — ";
+
+/**
+ * Baixa do evento de PRAZO ao fechar o ciclo: prefixo "✅ CUMPRIDO — " (cumprido)
+ * ou "❌ ENCERRADO — " (cancelado/prejudicado). Ver seção "Prazos e Calendar".
+ */
+export async function encerrarEventoPrazo(eventId: string, cumprido: boolean): Promise<boolean> {
+  return baixarEvento(eventId, cumprido ? PREF_PRAZO_OK : PREF_PRAZO_NOK, [PREF_PRAZO_OK, PREF_PRAZO_NOK]);
+}
+
+const PREF_AUD_OK = "✅ REALIZADA — ";
+const PREF_AUD_NOK = "❌ ENCERRADA — ";
+
+/**
+ * Baixa do evento de AUDIÊNCIA ao fechar o ciclo: prefixo "✅ REALIZADA — "
+ * (realizada) ou "❌ ENCERRADA — " (cancelada/redesignada). Mesma doutrina
+ * não-destrutiva dos prazos (Sugestões 34/37/41).
+ */
+export async function encerrarEventoAudiencia(eventId: string, realizada: boolean): Promise<boolean> {
+  return baixarEvento(eventId, realizada ? PREF_AUD_OK : PREF_AUD_NOK, [PREF_AUD_OK, PREF_AUD_NOK]);
 }
 
 type AudEvt = {

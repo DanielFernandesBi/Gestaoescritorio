@@ -11,6 +11,7 @@ import {
   atualizarEventoAudiencia,
   criarEventoCompromisso,
   encerrarEventoPrazo,
+  encerrarEventoAudiencia,
   calendarConfigurado,
 } from "@/lib/calendar";
 import { driveConfigurado, uploadParaDrive } from "@/lib/drive";
@@ -1470,13 +1471,58 @@ export async function cancelarAudiencia(id: string, motivo: string): Promise<Res
   try {
     await requireUser();
     const supabase = await createClient();
+    const { data: a } = await supabase
+      .from("audiencias")
+      .select("calendar_event_id")
+      .eq("id", id)
+      .single();
     const obs = motivo?.trim() ? motivo.trim() : null;
     const patch: Record<string, unknown> = { status: "cancelada" };
     if (obs) patch.observacoes = obs;
     const { error } = await supabase.from("audiencias").update(patch).eq("id", id);
     if (error) throw error;
+    let msg = "Audiência cancelada (auditado).";
+    // Sugestão 41: baixa não-destrutiva do evento (grafite + ❌), best-effort.
+    if (a?.calendar_event_id && (await encerrarEventoAudiencia(a.calendar_event_id as string, false))) {
+      msg += " Evento do Calendar encerrado.";
+    }
     revalidarTudo();
-    return { ok: true, message: "Audiência cancelada (auditado)." };
+    return { ok: true, message: msg };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Baixa de audiência REALIZADA (Sugestão 41): marca status='realizada' e
+ * reconcilia o evento do Calendar pela doutrina não-destrutiva dos prazos
+ * (grafite 8 + "✅ REALIZADA — "). Best-effort: falha do Calendar não derruba
+ * a baixa no banco.
+ */
+export async function baixarAudiencia(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { data: a, error } = await supabase
+      .from("audiencias")
+      .select("status, tipo, calendar_event_id")
+      .eq("id", id)
+      .single();
+    if (error || !a) throw new Error("Audiência não encontrada.");
+    if (a.status !== "designada") return { ok: false, message: `Audiência não está ativa (${a.status}).` };
+
+    const { error: upErr } = await supabase
+      .from("audiencias")
+      .update({ status: "realizada" })
+      .eq("id", id);
+    if (upErr) throw upErr;
+
+    let msg = "Audiência dada como realizada.";
+    if (a.calendar_event_id && (await encerrarEventoAudiencia(a.calendar_event_id as string, true))) {
+      msg += " Evento do Calendar baixado.";
+    }
+    revalidarTudo();
+    return { ok: true, message: msg };
   } catch (e) {
     return falha(e);
   }
@@ -1500,7 +1546,7 @@ export async function redesignarAudiencia(id: string, fd: FormData): Promise<Res
 
     const { data: ant } = await supabase
       .from("audiencias")
-      .select("processo_id, tipo, responsavel")
+      .select("processo_id, tipo, responsavel, calendar_event_id")
       .eq("id", id)
       .single();
     if (!ant) return { ok: false, message: "Audiência original não encontrada." };
@@ -1510,6 +1556,13 @@ export async function redesignarAudiencia(id: string, fd: FormData): Promise<Res
       .update({ status: "redesignada" })
       .eq("id", id);
     if (eUp) throw eUp;
+
+    // Sugestão 41: baixa não-destrutiva do evento da audiência ANTERIOR
+    // (grafite + ❌ ENCERRADA), best-effort. A nova data terá seu próprio
+    // evento provisório/validado pela validação.
+    if (ant.calendar_event_id) {
+      await encerrarEventoAudiencia(ant.calendar_event_id as string, false);
+    }
 
     const { error: eIns } = await supabase.from("audiencias").insert({
       processo_id: ant.processo_id,

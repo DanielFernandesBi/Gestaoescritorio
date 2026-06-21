@@ -162,7 +162,7 @@ export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExe
                   {e.proximo_marco ? ` · próximo marco ${fmtDate(e.proximo_marco)}` : ""}
                 </div>
               </div>
-              <a className="link" href="/estudos">abrir estudo</a>
+              <a className="link" href={`/estudos?cliente=${clienteId}`}>abrir estudo</a>
             </div>
           ))}
           <div className="mini-list" style={{ marginTop: exec.estrategia.length ? 4 : 0 }}>

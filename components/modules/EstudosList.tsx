@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
@@ -20,19 +21,27 @@ const FILTROS = [
   { id: "execucao_global", label: "Execução" },
 ];
 
-export function EstudosList({ estudos }: { estudos: EstudoResumo[] }) {
+export function EstudosList({ estudos, clienteFiltro }: { estudos: EstudoResumo[]; clienteFiltro?: string }) {
   const { open } = useDrawer();
   const [f, setF] = useState("todos");
 
+  // Sugestão 41: deep-link por cliente — quando vem ?cliente=<id>, a lista já
+  // nasce restrita aos estudos daquele cliente (preserva o contexto da ficha).
+  const base = useMemo(
+    () => (clienteFiltro ? estudos.filter((e) => e.cliente_id === clienteFiltro) : estudos),
+    [estudos, clienteFiltro],
+  );
+  const nomeCliente = clienteFiltro ? base[0]?.cliente ?? null : null;
+
   const filtrados = useMemo(
     () =>
-      estudos.filter((e) =>
+      base.filter((e) =>
         f === "todos" ? true : f === "execucao_global" ? e.tipo === "execucao_global" : e.status === f,
       ),
-    [estudos, f],
+    [base, f],
   );
 
-  const opcoes = FILTROS.map((o) => (o.id === "todos" ? { ...o, label: `Todos (${estudos.length})` } : o));
+  const opcoes = FILTROS.map((o) => (o.id === "todos" ? { ...o, label: `Todos (${base.length})` } : o));
 
   function abrir(e: EstudoResumo) {
     open({
@@ -51,6 +60,16 @@ export function EstudosList({ estudos }: { estudos: EstudoResumo[] }) {
 
   return (
     <>
+      {clienteFiltro && (
+        <div className="banner" style={{ marginBottom: 16 }}>
+          <span className="ico"><Icon name="book" /></span>
+          <div>
+            Mostrando os estudos {nomeCliente ? <>de <b>{nomeCliente}</b></> : "deste cliente"}.{" "}
+            <Link className="link" href="/estudos">ver todos os estudos</Link>
+          </div>
+        </div>
+      )}
+
       <FiltrosCard>
         <Chips options={opcoes} value={f} onChange={setF} />
       </FiltrosCard>

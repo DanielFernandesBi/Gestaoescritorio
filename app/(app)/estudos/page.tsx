@@ -7,7 +7,12 @@ import { ESTUDO_TIPO } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
-export default async function EstudosPage() {
+export default async function EstudosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cliente?: string }>;
+}) {
+  const { cliente } = await searchParams;
   const [estudos, clientes] = await Promise.all([getEstudos(), getClientes()]);
 
   return (
@@ -39,7 +44,7 @@ export default async function EstudosPage() {
         </FormModal>
       </div>
 
-      <EstudosList estudos={estudos} />
+      <EstudosList estudos={estudos} clienteFiltro={cliente} />
     </>
   );
 }
