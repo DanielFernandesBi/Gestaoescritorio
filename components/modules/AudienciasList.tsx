@@ -62,7 +62,7 @@ export function AudienciasList({ audiencias }: { audiencias: Audiencia[] }) {
                 <tr>
                   <th>Data / hora</th>
                   <th>Tipo</th>
-                  <th>Processo</th>
+                  <th>Processo / cliente</th>
                   <th>Modalidade</th>
                   <th>Local / link</th>
                   <th>Resp.</th>
@@ -79,8 +79,13 @@ export function AudienciasList({ audiencias }: { audiencias: Audiencia[] }) {
                     </td>
                     <td><Pill tone="brass" dot={false}>{humano(a.tipo)}</Pill></td>
                     <td>
-                      <ProcRef cnj={a.numero_cnj} />
-                      {a.segredo && <div className="sub"><SegredoTag on /></div>}
+                      <div style={{ whiteSpace: "nowrap" }}>
+                        <ProcRef cnj={a.numero_cnj} registro={a.numero_registro} />
+                      </div>
+                      <div className="sub">
+                        {a.clientes || "Sem cliente identificado"}
+                        {a.segredo && <> · <SegredoTag on /></>}
+                      </div>
                     </td>
                     <td><Pill tone={modTone(a.modalidade)} dot={false}>{humano(a.modalidade)}</Pill></td>
                     <td className="sub">{a.local_link ?? "—"}</td>
