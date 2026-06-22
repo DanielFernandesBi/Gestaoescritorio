@@ -463,8 +463,9 @@ export function ProducaoBoard({
               ))}
               {p.status !== "protocolada" && (
                 <Acao label="Protocolada" variant="ok" titulo="Marcar protocolada"
-                  resumo={<>Marcar <b>{p.titulo}</b> como <b>protocolada</b>? Sai do board.</>}
-                  acao={() => moverPeca(p.id, "protocolada")} />
+                  resumo={<>Protocolar <b>{p.titulo}</b> (hoje)? Dá baixa completa: prazo vinculado → <b>cumprido</b>, registra o andamento, resolve a intimação e move a peça para <b>protocolada</b>. Sai do board.</>}
+                  campoTexto={{ label: "Andamento (opcional)", placeholder: "Ex.: Protocolada a petição de razões de apelação.", multiline: true }}
+                  acao={(texto) => moverPeca(p.id, "protocolada", texto)} />
               )}
             </div>
           </div>

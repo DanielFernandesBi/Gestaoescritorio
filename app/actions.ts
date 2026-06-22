@@ -480,18 +480,146 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
   }
 }
 
+/**
+ * Sugestão 51 — Baixa de protocolo pela PORTA DA PEÇA (paridade com baixarPrazo).
+ *
+ * Quando um humano protocola pelo board de Produção, dispara a MESMA cascata da baixa
+ * de prazo (fluxo #3 do manual) em vez de um flip silencioso de pecas.status — que
+ * fazia board e banco DIVERGIREM (peça "protocolada" com prazo ainda "aberto", fatal
+ * viva/vermelha no Calendar, intimação sem providência). Cascata, origem carimbada
+ * 'frontend' pelo header x-app-origem (auditada por fn_auditar):
+ *   1. andamento "peticao_protocolada" — dedup idempotente por codigo_movimentacao;
+ *   2. prazo vinculado → "cumprido" (+cumprido_em), se ainda "aberto", recolorindo o
+ *      Calendar (grafite + ✅, best-effort; o Cowork reconcilia no ciclo seguinte);
+ *   3. intimação vinculada → "providencia_tomada";
+ *   4. peça → "protocolada" (+protocolada_em +andamento_id que a materializou).
+ *
+ * Salvaguardas (manual + sugestão): IDEMPOTENTE — peça já terminal é no-op; não recria
+ * andamento (dedup) nem rebaixa prazo já fechado. Peça SEM prazo só registra
+ * protocolada_em (+andamento quando há processo); inicial de caso novo (sem processo)
+ * apenas carimba a data. NUNCA DELETE (correção = troca de status). Só por ação HUMANA:
+ * o sistema/redator agendado jamais protocola. A reversão (mover para fora de
+ * "protocolada") NÃO reabre o prazo nem apaga o andamento — fica como está.
+ */
+export async function baixarProtocoloPeca(id: string, descricao?: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+
+    const { data: pc, error } = await supabase
+      .from("pecas")
+      .select("id, titulo, status, processo_id, prazo_id, intimacao_id, andamento_id")
+      .eq("id", id)
+      .single();
+    if (error || !pc) throw new Error("Peça não encontrada.");
+
+    const TERMINAIS = ["protocolada", "cancelada", "prejudicada"];
+    if (TERMINAIS.includes(pc.status as string)) {
+      return { ok: false, message: `Peça já está em status terminal (${pc.status}); protocolo não reaplicado.` };
+    }
+
+    // Prazo vinculado (para baixa + recoloração do Calendar). O processo_id da peça
+    // pode estar vazio (inicial de caso novo); herda do prazo quando houver.
+    type PrazoVinc = {
+      id: string;
+      status: string;
+      processo_id: string | null;
+      calendar_event_id: string | null;
+      calendar_event_id_fatal: string | null;
+    };
+    let prazo: PrazoVinc | null = null;
+    if (pc.prazo_id) {
+      const { data: pr } = await supabase
+        .from("prazos")
+        .select("id, status, processo_id, calendar_event_id, calendar_event_id_fatal")
+        .eq("id", pc.prazo_id)
+        .maybeSingle();
+      prazo = (pr as PrazoVinc | null) ?? null;
+    }
+    const processoId = (pc.processo_id as string | null) ?? prazo?.processo_id ?? null;
+
+    let msg = "";
+
+    // 1) Andamento do protocolo — só com processo (andamentos exigem processo_id, como
+    //    em baixarPrazo). Dedup idempotente por codigo_movimentacao: reexecutar não
+    //    duplica o andamento. Reaproveita um já vinculado, se houver.
+    let andamentoId: string | null = (pc.andamento_id as string | null) ?? null;
+    if (processoId && !andamentoId) {
+      const codigoDedup = `protocolo-peca:${pc.id}`;
+      const { data: existente } = await supabase
+        .from("andamentos")
+        .select("id")
+        .eq("codigo_movimentacao", codigoDedup)
+        .maybeSingle();
+      if (existente?.id) {
+        andamentoId = existente.id as string;
+      } else {
+        const tituloPeca = (pc.titulo as string | null)?.trim();
+        const desc = descricao?.trim() || (tituloPeca ? `Protocolo: ${tituloPeca}.` : "Petição protocolada.");
+        const { data: and, error: andErr } = await supabase
+          .from("andamentos")
+          .insert({
+            processo_id: processoId,
+            data: hoje(),
+            tipo: "peticao_protocolada",
+            descricao: desc,
+            cadastrado_por: "manual",
+            cadastro_automatico: false,
+            codigo_movimentacao: codigoDedup,
+          })
+          .select("id")
+          .single();
+        if (!andErr) {
+          andamentoId = (and?.id as string) ?? null;
+          msg += " Andamento registrado.";
+        }
+      }
+    }
+
+    // 2) Prazo vinculado → cumprido (só se ainda aberto) + Calendar (best-effort).
+    if (prazo && prazo.status === "aberto") {
+      const { error: upErr } = await supabase
+        .from("prazos")
+        .update({ status: "cumprido", cumprido_em: hoje() })
+        .eq("id", prazo.id);
+      if (upErr) throw upErr;
+      msg += " Prazo vinculado dado como cumprido.";
+      if (await baixarEventosPrazo(prazo.calendar_event_id, prazo.calendar_event_id_fatal, true)) {
+        msg += " Eventos do Calendar baixados.";
+      }
+    }
+
+    // 3) Intimação vinculada → providência tomada.
+    if (pc.intimacao_id) {
+      await supabase.from("intimacoes").update({ status: "providencia_tomada" }).eq("id", pc.intimacao_id);
+      msg += " Intimação marcada como providência tomada.";
+    }
+
+    // 4) Peça → protocolada (carimba a data e o andamento que a materializou).
+    const patch: Record<string, unknown> = { status: "protocolada", protocolada_em: hoje() };
+    if (andamentoId) patch.andamento_id = andamentoId;
+    const { error: pcErr } = await supabase.from("pecas").update(patch).eq("id", id);
+    if (pcErr) throw pcErr;
+
+    revalidarTudo();
+    return { ok: true, message: `Peça protocolada.${msg}` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /** Move a peça pelo kanban (inclui cancelar/prejudicar = troca de status; nunca DELETE). */
-export async function moverPeca(id: string, status: string): Promise<Resultado> {
+export async function moverPeca(id: string, status: string, descricao?: string): Promise<Resultado> {
   try {
     await requireUser();
     if (!(PECA_STATUS as readonly string[]).includes(status)) {
       return { ok: false, message: "Status inválido." };
     }
+    // Sugestão 51: protocolar pela peça dispara a cascata de baixa (mesma do prazo),
+    // não um flip silencioso de status — board e banco deixam de divergir.
+    if (status === "protocolada") return baixarProtocoloPeca(id, descricao);
     const supabase = await createClient();
-    const patch: Record<string, unknown> = { status };
-    // Protocolar manualmente também carimba a data (a baixa de prazo já faz o vínculo do andamento).
-    if (status === "protocolada") patch.protocolada_em = hoje();
-    const { error } = await supabase.from("pecas").update(patch).eq("id", id);
+    const { error } = await supabase.from("pecas").update({ status }).eq("id", id);
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Peça atualizada." };
