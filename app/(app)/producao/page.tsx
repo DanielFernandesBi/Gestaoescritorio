@@ -1,7 +1,7 @@
 import { getPecas, getPecasProtocoladas } from "@/lib/data";
 import { getUserEmail } from "@/lib/queries";
 import { socioDoEmail } from "@/lib/allowlist";
-import { ProducaoBoard, NovaPeca } from "@/components/modules/ProducaoBoard";
+import { ProducaoBoard, NovaPeca, ReanalisarFila } from "@/components/modules/ProducaoBoard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,10 @@ export default async function ProducaoPage() {
             intimação → prazo → PEÇA → andamento. Arraste entre as colunas para mover.
           </p>
         </div>
-        <NovaPeca />
+        <div className="acoes">
+          <ReanalisarFila />
+          <NovaPeca />
+        </div>
       </div>
       <ProducaoBoard pecas={pecas} protocoladas={protocoladas} socio={socio} />
     </>

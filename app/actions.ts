@@ -514,6 +514,40 @@ export async function validarPeca(id: string): Promise<Resultado> {
   }
 }
 
+/**
+ * Sugestão 48 — "Reanalisar insumos da fila" (paridade frontend do gate v2).
+ * O frontend NÃO roda as skills do redator (auditor-dosimetria/redator-penal vivem
+ * no Cowork); então esta ação MARCA as peças pendentes para REANÁLISE no próximo
+ * ciclo agendado, zerando pecas.gate_analisado_em — o gatilho que faz o Cowork
+ * reavaliar o insumo (passo_1+passo_2 do gate). NÃO redige nem decide aqui (jamais
+ * simular). Escopo: fila inteira (processoId nulo) ou só um processo. Alvo: peças
+ * em a_fazer/aguardando_insumo e validado=false. Retorna quantas foram marcadas.
+ */
+export async function reanalisarPecas(processoId?: string | null): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    let q = supabase
+      .from("pecas")
+      .update({ gate_analisado_em: null })
+      .in("status", ["a_fazer", "aguardando_insumo"])
+      .eq("validado", false);
+    if (processoId) q = q.eq("processo_id", processoId);
+    const { data, error } = await q.select("id");
+    if (error) throw error;
+    const n = data?.length ?? 0;
+    revalidarTudo();
+    return {
+      ok: true,
+      message: n
+        ? `${n} peça(s) marcada(s) para reanálise — o redator agendado reavalia os insumos no próximo ciclo (ALTA → minuta; BAIXA → pendência atualizada).`
+        : "Nenhuma peça pendente para reanalisar neste escopo.",
+    };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /** Edição dos campos da peça (sem mover de coluna). */
 export async function atualizarPeca(id: string, fd: FormData): Promise<Resultado> {
   try {

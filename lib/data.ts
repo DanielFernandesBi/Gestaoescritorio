@@ -1051,6 +1051,11 @@ export type Peca = {
   criado_em: string | null;
   descricao: string | null;
   observacoes: string | null;
+  // Gate v2 do redator agendado (Sugestões 42/50/48) — vivem na tabela pecas,
+  // não na view; lidos à parte e mesclados.
+  gate_resultado: string | null;   // 'alta' | 'baixa'
+  gate_pendencia: string | null;   // o que falta quando 'baixa'
+  gate_analisado_em: string | null;
 };
 
 /**
@@ -1064,6 +1069,24 @@ export async function getPecas(): Promise<Peca[]> {
     .from("vw_pecas_pendentes")
     .select("*")
     .order("dias_restantes", { ascending: true, nullsFirst: false });
+
+  // Campos do gate vivem na tabela pecas (a view não os expõe). Busca à parte e mescla.
+  const ids = (data ?? []).map((r) => r.id as string);
+  const gatePorId = new Map<string, { resultado: string | null; pendencia: string | null; analisado_em: string | null }>();
+  if (ids.length) {
+    const { data: gates } = await supabase
+      .from("pecas")
+      .select("id, gate_resultado, gate_pendencia, gate_analisado_em")
+      .in("id", ids);
+    for (const g of gates ?? []) {
+      gatePorId.set(g.id as string, {
+        resultado: (g.gate_resultado as string) ?? null,
+        pendencia: (g.gate_pendencia as string) ?? null,
+        analisado_em: (g.gate_analisado_em as string) ?? null,
+      });
+    }
+  }
+
   return (data ?? []).map((r): Peca => ({
     id: r.id as string,
     titulo: r.titulo as string,
@@ -1094,6 +1117,9 @@ export async function getPecas(): Promise<Peca[]> {
     criado_em: (r.criado_em as string) ?? null,
     descricao: (r.descricao as string) ?? null,
     observacoes: (r.observacoes as string) ?? null,
+    gate_resultado: gatePorId.get(r.id as string)?.resultado ?? null,
+    gate_pendencia: gatePorId.get(r.id as string)?.pendencia ?? null,
+    gate_analisado_em: gatePorId.get(r.id as string)?.analisado_em ?? null,
   }));
 }
 
@@ -1107,7 +1133,7 @@ export async function getPecasProtocoladas(limit = 200): Promise<Peca[]> {
   const { data } = await supabase
     .from("pecas")
     .select(
-      "id, titulo, tipo, subtipo, status, prioridade, responsavel, cliente_id, processo_id, prazo_id, intimacao_id, origem_andamento_id, tarefa_id, andamento_id, drive_file_id, protocolada_em, cadastro_automatico, validado, criado_em, descricao, observacoes, clientes(nome), processos(numero_cnj,numero_registro_tribunal,segredo_justica)",
+      "id, titulo, tipo, subtipo, status, prioridade, responsavel, cliente_id, processo_id, prazo_id, intimacao_id, origem_andamento_id, tarefa_id, andamento_id, drive_file_id, protocolada_em, cadastro_automatico, validado, criado_em, descricao, observacoes, gate_resultado, gate_pendencia, gate_analisado_em, clientes(nome), processos(numero_cnj,numero_registro_tribunal,segredo_justica)",
     )
     .eq("status", "protocolada")
     .order("protocolada_em", { ascending: false, nullsFirst: false })
@@ -1149,6 +1175,9 @@ export async function getPecasProtocoladas(limit = 200): Promise<Peca[]> {
       criado_em: (r.criado_em as string) ?? null,
       descricao: (r.descricao as string) ?? null,
       observacoes: (r.observacoes as string) ?? null,
+      gate_resultado: (r.gate_resultado as string) ?? null,
+      gate_pendencia: (r.gate_pendencia as string) ?? null,
+      gate_analisado_em: (r.gate_analisado_em as string) ?? null,
     };
   });
 }

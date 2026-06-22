@@ -3,7 +3,7 @@
 import { Pill, SegredoTag } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
-import { criarDocumento, inativarDocumento } from "@/app/actions";
+import { criarDocumento, inativarDocumento, reanalisarPecas } from "@/app/actions";
 import { DOCUMENTO_TIPO } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { Documento } from "@/lib/data";
@@ -48,6 +48,16 @@ export function DocumentosCaso({
           <div><label>Drive file id (alternativa ao upload)</label><input name="drive_file_id" placeholder="cole o id se o arquivo já estiver no Drive" /></div>
           <div><label>Observações</label><textarea name="observacoes" placeholder="Opcional." /></div>
         </FormModal>
+        {vinculo.campo === "processo_id" && (
+          <Acao
+            label={<>↻ Reavaliar peças pendentes</>}
+            variant="default"
+            titulo="Reavaliar peças pendentes deste processo"
+            confirmarLabel="Marcar para reanálise"
+            resumo={<>Chegou documento novo? Marque as peças pendentes deste processo para o <b>redator agendado</b> reavaliar os insumos no próximo ciclo — quem destravar vira minuta (alta); o resto fica em aguardando insumo com a pendência. O sistema nunca redige às cegas nem protocola.</>}
+            acao={() => reanalisarPecas(vinculo.id)}
+          />
+        )}
       </div>
       <div className="mini-list">
         {documentos.length ? (

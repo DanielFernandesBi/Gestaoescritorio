@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDrawer } from "@/components/Drawer";
 import { Pill, SegredoTag, DiasBox, ProcRef } from "@/components/ui";
@@ -17,6 +17,7 @@ import {
   vincularPrazoIntimacao,
   assumirPeca,
   reatribuirPeca,
+  reanalisarPecas,
 } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
@@ -159,6 +160,32 @@ export function NovaPeca() {
       </div>
       <p className="sub" style={{ margin: 0 }}>O prazo vinculado herda o semáforo de dias corridos; na baixa do prazo a peça vai para “protocolada” automaticamente.</p>
     </FormModal>
+  );
+}
+
+/**
+ * Sugestão 48 — botão "Reanalisar insumos da fila". Marca as peças pendentes
+ * (a_fazer/aguardando_insumo) para o gate v2 reavaliar no próximo ciclo do
+ * redator agendado. O frontend não roda as skills; só dispara o reexame.
+ * `processoId` opcional restringe o escopo a um processo (atalho contextual).
+ */
+export function ReanalisarFila({ processoId, label }: { processoId?: string; label?: ReactNode }) {
+  return (
+    <Acao
+      label={label ?? <>↻ Reanalisar insumos da fila</>}
+      variant="default"
+      titulo="Reanalisar insumos da fila"
+      confirmarLabel="Marcar para reanálise"
+      resumo={
+        <>
+          Marcar as peças pendentes {processoId ? "deste processo " : ""}(a fazer / aguardando insumo)
+          para o <b>redator agendado</b> reavaliar os insumos no próximo ciclo. Quem chegou íntegro
+          vira <b>minuta</b> (alta); o que faltar volta para <b>aguardando insumo</b> com a pendência
+          atualizada. O sistema <b>nunca</b> redige às cegas nem protocola — a minuta nasce para revisão.
+        </>
+      }
+      acao={() => reanalisarPecas(processoId ?? null)}
+    />
   );
 }
 
@@ -307,6 +334,34 @@ export function ProducaoBoard({
               <div className="field"><div className="k">Minuta (Drive)</div><div className="v">{p.drive_file_id ? <MinutaLink id={p.drive_file_id} /> : "—"}</div></div>
             </div>
           </div>
+
+          {(p.gate_resultado || p.gate_pendencia || p.gate_analisado_em || p.status === "aguardando_insumo") && (
+            <div className="dsec">
+              <h4>Análise do redator (gate)</h4>
+              {(p.status === "aguardando_insumo" || p.gate_resultado === "baixa") && p.gate_pendencia && (
+                <div className="banner" style={{ margin: "0 0 12px" }}>
+                  <span className="ico">⏳</span>
+                  <div><b>Aguardando insumo.</b> {p.gate_pendencia}</div>
+                </div>
+              )}
+              <div className="dgrid">
+                <div className="field">
+                  <div className="k">Resultado</div>
+                  <div className="v">
+                    {p.gate_resultado
+                      ? <Pill tone={p.gate_resultado === "alta" ? "green" : "amber"} dot={false}>{p.gate_resultado === "alta" ? "alta — redigir" : "baixa — aguardando insumo"}</Pill>
+                      : "ainda não analisada"}
+                  </div>
+                </div>
+                <div className="field"><div className="k">Analisado em</div><div className="v mono">{p.gate_analisado_em ? fmtDate(p.gate_analisado_em) : "—"}</div></div>
+              </div>
+              {p.processo_id && (
+                <div className="acoes" style={{ marginTop: 10 }}>
+                  <ReanalisarFila processoId={p.processo_id} label={<>↻ Reanalisar peças deste processo</>} />
+                </div>
+              )}
+            </div>
+          )}
 
           {(p.descricao || p.observacoes) && (
             <div className="dsec">
@@ -523,6 +578,9 @@ export function ProducaoBoard({
                       </div>
                       {p.segredo && <div style={{ marginTop: 6 }}><SegredoTag on /></div>}
                       {p.drive_file_id && <div style={{ marginTop: 6, fontSize: 12 }}><MinutaLink id={p.drive_file_id} stop /></div>}
+                      {p.status === "aguardando_insumo" && p.gate_pendencia && (
+                        <div className="sub" style={{ marginTop: 6, color: "var(--amber)" }}>⏳ {p.gate_pendencia}</div>
+                      )}
                       {provisorio && (
                         <div className="prov">
                           ⚠ PROVISÓRIO – conferir <ValidarRapido id={p.id} />
