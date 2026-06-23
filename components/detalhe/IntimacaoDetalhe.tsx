@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ProcRef } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
-import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa, vincularClienteProcesso } from "@/app/actions";
+import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa, vincularClienteProcesso, marcarIntimacaoLida } from "@/app/actions";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm";
@@ -34,6 +34,12 @@ export function IntimacaoDetalhe({
     fetch("/api/clientes-lite").then((r) => r.json()).then((d) => vivo && setClis(d.clientes ?? [])).catch(() => {});
     return () => { vivo = false; };
   }, []);
+
+  // Sugestão 53 — abrir o detalhe = ler. Carimba revisado_em uma vez (COALESCE no
+  // servidor: reabrir não sobrescreve). O Cowork nunca passa por aqui.
+  useEffect(() => {
+    marcarIntimacaoLida(i.id).catch(() => {});
+  }, [i.id]);
 
   return (
     <>

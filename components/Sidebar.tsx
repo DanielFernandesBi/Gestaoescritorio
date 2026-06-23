@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { NAV, type Badges } from "@/lib/nav";
 import { Icon } from "./Icon";
 
@@ -15,6 +16,40 @@ export function Sidebar({
   onClose?: () => void;
 }) {
   const pathname = usePathname();
+
+  // Sugestão 53 (c) — badge ao vivo. O SSR (layout force-dynamic + revalidate
+  // layout nas ações) entrega a contagem fresca; entre atualizações, um polling leve
+  // reflete mudanças externas (Cowork/chat). Quando o valor do SSR muda, resseta o
+  // estado durante o render (padrão React; sem effect de sincronização).
+  const [live, setLive] = useState<Badges>(badges);
+  const chaveSsr = JSON.stringify(badges);
+  const [chavePrev, setChavePrev] = useState(chaveSsr);
+  if (chaveSsr !== chavePrev) {
+    setChavePrev(chaveSsr);
+    setLive(badges);
+  }
+  useEffect(() => {
+    let vivo = true;
+    const puxar = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const r = await fetch("/api/badges", { cache: "no-store" });
+        if (!r.ok) return;
+        const b = (await r.json()) as Badges;
+        if (vivo) setLive(b);
+      } catch {
+        /* offline/erro de rede: mantém o último valor, sem quebrar a UI */
+      }
+    };
+    const t = setInterval(puxar, 60_000);
+    document.addEventListener("visibilitychange", puxar);
+    return () => {
+      vivo = false;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", puxar);
+    };
+  }, []);
+  const contagens = live;
 
   return (
     <aside
@@ -44,7 +79,7 @@ export function Sidebar({
             {g.items.map((it) => {
               const active =
                 pathname === it.href || pathname.startsWith(it.href + "/");
-              const count = it.badgeKey ? badges[it.badgeKey] : undefined;
+              const count = it.badgeKey ? contagens[it.badgeKey] : undefined;
               return (
                 <Link
                   key={it.id}

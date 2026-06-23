@@ -67,6 +67,26 @@ function revalidarTudo() {
   ]) {
     revalidatePath(p);
   }
+  revalidatePath("/", "layout"); // badge da sidebar vive no layout (Sugestão 53)
+}
+
+/**
+ * Sugestão 53 — eixo de LEITURA. Carimba revisado_em/revisado_por SÓ se ainda não
+ * lida (COALESCE da casa: nunca sobrescreve a leitura anterior). O Cowork JAMAIS
+ * chama isto — quem lê é o humano pelo frontend. Devolve true se realmente marcou.
+ */
+async function carimbarLeitura(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  intimacaoId: string,
+  email: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("intimacoes")
+    .update({ revisado_em: agora(), revisado_por: email })
+    .eq("id", intimacaoId)
+    .is("revisado_em", null)
+    .select("id");
+  return Boolean(data?.length);
 }
 
 /* ============================ PRAZOS ============================ */
@@ -127,7 +147,7 @@ async function baixarEventosPrazo(
 
 export async function baixarPrazo(id: string, descricao?: string): Promise<Resultado> {
   try {
-    await requireUser();
+    const email = await requireUser();
     const supabase = await createClient();
     const { data: pr, error } = await supabase
       .from("prazos")
@@ -169,6 +189,7 @@ export async function baixarPrazo(id: string, descricao?: string): Promise<Resul
     }
     if (pr.intimacao_id) {
       await supabase.from("intimacoes").update({ status: "providencia_tomada" }).eq("id", pr.intimacao_id);
+      await carimbarLeitura(supabase, pr.intimacao_id as string, email); // ação humana = leu (Sugestão 53)
       msg += " Intimação marcada como providência tomada.";
     }
 
@@ -226,7 +247,7 @@ export async function cancelarPrazo(id: string, motivo: string): Promise<Resulta
 
 export async function criarPrazo(fd: FormData): Promise<Resultado> {
   try {
-    await requireUser();
+    const email = await requireUser();
     const supabase = await createClient();
     const processo_id = String(fd.get("processo_id") || "");
     const ato = String(fd.get("ato") || "").trim();
@@ -234,18 +255,26 @@ export async function criarPrazo(fd: FormData): Promise<Resultado> {
     const data_interna = String(fd.get("data_interna") || "") || null;
     const responsavel = String(fd.get("responsavel") || "Daniel");
     const tipo_contagem = String(fd.get("tipo_contagem") || "corridos");
+    // Sugestão 53: prazo pode nascer de uma intimação — vínculo conta na vw_intimacoes_contexto.
+    const intimacao_id = String(fd.get("intimacao_id") || "").trim() || null;
     if (!processo_id || !ato || !data_fatal) return { ok: false, message: "Processo, ato e data fatal são obrigatórios." };
 
     const { data: novo, error } = await supabase
       .from("prazos")
       .insert({
-        processo_id, ato, data_fatal, data_interna,
+        processo_id, ato, data_fatal, data_interna, intimacao_id,
         responsavel, tipo_contagem, status: "aberto",
         validado: false, cadastrado_por: "manual",
       })
       .select("id")
       .single();
     if (error) throw error;
+
+    // Bidirecionalidade: encaminhar a intimação de origem (pendente→em_analise) e carimbar leitura.
+    if (intimacao_id) {
+      await supabase.from("intimacoes").update({ status: "em_analise" }).eq("id", intimacao_id).eq("status", "pendente");
+      await carimbarLeitura(supabase, intimacao_id, email);
+    }
 
     // Evento PROVISÓRIO (Tangerina) — nasce visível, conforme manual.
     const { data: proc } = await supabase
@@ -310,7 +339,7 @@ export async function atualizarIntimacao(
   providencia?: string,
 ): Promise<Resultado> {
   try {
-    await requireUser();
+    const email = await requireUser();
     if (!(INTIMACAO_STATUS as readonly string[]).includes(status)) {
       return { ok: false, message: "Status inválido." };
     }
@@ -319,8 +348,27 @@ export async function atualizarIntimacao(
     if (providencia?.trim()) patch.providencia = providencia.trim();
     const { error } = await supabase.from("intimacoes").update(patch).eq("id", id);
     if (error) throw error;
+    // Sugestão 53: ação humana de status = também leu a intimação (carimbo COALESCE-safe).
+    await carimbarLeitura(supabase, id, email);
     revalidarTudo();
     return { ok: true, message: "Intimação atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Sugestão 53 — eixo de LEITURA (Camada B). Marca a intimação como lida pelo humano.
+ * COALESCE: só seta se ainda não lida; reabrir o drawer não sobrescreve. Só revalida
+ * quando realmente marcou (evita churn de cache em reaberturas).
+ */
+export async function marcarIntimacaoLida(id: string): Promise<Resultado> {
+  try {
+    const email = await requireUser();
+    const supabase = await createClient();
+    const marcou = await carimbarLeitura(supabase, id, email);
+    if (marcou) revalidarTudo();
+    return { ok: true, message: marcou ? "Intimação marcada como lida." : "Intimação já estava lida." };
   } catch (e) {
     return falha(e);
   }
@@ -445,13 +493,14 @@ export async function criarTarefa(fd: FormData): Promise<Resultado> {
 /** Cria uma peça do backlog. Manual nasce validado=true, cadastrado_por='manual'. */
 export async function criarPeca(fd: FormData): Promise<Resultado> {
   try {
-    await requireUser();
+    const email = await requireUser();
     const supabase = await createClient();
     const titulo = String(fd.get("titulo") || "").trim();
     if (!titulo) return { ok: false, message: "Título é obrigatório." };
     const tipo = String(fd.get("tipo") || "outra");
     if (!(PECA_TIPO as readonly string[]).includes(tipo)) return { ok: false, message: "Tipo de peça inválido." };
 
+    const intimacao_id = String(fd.get("intimacao_id") || "").trim() || null;
     const { error } = await supabase.from("pecas").insert({
       titulo,
       tipo,
@@ -465,7 +514,7 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
       cliente_id: String(fd.get("cliente_id") || "").trim() || null,
       processo_id: String(fd.get("processo_id") || "").trim() || null,
       prazo_id: String(fd.get("prazo_id") || "").trim() || null,
-      intimacao_id: String(fd.get("intimacao_id") || "").trim() || null,
+      intimacao_id,
       data_alvo: String(fd.get("data_alvo") || "") || null,
       drive_file_id: String(fd.get("drive_file_id") || "").trim() || null,
       validado: true,
@@ -473,6 +522,12 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
       cadastrado_por: "manual",
     });
     if (error) throw error;
+    // Sugestão 53 — bidirecionalidade: agir sobre a intimação a encaminha (status
+    // pendente→em_analise, guard anti-rebaixamento) e conta como leitura (COALESCE).
+    if (intimacao_id) {
+      await supabase.from("intimacoes").update({ status: "em_analise" }).eq("id", intimacao_id).eq("status", "pendente");
+      await carimbarLeitura(supabase, intimacao_id, email);
+    }
     revalidarTudo();
     return { ok: true, message: "Peça criada no backlog (A fazer)." };
   } catch (e) {
@@ -503,7 +558,7 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
  */
 export async function baixarProtocoloPeca(id: string, descricao?: string): Promise<Resultado> {
   try {
-    await requireUser();
+    const email = await requireUser();
     const supabase = await createClient();
 
     const { data: pc, error } = await supabase
@@ -589,9 +644,10 @@ export async function baixarProtocoloPeca(id: string, descricao?: string): Promi
       }
     }
 
-    // 3) Intimação vinculada → providência tomada.
+    // 3) Intimação vinculada → providência tomada (+ carimbo de leitura: ação humana).
     if (pc.intimacao_id) {
       await supabase.from("intimacoes").update({ status: "providencia_tomada" }).eq("id", pc.intimacao_id);
+      await carimbarLeitura(supabase, pc.intimacao_id as string, email);
       msg += " Intimação marcada como providência tomada.";
     }
 

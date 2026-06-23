@@ -22,7 +22,8 @@ export async function getBadges(): Promise<Badges> {
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
     supabase.from("audiencias").select("*", { count: "exact", head: true }).eq("status", "designada"),
-    supabase.from("intimacoes").select("*", { count: "exact", head: true }).eq("status", "pendente"),
+    // Sugestão 53: a "caixa" deixa de contar status cru e passa a derivar dos fatos (na_caixa).
+    supabase.from("vw_intimacoes_contexto").select("*", { count: "exact", head: true }).eq("na_caixa", true),
     supabase.from("tarefas").select("*", { count: "exact", head: true }).in("status", ["pendente", "em_andamento"]),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("clientes").select("*", { count: "exact", head: true }).eq("ativo", true),
@@ -197,7 +198,8 @@ export async function getPainelData(): Promise<PainelData> {
     tarefasVenc,
   ] = await Promise.all([
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
-    supabase.from("intimacoes").select("*", { count: "exact", head: true }).eq("status", "pendente"),
+    // Sugestão 53: coerência com o badge — card "Intimações pendentes" deriva de na_caixa.
+    supabase.from("vw_intimacoes_contexto").select("*", { count: "exact", head: true }).eq("na_caixa", true),
     supabase.from("vw_intimacoes_orfas").select("*", { count: "exact", head: true }),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("processos").select("*", { count: "exact", head: true }).is("numero_cnj", null),

@@ -236,6 +236,13 @@ export type Intimacao = {
   // Sugestão 56 — cliente(s) em destaque (com papel) e "do que se trata".
   partes?: ParteCliente[];
   contexto?: CasoContexto;
+  // Sugestão 53 — sinais derivados da vw_intimacoes_contexto (DOIS eixos: fluxo × leitura).
+  tem_prazo?: boolean;        // já tem prazo vinculado (robô/ humano amarrou)
+  tem_peca?: boolean;         // já tem peça vinculada
+  tem_providencia?: boolean;  // providência registrada
+  na_caixa?: boolean;         // FLUXO: ainda precisa de encaminhamento (caixa derivada)
+  revisado_em?: string | null;   // LEITURA: quando o humano leu (null = não lida)
+  revisado_por?: string | null;
   // Preenchidos no detalhe (getIntimacaoPorId):
   teor?: string | null;
   cadastrado_por?: string | null;
@@ -273,7 +280,7 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
     .order("data_publicacao", { ascending: false, nullsFirst: false })
     .limit(300);
 
-  return (data ?? []).map((r): Intimacao => {
+  const lista = (data ?? []).map((r): Intimacao => {
     const p = r.processos as unknown as NestedProcesso;
     const cp = p?.cliente_processo as unknown as (NestedCliente & { papel?: string | null })[] | null;
     // "Do que se trata": campo próprio da intimação primeiro (cobre órfãs), fallback no processo.
@@ -306,6 +313,30 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
       contexto,
     };
   });
+
+  // Sugestão 53 — mescla os sinais derivados (caixa de fatos × leitura) da view
+  // unificada vw_intimacoes_contexto, por intimacao_id. Mantém o card rico da #56
+  // (partes/contexto montados aqui) e só ACRESCENTA os flags de fluxo/leitura.
+  if (lista.length) {
+    const { data: sinais } = await supabase
+      .from("vw_intimacoes_contexto")
+      .select("intimacao_id, tem_prazo, tem_peca, tem_providencia, na_caixa, revisado_em, revisado_por")
+      .in("intimacao_id", lista.map((i) => i.id));
+    const porId = new Map(
+      (sinais ?? []).map((s) => [s.intimacao_id as string, s]),
+    );
+    for (const i of lista) {
+      const s = porId.get(i.id);
+      i.tem_prazo = Boolean(s?.tem_prazo);
+      i.tem_peca = Boolean(s?.tem_peca);
+      i.tem_providencia = Boolean(s?.tem_providencia);
+      i.na_caixa = Boolean(s?.na_caixa);
+      i.revisado_em = (s?.revisado_em as string | null) ?? null;
+      i.revisado_por = (s?.revisado_por as string | null) ?? null;
+    }
+  }
+
+  return lista;
 }
 
 /** Uma intimação pelo id, na mesma forma de `getIntimacoes`. */

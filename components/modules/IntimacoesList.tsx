@@ -5,6 +5,7 @@ import { ProcRef, SegredoTag, Pill, ContextoCaso, PartesCliente } from "@/compon
 import { Chips } from "@/components/Chips";
 import { Icon } from "@/components/Icon";
 import { RowLink } from "@/components/RowLink";
+import { MarcarLido } from "@/components/MarcarLido";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
 import type { Intimacao } from "@/lib/data";
@@ -20,7 +21,11 @@ const tone = (s: string) =>
         ? "blue"
         : "gray";
 
+// Sugestão 53 — DOIS eixos: LEITURA (default "Para revisar" = revisado_em null) e
+// FLUXO ("Na caixa" = na_caixa derivado dos fatos). Depois, os filtros por status.
 const STATUS = [
+  { id: "para_revisar", label: "Para revisar" },
+  { id: "na_caixa", label: "Na caixa" },
   { id: "todas", label: "Todas" },
   { id: "pendentes", label: "Pendentes" },
   { id: "em_analise", label: "Em análise" },
@@ -37,8 +42,8 @@ const ORIGENS = [
 ];
 
 export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
-  // Abre na triagem do que ainda precisa de ação (como um inbox profissional).
-  const [st, setSt] = useState("pendentes");
+  // Abre no eixo de LEITURA: o que o humano ainda não revisou (inbox profissional).
+  const [st, setSt] = useState("para_revisar");
   const [orig, setOrig] = useState("todas");
   const [visiveis, setVisiveis] = useState(PASSO);
 
@@ -46,13 +51,17 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
     () =>
       intimacoes.filter((i) => {
         const okSt =
-          st === "pendentes"
-            ? i.status === "pendente"
-            : st === "em_analise"
-              ? i.status === "em_analise"
-              : st === "orfas"
-                ? i.orfa
-                : true;
+          st === "para_revisar"
+            ? i.revisado_em == null
+            : st === "na_caixa"
+              ? Boolean(i.na_caixa)
+              : st === "pendentes"
+                ? i.status === "pendente"
+                : st === "em_analise"
+                  ? i.status === "em_analise"
+                  : st === "orfas"
+                    ? i.orfa
+                    : true;
         const okOrig = orig === "todas" ? true : i.origem === orig;
         return okSt && okOrig;
       }),
@@ -60,6 +69,8 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
   );
   const mostradas = filtradas.slice(0, visiveis);
 
+  const nRevisar = intimacoes.filter((i) => i.revisado_em == null).length;
+  const nCaixa = intimacoes.filter((i) => i.na_caixa).length;
   const nPend = intimacoes.filter((i) => i.status === "pendente").length;
   const nAnalise = intimacoes.filter((i) => i.status === "em_analise").length;
   const nOrfas = intimacoes.filter((i) => i.orfa).length;
@@ -69,15 +80,15 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
     setVisiveis(PASSO);
   };
 
-  const opcoesStatus = STATUS.map((o) =>
-    o.id === "todas"
-      ? { ...o, label: `Todas (${intimacoes.length})` }
-      : o.id === "pendentes"
-        ? { ...o, label: `Pendentes (${nPend})` }
-        : o.id === "em_analise"
-          ? { ...o, label: `Em análise (${nAnalise})` }
-          : { ...o, label: `Órfãs (${nOrfas})` },
-  );
+  const contaDe: Record<string, number> = {
+    para_revisar: nRevisar,
+    na_caixa: nCaixa,
+    todas: intimacoes.length,
+    pendentes: nPend,
+    em_analise: nAnalise,
+    orfas: nOrfas,
+  };
+  const opcoesStatus = STATUS.map((o) => ({ ...o, label: `${o.label} (${contaDe[o.id] ?? 0})` }));
 
   return (
     <>
@@ -92,8 +103,8 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
       <div className="scan">
         <div className="scan-h"><h3><Icon name="inbox" /> Panorama das intimações</h3></div>
         <div className="scan-metrics">
-          <button type="button" className={`metric${st === "pendentes" ? " metric-on" : ""}`} onClick={() => irPara("pendentes")}><b>{nPend}</b><span>Pendentes · aguardando ação</span></button>
-          <button type="button" className={`metric${st === "em_analise" ? " metric-on" : ""}`} onClick={() => irPara("em_analise")}><b>{nAnalise}</b><span>Em análise · em estudo</span></button>
+          <button type="button" className={`metric${st === "para_revisar" ? " metric-on" : ""}`} onClick={() => irPara("para_revisar")}><b>{nRevisar}</b><span>Para revisar · não lidas</span></button>
+          <button type="button" className={`metric${st === "na_caixa" ? " metric-on" : ""}`} onClick={() => irPara("na_caixa")}><b>{nCaixa}</b><span>Na caixa · aguardando encaminhamento</span></button>
           <button type="button" className={`metric${st === "orfas" ? " metric-on" : ""}`} onClick={() => irPara("orfas")}><b>{nOrfas}</b><span>Órfãs · sem processo</span></button>
           <button type="button" className={`metric${st === "todas" ? " metric-on" : ""}`} onClick={() => irPara("todas")}><b>{intimacoes.length}</b><span>Total · acervo recente</span></button>
         </div>
@@ -113,23 +124,27 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
                   <th>Cliente · do que se trata</th>
                   <th>Processo</th>
                   <th>Publicação</th>
-                  <th className="center">Status</th>
+                  <th className="center">Status · leitura</th>
                 </tr>
               </thead>
               <tbody>
-                {mostradas.map((i) => (
-                  <RowLink key={i.id} href={linkPara("intimacao", i.id)} ariaLabel={`Abrir intimação: ${i.resumo ?? "sem resumo"}`}>
+                {mostradas.map((i) => {
+                  const naoLida = i.revisado_em == null;
+                  const encaminhada = Boolean(i.tem_prazo || i.tem_peca);
+                  return (
+                  <RowLink key={i.id} href={linkPara("intimacao", i.id)} className={naoLida ? "nao-lida" : ""} ariaLabel={`Abrir intimação: ${i.resumo ?? "sem resumo"}`}>
                     <td><Pill tone="gray" dot={false}>{(i.origem ?? "—").toUpperCase()}</Pill></td>
                     <td>
                       {i.orfa ? (
                         <>
-                          <div className="name" style={{ color: "var(--amber)" }}>⚠ sem processo identificado — triagem humana</div>
+                          <div className="name" style={{ color: "var(--amber)" }}>{naoLida && <span className="dot-nova" aria-hidden />}⚠ sem processo identificado — triagem humana</div>
                           <ContextoCaso ctx={i.contexto} />
                           <div className="sub">{i.resumo ?? "—"}</div>
                         </>
                       ) : (
                         <>
                           <div className="name">
+                            {naoLida && <span className="dot-nova" aria-hidden title="Não lida" />}
                             {i.partes?.length ? <PartesCliente partes={i.partes} /> : (i.cliente ?? "Sem cliente vinculado")}
                             {i.segredo && <> <SegredoTag on /></>}
                           </div>
@@ -146,9 +161,14 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
                       )}
                     </td>
                     <td className="mono">{fmtDate(i.data_publicacao)}</td>
-                    <td className="center"><Pill tone={tone(i.status)}>{humano(i.status)}</Pill></td>
+                    <td className="center">
+                      <Pill tone={tone(i.status)}>{humano(i.status)}</Pill>
+                      {encaminhada && <div style={{ marginTop: 4 }}><Pill tone="green" dot={false}>✓ encaminhada</Pill></div>}
+                      {naoLida && <div style={{ marginTop: 6 }}><MarcarLido id={i.id} /></div>}
+                    </td>
                   </RowLink>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           ) : (

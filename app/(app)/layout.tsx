@@ -2,6 +2,11 @@ import { AppShell } from "@/components/AppShell";
 import { DrawerProvider } from "@/components/Drawer";
 import { getBadges, getUserEmail, iniciaisDoEmail } from "@/lib/queries";
 
+// Sugestão 53 (adendo 22/06): o badge da sidebar vive no layout. Sem isto o layout
+// é estático e o contador fica "travado" entre navegações. Força recomputo a cada req.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AppLayout({
   children,
   modal,
