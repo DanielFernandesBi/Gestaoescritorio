@@ -1,7 +1,7 @@
 "use client";
 
 import { useDrawer } from "@/components/Drawer";
-import { ProcRef, SegredoTag } from "@/components/ui";
+import { ProcRef, SegredoTag, ContextoCaso } from "@/components/ui";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { fmtDate, humano } from "@/lib/format";
 import type { Movimentacao } from "@/lib/data";
@@ -43,6 +43,7 @@ export function AndamentosTimeline({
                     <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} />
                     <SegredoTag on={m.segredo} />
                   </div>
+                  <ContextoCaso ctx={m.contexto} />
                 </>
               ),
               body: (
@@ -74,6 +75,7 @@ export function AndamentosTimeline({
         >
           <div className="d">{fmtDate(m.data)} · {humano(m.tipo)} · {(m.origem ?? "").toUpperCase()}</div>
           <div className="t">{m.descricao}</div>
+          <ContextoCaso ctx={m.contexto} />
           <div className="x">
             {m.segredo ? "🔒 segredo de justiça" : m.clientes ?? ""}
             {m.numero_cnj ? ` · ${m.numero_cnj}` : ""}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ProcRef, SegredoTag, Pill } from "@/components/ui";
+import { ProcRef, SegredoTag, Pill, ContextoCaso, PartesCliente } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { Icon } from "@/components/Icon";
 import { RowLink } from "@/components/RowLink";
@@ -110,7 +110,7 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
               <thead>
                 <tr>
                   <th>Origem</th>
-                  <th>Intimação</th>
+                  <th>Cliente · do que se trata</th>
                   <th>Processo</th>
                   <th>Publicação</th>
                   <th className="center">Status</th>
@@ -121,21 +121,28 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
                   <RowLink key={i.id} href={linkPara("intimacao", i.id)} ariaLabel={`Abrir intimação: ${i.resumo ?? "sem resumo"}`}>
                     <td><Pill tone="gray" dot={false}>{(i.origem ?? "—").toUpperCase()}</Pill></td>
                     <td>
-                      <div className="name">{i.resumo ?? "—"}</div>
                       {i.orfa ? (
-                        <div className="sub" style={{ color: "var(--amber)" }}>⚠ sem processo identificado — triagem humana</div>
+                        <>
+                          <div className="name" style={{ color: "var(--amber)" }}>⚠ sem processo identificado — triagem humana</div>
+                          <ContextoCaso ctx={i.contexto} />
+                          <div className="sub">{i.resumo ?? "—"}</div>
+                        </>
                       ) : (
-                        <div className="sub">{i.cliente ?? "Sem cliente vinculado"}</div>
+                        <>
+                          <div className="name">
+                            {i.partes?.length ? <PartesCliente partes={i.partes} /> : (i.cliente ?? "Sem cliente vinculado")}
+                            {i.segredo && <> <SegredoTag on /></>}
+                          </div>
+                          <ContextoCaso ctx={i.contexto} />
+                          <div className="sub">{i.resumo ?? "—"}</div>
+                        </>
                       )}
                     </td>
                     <td>
                       {i.orfa ? (
                         <span className="sub">—</span>
                       ) : (
-                        <>
-                          <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} />
-                          {i.segredo && <div className="sub"><SegredoTag on /></div>}
-                        </>
+                        <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} />
                       )}
                     </td>
                     <td className="mono">{fmtDate(i.data_publicacao)}</td>

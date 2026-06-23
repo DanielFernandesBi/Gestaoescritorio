@@ -13,6 +13,12 @@ type NestedProcesso = {
   vara_comarca: string | null;
   uf: string | null;
   segredo_justica: boolean | null;
+  // Contexto "do que se trata" (Sugestão 56) — opcionais, presentes quando a query os pede.
+  classe?: string | null;
+  assunto?: string | null;
+  area?: string | null;
+  fase?: string | null;
+  instancia?: string | null;
   cliente_processo?: NestedCliente[] | null;
 } | null;
 
@@ -20,6 +26,35 @@ function nomesClientes(cp?: NestedCliente[] | null): string {
   if (!cp?.length) return "";
   const nomes = cp.map((x) => x.clientes?.nome).filter(Boolean) as string[];
   return [...new Set(nomes)].join(", ");
+}
+
+/* Contexto do caso (Sugestão 56) — bloco "do que se trata", montado deterministicamente
+ * do banco (sem schema novo). Para intimações/andamentos órfãos usa-se COALESCE com os
+ * campos próprios da intimação; o frontend renderiza via <ContextoCaso/>. */
+export type CasoContexto = {
+  classe: string | null;
+  assunto: string | null;
+  area: string | null;
+  fase: string | null;
+  instancia: string | null;
+  tribunal: string | null;
+  vara_comarca: string | null;
+};
+
+/** Cliente + papel no processo (réu/paciente/executado/recorrente…), para o destaque do card. */
+export type ParteCliente = { nome: string; papel: string | null };
+
+function partesClientes(cp?: (NestedCliente & { papel?: string | null })[] | null): ParteCliente[] {
+  if (!cp?.length) return [];
+  const vistos = new Set<string>();
+  const out: ParteCliente[] = [];
+  for (const x of cp) {
+    const nome = x.clientes?.nome;
+    if (!nome || vistos.has(nome)) continue;
+    vistos.add(nome);
+    out.push({ nome, papel: x.papel ?? null });
+  }
+  return out;
 }
 
 /* Prazos ----------------------------------------------------------------- */
@@ -198,6 +233,9 @@ export type Intimacao = {
   segredo: boolean;
   orfa: boolean;
   cliente: string | null;
+  // Sugestão 56 — cliente(s) em destaque (com papel) e "do que se trata".
+  partes?: ParteCliente[];
+  contexto?: CasoContexto;
   // Preenchidos no detalhe (getIntimacaoPorId):
   teor?: string | null;
   cadastrado_por?: string | null;
@@ -230,13 +268,24 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
   const { data } = await supabase
     .from("intimacoes")
     .select(
-      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, classe, area, instancia, tribunal, orgao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,assunto,area,fase,instancia,segredo_justica,cliente_processo(papel,clientes(nome)))",
     )
     .order("data_publicacao", { ascending: false, nullsFirst: false })
     .limit(300);
 
   return (data ?? []).map((r): Intimacao => {
     const p = r.processos as unknown as NestedProcesso;
+    const cp = p?.cliente_processo as unknown as (NestedCliente & { papel?: string | null })[] | null;
+    // "Do que se trata": campo próprio da intimação primeiro (cobre órfãs), fallback no processo.
+    const contexto: CasoContexto = {
+      classe: (r.classe as string | null) ?? p?.classe ?? null,
+      assunto: p?.assunto ?? null,
+      area: (r.area as string | null) ?? p?.area ?? null,
+      fase: p?.fase ?? null,
+      instancia: (r.instancia as string | null) ?? p?.instancia ?? null,
+      tribunal: (r.tribunal as string | null) ?? p?.tribunal ?? null,
+      vara_comarca: p?.vara_comarca ?? null,
+    };
     return {
       id: r.id as string,
       origem: r.origem as string | null,
@@ -248,11 +297,13 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
       codigo_publicacao: r.codigo_publicacao as string | null,
       numero_cnj: p?.numero_cnj ?? null,
       numero_registro: p?.numero_registro_tribunal ?? null,
-      tribunal: p?.tribunal ?? null,
+      tribunal: (r.tribunal as string | null) ?? p?.tribunal ?? null,
       segredo: Boolean(p?.segredo_justica),
       processo_id: (r.processo_id as string) ?? null,
       orfa: r.processo_id == null,
       cliente: nomesClientes(p?.cliente_processo) || null,
+      partes: partesClientes(cp),
+      contexto,
     };
   });
 }
@@ -904,6 +955,8 @@ export type Movimentacao = {
   tribunal: string | null;
   segredo: boolean;
   clientes: string | null;
+  // Sugestão 56 — "do que se trata" do processo vinculado (null para órfãos/sem processo).
+  contexto?: CasoContexto | null;
 };
 
 export async function getAndamentos(): Promise<Movimentacao[]> {
@@ -913,19 +966,48 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
     .select("*")
     .order("data", { ascending: false })
     .limit(60);
-  return (data ?? []).map((r) => ({
-    id: r.id as string,
-    data: r.data as string,
-    tipo: r.tipo as string,
-    descricao: r.descricao as string,
-    autor: r.autor as string | null,
-    origem: r.origem as string | null,
-    numero_cnj: r.numero_cnj as string | null,
-    numero_registro: r.numero_registro_tribunal as string | null,
-    tribunal: r.tribunal as string | null,
-    segredo: Boolean(r.segredo_justica),
-    clientes: r.clientes as string | null,
-  }));
+  const rows = data ?? [];
+
+  // Camada A da Sugestão 56: enriquece com o contexto do processo (classe/assunto/área/
+  // fase/instância/vara) numa única consulta extra — a view já expõe processo_id, então
+  // não há DDL. tribunal vem da própria view (fallback ok).
+  const procIds = [...new Set(rows.map((r) => r.processo_id as string | null).filter(Boolean))] as string[];
+  const ctxPorProcesso = new Map<string, CasoContexto>();
+  if (procIds.length) {
+    const { data: procs } = await supabase
+      .from("processos")
+      .select("id, classe, assunto, area, fase, instancia, tribunal, vara_comarca")
+      .in("id", procIds);
+    for (const pr of procs ?? []) {
+      ctxPorProcesso.set(pr.id as string, {
+        classe: (pr.classe as string | null) ?? null,
+        assunto: (pr.assunto as string | null) ?? null,
+        area: (pr.area as string | null) ?? null,
+        fase: (pr.fase as string | null) ?? null,
+        instancia: (pr.instancia as string | null) ?? null,
+        tribunal: (pr.tribunal as string | null) ?? null,
+        vara_comarca: (pr.vara_comarca as string | null) ?? null,
+      });
+    }
+  }
+
+  return rows.map((r) => {
+    const procId = r.processo_id as string | null;
+    return {
+      id: r.id as string,
+      data: r.data as string,
+      tipo: r.tipo as string,
+      descricao: r.descricao as string,
+      autor: r.autor as string | null,
+      origem: r.origem as string | null,
+      numero_cnj: r.numero_cnj as string | null,
+      numero_registro: r.numero_registro_tribunal as string | null,
+      tribunal: r.tribunal as string | null,
+      segredo: Boolean(r.segredo_justica),
+      clientes: r.clientes as string | null,
+      contexto: (procId && ctxPorProcesso.get(procId)) || null,
+    };
+  });
 }
 
 /* Andamentos órfãos (triagem) -------------------------------------------- */

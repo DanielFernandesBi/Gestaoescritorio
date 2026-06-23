@@ -1,5 +1,6 @@
-import { ddClass, ddLabel } from "@/lib/format";
+import { ddClass, ddLabel, humano } from "@/lib/format";
 import { ProcLink } from "@/components/ProcLink";
+import type { CasoContexto, ParteCliente } from "@/lib/data";
 
 /** Semáforo de prazo (dias restantes). */
 export function DiasBox({ dias }: { dias: number }) {
@@ -70,5 +71,41 @@ export function Gate({ validado }: { validado: boolean }) {
     <span className="gate done">✓ validado</span>
   ) : (
     <span className="gate wait">⏳ aguardando</span>
+  );
+}
+
+/**
+ * Sugestão 56 — "Do que se trata": linha determinística montada do banco
+ * (classe · assunto · área · fase · instância · tribunal · vara), para o usuário
+ * bater o olho e entender o caso. Não exibe nada quando não há contexto.
+ */
+export function ContextoCaso({ ctx }: { ctx?: CasoContexto | null }) {
+  if (!ctx) return null;
+  const partes = [ctx.classe, ctx.assunto, ctx.area, ctx.fase, ctx.instancia, ctx.tribunal, ctx.vara_comarca]
+    .map((s) => s?.trim())
+    .filter(Boolean) as string[];
+  if (!partes.length) return null;
+  return (
+    <div className="ctx-caso sub" title="Do que se trata (montado do banco)">
+      <span className="ctx-k">do que se trata</span> {partes.join(" · ")}
+    </div>
+  );
+}
+
+/**
+ * Sugestão 56 — cliente(s) em destaque com o papel no processo
+ * (réu/paciente/executado/recorrente…). Usado no topo do card de intimação.
+ */
+export function PartesCliente({ partes }: { partes?: ParteCliente[] | null }) {
+  if (!partes?.length) return null;
+  return (
+    <>
+      {partes.map((p, i) => (
+        <span key={`${p.nome}-${i}`} className="parte">
+          <span className="parte-nome">{p.nome}</span>
+          {p.papel && <span className="parte-papel"> · {humano(p.papel)}</span>}
+        </span>
+      ))}
+    </>
   );
 }
