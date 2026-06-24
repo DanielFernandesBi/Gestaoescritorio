@@ -1,5 +1,5 @@
 import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos } from "@/lib/queries";
-import { getFinanceiro, getProcessosParados, getAudiencias, getPecas } from "@/lib/data";
+import { getAudiencias, getPecas } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
 import { Pill, ProcRef, SegredoTag, DiasBox } from "@/components/ui";
@@ -38,9 +38,7 @@ const PROD_COLS: { key: string; label: string }[] = [
 
 export default async function PainelPage() {
   const [
-    { stats, prazos, agenda, movimentacoes, cadastrosAuto, tarefasVencidas, validacao },
-    fin,
-    parados,
+    { stats, prazos, movimentacoes, validacao },
     varredura,
     audiencias,
     email,
@@ -49,8 +47,6 @@ export default async function PainelPage() {
     beneficios,
   ] = await Promise.all([
     getPainelData(),
-    getFinanceiro(),
-    getProcessosParados(30),
     getUltimaVarredura(),
     getAudiencias(),
     getUserEmail(),
@@ -59,7 +55,6 @@ export default async function PainelPage() {
     getBeneficiosProximos(),
   ]);
 
-  const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
   const nome = socioDoEmail(email);
 
   const horaSP = Number(
@@ -76,10 +71,10 @@ export default async function PainelPage() {
     .filter((a) => new Date(a.data_hora).getTime() >= agora - 12 * 3600 * 1000)
     .slice(0, 4);
 
-  // Produção: minutas em revisão para o KPI e o "onde focar".
+  // Produção: minutas em revisão para o KPI, a varredura e o "onde focar".
   const minutasRevisar = pecas.filter((p) => p.status === "em_revisao").length;
 
-  // Fontes que a última varredura cobriu (derivado de varredura.fonte — não é dado novo).
+  // Fontes que a última varredura cobriu (derivado de varredura.fonte).
   const fonteDJEN = varredura ? ["djen", "ambas"].includes(varredura.fonte) : false;
   const fontePush = varredura ? ["push", "ambas"].includes(varredura.fonte) : false;
 
@@ -117,10 +112,10 @@ export default async function PainelPage() {
   }
 
   return (
-    <>
+    <div className="painel-page">
       <div className="painel-head">
         <div>
-          <div className="eyebrow">Ritual matinal</div>
+          <div className="eyebrow">Ritual matinal · {fmtDate(new Date().toISOString())}</div>
           <h1>{saudacao}{nome ? `, ${nome}` : ""}.</h1>
           <p>
             {varredura && <>Última varredura concluída às <b>{fmtTime(varredura.criado_em)}</b> · </>}
@@ -156,8 +151,130 @@ export default async function PainelPage() {
         )}
       </div>
 
-      {/* HERO: prazos fatais + audiências próximas */}
-      <div className="hoje">
+      {/* VARREDURA AUTÔNOMA — fontes → extração → métricas + OAB + anomalias */}
+      <div className="scan">
+        <div className="scan-h">
+          <h3><Icon name="shield" /> Varredura autônoma</h3>
+          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
+        </div>
+        {!varredura ? (
+          <div className="empty">Nenhuma varredura registrada ainda.</div>
+        ) : (
+          <>
+            <div className="scan-sub">
+              Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
+              {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
+            </div>
+            <div className="scan-flow">
+              <div className="flow-src">
+                <span className={`fonte ${fonteDJEN ? "on" : "off"}`}><span className="dot" /> DJEN / CNJ</span>
+                <span className={`fonte ${fontePush ? "on" : "off"}`}><span className="dot" /> Push e-mail</span>
+                <span className={`fonte ${fontePush ? "on" : "off"}`} title="Conferência cruzada por conteúdo — roda na perna push, não é porta de ingestão">
+                  <span className="dot" /> Recorte Digital <em>· conferência cruzada</em>
+                </span>
+              </div>
+              <div className="flow-mid">
+                <span className="flow-seal">Cowork</span>
+                <div className="flow-mid-t">Extração &amp; cruzamento</div>
+                <div className="flow-mid-s">CNJ · partes · prazo · fundamento · providência</div>
+                <div className="flow-mid-n">{fmtNum(varredura.itens_processados)} itens lidos</div>
+              </div>
+              <div className="flow-metrics">
+                <Link className="metric metric-link" href="/varredura/intimacoes"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações</span></Link>
+                <Link className="metric metric-link" href="/varredura/andamentos"><b>{fmtNum(varredura.andamentos_novos)}</b><span>andamentos</span></Link>
+                <Link className="metric metric-link" href="/varredura/prazos"><b>{fmtNum(varredura.prazos_criados)}</b><span>prazos</span></Link>
+                <Link className="metric metric-link" href="/producao"><b>{fmtNum(minutasRevisar)}</b><span>minutas</span></Link>
+              </div>
+            </div>
+            <div className="scan-foot">
+              <div className="scan-block">
+                <div className="scan-block-h">Cobertura por OAB</div>
+                {varredura.diagnostico_oab && varredura.diagnostico_oab.length > 0 ? (
+                  <div className="scan-grid">
+                    {varredura.diagnostico_oab.map((d) => (
+                      <div className="oab" key={d.oab}>
+                        <div className="lbl">{d.oab}</div>
+                        <div className="metrics">
+                          <div className="metric"><b>{fmtNum(d.acervo_total)}</b><span>no acervo</span></div>
+                          <div className="metric"><b>{fmtNum(d.itens_janela)}</b><span>na janela</span></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty sm">Sem diagnóstico por OAB.</div>
+                )}
+              </div>
+              <div className="scan-block">
+                <div className="scan-block-h">Anomalias</div>
+                {varredura.anomalias && varredura.anomalias.length ? (
+                  <div className="anom-list">
+                    {varredura.anomalias.map((a, idx) => (
+                      <AnomaliaRow key={idx} a={a} critico={varredura.status !== "concluida"} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty sm">Sem anomalias. 🎉</div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* KPIs — panorama do acervo e financeiro */}
+      <div className="kpis kpis-6">
+        <Link className="kpi red" href="/prazos">
+          <div className="accent" />
+          <div className="label"><Icon name="clock" size={14} /> Prazos abertos</div>
+          <div className="val">{stats.prazos_abertos}</div>
+          <div className="meta">
+            {prazos[0]
+              ? <>próximo fatal em <b style={{ color: "var(--red)" }}>{dl(prazos[0].dias_restantes)}</b></>
+              : "sem prazos abertos"}
+          </div>
+        </Link>
+
+        <Link className="kpi amber" href="/validacao">
+          <div className="accent" />
+          <div className="label"><Icon name="check" size={14} /> A validar</div>
+          <div className="val">{stats.pendentes_validacao}</div>
+          <div className="meta">prazos + audiências</div>
+        </Link>
+
+        <Link className={`kpi ${stats.conferencias_pendentes > 0 ? "amber" : ""}`} href="/tarefas">
+          <div className="accent" />
+          <div className="label"><Icon name="list" size={14} /> Conferências</div>
+          <div className="val">{stats.conferencias_pendentes}</div>
+          <div className="meta">tarefas automáticas do Cowork</div>
+        </Link>
+
+        <Link className={`kpi ${minutasRevisar > 0 ? "amber" : ""}`} href="/producao">
+          <div className="accent" />
+          <div className="label"><Icon name="book" size={14} /> Peças em produção</div>
+          <div className="val">{pecas.length}</div>
+          <div className="meta">
+            {minutasRevisar > 0 ? <><b style={{ color: "var(--amber)" }}>{minutasRevisar}</b> minuta{minutasRevisar === 1 ? "" : "s"} a revisar</> : "nenhuma minuta a revisar"}
+          </div>
+        </Link>
+
+        <Link className="kpi blue" href="/processos">
+          <div className="accent" />
+          <div className="label"><Icon name="folder" size={14} /> Processos ativos</div>
+          <div className="val">{fmtNum(stats.processos_ativos)}</div>
+          <div className="meta">{stats.processos_sem_cnj} sem CNJ · {stats.processos_sigilosos} sigilosos</div>
+        </Link>
+
+        <Link className="kpi green" href="/financeiro">
+          <div className="accent" />
+          <div className="label"><Icon name="wallet" size={14} /> A receber</div>
+          <div className="val" style={{ fontSize: 24 }}>{fmtBRL(stats.valor_a_receber)}</div>
+          <div className="meta">{stats.parcelas_pendentes} parcelas em aberto</div>
+        </Link>
+      </div>
+
+      {/* Prazos fatais + Aguardando validação */}
+      <div className="two-eq">
         <div className="hcard">
           <h3>
             <span className="lhs"><Icon name="clock" /> Prazos fatais</span>
@@ -182,6 +299,64 @@ export default async function PainelPage() {
             ))
           ) : (
             <div className="empty">Nenhum prazo aberto.</div>
+          )}
+        </div>
+
+        <div className="hcard">
+          <h3>
+            <span className="lhs"><Icon name="check" /> Aguardando validação</span>
+            <Link className="link" href="/validacao">revisar todos →</Link>
+          </h3>
+          {validacao.length ? (
+            <VerMais max={5}>
+              {validacao.map((v) => (
+                <Link className="deadline" key={`${v.tipo}-${v.id}`} href="/validacao">
+                  <div className="dl-main">
+                    <div className="dl-t">{v.descricao}</div>
+                    <div className="dl-s">
+                      {humano(v.tipo)}
+                      {v.numero_cnj && <> · <span className="cnj">{v.numero_cnj}</span></>}
+                    </div>
+                  </div>
+                  <div className="dl-r">
+                    <Pill tone="amber" dot={false}>provisório</Pill>
+                    {v.data_relevante && <div className="dl-s mono" style={{ marginTop: 4 }}>{fmtDate(v.data_relevante)}</div>}
+                  </div>
+                </Link>
+              ))}
+            </VerMais>
+          ) : (
+            <div className="empty">Fila de validação vazia. 🎉</div>
+          )}
+        </div>
+      </div>
+
+      {/* Conferências escaladas + Audiências próximas */}
+      <div className="two-eq">
+        <div className="hcard">
+          <h3>
+            <span className="lhs"><Icon name="shield" /> Conferências escaladas</span>
+            <Link className="link" href="/tarefas">tarefas →</Link>
+          </h3>
+          {conferencias.length ? (
+            <VerMais max={5}>
+              {conferencias.map((c) => (
+                <Link className="deadline" key={c.id} href={linkPara("tarefa", c.id)}>
+                  <div className="dl-main">
+                    <div className="dl-t">{c.titulo}</div>
+                    <div className="dl-s">
+                      {c.segredo ? <SegredoTag on /> : (c.cliente ?? "—")}
+                      {c.numero_cnj && !c.segredo && <> · <span className="cnj">{c.numero_cnj}</span></>}
+                    </div>
+                  </div>
+                  <Pill tone={c.prioridade === "urgente" ? "red" : c.prioridade === "alta" ? "amber" : "gray"} dot={false}>
+                    {(c.prioridade ?? "—").toUpperCase()}
+                  </Pill>
+                </Link>
+              ))}
+            </VerMais>
+          ) : (
+            <div className="empty">Nenhuma conferência escalada. 🎉</div>
           )}
         </div>
 
@@ -218,169 +393,8 @@ export default async function PainelPage() {
         </div>
       </div>
 
-      {/* COBERTURA DA ÚLTIMA VARREDURA */}
-      <div className="scan">
-        <div className="scan-h">
-          <h3><Icon name="shield" /> Cobertura da última varredura</h3>
-          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
-        </div>
-        {!varredura ? (
-          <div className="empty">Nenhuma varredura registrada ainda.</div>
-        ) : (
-          <>
-            <div className="scan-sub">
-              Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
-              {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
-            </div>
-            <div className="scan-fontes">
-              <span className={`fonte ${fonteDJEN ? "on" : "off"}`}>
-                <span className="dot" /> DJEN / CNJ
-              </span>
-              <span className={`fonte ${fontePush ? "on" : "off"}`}>
-                <span className="dot" /> Push e-mail
-              </span>
-              <span className={`fonte ${fontePush ? "on" : "off"}`} title="Conferência cruzada por conteúdo — roda na perna push, não é porta de ingestão">
-                <span className="dot" /> Recorte Digital <em>· conferência cruzada</em>
-              </span>
-            </div>
-            <div className="scan-metrics">
-              <div className="metric"><b>{fmtNum(varredura.itens_processados)}</b><span>processados</span></div>
-              <Link className="metric metric-link" href="/varredura/intimacoes"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações novas</span></Link>
-              <Link className="metric metric-link" href="/varredura/andamentos"><b>{fmtNum(varredura.andamentos_novos)}</b><span>andamentos novos</span></Link>
-              <Link className="metric metric-link" href="/varredura/prazos"><b>{fmtNum(varredura.prazos_criados)}</b><span>prazos criados</span></Link>
-            </div>
-            {varredura.diagnostico_oab && varredura.diagnostico_oab.length > 0 && (
-              <div className="scan-grid">
-                {varredura.diagnostico_oab.map((d) => (
-                  <div className="oab" key={d.oab}>
-                    <div className="lbl">{d.oab}</div>
-                    <div className="metrics">
-                      <div className="metric"><b>{fmtNum(d.acervo_total)}</b><span>no acervo</span></div>
-                      <div className="metric"><b>{fmtNum(d.itens_janela)}</b><span>na janela</span></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* KPIs — panorama do acervo e financeiro */}
-      <div className="kpis kpis-6">
-        <Link className="kpi red" href="/prazos">
-          <div className="accent" />
-          <div className="label"><Icon name="clock" size={14} /> Prazos abertos</div>
-          <div className="val">{stats.prazos_abertos}</div>
-          <div className="meta">
-            {prazos[0]
-              ? <>próximo fatal em <b style={{ color: "var(--red)" }}>{dl(prazos[0].dias_restantes)}</b></>
-              : "sem prazos abertos"}
-          </div>
-        </Link>
-
-        <Link className="kpi amber" href="/validacao">
-          <div className="accent" />
-          <div className="label"><Icon name="check" size={14} /> A validar</div>
-          <div className="val">{stats.pendentes_validacao}</div>
-          <div className="meta">prazos + audiências</div>
-        </Link>
-
-        <Link className={`kpi ${stats.conferencias_pendentes > 0 ? "amber" : ""}`} href="/tarefas">
-          <div className="accent" />
-          <div className="label"><Icon name="list" size={14} /> Conferências pendentes</div>
-          <div className="val">{stats.conferencias_pendentes}</div>
-          <div className="meta">tarefas automáticas do Cowork</div>
-        </Link>
-
-        <Link className={`kpi ${minutasRevisar > 0 ? "amber" : ""}`} href="/producao">
-          <div className="accent" />
-          <div className="label"><Icon name="book" size={14} /> Peças em produção</div>
-          <div className="val">{pecas.length}</div>
-          <div className="meta">
-            {minutasRevisar > 0 ? <><b style={{ color: "var(--amber)" }}>{minutasRevisar}</b> minuta{minutasRevisar === 1 ? "" : "s"} a revisar</> : "nenhuma minuta a revisar"}
-          </div>
-        </Link>
-
-        <Link className="kpi blue" href="/processos">
-          <div className="accent" />
-          <div className="label"><Icon name="folder" size={14} /> Processos ativos</div>
-          <div className="val">{fmtNum(stats.processos_ativos)}</div>
-          <div className="meta">{stats.processos_sem_cnj} sem CNJ · {stats.processos_sigilosos} sigilosos</div>
-        </Link>
-
-        <Link className="kpi green" href="/financeiro">
-          <div className="accent" />
-          <div className="label"><Icon name="wallet" size={14} /> A receber</div>
-          <div className="val" style={{ fontSize: 24 }}>{fmtBRL(stats.valor_a_receber)}</div>
-          <div className="meta">{stats.parcelas_pendentes} parcelas em aberto</div>
-        </Link>
-      </div>
-
-      {/* Aguardando validação + Conferências escaladas — meia tela cada */}
-      <div className="two-eq">
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="check" /> Aguardando validação</h3>
-            <Link className="link" href="/validacao">revisar todos →</Link>
-          </div>
-          <div className="op-list">
-            {validacao.length ? (
-              <VerMais max={5}>
-                {validacao.map((v) => (
-                  <Link className="op-row" key={`${v.tipo}-${v.id}`} href="/validacao">
-                    <div>
-                      <div className="ot">{v.descricao}</div>
-                      <div className="os">
-                        {humano(v.tipo)}
-                        {v.numero_cnj && <> · <span className="cnj">{v.numero_cnj}</span></>}
-                      </div>
-                    </div>
-                    <div className="dl-r">
-                      <Pill tone="amber" dot={false}>provisório</Pill>
-                      {v.data_relevante && <div className="os mono" style={{ marginTop: 4 }}>{fmtDate(v.data_relevante)}</div>}
-                    </div>
-                  </Link>
-                ))}
-              </VerMais>
-            ) : (
-              <div className="empty">Fila de validação vazia. 🎉</div>
-            )}
-          </div>
-        </div>
-
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="shield" /> Conferências escaladas</h3>
-            <Link className="link" href="/tarefas">tarefas →</Link>
-          </div>
-          <div className="op-list">
-            {conferencias.length ? (
-              <VerMais max={5}>
-                {conferencias.map((c) => (
-                  <Link className="op-row" key={c.id} href={linkPara("tarefa", c.id)}>
-                    <div>
-                      <div className="ot">{c.titulo}</div>
-                      <div className="os">
-                        {c.segredo ? <SegredoTag on /> : (c.cliente ?? "—")}
-                        {c.numero_cnj && !c.segredo && <> · <span className="cnj">{c.numero_cnj}</span></>}
-                      </div>
-                    </div>
-                    <Pill tone={c.prioridade === "urgente" ? "red" : c.prioridade === "alta" ? "amber" : "gray"} dot={false}>
-                      {(c.prioridade ?? "—").toUpperCase()}
-                    </Pill>
-                  </Link>
-                ))}
-              </VerMais>
-            ) : (
-              <div className="empty">Nenhuma conferência escalada. 🎉</div>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* PRODUÇÃO DE PEÇAS — mini-board do kanban (vw_pecas_pendentes) */}
-      <div className="card section-gap">
+      <div className="card">
         <div className="card-h">
           <h3><Icon name="book" /> Produção de peças</h3>
           <Link className="link" href="/producao">abrir fila →</Link>
@@ -434,84 +448,45 @@ export default async function PainelPage() {
         )}
       </div>
 
-      {/* Agenda + movimentações — meia tela cada */}
+      {/* Movimentações recentes + Benefícios próximos · execução */}
       <div className="two-eq">
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="grid" /> Agenda dos próximos 7 dias</h3>
-          </div>
-          <div className="op-list">
-            {agenda.length ? (
-              <VerMais max={6}>
-                {agenda.map((e, i) => {
-                  const tp = e.tipo?.toUpperCase() ?? "";
-                  const isAudi = tp.includes("AUDI");
-                  const isComp = tp.includes("COMPROM");
-                  const ent = isAudi ? "audiencia" : isComp ? "compromisso" : "prazo";
-                  const label = isAudi ? "Audiência" : isComp ? "Compromisso" : "Prazo";
-                  const ptone = isAudi ? "blue" : isComp ? "green" : "amber";
-                  return (
-                    <Link className="op-row" key={i} href={linkPara(ent, e.ref_id)}>
-                      <div>
-                        <div className="ot">{e.descricao}</div>
-                        <div className="os">{e.cliente ?? "—"}{e.responsavel ? ` · ${e.responsavel}` : ""}</div>
-                      </div>
-                      <div className="dl-r">
-                        <Pill tone={ptone} dot={false}>{label}</Pill>
-                        <div className="os mono" style={{ marginTop: 4 }}>{fmtDate(e.data)}</div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </VerMais>
-            ) : (
-              <div className="empty">Agenda vazia para os próximos 7 dias.</div>
-            )}
-          </div>
-        </div>
-
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="activity" /> Movimentações recentes (7 dias)</h3>
-            <Link className="link" href="/andamentos">ver todas</Link>
-          </div>
-          <div className="op-list">
-            {movimentacoes.length ? (
-              <VerMais max={6}>
-                {movimentacoes.map((m) => (
-                  <div className="op-row" key={m.id}>
-                    <div>
-                      <div className="ot">{humano(m.tipo)}</div>
-                      <div className="os">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</div>
-                    </div>
-                    <div className="dl-r">
-                      <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} id={m.processo_id} />
-                      <div className="os">{(m.origem ?? "").toUpperCase()} · {fmtDate(m.data)}</div>
-                    </div>
+        <div className="hcard">
+          <h3>
+            <span className="lhs"><Icon name="activity" /> Movimentações recentes</span>
+            <Link className="link" href="/andamentos">ver todas →</Link>
+          </h3>
+          {movimentacoes.length ? (
+            <VerMais max={6}>
+              {movimentacoes.map((m) => (
+                <div className="deadline" key={m.id}>
+                  <div className="dl-main">
+                    <div className="dl-t">{humano(m.tipo)}</div>
+                    <div className="dl-s">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</div>
                   </div>
-                ))}
-              </VerMais>
-            ) : (
-              <div className="empty">Nenhuma movimentação nos últimos 7 dias.</div>
-            )}
-          </div>
+                  <div className="dl-r">
+                    <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} id={m.processo_id} />
+                    <div className="dl-s">{(m.origem ?? "").toUpperCase()} · {fmtDate(m.data)}</div>
+                  </div>
+                </div>
+              ))}
+            </VerMais>
+          ) : (
+            <div className="empty">Nenhuma movimentação nos últimos 7 dias.</div>
+          )}
         </div>
-      </div>
 
-      {/* Benefícios próximos · execução penal (cross-client) */}
-      <div className="card section-gap">
-        <div className="card-h">
-          <h3><Icon name="users" /> Benefícios próximos · execução</h3>
-          <Link className="link" href="/clientes">clientes →</Link>
-        </div>
-        <div className="op-list">
+        <div className="hcard">
+          <h3>
+            <span className="lhs"><Icon name="users" /> Benefícios próximos · execução</span>
+            <Link className="link" href="/clientes">clientes →</Link>
+          </h3>
           {beneficios.length ? (
             <VerMais max={6}>
               {beneficios.map((b) => (
-                <Link className="op-row" key={b.cliente_id} href={linkPara("cliente", b.cliente_id)}>
-                  <div>
-                    <div className="ot">{b.segredo ? <SegredoTag on /> : b.nome}</div>
-                    <div className="os">
+                <Link className="deadline" key={b.cliente_id} href={linkPara("cliente", b.cliente_id)}>
+                  <div className="dl-main">
+                    <div className="dl-t">{b.segredo ? <SegredoTag on /> : b.nome}</div>
+                    <div className="dl-s">
                       {b.tipo === "progressao" ? "progressão de regime" : "livramento condicional"}
                       {b.regime_atual ? ` · ${humano(b.regime_atual)}` : ""}
                     </div>
@@ -520,7 +495,7 @@ export default async function PainelPage() {
                     <Pill tone={b.dias < 0 ? "red" : b.dias <= 30 ? "amber" : "blue"} dot={false}>
                       {b.dias < 0 ? `${Math.abs(b.dias)}d vencido` : `${b.dias}d`}
                     </Pill>
-                    {b.data_prevista && <div className="os mono" style={{ marginTop: 4 }}>{fmtDate(b.data_prevista)}</div>}
+                    {b.data_prevista && <div className="dl-s mono" style={{ marginTop: 4 }}>{fmtDate(b.data_prevista)}</div>}
                   </div>
                 </Link>
               ))}
@@ -530,138 +505,6 @@ export default async function PainelPage() {
           )}
         </div>
       </div>
-
-      {/* Operacional — 5 cards de tamanho igual */}
-      <div className="cards-row">
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="users" /> Cadastros automáticos</h3>
-            <Link className="link" href="/auditoria">auditoria</Link>
-          </div>
-          <div className="op-list">
-            {cadastrosAuto.length ? (
-              <VerMais max={6}>
-                {cadastrosAuto.map((c) => (
-                  <Link className="op-row" key={`${c.tipo}-${c.id}`} href={linkPara(c.tipo, c.id)}>
-                    <div>
-                      <div className="ot">{c.label}</div>
-                      <div className="os">{c.tipo} · {fmtDate(c.criado_em)}</div>
-                    </div>
-                    <Pill tone="amber" dot={false}>revisar</Pill>
-                  </Link>
-                ))}
-              </VerMais>
-            ) : (
-              <div className="empty">Nenhum cadastro automático hoje.</div>
-            )}
-          </div>
-        </div>
-
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="list" /> Tarefas vencidas</h3>
-            <Link className="link" href="/tarefas">tarefas</Link>
-          </div>
-          <div className="op-list">
-            {tarefasVencidas.length ? (
-              <VerMais max={6}>
-                {tarefasVencidas.map((t) => (
-                  <Link className="op-row" key={t.id} href={linkPara("tarefa", t.id)}>
-                    <div>
-                      <div className="ot">{t.titulo}</div>
-                      <div className="os">{t.responsavel ?? "—"}</div>
-                    </div>
-                    <div className="dl-r">
-                      <div className="mono" style={{ color: "var(--red)", fontWeight: 600 }}>{fmtDate(t.data_limite)}</div>
-                      <div className="os" style={{ color: "var(--red)" }}>{Math.abs(t.dias)}d atraso</div>
-                    </div>
-                  </Link>
-                ))}
-              </VerMais>
-            ) : (
-              <div className="empty">Nenhuma tarefa vencida. 🎉</div>
-            )}
-          </div>
-        </div>
-
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="wallet" /> Cobranças atrasadas</h3>
-            <Link className="link" href="/financeiro">financeiro</Link>
-          </div>
-          <div className="op-list">
-            {atrasadas.length ? (
-              <VerMais max={6}>
-                {atrasadas.map((p) => (
-                  <Link className="op-row" key={p.id} href={p.contrato_id ? linkPara("contrato", p.contrato_id) : "/financeiro"}>
-                    <div>
-                      <div className="ot">{p.cliente}</div>
-                      <div className="os" style={{ color: "var(--red)" }}>parcela {p.numero_parcela} · {p.dias_atraso}d em atraso</div>
-                    </div>
-                    <div className="money">{fmtBRL(p.valor)}</div>
-                  </Link>
-                ))}
-              </VerMais>
-            ) : (
-              <div className="empty">Nenhuma parcela atrasada. 🎉</div>
-            )}
-          </div>
-        </div>
-
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="shield" /> Radar — parados ≥30d</h3>
-            <Link className="link" href="/alertas">alertas</Link>
-          </div>
-          <div className="op-list">
-            {parados.length ? (
-              <VerMais max={6}>
-                {parados.map((p) => (
-                  <Link className="op-row" key={p.processo_id} href={linkPara("processo", p.processo_id)}>
-                    <div>
-                      <div className="ot mono">{p.numero_cnj ?? p.numero_registro_tribunal ?? "—"}</div>
-                      <div className="os">{p.clientes ?? "—"}{p.tem_preso && <span style={{ color: "var(--red)" }}> · preso</span>}</div>
-                    </div>
-                    <Pill tone={p.dias_parado >= 90 ? "red" : "amber"}>{p.dias_parado}d</Pill>
-                  </Link>
-                ))}
-              </VerMais>
-            ) : (
-              <div className="empty">Nenhum processo parado. 🎉</div>
-            )}
-          </div>
-        </div>
-
-        <div className="card op-card">
-          <div className="card-h">
-            <h3><Icon name="shield" /> Anomalias</h3>
-            {varredura && varredura.status !== "concluida" && (
-              <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>
-            )}
-          </div>
-          <div className="op-list">
-            {varredura?.anomalias && varredura.anomalias.length ? (
-              <VerMais max={6}>
-                {varredura.anomalias.map((a, idx) => (
-                  <AnomaliaRow key={idx} a={a} critico={varredura.status !== "concluida"} />
-                ))}
-              </VerMais>
-            ) : (
-              <div className="empty">Sem anomalias. 🎉</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Faixa Assistente — atalho (o Claude opera pelo chat / Cowork) */}
-      <Link className="assist" href="/busca">
-        <span className="assist-ico"><Icon name="search" size={18} /></span>
-        <div className="assist-main">
-          <div className="assist-t">Assistente Claude</div>
-          <div className="assist-s">Peça o relatório do dia ou uma ação pelo chat (Cowork). Aqui, busque processo, cliente ou intimação.</div>
-        </div>
-        <span className="assist-cta">Busca global ⌘K →</span>
-      </Link>
-    </>
+    </div>
   );
 }

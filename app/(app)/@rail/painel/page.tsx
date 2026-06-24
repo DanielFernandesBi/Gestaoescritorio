@@ -7,8 +7,9 @@ import { fmtDate } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 /**
- * Trilho lateral de órfãs — 3ª coluna do shell, só no painel (slot @rail).
- * Reúne a fila de triagem: intimações, prazos e andamentos sem processo.
+ * Trilho lateral — 3ª coluna do shell, só no painel (slot @rail).
+ * Topo: atalho do Assistente (o Claude opera pelo chat/Cowork — aqui é CTA, não
+ * chat embutido). Abaixo: a fila de triagem (intimações, prazos e andamentos órfãos).
  */
 export default async function PainelRail() {
   const [{ stats, orfas }, prazosOrfaos] = await Promise.all([
@@ -18,19 +19,35 @@ export default async function PainelRail() {
   const total =
     stats.intimacoes_orfas + stats.andamentos_orfaos + prazosOrfaos.length;
 
-  // Nada a triar: não renderiza o trilho — a coluna some e o conteúdo ocupa tudo.
-  if (total === 0) return null;
-
   return (
-    <aside className="orfas-rail" aria-label="Fila de triagem de órfãs">
+    <aside className="orfas-rail" aria-label="Assistente e fila de triagem">
+      <Link className="assist-rail" href="/busca">
+        <div className="assist-rail-h">
+          <span className="assist-seal"><Icon name="activity" size={14} /></span>
+          <span>Assistente Claude</span>
+        </div>
+        <div className="assist-rail-b">
+          Peça o relatório do dia ou uma ação pelo chat (Cowork). Aqui, busque
+          processo, cliente ou intimação.
+        </div>
+        <span className="assist-rail-cta">Busca global ⌘K →</span>
+      </Link>
+
       <div className="rail-top">
         <span className="lhs">
           <Icon name="inbox" size={14} /> Fila de triagem
         </span>
-        <span className="rail-count">{total}</span>
+        <span className={`rail-count${total === 0 ? " zero" : ""}`}>{total}</span>
       </div>
 
-      <>
+      {total === 0 ? (
+        <div className="sup-card">
+          <div className="orf">
+            <div className="os">Nada a triar agora. 🎉</div>
+          </div>
+        </div>
+      ) : (
+        <>
           <div className="sup-card">
             <div className="sh">
               <h4>Intimações órfãs</h4>
@@ -85,7 +102,8 @@ export default async function PainelRail() {
               </Link>
             </div>
           )}
-      </>
+        </>
+      )}
     </aside>
   );
 }
