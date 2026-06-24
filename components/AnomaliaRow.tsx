@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useDrawer } from "@/components/Drawer";
 import { Pill } from "@/components/ui";
+import { humano } from "@/lib/format";
 import type { Anomalia } from "@/lib/queries";
 
 /**
@@ -58,7 +59,7 @@ export function AnomaliaRow({ a, critico }: { a: Anomalia; critico?: boolean }) 
 
   return (
     <div
-      className="op-row op-click"
+      className="anom-row"
       role="button"
       tabIndex={0}
       onClick={abrir}
@@ -69,11 +70,13 @@ export function AnomaliaRow({ a, critico }: { a: Anomalia; critico?: boolean }) 
         }
       }}
     >
-      <div>
-        <div className="ot" style={critico ? { color: "var(--red)" } : undefined}>
-          {a.fonte.toUpperCase()} · {a.tipo}
+      <span className={`anom-dot ${critico ? "crit" : "warn"}`} />
+      <div className="anom-main">
+        <div className="anom-h">
+          <span className={`anom-tipo ${critico ? "crit" : ""}`}>{humano(a.tipo)}</span>
+          <span className="anom-fonte">{humano(a.fonte)}</span>
         </div>
-        <div className="os">{a.detalhe}</div>
+        <div className="anom-det">{a.detalhe}</div>
       </div>
     </div>
   );

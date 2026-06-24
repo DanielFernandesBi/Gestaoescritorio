@@ -24,13 +24,16 @@ export default async function PainelRail() {
       <Link className="assist-rail" href="/busca">
         <div className="assist-rail-h">
           <span className="assist-seal"><Icon name="activity" size={14} /></span>
-          <span>Assistente Claude</span>
+          <span>Assistente</span>
         </div>
         <div className="assist-rail-b">
-          Peça o relatório do dia ou uma ação pelo chat (Cowork). Aqui, busque
-          processo, cliente ou intimação.
+          O Claude opera pelo chat (Cowork) — peça lá o relatório do dia ou uma
+          ação. Aqui, o atalho de busca do acervo.
         </div>
-        <span className="assist-rail-cta">Busca global ⌘K →</span>
+        <div className="assist-rail-prompt">
+          <span>Pergunte ou peça um relatório…</span>
+          <span className="assist-send">→</span>
+        </div>
       </Link>
 
       <div className="rail-top">
