@@ -1,5 +1,5 @@
-import { getPainelData, getUltimaVarredura, getUserEmail } from "@/lib/queries";
-import { getFinanceiro, getProcessosParados, getAudiencias } from "@/lib/data";
+import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos } from "@/lib/queries";
+import { getFinanceiro, getProcessosParados, getAudiencias, getPecas } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
 import { Pill, ProcRef, SegredoTag, DiasBox } from "@/components/ui";
@@ -25,15 +25,28 @@ function diaMes(iso: string) {
 function audTone(dias: number): "crit" | "warn" | "ok" {
   return dias <= 2 ? "crit" : dias <= 7 ? "warn" : "ok";
 }
+const dl = (n: number) => `${n} ${Math.abs(n) === 1 ? "dia" : "dias"}`;
+
+// Colunas do mini-board de produção (subset do kanban; vw_pecas_pendentes já
+// exclui protocoladas/canceladas/prejudicadas).
+const PROD_COLS: { key: string; label: string }[] = [
+  { key: "a_fazer", label: "A fazer" },
+  { key: "em_elaboracao", label: "Em elaboração" },
+  { key: "em_revisao", label: "Em revisão" },
+  { key: "aguardando_insumo", label: "Aguardando insumo" },
+];
 
 export default async function PainelPage() {
   const [
-    { stats, prazos, agenda, movimentacoes, cadastrosAuto, tarefasVencidas },
+    { stats, prazos, agenda, movimentacoes, cadastrosAuto, tarefasVencidas, validacao },
     fin,
     parados,
     varredura,
     audiencias,
     email,
+    pecas,
+    conferencias,
+    beneficios,
   ] = await Promise.all([
     getPainelData(),
     getFinanceiro(),
@@ -41,6 +54,9 @@ export default async function PainelPage() {
     getUltimaVarredura(),
     getAudiencias(),
     getUserEmail(),
+    getPecas(),
+    getConferenciasEscaladas(),
+    getBeneficiosProximos(),
   ]);
 
   const atrasadas = fin.parcelas.filter((p) => p.status === "atrasado");
@@ -60,6 +76,46 @@ export default async function PainelPage() {
     .filter((a) => new Date(a.data_hora).getTime() >= agora - 12 * 3600 * 1000)
     .slice(0, 4);
 
+  // Produção: minutas em revisão para o KPI e o "onde focar".
+  const minutasRevisar = pecas.filter((p) => p.status === "em_revisao").length;
+
+  // Fontes que a última varredura cobriu (derivado de varredura.fonte — não é dado novo).
+  const fonteDJEN = varredura ? ["djen", "ambas"].includes(varredura.fonte) : false;
+  const fontePush = varredura ? ["push", "ambas"].includes(varredura.fonte) : false;
+
+  // "Onde focar agora" — derivação determinística dos sinais reais (sem LLM):
+  // o fatal mais próximo, a conferência mais urgente e as minutas a revisar.
+  const focos: { titulo: string; sub: string; href: string; tag: string; tone: "crit" | "warn" | "ok" }[] = [];
+  const fatal = prazos[0];
+  if (fatal) {
+    focos.push({
+      titulo: fatal.ato,
+      sub: `${fatal.clientes ?? "—"}${fatal.numero_cnj ? ` · ${fatal.numero_cnj}` : ""}`,
+      href: linkPara("prazo", fatal.prazo_id),
+      tag: `fatal em ${dl(fatal.dias_restantes)}`,
+      tone: audTone(fatal.dias_restantes),
+    });
+  }
+  const confTop = conferencias.find((c) => c.prioridade === "urgente") ?? conferencias[0];
+  if (confTop) {
+    focos.push({
+      titulo: confTop.titulo,
+      sub: confTop.segredo ? "🔒 segredo de justiça" : confTop.cliente ?? "conferência escalada",
+      href: linkPara("tarefa", confTop.id),
+      tag: confTop.prioridade ?? "conferência",
+      tone: confTop.prioridade === "urgente" ? "crit" : "warn",
+    });
+  }
+  if (minutasRevisar > 0) {
+    focos.push({
+      titulo: `Revisar ${minutasRevisar} ${minutasRevisar === 1 ? "minuta" : "minutas"} da produção`,
+      sub: "peças em revisão · produção",
+      href: "/producao",
+      tag: "em revisão",
+      tone: "ok",
+    });
+  }
+
   return (
     <>
       <div className="painel-head">
@@ -74,6 +130,30 @@ export default async function PainelPage() {
         <Link className="btn primary" href="/validacao">
           <Icon name="check" size={15} /> Revisar validações ({stats.pendentes_validacao})
         </Link>
+      </div>
+
+      {/* ONDE FOCAR AGORA — prioridades derivadas dos dados reais */}
+      <div className="focus">
+        <div className="focus-h">
+          <span className="lhs"><Icon name="activity" size={15} /> Onde focar agora</span>
+          <span className="focus-sub">derivado dos prazos, conferências e produção do dia</span>
+        </div>
+        {focos.length ? (
+          <ol className="focus-list">
+            {focos.map((f, i) => (
+              <Link className="focus-item" key={i} href={f.href}>
+                <span className="focus-n">{i + 1}</span>
+                <div className="focus-main">
+                  <div className="focus-t">{f.titulo}</div>
+                  <div className="focus-s">{f.sub}</div>
+                </div>
+                <span className={`focus-tag ${f.tone}`}>{f.tag}</span>
+              </Link>
+            ))}
+          </ol>
+        ) : (
+          <div className="empty">Nada urgente agora. 🎉</div>
+        )}
       </div>
 
       {/* HERO: prazos fatais + audiências próximas */}
@@ -152,6 +232,17 @@ export default async function PainelPage() {
               Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
               {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
             </div>
+            <div className="scan-fontes">
+              <span className={`fonte ${fonteDJEN ? "on" : "off"}`}>
+                <span className="dot" /> DJEN / CNJ
+              </span>
+              <span className={`fonte ${fontePush ? "on" : "off"}`}>
+                <span className="dot" /> Push e-mail
+              </span>
+              <span className={`fonte ${fontePush ? "on" : "off"}`} title="Conferência cruzada por conteúdo — roda na perna push, não é porta de ingestão">
+                <span className="dot" /> Recorte Digital <em>· conferência cruzada</em>
+              </span>
+            </div>
             <div className="scan-metrics">
               <div className="metric"><b>{fmtNum(varredura.itens_processados)}</b><span>processados</span></div>
               <Link className="metric metric-link" href="/varredura/intimacoes"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações novas</span></Link>
@@ -176,14 +267,14 @@ export default async function PainelPage() {
       </div>
 
       {/* KPIs — panorama do acervo e financeiro */}
-      <div className="kpis">
+      <div className="kpis kpis-6">
         <Link className="kpi red" href="/prazos">
           <div className="accent" />
           <div className="label"><Icon name="clock" size={14} /> Prazos abertos</div>
           <div className="val">{stats.prazos_abertos}</div>
           <div className="meta">
             {prazos[0]
-              ? <>próximo fatal em <b style={{ color: "var(--red)" }}>{prazos[0].dias_restantes} dias</b></>
+              ? <>próximo fatal em <b style={{ color: "var(--red)" }}>{dl(prazos[0].dias_restantes)}</b></>
               : "sem prazos abertos"}
           </div>
         </Link>
@@ -202,6 +293,15 @@ export default async function PainelPage() {
           <div className="meta">tarefas automáticas do Cowork</div>
         </Link>
 
+        <Link className={`kpi ${minutasRevisar > 0 ? "amber" : ""}`} href="/producao">
+          <div className="accent" />
+          <div className="label"><Icon name="book" size={14} /> Peças em produção</div>
+          <div className="val">{pecas.length}</div>
+          <div className="meta">
+            {minutasRevisar > 0 ? <><b style={{ color: "var(--amber)" }}>{minutasRevisar}</b> minuta{minutasRevisar === 1 ? "" : "s"} a revisar</> : "nenhuma minuta a revisar"}
+          </div>
+        </Link>
+
         <Link className="kpi blue" href="/processos">
           <div className="accent" />
           <div className="label"><Icon name="folder" size={14} /> Processos ativos</div>
@@ -215,6 +315,123 @@ export default async function PainelPage() {
           <div className="val" style={{ fontSize: 24 }}>{fmtBRL(stats.valor_a_receber)}</div>
           <div className="meta">{stats.parcelas_pendentes} parcelas em aberto</div>
         </Link>
+      </div>
+
+      {/* Aguardando validação + Conferências escaladas — meia tela cada */}
+      <div className="two-eq">
+        <div className="card op-card">
+          <div className="card-h">
+            <h3><Icon name="check" /> Aguardando validação</h3>
+            <Link className="link" href="/validacao">revisar todos →</Link>
+          </div>
+          <div className="op-list">
+            {validacao.length ? (
+              <VerMais max={5}>
+                {validacao.map((v) => (
+                  <Link className="op-row" key={`${v.tipo}-${v.id}`} href="/validacao">
+                    <div>
+                      <div className="ot">{v.descricao}</div>
+                      <div className="os">
+                        {humano(v.tipo)}
+                        {v.numero_cnj && <> · <span className="cnj">{v.numero_cnj}</span></>}
+                      </div>
+                    </div>
+                    <div className="dl-r">
+                      <Pill tone="amber" dot={false}>provisório</Pill>
+                      {v.data_relevante && <div className="os mono" style={{ marginTop: 4 }}>{fmtDate(v.data_relevante)}</div>}
+                    </div>
+                  </Link>
+                ))}
+              </VerMais>
+            ) : (
+              <div className="empty">Fila de validação vazia. 🎉</div>
+            )}
+          </div>
+        </div>
+
+        <div className="card op-card">
+          <div className="card-h">
+            <h3><Icon name="shield" /> Conferências escaladas</h3>
+            <Link className="link" href="/tarefas">tarefas →</Link>
+          </div>
+          <div className="op-list">
+            {conferencias.length ? (
+              <VerMais max={5}>
+                {conferencias.map((c) => (
+                  <Link className="op-row" key={c.id} href={linkPara("tarefa", c.id)}>
+                    <div>
+                      <div className="ot">{c.titulo}</div>
+                      <div className="os">
+                        {c.segredo ? <SegredoTag on /> : (c.cliente ?? "—")}
+                        {c.numero_cnj && !c.segredo && <> · <span className="cnj">{c.numero_cnj}</span></>}
+                      </div>
+                    </div>
+                    <Pill tone={c.prioridade === "urgente" ? "red" : c.prioridade === "alta" ? "amber" : "gray"} dot={false}>
+                      {(c.prioridade ?? "—").toUpperCase()}
+                    </Pill>
+                  </Link>
+                ))}
+              </VerMais>
+            ) : (
+              <div className="empty">Nenhuma conferência escalada. 🎉</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* PRODUÇÃO DE PEÇAS — mini-board do kanban (vw_pecas_pendentes) */}
+      <div className="card section-gap">
+        <div className="card-h">
+          <h3><Icon name="book" /> Produção de peças</h3>
+          <Link className="link" href="/producao">abrir fila →</Link>
+        </div>
+        {pecas.length ? (
+          <div className="prod-board">
+            {PROD_COLS.map((col) => {
+              const itens = pecas.filter((p) => p.status === col.key);
+              return (
+                <div className="prod-col" key={col.key}>
+                  <div className="prod-col-h">
+                    <span>{col.label}</span>
+                    <span className="ct">{itens.length}</span>
+                  </div>
+                  {itens.length ? (
+                    itens.slice(0, 4).map((p) => (
+                      <Link
+                        className="prod-item"
+                        key={p.id}
+                        href={p.processo_id ? linkPara("processo", p.processo_id) : "/producao"}
+                      >
+                        <div className="pi-t">{p.titulo}</div>
+                        <div className="pi-s">
+                          {p.segredo ? "🔒 sigilo" : p.cliente ?? "—"}
+                        </div>
+                        <div className="pi-tags">
+                          {col.key === "aguardando_insumo" && p.gate_pendencia ? (
+                            <span className="pi-tag warn">{p.gate_pendencia}</span>
+                          ) : col.key === "em_revisao" && p.cadastro_automatico ? (
+                            <span className="pi-tag ai">minuta IA · revisar</span>
+                          ) : p.cadastro_automatico ? (
+                            <span className="pi-tag ai">IA · triagem</span>
+                          ) : null}
+                          {p.dias_restantes != null && (
+                            <span className={`pi-tag ${p.dias_restantes <= 2 ? "crit" : p.dias_restantes <= 7 ? "warn" : ""}`}>
+                              {p.dias_restantes < 0 ? `${Math.abs(p.dias_restantes)}d em atraso` : `fatal em ${dl(p.dias_restantes)}`}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="prod-empty">—</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty">Nenhuma peça em produção.</div>
+        )}
       </div>
 
       {/* Agenda + movimentações — meia tela cada */}
@@ -278,6 +495,39 @@ export default async function PainelPage() {
               <div className="empty">Nenhuma movimentação nos últimos 7 dias.</div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Benefícios próximos · execução penal (cross-client) */}
+      <div className="card section-gap">
+        <div className="card-h">
+          <h3><Icon name="users" /> Benefícios próximos · execução</h3>
+          <Link className="link" href="/clientes">clientes →</Link>
+        </div>
+        <div className="op-list">
+          {beneficios.length ? (
+            <VerMais max={6}>
+              {beneficios.map((b) => (
+                <Link className="op-row" key={b.cliente_id} href={linkPara("cliente", b.cliente_id)}>
+                  <div>
+                    <div className="ot">{b.segredo ? <SegredoTag on /> : b.nome}</div>
+                    <div className="os">
+                      {b.tipo === "progressao" ? "progressão de regime" : "livramento condicional"}
+                      {b.regime_atual ? ` · ${humano(b.regime_atual)}` : ""}
+                    </div>
+                  </div>
+                  <div className="dl-r">
+                    <Pill tone={b.dias < 0 ? "red" : b.dias <= 30 ? "amber" : "blue"} dot={false}>
+                      {b.dias < 0 ? `${Math.abs(b.dias)}d vencido` : `${b.dias}d`}
+                    </Pill>
+                    {b.data_prevista && <div className="os mono" style={{ marginTop: 4 }}>{fmtDate(b.data_prevista)}</div>}
+                  </div>
+                </Link>
+              ))}
+            </VerMais>
+          ) : (
+            <div className="empty">Nenhum benefício de execução próximo.</div>
+          )}
         </div>
       </div>
 
@@ -402,6 +652,16 @@ export default async function PainelPage() {
           </div>
         </div>
       </div>
+
+      {/* Faixa Assistente — atalho (o Claude opera pelo chat / Cowork) */}
+      <Link className="assist" href="/busca">
+        <span className="assist-ico"><Icon name="search" size={18} /></span>
+        <div className="assist-main">
+          <div className="assist-t">Assistente Claude</div>
+          <div className="assist-s">Peça o relatório do dia ou uma ação pelo chat (Cowork). Aqui, busque processo, cliente ou intimação.</div>
+        </div>
+        <span className="assist-cta">Busca global ⌘K →</span>
+      </Link>
     </>
   );
 }
