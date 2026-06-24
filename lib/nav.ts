@@ -20,6 +20,7 @@ export const NAV: NavGroup[] = [
       { id: "agenda", label: "Agenda", ico: "calendar", href: "/agenda" },
       { id: "prazos", label: "Prazos penais", ico: "clock", href: "/prazos", badgeKey: "prazos" },
       { id: "audiencias", label: "Audiências", ico: "gavel", href: "/audiencias", badgeKey: "audiencias" },
+      { id: "varredura", label: "Varredura", ico: "shield", href: "/varredura" },
       { id: "intimacoes", label: "Intimações", ico: "inbox", href: "/intimacoes", badgeKey: "intimacoes", kind: "alert" },
       { id: "tarefas", label: "Tarefas", ico: "list", href: "/tarefas", badgeKey: "tarefas" },
       { id: "producao", label: "Produção de peças", ico: "book", href: "/producao", badgeKey: "pecas" },
