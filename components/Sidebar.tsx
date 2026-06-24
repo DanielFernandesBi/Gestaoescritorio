@@ -61,7 +61,7 @@ export function Sidebar({
         <div className="mark">
           Fernandes <span className="amp">&amp;</span> Fernandes
         </div>
-        <div className="sub">Advocacia Criminal</div>
+        <div className="sub">Advocacia Criminal · 20+ UFs</div>
         <button
           type="button"
           className="nav-close"

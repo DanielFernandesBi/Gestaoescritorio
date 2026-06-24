@@ -111,6 +111,20 @@ export default async function PainelPage() {
     });
   }
 
+  // Resumo do dia — frase determinística montada das contagens reais (sem LLM).
+  const resumoPartes: string[] = [];
+  if (stats.prazos_abertos)
+    resumoPartes.push(
+      `${stats.prazos_abertos} ${stats.prazos_abertos === 1 ? "prazo aberto" : "prazos abertos"}${fatal ? `, fatal mais próximo em ${dl(fatal.dias_restantes)}` : ""}`,
+    );
+  if (stats.pendentes_validacao) resumoPartes.push(`${stats.pendentes_validacao} a validar`);
+  if (stats.conferencias_pendentes)
+    resumoPartes.push(`${stats.conferencias_pendentes} ${stats.conferencias_pendentes === 1 ? "conferência" : "conferências"}`);
+  if (minutasRevisar) resumoPartes.push(`${minutasRevisar} ${minutasRevisar === 1 ? "minuta a revisar" : "minutas a revisar"}`);
+  const resumoTexto = resumoPartes.length
+    ? resumoPartes.join(" · ").replace(/^./, (c) => c.toUpperCase()) + "."
+    : "Sem pendências para hoje. 🎉";
+
   return (
     <div className="painel-page">
       <div className="painel-head">
@@ -127,12 +141,15 @@ export default async function PainelPage() {
         </Link>
       </div>
 
-      {/* ONDE FOCAR AGORA — prioridades derivadas dos dados reais */}
+      {/* LEITURA DO DIA — hero: resumo determinístico (sem LLM) + onde focar */}
       <div className="focus">
+        <div className="focus-glow" />
         <div className="focus-h">
-          <span className="lhs"><Icon name="activity" size={15} /> Onde focar agora</span>
-          <span className="focus-sub">derivado dos prazos, conferências e produção do dia</span>
+          <span className="lhs"><Icon name="activity" size={16} /> Leitura do dia</span>
+          <span className="focus-sub">derivado dos dados de hoje · não é texto gerado por IA</span>
         </div>
+        <p className="focus-resumo">{resumoTexto}</p>
+        <div className="focus-sub2">Onde focar agora</div>
         {focos.length ? (
           <ol className="focus-list">
             {focos.map((f, i) => (
@@ -174,7 +191,7 @@ export default async function PainelPage() {
                 </span>
               </div>
               <div className="flow-mid">
-                <span className="flow-seal">Cowork</span>
+                <span className="flow-seal">Cowork · Claude</span>
                 <div className="flow-mid-t">Extração &amp; cruzamento</div>
                 <div className="flow-mid-s">CNJ · partes · prazo · fundamento · providência</div>
                 <div className="flow-mid-n">{fmtNum(varredura.itens_processados)} itens lidos</div>
@@ -237,21 +254,21 @@ export default async function PainelPage() {
 
         <Link className="kpi amber" href="/validacao">
           <div className="accent" />
-          <div className="label"><Icon name="check" size={14} /> A validar</div>
+          <div className="label"><Icon name="check" size={14} /> A validar <span className="ai-dot" title="alimentado pela automação" /></div>
           <div className="val">{stats.pendentes_validacao}</div>
           <div className="meta">prazos + audiências</div>
         </Link>
 
         <Link className={`kpi ${stats.conferencias_pendentes > 0 ? "amber" : ""}`} href="/tarefas">
           <div className="accent" />
-          <div className="label"><Icon name="list" size={14} /> Conferências</div>
+          <div className="label"><Icon name="list" size={14} /> Conferências <span className="ai-dot" title="alimentado pela automação" /></div>
           <div className="val">{stats.conferencias_pendentes}</div>
           <div className="meta">tarefas automáticas do Cowork</div>
         </Link>
 
         <Link className={`kpi ${minutasRevisar > 0 ? "amber" : ""}`} href="/producao">
           <div className="accent" />
-          <div className="label"><Icon name="book" size={14} /> Peças em produção</div>
+          <div className="label"><Icon name="book" size={14} /> Peças em produção <span className="ai-dot" title="alimentado pela automação" /></div>
           <div className="val">{pecas.length}</div>
           <div className="meta">
             {minutasRevisar > 0 ? <><b style={{ color: "var(--amber)" }}>{minutasRevisar}</b> minuta{minutasRevisar === 1 ? "" : "s"} a revisar</> : "nenhuma minuta a revisar"}
