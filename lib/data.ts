@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { diasAte } from "@/lib/format";
+import { diasAte, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { MapaProvidencia } from "@/lib/pecas";
 
@@ -353,6 +353,152 @@ export async function getFilaValidacao(): Promise<{
   });
 
   return { prazos, audiencias, presos: prazos.filter((p) => p.preso).length };
+}
+
+/* Agenda — eventos da semana/mês (prazos + audiências + compromissos) ------
+ * Replica o alvo do mock /agenda. Lê as três tabelas-base num range de datas e
+ * normaliza num evento único. Prazos entram com marcador 'fatal' (data_fatal) e,
+ * quando a interna cai no range, também 'interna' (data_interna). Sem DDL: usa só
+ * colunas/joins existentes; `vw_agenda_semana` é magra demais para o mock. */
+
+export type AgendaEvento = {
+  tipo: "prazo" | "audiencia" | "compromisso";
+  marcador: "fatal" | "interna" | null;
+  id: string;
+  data: string; // date (prazo) ou datetime (audiência/compromisso)
+  diaInteiro: boolean;
+  titulo: string;
+  cliente: string | null;
+  segredo: boolean;
+  preso: boolean;
+  numero_cnj: string | null;
+  processo_id: string | null;
+  orfao: boolean;
+  validado: boolean;
+  baixado: boolean;
+  modalidade: string | null;
+  local: string | null;
+  fundamento: string | null;
+  responsavel: string | null;
+  dias_restantes: number;
+};
+
+export async function getAgendaEventos(inicio: string, fim: string): Promise<AgendaEvento[]> {
+  const supabase = await createClient();
+  const fimDt = `${fim}T23:59:59`; // limite superior para colunas timestamptz
+
+  const [pr, au, co] = await Promise.all([
+    supabase
+      .from("prazos")
+      .select(
+        "id, ato, data_fatal, data_interna, status, validado, responsavel, processo_id, intimacao_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome,situacao_prisional))), intimacoes(fundamento,origem)",
+      )
+      .or(`and(data_fatal.gte.${inicio},data_fatal.lte.${fim}),and(data_interna.gte.${inicio},data_interna.lte.${fim})`)
+      .in("status", ["aberto", "cumprido", "prejudicado", "cancelado"]),
+    supabase
+      .from("audiencias")
+      .select(
+        "id, tipo, data_hora, modalidade, local_link, status, validado, responsavel, processo_id, processos(numero_cnj,segredo_justica,cliente_processo(clientes(nome,situacao_prisional)))",
+      )
+      .gte("data_hora", inicio)
+      .lte("data_hora", fimDt),
+    supabase
+      .from("compromissos")
+      .select("id, titulo, data_hora, local, status, responsavel, processo_id, clientes(nome), processos(segredo_justica)")
+      .gte("data_hora", inicio)
+      .lte("data_hora", fimDt),
+  ]);
+
+  const out: AgendaEvento[] = [];
+
+  for (const r of (pr.data ?? []) as Record<string, unknown>[]) {
+    const p = r.processos as unknown as ProcValida;
+    const it = r.intimacoes as unknown as IntimValida;
+    const cps = p?.cliente_processo ?? [];
+    const baixado = (r.status as string) !== "aberto";
+    const base = {
+      tipo: "prazo" as const,
+      id: r.id as string,
+      diaInteiro: true,
+      cliente: nomesDeCp(cps) || null,
+      segredo: Boolean(p?.segredo_justica),
+      preso: cps.some((x) => x.clientes?.situacao_prisional != null && PRESO_SET.has(x.clientes.situacao_prisional)),
+      numero_cnj: p?.numero_cnj ?? null,
+      processo_id: (r.processo_id as string) ?? null,
+      orfao: r.processo_id == null,
+      validado: Boolean(r.validado),
+      baixado,
+      modalidade: null,
+      local: null,
+      fundamento: it?.fundamento ?? null,
+      responsavel: (r.responsavel as string) ?? null,
+    };
+    const ato = r.ato as string;
+    const dataFatal = r.data_fatal as string;
+    const dataInterna = (r.data_interna as string) ?? null;
+    if (dataFatal >= inicio && dataFatal <= fim) {
+      out.push({ ...base, marcador: "fatal", data: dataFatal, titulo: ato, dias_restantes: diasAte(dataFatal) });
+    }
+    if (dataInterna && dataInterna >= inicio && dataInterna <= fim && !baixado) {
+      out.push({ ...base, marcador: "interna", data: dataInterna, titulo: `Interna — ${ato}`, dias_restantes: diasAte(dataInterna) });
+    }
+  }
+
+  for (const r of (au.data ?? []) as Record<string, unknown>[]) {
+    const p = r.processos as unknown as ProcValida;
+    const cps = p?.cliente_processo ?? [];
+    out.push({
+      tipo: "audiencia",
+      marcador: null,
+      id: r.id as string,
+      data: r.data_hora as string,
+      diaInteiro: false,
+      titulo: humano(r.tipo as string),
+      cliente: nomesDeCp(cps) || null,
+      segredo: Boolean(p?.segredo_justica),
+      preso: cps.some((x) => x.clientes?.situacao_prisional != null && PRESO_SET.has(x.clientes.situacao_prisional)),
+      numero_cnj: p?.numero_cnj ?? null,
+      processo_id: (r.processo_id as string) ?? null,
+      orfao: false,
+      validado: Boolean(r.validado),
+      baixado: (r.status as string) !== "designada",
+      modalidade: (r.modalidade as string) ?? null,
+      local: (r.local_link as string) ?? null,
+      fundamento: null,
+      responsavel: (r.responsavel as string) ?? null,
+      dias_restantes: diasAte(r.data_hora as string),
+    });
+  }
+
+  for (const r of (co.data ?? []) as Record<string, unknown>[]) {
+    const cl = r.clientes as unknown as { nome?: string | null } | null;
+    const p = r.processos as unknown as { segredo_justica?: boolean | null } | null;
+    const st = r.status as string;
+    out.push({
+      tipo: "compromisso",
+      marcador: null,
+      id: r.id as string,
+      data: r.data_hora as string,
+      diaInteiro: false,
+      titulo: (r.titulo as string) ?? "Compromisso",
+      cliente: cl?.nome ?? null,
+      segredo: Boolean(p?.segredo_justica),
+      preso: false,
+      numero_cnj: null,
+      processo_id: (r.processo_id as string) ?? null,
+      orfao: false,
+      validado: true,
+      baixado: st === "cancelado" || st === "realizado",
+      modalidade: null,
+      local: (r.local as string) ?? null,
+      fundamento: null,
+      responsavel: (r.responsavel as string) ?? null,
+      dias_restantes: diasAte(r.data_hora as string),
+    });
+  }
+
+  out.sort((a, b) => a.data.localeCompare(b.data));
+  return out;
 }
 
 /* Intimações ------------------------------------------------------------- */
