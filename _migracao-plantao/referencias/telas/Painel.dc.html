@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#e9ecf1;--surface:#ffffff;--surface-2:#f4f6f9;--surface-3:#eaeef3;
+    --ink:#161922;--text:#2d323c;--muted:#616a78;--muted-2:#909aa8;
+    --line:#e1e6ec;--line-soft:#edf1f5;--navy:#171b25;--navy-soft:#aab2c1;--slate:#586173;--slate-soft:#e8ebf1;
+    --ai:#3f3ae6;--ai-strong:#2e29c4;--ai-soft:#ecebfd;--ai-line:rgba(63,58,230,.22);
+    --brass:#3f3ae6;--brass-soft:#ecebfd;
+    --red:#c63d31;--red-soft:#fbe7e3;--amber:#b07407;--amber-soft:#f7eed5;
+    --green:#2f7d57;--green-soft:#e1f0e8;--blue:#2f6fc4;--blue-soft:#e7eefa;
+    --serif:'Instrument Serif',Georgia,serif;
+    --sans:'Hanken Grotesk',system-ui,-apple-system,sans-serif;
+    --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border:3px solid var(--paper);border-radius:20px}
+</style>
+</helmet>
+<div style="display:flex;min-height:100vh;min-width:1240px;background:var(--paper);">
+
+  <!-- ============ TRILHO ESQUERDO (NAV) ============ -->
+  <aside style="width:256px;flex:none;background:var(--navy);color:var(--navy-soft);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;">
+    <div style="padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.06);">
+      <div style="font-family:var(--serif);font-size:23px;line-height:1.05;color:#fff;letter-spacing:.2px;">Fernandes <span style="color:var(--brass);font-style:italic;">&amp;</span> Fernandes</div>
+      <div style="font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:#6e7686;margin-top:7px;">Advocacia Criminal · 20+ UFs</div>
+    </div>
+
+    <nav style="flex:1;overflow-y:auto;padding:14px 12px;">
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;">Hoje</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;background:rgba(255,255,255,.06);color:#fff;font-size:13.5px;font-weight:600;position:relative;">
+        <span style="position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--brass);"></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h6v7H4zM14 4h6v16h-6zM4 4h6v5H4z"></path></svg>
+        Ritual matinal
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        Validação
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--amber);color:#fff;padding:1px 7px;border-radius:20px;">7</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>
+        Agenda
+      </div>
+
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;display:flex;align-items:center;gap:6px;">Entrada · IA <span style="width:5px;height:5px;border-radius:50%;background:var(--ai);box-shadow:0 0 6px var(--ai);"></span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6z"></path></svg>
+        Varredura
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h5l1.5 3h5L16 12h5"></path><path d="M4 12l2.5-7h11L20 12v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"></path></svg>
+        Intimações
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">24</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+        Andamentos
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h10"></path></svg>
+        Triagem · órfãos
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">6</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+        Alertas
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--red);color:#fff;padding:1px 7px;border-radius:20px;">3</span>
+      </div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Acervo</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6l2 3h8v13H4z"></path></svg>
+        Processos
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.5a3.5 3.5 0 0 1 0 6.5M21 20c0-2.5-1.5-4.6-3.7-5.5"></path></svg>
+        Clientes
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M5 8v8l7 5 7-5V8"></path></svg>
+        Execução penal
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2z"></path><path d="M8 8h4M8 12h8M8 16h8"></path></svg>
+        Estudos de caso
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h6v15H6a2 2 0 0 0-2 2z"></path><path d="M20 19V6a2 2 0 0 0-2-2h-6v15h6a2 2 0 0 1 2 2z"></path></svg>
+        Documentos &amp; Modelos
+      </div>
+
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M4 16V6a2 2 0 0 1 2-2h10"></path></svg>
+        Duplicados
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">2</span>
+      </div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Trabalho</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+        Prazos
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--red);color:#fff;padding:1px 7px;border-radius:20px;">14</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21l.9-9M17.1 12l.9 9M4 8h16l-2-4H6z"></path></svg>
+        Audiências
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M3 7h10M3 12h7M3 17h7"></path></svg>
+        Tarefas
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">5</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11H4z"></path><path d="M8 13h8M8 17h5"></path></svg>
+        Produção · peças
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">8</span>
+      </div>
+
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Gestão</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3zM3 7l3-4h12l3 4M9 12h6"></path></svg>
+        Financeiro
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13H5z"></path><path d="M9 13l2 2 4-4"></path></svg>
+        Contratos
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="M8 9h8M8 13h8M8 17h4"></path></svg>
+        Auditoria
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h8M18 7h2M4 17h2M12 17h8"></path><circle cx="15" cy="7" r="2.2"></circle><circle cx="9" cy="17" r="2.2"></circle></svg>
+        Sistema · evolução
+      </div>
+    </nav>
+
+    <div style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.06);">
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:11px 13px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#c7cdd8;font-weight:600;">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);"></span>
+          Triagem 06:12 · concluída
+        </div>
+        <div style="font-size:10.5px;color:#79808f;margin-top:5px;font-family:var(--mono);">próxima execução 22:00 · Cowork</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ COLUNA PRINCIPAL ============ -->
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;">
+
+    <!-- topbar -->
+    <header style="position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 82%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:20px;">
+      <div style="font-size:12px;color:var(--muted);">Hoje <span style="color:var(--muted-2);">/</span> <span style="color:var(--ink);font-weight:600;">Ritual matinal</span></div>
+      <div style="flex:1;max-width:460px;margin:0 auto;position:relative;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
+        <div style="width:100%;padding:9px 13px 9px 36px;border:1px solid var(--line);background:var(--surface);border-radius:10px;font-size:13px;color:var(--muted-2);display:flex;align-items:center;justify-content:space-between;">
+          <span>Buscar processo, cliente, intimação…</span>
+          <span style="font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--muted);">⌘K</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="text-align:right;font-size:11.5px;color:var(--muted);line-height:1.3;">Segunda, 22 jun<br><b style="font-family:var(--mono);color:var(--text);">06:48</b></div>
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--brass);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-size:17px;">D</div>
+      </div>
+    </header>
+
+    <!-- conteúdo + trilho direito -->
+    <div style="padding:26px 30px 60px;">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start;">
+
+        <!-- ====== COLUNA CENTRAL ====== -->
+        <div style="min-width:0;display:flex;flex-direction:column;gap:20px;">
+
+          <!-- saudação -->
+          <div style="">
+            <div style="font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);font-weight:700;">Ritual matinal · 22 de junho</div>
+            <h1 style="font-family:var(--serif);font-size:42px;font-weight:400;line-height:1.04;color:var(--ink);margin:6px 0 0;letter-spacing:.2px;">Bom dia, Daniel.</h1>
+          </div>
+
+          <!-- HERO: Leitura do dia (IA) -->
+          <div style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,21,15,.04),0 14px 30px rgba(22,21,15,.05);animation-delay:.05s;">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--ai),var(--ai-strong));"></div>
+            <div style="position:absolute;top:0;left:0;right:0;height:120px;background:radial-gradient(60% 100% at 12% 0%, var(--ai-soft), transparent 70%);pointer-events:none;"></div>
+            <div style="position:relative;padding:22px 26px 24px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;">
+                <div style="display:flex;align-items:center;gap:11px;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.6px;color:#fff;background:var(--ai);border-radius:6px;padding:4px 9px;box-shadow:0 2px 10px var(--ai-line);"><span style="width:5px;height:5px;border-radius:50%;background:#fff;animation:pulse 1.8s ease infinite;"></span>IA</span>
+                  <span style="font-family:var(--serif);font-size:22px;color:var(--ink);">Leitura do dia</span>
+                </div>
+                <span style="font-family:var(--mono);font-size:11px;color:var(--muted-2);">gerado às 06:13 · Claude</span>
+              </div>
+
+              <p style="font-size:16px;line-height:1.7;color:var(--text);max-width:840px;margin:0 0 20px;">
+                Dois prazos fatais vencem ainda esta semana — o mais crítico em <span style="font-family:var(--serif);font-style:italic;font-size:19px;color:var(--ink);">2 dias</span>: a Defesa Preliminar de <b style="color:var(--ink);font-weight:700;">Renato Almeida Pestana</b>, que está <span style="color:var(--red);font-weight:700;">preso</span>. Há <span style="font-family:var(--serif);font-style:italic;font-size:19px;color:var(--ink);">1 audiência amanhã</span>, 14h, ainda a validar, e <span style="font-family:var(--serif);font-style:italic;font-size:19px;color:var(--ink);">5 conferências</span> escaladas — uma <span style="color:var(--red);font-weight:700;">urgente</span> (busca e apreensão). A varredura das 06:12 leu DJEN + e-mail, trouxe <b style="color:var(--ink);font-weight:700;">12 intimações</b>, criou <b style="color:var(--ink);font-weight:700;">4 prazos</b> e minutou <b style="color:var(--ink);font-weight:700;">2 peças</b> de alta confiança para sua revisão. Sem divergência entre as OABs.
+              </p>
+
+              <div style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:11px;">Onde focar agora</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                <div style="display:flex;gap:11px;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;padding:13px 14px;">
+                  <span style="flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:700;background:var(--red-soft);color:var(--red);">1</span>
+                  <div style="min-width:0;"><div style="font-weight:700;font-size:13.5px;color:var(--ink);">Protocolar Defesa Preliminar</div><div style="font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4;">Renato Pestana · <span style="color:var(--red);font-weight:600;">preso</span> · fatal em 2 dias</div></div>
+                </div>
+                <div style="display:flex;gap:11px;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;padding:13px 14px;">
+                  <span style="flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:700;background:var(--amber-soft);color:var(--amber);">2</span>
+                  <div style="min-width:0;"><div style="font-weight:700;font-size:13.5px;color:var(--ink);">Conferir busca e apreensão</div><div style="font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4;">tarefa urgente · afeta liberdade</div></div>
+                </div>
+                <div style="display:flex;gap:11px;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;padding:13px 14px;">
+                  <span style="flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:700;background:var(--ai-soft);color:var(--ai);">3</span>
+                  <div style="min-width:0;"><div style="font-weight:700;font-size:13.5px;color:var(--ink);">Revisar 2 minutas da IA</div><div style="font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4;">AgRg + memoriais · em revisão</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- VARREDURA: pipeline -->
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,21,15,.04);animation-delay:.1s;">
+            <div style="padding:16px 22px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--ink);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ai)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6z"></path></svg>
+                Varredura autônoma
+                <span style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);">06:12</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:11.5px;color:var(--muted);font-family:var(--mono);">fonte: DJEN + push</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;background:var(--green-soft);color:var(--green);"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>concluída</span>
+              </div>
+            </div>
+
+            <div style="padding:20px 22px;display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;">
+              <!-- fontes -->
+              <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;">
+                <div style="display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;color:var(--text);"><span style="width:7px;height:7px;border-radius:50%;background:var(--brass);"></span>DJEN / CNJ</div>
+                <div style="display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;color:var(--text);"><span style="width:7px;height:7px;border-radius:50%;background:var(--blue);"></span>Push e-mail</div>
+                <div style="display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;color:var(--muted);"><span style="width:7px;height:7px;border-radius:50%;background:var(--muted-2);"></span>Recorte Digital</div>
+              </div>
+              <div style="display:flex;align-items:center;color:var(--muted-2);font-size:18px;">→</div>
+              <!-- IA -->
+              <div style="flex:1;min-width:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(180deg,var(--ai-soft),var(--surface));border:1px solid var(--ai-line);border-radius:12px;padding:16px;">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;background:var(--ai);border-radius:6px;padding:3px 9px;">IA · Claude</span>
+                <div style="font-size:12.5px;font-weight:600;color:var(--ink);text-align:center;margin-top:2px;">Extração &amp; cruzamento</div>
+                <div style="font-size:11px;color:var(--muted);text-align:center;line-height:1.4;">CNJ · partes · prazo · fundamento · providência</div>
+                <div style="font-family:var(--mono);font-size:11px;color:var(--ai-strong);font-weight:600;margin-top:2px;">1.284 itens lidos</div>
+              </div>
+              <div style="display:flex;align-items:center;color:var(--muted-2);font-size:18px;">→</div>
+              <!-- saídas -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:center;">
+                <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:104px;"><div style="font-family:var(--serif);font-size:22px;color:var(--ink);line-height:1;">12</div><div style="font-size:10.5px;color:var(--muted);margin-top:3px;">intimações</div></div>
+                <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:104px;"><div style="font-family:var(--serif);font-size:22px;color:var(--ink);line-height:1;">9</div><div style="font-size:10.5px;color:var(--muted);margin-top:3px;">andamentos</div></div>
+                <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:104px;"><div style="font-family:var(--serif);font-size:22px;color:var(--ink);line-height:1;">4</div><div style="font-size:10.5px;color:var(--muted);margin-top:3px;">prazos</div></div>
+                <div style="background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:9px;padding:9px 12px;min-width:104px;"><div style="font-family:var(--serif);font-size:22px;color:var(--ai-strong);line-height:1;">2</div><div style="font-size:10.5px;color:var(--ai-strong);margin-top:3px;">minutas IA</div></div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line-soft);">
+              <div style="padding:13px 22px;border-right:1px solid var(--line-soft);">
+                <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:9px;">Cobertura por OAB</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:10px;"><span style="font-family:var(--mono);font-size:11px;color:var(--text);width:96px;flex:none;">OAB/SP 352.447</span><div style="flex:1;height:7px;background:var(--surface-3);border-radius:5px;overflow:hidden;"><span style="display:block;height:100%;width:78%;background:var(--green);border-radius:5px;"></span></div><span style="font-family:var(--mono);font-size:11px;color:var(--muted);">9 itens</span></div>
+                  <div style="display:flex;align-items:center;gap:10px;"><span style="font-family:var(--mono);font-size:11px;color:var(--text);width:96px;flex:none;">OAB/RJ 252.708</span><div style="flex:1;height:7px;background:var(--surface-3);border-radius:5px;overflow:hidden;"><span style="display:block;height:100%;width:46%;background:var(--green);border-radius:5px;"></span></div><span style="font-family:var(--mono);font-size:11px;color:var(--muted);">3 itens</span></div>
+                </div>
+              </div>
+              <div style="padding:13px 22px;">
+                <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:9px;">Anomalias</div>
+                <div style="display:inline-flex;align-items:center;gap:7px;background:var(--amber-soft);color:var(--amber);border-radius:8px;padding:5px 11px;font-size:12px;font-weight:600;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+                  1 cobertura_djen · Recorte Digital
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:7px;">buraco de cobertura do DJEN a conferir.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPIs -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;animation-delay:.15s;">
+            <div style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px 16px;overflow:hidden;"><div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red);"></div><div style="font-size:11.5px;color:var(--muted);font-weight:600;">Prazos abertos</div><div style="font-family:var(--serif);font-size:34px;color:var(--ink);line-height:1;margin-top:6px;">14</div><div style="font-size:11px;color:var(--muted);margin-top:6px;">próximo fatal em <b style="color:var(--red);">2 dias</b></div></div>
+            <div style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px 16px;overflow:hidden;"><div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber);"></div><div style="font-size:11.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px;">A validar <span style="width:5px;height:5px;border-radius:50%;background:var(--ai);"></span></div><div style="font-family:var(--serif);font-size:34px;color:var(--ink);line-height:1;margin-top:6px;">7</div><div style="font-size:11px;color:var(--muted);margin-top:6px;">prazos + audiências</div></div>
+            <div style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px 16px;overflow:hidden;"><div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber);"></div><div style="font-size:11.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px;">Conferências <span style="width:5px;height:5px;border-radius:50%;background:var(--ai);"></span></div><div style="font-family:var(--serif);font-size:34px;color:var(--ink);line-height:1;margin-top:6px;">5</div><div style="font-size:11px;color:var(--muted);margin-top:6px;">1 urgente · liberdade</div></div>
+            <div style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px 16px;overflow:hidden;"><div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue);"></div><div style="font-size:11.5px;color:var(--muted);font-weight:600;">Processos ativos</div><div style="font-family:var(--serif);font-size:34px;color:var(--ink);line-height:1;margin-top:6px;">312</div><div style="font-size:11px;color:var(--muted);margin-top:6px;">8 sem CNJ · 11 sigilosos</div></div>
+            <div style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px 16px;overflow:hidden;"><div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ai);"></div><div style="font-size:11.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px;">Peças em produção <span style="width:5px;height:5px;border-radius:50%;background:var(--ai);"></span></div><div style="font-family:var(--serif);font-size:34px;color:var(--ink);line-height:1;margin-top:6px;">8</div><div style="font-size:11px;color:var(--muted);margin-top:6px;">2 minutas a revisar</div></div>
+            <div style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px 16px;overflow:hidden;"><div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green);"></div><div style="font-size:11.5px;color:var(--muted);font-weight:600;">A receber</div><div style="font-family:var(--serif);font-size:26px;color:var(--ink);line-height:1;margin-top:10px;">R$ 142.300</div><div style="font-size:11px;color:var(--muted);margin-top:6px;">23 parcelas em aberto</div></div>
+          </div>
+
+          <!-- PRAZOS FATAIS + VALIDAÇÃO -->
+          <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:16px;align-items:start;animation-delay:.2s;">
+
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px 8px;box-shadow:0 1px 2px rgba(22,21,15,.04);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg> Prazos fatais</div><span style="color:var(--ai);font-size:12px;font-weight:600;">ver todos →</span></div>
+              <div style="display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);">
+                <span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:50px;padding:6px;border-radius:9px;font-family:var(--mono);background:var(--red-soft);color:var(--red);"><b style="font-size:18px;font-weight:700;line-height:1;">2</b><span style="font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;font-weight:600;">dias</span></span>
+                <div style="flex:1;min-width:0;"><div style="font-family:var(--serif);font-size:17px;color:var(--ink);line-height:1.15;">Defesa Preliminar</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Renato Pestana · <span style="color:var(--red);font-weight:600;">preso</span> · <span style="font-family:var(--mono);">0831874-45.2022.8.10.0001</span></div></div>
+                <div style="text-align:right;flex:none;font-size:10.5px;color:var(--muted);"><div style="font-family:var(--mono);color:var(--text);font-weight:600;font-size:12px;">24/06</div><div>interna 23/06</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);">
+                <span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:50px;padding:6px;border-radius:9px;font-family:var(--mono);background:var(--amber-soft);color:var(--amber);"><b style="font-size:18px;font-weight:700;line-height:1;">5</b><span style="font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;font-weight:600;">dias</span></span>
+                <div style="flex:1;min-width:0;"><div style="font-family:var(--serif);font-size:17px;color:var(--ink);line-height:1.15;">Contrarrazões</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Edmilson Ferreira · <span style="font-family:var(--mono);">0004091-31.2016.4.01.4100</span></div></div>
+                <div style="text-align:right;flex:none;font-size:10.5px;color:var(--muted);"><div style="font-family:var(--mono);color:var(--text);font-weight:600;font-size:12px;">27/06</div><div>interna 26/06</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:13px;padding:13px 0;">
+                <span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:50px;padding:6px;border-radius:9px;font-family:var(--mono);background:var(--green-soft);color:var(--green);"><b style="font-size:18px;font-weight:700;line-height:1;">9</b><span style="font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;font-weight:600;">dias</span></span>
+                <div style="flex:1;min-width:0;"><div style="font-family:var(--serif);font-size:17px;color:var(--ink);line-height:1.15;">Memoriais</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Leanderson Nonato · <span style="font-family:var(--mono);">0800670-46.2023.4.05.8108</span></div></div>
+                <div style="text-align:right;flex:none;font-size:10.5px;color:var(--muted);"><div style="font-family:var(--mono);color:var(--text);font-weight:600;font-size:12px;">01/07</div><div>interna 30/06</div></div>
+              </div>
+            </div>
+
+            <div style="position:relative;background:var(--surface);border:1px solid var(--ai-line);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px rgba(22,21,15,.04);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;">
+                <span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;font-weight:700;color:#fff;background:var(--ai);border-radius:5px;padding:3px 7px;">IA</span>
+                <span style="font-size:14px;font-weight:700;color:var(--ink);">Aguardando validação</span>
+                <span style="margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ai-strong);font-weight:700;">7</span>
+              </div>
+              <sc-if value="{{ showSeals }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size:10.5px;color:var(--muted);margin-bottom:10px;line-height:1.4;">Itens provisórios criados pela triagem. Você confirma a ciência e a fatal.</div>
+              </sc-if>
+              <div style="padding:11px 0;border-top:1px solid var(--line-soft);display:flex;align-items:flex-start;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--ink);">Prazo · Apelação</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">David Edson Lins · fatal prov. 26/06</div></div>
+                <button style="flex:none;font-size:11.5px;font-weight:700;color:#fff;background:var(--ai);border-radius:8px;padding:5px 11px;">Validar</button>
+              </div>
+              <div style="padding:11px 0;border-top:1px solid var(--line-soft);display:flex;align-items:flex-start;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--ink);">Audiência · Instrução</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Renato Pestana · amanhã 14:00</div></div>
+                <button style="flex:none;font-size:11.5px;font-weight:700;color:#fff;background:var(--ai);border-radius:8px;padding:5px 11px;">Validar</button>
+              </div>
+              <div style="padding:11px 0 0;border-top:1px solid var(--line-soft);display:flex;align-items:flex-start;gap:10px;">
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--ink);">Prazo · Memoriais</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Leanderson Nonato · fatal prov. 01/07</div></div>
+                <button style="flex:none;font-size:11.5px;font-weight:700;color:#fff;background:var(--ai);border-radius:8px;padding:5px 11px;">Validar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONFERÊNCIAS ESCALADAS + AUDIÊNCIAS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;animation-delay:.25s;">
+
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px rgba(22,21,15,.04);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 3.8 8.2 9 9 5.2-.8 9-4 9-9V7z"></path><path d="M12 8v4M12 16h.01"></path></svg> <span style="font-size:14px;font-weight:700;color:var(--ink);">Conferências escaladas</span></div>
+              <div style="padding:10px 0;border-top:1px solid var(--line-soft);display:flex;align-items:center;gap:10px;">
+                <span style="flex:none;display:inline-flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:#fff;background:var(--red);border-radius:5px;padding:3px 7px;">URGENTE</span>
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--ink);">Busca e apreensão deferida</div><div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;"><span style="font-family:var(--mono);">0021145-9.2024.8.26</span> · afeta liberdade <span style="display:inline-flex;align-items:center;gap:3px;color:var(--ai);font-weight:600;"><span style="width:4px;height:4px;border-radius:50%;background:var(--ai);"></span>IA</span></div></div>
+              </div>
+              <div style="padding:10px 0;border-top:1px solid var(--line-soft);display:flex;align-items:center;gap:10px;">
+                <span style="flex:none;display:inline-flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--amber);background:var(--amber-soft);border-radius:5px;padding:3px 7px;">ALTA</span>
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--ink);">Sentença publicada</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Edmilson Ferreira · decisão de mérito</div></div>
+              </div>
+              <div style="padding:10px 0 0;border-top:1px solid var(--line-soft);display:flex;align-items:center;gap:10px;">
+                <span style="flex:none;display:inline-flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--amber);background:var(--amber-soft);border-radius:5px;padding:3px 7px;">ALTA</span>
+                <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--ink);">Atestado de pena recebido</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">cadastrar situação executória via chat</div></div>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px rgba(22,21,15,.04);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21l.9-9M17.1 12l.9 9M4 8h16l-2-4H6z"></path></svg> <span style="font-size:14px;font-weight:700;color:var(--ink);">Audiências próximas</span></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-soft);">
+                <span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;padding:6px;border-radius:9px;font-family:var(--mono);background:var(--amber-soft);color:var(--amber);"><b style="font-size:16px;font-weight:700;line-height:1;">23</b><span style="font-size:8.5px;text-transform:uppercase;margin-top:2px;font-weight:600;">jun</span></span>
+                <div style="flex:1;min-width:0;"><div style="font-family:var(--serif);font-size:16px;color:var(--ink);line-height:1.15;">Instrução</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">14:00 · presencial · Vara de Entorpecentes</div></div>
+                <span style="flex:none;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--amber-soft);color:var(--amber);">a validar</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 0 0;border-top:1px solid var(--line-soft);">
+                <span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;padding:6px;border-radius:9px;font-family:var(--mono);background:var(--green-soft);color:var(--green);"><b style="font-size:16px;font-weight:700;line-height:1;">01</b><span style="font-size:8.5px;text-transform:uppercase;margin-top:2px;font-weight:600;">jul</span></span>
+                <div style="flex:1;min-width:0;"><div style="font-family:var(--serif);font-size:16px;color:var(--ink);line-height:1.15;">Sessão de julgamento</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">virtual · STJ · 6ª Turma</div></div>
+                <span style="flex:none;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--green-soft);color:var(--green);">✓ validado</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PRODUÇÃO DE PEÇAS + MINUTAS IA -->
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,21,15,.04);animation-delay:.3s;">
+            <div style="padding:16px 22px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--ink);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11H4z"></path><path d="M8 13h8M8 17h5"></path></svg> Produção de peças <span style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);">vw_pecas_pendentes</span></div>
+              <span style="color:var(--ai);font-size:12px;font-weight:600;">abrir fila →</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;">
+              <div style="padding:14px 16px;border-right:1px solid var(--line-soft);">
+                <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px;">A fazer · 3</div>
+                <div style="background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;padding:10px 11px;margin-bottom:8px;"><div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.25;">Resposta à acusação</div><div style="font-size:10.5px;color:var(--muted);margin-top:3px;">Renato Pestana</div><div style="display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:9.5px;font-weight:700;color:var(--ai);background:var(--ai-soft);border-radius:5px;padding:2px 6px;"><span style="width:4px;height:4px;border-radius:50%;background:var(--ai);"></span>IA · triagem</div></div>
+              </div>
+              <div style="padding:14px 16px;border-right:1px solid var(--line-soft);">
+                <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px;">Em elaboração · 2</div>
+                <div style="background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;padding:10px 11px;"><div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.25;">Alegações finais</div><div style="font-size:10.5px;color:var(--muted);margin-top:3px;">Leanderson Nonato</div><div style="font-size:10px;color:var(--amber);margin-top:7px;font-weight:600;">fatal em 9d</div></div>
+              </div>
+              <div style="padding:14px 16px;border-right:1px solid var(--line-soft);background:linear-gradient(180deg,var(--ai-soft),transparent 60%);">
+                <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ai-strong);font-weight:700;margin-bottom:10px;">Em revisão · 2</div>
+                <div style="background:var(--surface);border:1px solid var(--ai-line);border-radius:10px;padding:10px 11px;margin-bottom:8px;"><div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.25;">AgRg no HC 1086363</div><div style="font-size:10.5px;color:var(--muted);margin-top:3px;">David Edson Lins</div><div style="display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:9.5px;font-weight:700;color:#fff;background:var(--ai);border-radius:5px;padding:2px 6px;">minuta IA · revisar</div></div>
+                <div style="background:var(--surface);border:1px solid var(--ai-line);border-radius:10px;padding:10px 11px;"><div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.25;">Memoriais</div><div style="font-size:10.5px;color:var(--muted);margin-top:3px;">Leanderson Nonato</div><div style="display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:9.5px;font-weight:700;color:#fff;background:var(--ai);border-radius:5px;padding:2px 6px;">minuta IA · revisar</div></div>
+              </div>
+              <div style="padding:14px 16px;">
+                <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px;">Aguardando insumo · 1</div>
+                <div style="background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;padding:10px 11px;"><div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.25;">Agravo em execução</div><div style="font-size:10.5px;color:var(--muted);margin-top:3px;">cadastrar atestado de pena</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MOVIMENTAÇÕES + BENEFÍCIOS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;animation-delay:.35s;">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px rgba(22,21,15,.04);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg> <span style="font-size:14px;font-weight:700;color:var(--ink);">Movimentações recentes</span></div>
+              <div style="padding:9px 0;border-top:1px solid var(--line-soft);"><div style="font-size:12.5px;font-weight:600;color:var(--ink);">Acórdão publicado — provido</div><div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono);">TJSP · 0021145-9 · 22/06</div></div>
+              <div style="padding:9px 0;border-top:1px solid var(--line-soft);"><div style="font-size:12.5px;font-weight:600;color:var(--ink);">Incluído em pauta de julgamento</div><div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono);">STJ · 1086363 · 21/06</div></div>
+              <div style="padding:9px 0 0;border-top:1px solid var(--line-soft);"><div style="font-size:12.5px;font-weight:600;color:var(--ink);">Conclusos para decisão</div><div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono);">TRF5 · 0800670-46 · 20/06</div></div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px rgba(22,21,15,.04);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M5 8v8l7 5 7-5V8"></path></svg> <span style="font-size:14px;font-weight:700;color:var(--ink);">Benefícios próximos · execução</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line-soft);">
+                <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:var(--ink);">Edmilson Ferreira</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">progressão · semiaberto → aberto</div></div>
+                <span style="flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:7px;padding:3px 9px;">−12d</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 0 0;border-top:1px solid var(--line-soft);">
+                <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:var(--ink);">Cliente sigiloso</div><div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px;"><span style="display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:4px;padding:1px 5px;">SEGREDO</span> livramento condicional</div></div>
+                <span style="flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:7px;padding:3px 9px;">88d</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ====== TRILHO DIREITO ====== -->
+        <aside style="position:sticky;top:84px;display:flex;flex-direction:column;gap:18px;">
+
+          <sc-if value="{{ showAssistant }}" hint-placeholder-val="{{ true }}">
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04),0 10px 24px rgba(22,25,34,.05);">
+            <div style="padding:13px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:9px;">
+              <span style="flex:none;width:25px;height:25px;border-radius:8px;background:var(--ai-soft);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg></span>
+              <span style="font-family:var(--serif);font-size:18px;color:var(--ink);">Assistente</span>
+              <span style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);font-weight:600;"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);"></span>Claude</span>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+              <div style="align-self:flex-end;max-width:85%;background:var(--surface-2);border:1px solid var(--line-soft);color:var(--text);border-radius:13px 13px 4px 13px;padding:8px 12px;font-size:12.5px;">Resumo de hoje?</div>
+              <div style="align-self:flex-start;max-width:92%;background:var(--ai-soft);border:1px solid var(--ai-line);color:var(--ink);border-radius:13px 13px 13px 4px;padding:10px 12px;font-size:12.5px;line-height:1.55;">2 fatais esta semana, 7 a validar e 5 conferências (1 urgente). Minutei 2 peças. Quer que eu abra a Defesa Preliminar do Renato?</div>
+            </div>
+            <div style="padding:0 14px 14px;">
+              <div style="display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;">
+                <span style="flex:1;font-size:12px;color:var(--muted-2);">Pergunte ou peça um relatório…</span>
+                <span style="flex:none;width:27px;height:27px;border-radius:8px;background:var(--ai);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,21,15,.04);">
+            <div style="padding:13px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;">
+              <span style="display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);font-weight:700;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h10"></path></svg> Fila de triagem</span>
+              <span style="font-family:var(--mono);font-size:11px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line);padding:1px 8px;border-radius:20px;font-weight:600;">6</span>
+            </div>
+            <div style="padding:11px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:12px;font-weight:600;color:var(--ink);">Intimações órfãs</span><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;background:var(--brass);border-radius:20px;padding:1px 8px;">3</span>
+            </div>
+            <div style="padding:10px 16px;border-bottom:1px solid var(--line-soft);"><div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.3;">Edital de citação — sem CNJ</div><div style="font-size:10.5px;color:var(--muted);margin-top:2px;font-family:var(--mono);">DJEN · 22/06</div></div>
+            <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.3;">Push STF — HC não cadastrado</div><div style="font-size:10.5px;color:var(--muted);margin-top:2px;font-family:var(--mono);">PUSH · 21/06</div></div>
+            <div style="padding:11px 16px;border-top:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:12px;font-weight:600;color:var(--ink);">Prazos órfãos</span><span style="font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;background:var(--brass);border-radius:20px;padding:1px 8px;">2</span>
+            </div>
+            <div style="padding:10px 16px 14px;"><div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.3;">Apresentar quesitos</div><div style="font-size:10.5px;color:var(--muted);margin-top:2px;">fatal 26/06 · <b style="color:var(--amber);">4d</b> · sem processo</div></div>
+          </div>
+
+        </aside>
+
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1024},&quot;showAssistant&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showSeals&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      showAssistant: this.props.showAssistant ?? true,
+      showSeals: this.props.showSeals ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>

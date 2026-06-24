@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#e9ecf1;--surface:#ffffff;--surface-2:#f4f6f9;--surface-3:#eaeef3;
+    --ink:#161922;--text:#2d323c;--muted:#616a78;--muted-2:#909aa8;
+    --line:#e1e6ec;--line-soft:#edf1f5;--navy:#171b25;--navy-soft:#aab2c1;
+    --ai:#3f3ae6;--ai-strong:#2e29c4;--ai-soft:#ecebfd;--ai-line:rgba(63,58,230,.22);
+    --slate:#586173;--slate-soft:#e8ebf1;
+    --red:#c63d31;--red-soft:#fbe7e3;--amber:#b07407;--amber-soft:#f7eed5;
+    --green:#2f7d57;--green-soft:#e1f0e8;--blue:#2f6fc4;--blue-soft:#e7eefa;--name:#0e1117;
+    --serif:'Instrument Serif',Georgia,serif;--sans:'Hanken Grotesk',system-ui,-apple-system,sans-serif;--mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border:3px solid var(--paper);border-radius:20px}
+  .kbcol::-webkit-scrollbar{width:8px}.kbcol::-webkit-scrollbar-thumb{background:#d6dce4;border:2px solid var(--surface-2);border-radius:20px}
+</style>
+</helmet>
+<div style="display:flex;min-height:100vh;min-width:1240px;background:var(--paper);">
+
+  <aside style="width:256px;flex:none;background:var(--navy);color:var(--navy-soft);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;">
+    <div style="padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.06);">
+      <div style="font-family:var(--serif);font-size:23px;line-height:1.05;color:#fff;letter-spacing:.2px;">Fernandes <span style="color:var(--ai);font-style:italic;">&amp;</span> Fernandes</div>
+      <div style="font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:#6e7686;margin-top:7px;">Advocacia Criminal · 20+ UFs</div>
+    </div>
+    <nav style="flex:1;overflow-y:auto;padding:14px 12px;">
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;">Hoje</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h6v7H4zM14 4h6v16h-6zM4 4h6v5H4z"></path></svg>Ritual matinal</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Validação<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--amber);color:#fff;padding:1px 7px;border-radius:20px;">7</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>Agenda</div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;display:flex;align-items:center;gap:6px;">Entrada · IA <span style="width:5px;height:5px;border-radius:50%;background:var(--ai);box-shadow:0 0 6px var(--ai);"></span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6z"></path></svg>Varredura</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h5l1.5 3h5L16 12h5"></path><path d="M4 12l2.5-7h11L20 12v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"></path></svg>Intimações<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">24</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>Andamentos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h10"></path></svg>Triagem · órfãos<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">6</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"></path></svg>Alertas<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--red);color:#fff;padding:1px 7px;border-radius:20px;">3</span></div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Acervo</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6l2 3h8v13H4z"></path></svg>Processos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.5a3.5 3.5 0 0 1 0 6.5M21 20c0-2.5-1.5-4.6-3.7-5.5"></path></svg>Clientes</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M5 8v8l7 5 7-5V8"></path></svg>Execução penal</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2z"></path><path d="M8 8h4M8 12h8M8 16h8"></path></svg>Estudos de caso</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h6v15H6a2 2 0 0 0-2 2z"></path><path d="M20 19V6a2 2 0 0 0-2-2h-6v15h6a2 2 0 0 1 2 2z"></path></svg>Documentos &amp; Modelos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M4 16V6a2 2 0 0 1 2-2h10"></path></svg>Duplicados<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">2</span></div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Trabalho</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Prazos<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--red);color:#fff;padding:1px 7px;border-radius:20px;">14</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21l.9-9M17.1 12l.9 9M4 8h16l-2-4H6z"></path></svg>Audiências</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M3 7h10M3 12h7M3 17h7"></path></svg>Tarefas<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">5</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;background:rgba(255,255,255,.06);color:#fff;font-size:13.5px;font-weight:600;position:relative;"><span style="position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--ai);"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11H4z"></path><path d="M8 13h8M8 17h5"></path></svg>Produção · peças<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--ai);color:#fff;padding:1px 7px;border-radius:20px;">8</span></div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Gestão</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3zM3 7l3-4h12l3 4M9 12h6"></path></svg>Financeiro</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13H5z"></path><path d="M9 13l2 2 4-4"></path></svg>Contratos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="M8 9h8M8 13h8M8 17h4"></path></svg>Auditoria</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h8M18 7h2M4 17h2M12 17h8"></path><circle cx="15" cy="7" r="2.2"></circle><circle cx="9" cy="17" r="2.2"></circle></svg>Sistema · evolução</div>
+    </nav>
+    <div style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.06);">
+      <div style="background:rgba(63,58,230,.1);border:1px solid var(--ai-line);border-radius:10px;padding:11px 13px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#cdd2ff;font-weight:600;"><svg width="12" height="12" viewBox="0 0 24 24" style="fill:#8d88ff;"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>Redator agendado · 03:40</div>
+        <div style="font-size:10.5px;color:#9a9fce;margin-top:5px;font-family:var(--mono);">3 minutas → revisão · 2 aguard. insumo</div>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;height:100vh;" data-screen-label="Produção · peças">
+    <header style="flex:none;background:color-mix(in srgb,var(--paper) 82%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:20px;">
+      <div style="font-size:12px;color:var(--muted);">Trabalho <span style="color:var(--muted-2);">/</span> <span style="color:var(--ink);font-weight:600;">Produção · peças</span></div>
+      <div style="flex:1;max-width:420px;margin:0 auto;position:relative;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
+        <div style="width:100%;padding:9px 13px 9px 36px;border:1px solid var(--line);background:var(--surface);border-radius:10px;font-size:13px;color:var(--muted-2);display:flex;align-items:center;justify-content:space-between;"><span>Buscar peça, cliente, processo…</span><span style="font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--muted);">⌘K</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="text-align:right;font-size:11.5px;color:var(--muted);line-height:1.3;">Segunda, 23 jun<br><b style="font-family:var(--mono);color:var(--text);">06:51</b></div>
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--ai);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-size:17px;">D</div>
+      </div>
+    </header>
+
+    <!-- TÍTULO + PIPELINE + TOOLBAR -->
+    <div style="flex:none;padding:22px 30px 16px;">
+      <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <h1 style="font-family:var(--serif);font-size:36px;font-weight:400;line-height:1;color:var(--ink);margin:0;">Produção de peças</h1>
+          <div style="display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12px;color:var(--muted);flex-wrap:wrap;">
+            <span>O elo do meio do pipeline</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--muted-2);">
+              intimação <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+              prazo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+              <span style="color:var(--ai);font-weight:700;background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:1px 7px;">peça</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg> andamento
+            </span>
+          </div>
+        </div>
+        <button style="flex:none;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;background:var(--ai);color:#fff;border:1px solid var(--ai);box-shadow:0 2px 8px rgba(63,58,230,.22);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Nova peça</button>
+      </div>
+
+      <!-- toolbar: filtros + visões -->
+      <div style="display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap;">
+        <div style="display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:9px;overflow:hidden;">
+          <span style="padding:6px 13px;font-size:12.5px;font-weight:700;color:#fff;background:var(--ink);">Kanban</span>
+          <span style="padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--muted);">Lista</span>
+          <span style="padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--muted);">Por prazo</span>
+        </div>
+        <div style="width:1px;height:22px;background:var(--line);"></div>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--line);">Tipo: todos <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--line);">Responsável: Daniel <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+        <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--ai-strong);background:var(--ai-soft);border:1px solid var(--ai-line);"><svg width="12" height="12" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>Só minutas IA</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--muted);font-family:var(--mono);">14 peças ativas · <span style="color:var(--ai-strong);font-weight:600;">5 geradas pela IA</span></span>
+      </div>
+    </div>
+
+    <!-- BOARD + TRILHO -->
+    <div style="flex:1;min-height:0;display:flex;gap:0;">
+      <!-- KANBAN (scroll horizontal) -->
+      <div style="flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;padding:4px 30px 26px;">
+        <div style="display:flex;gap:16px;align-items:stretch;justify-content:flex-start;height:100%;width:100%;">
+
+          <!-- COLUNA: A FAZER -->
+          <section style="flex:1 1 0;min-width:190px;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;max-height:100%;">
+            <div style="flex:none;padding:13px 15px 11px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);">
+              <span style="width:9px;height:9px;border-radius:50%;background:var(--slate);"></span>
+              <span style="font-size:12.5px;font-weight:800;color:var(--ink);letter-spacing:.01em;">A fazer</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:0 7px;">4</span>
+              <span style="margin-left:auto;color:var(--muted-2);font-size:16px;line-height:1;cursor:pointer;">+</span>
+            </div>
+            <div class="kbcol" style="flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:11px;">
+
+              <!-- card IA a redigir -->
+              <article style="background:var(--surface);border:1px solid var(--ai-line);border-radius:12px;box-shadow:0 0 0 1px var(--ai-line),0 4px 12px rgba(63,58,230,.06);overflow:hidden;">
+                <div style="height:3px;background:var(--slate);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;">
+                    <span style="font-size:9.5px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:5px;padding:1px 7px;">recurso · apelação</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--ai);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>criada pela IA</span>
+                  </div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;">Apelação — absolvição por insuficiência de provas</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Marcos A. Tavares</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0007214-88.2024.8.10.0001</div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>9 dias</span>
+                    <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">interno 02/07 · do prazo</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--ai-strong);background:var(--ai-soft);border:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>Redigir minuta</button>
+                  <button style="flex:none;padding:8px 12px;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface);border:none;border-left:1px solid var(--line-soft);">Abrir</button>
+                </div>
+              </article>
+
+              <!-- card IA segredo -->
+              <article style="background:var(--surface);border:1px solid var(--ai-line);border-radius:12px;box-shadow:0 0 0 1px var(--ai-line),0 4px 12px rgba(63,58,230,.06);overflow:hidden;">
+                <div style="height:3px;background:var(--slate);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;">
+                    <span style="font-size:9.5px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:5px;padding:1px 7px;">defesa · resposta</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--ai);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>criada pela IA</span>
+                  </div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;">Resposta à acusação</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);flex-wrap:wrap;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Joana P. Ribeiro</b><span style="display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:5px;padding:1px 6px;">🔒 segredo de justiça</span></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0031902-12.2025.8.05.0001</div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>5 dias</span>
+                    <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">interno 28/06</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--ai-strong);background:var(--ai-soft);border:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>Redigir minuta</button>
+                  <button style="flex:none;padding:8px 12px;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface);border:none;border-left:1px solid var(--line-soft);">Abrir</button>
+                </div>
+              </article>
+
+              <!-- card manual -->
+              <article style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(22,25,34,.04);overflow:hidden;">
+                <div style="height:3px;background:var(--slate);"></div>
+                <div style="padding:12px 13px;">
+                  <span style="font-size:9.5px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:5px;padding:1px 7px;">memorial · alegações finais</span>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;margin-top:7px;">Memoriais escritos</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Edmilson F. dos Santos</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0008812-44.2020.8.10.0001</div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>12 dias</span>
+                    <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">Daniel</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--text);background:var(--surface);border:none;">Iniciar elaboração</button>
+                </div>
+              </article>
+
+              <!-- card inicial caso novo (processo NULL) -->
+              <article style="background:var(--surface);border:1px dashed var(--line);border-radius:12px;overflow:hidden;">
+                <div style="height:3px;background:var(--slate);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">inicial · HC</span><span style="font-size:9.5px;font-weight:600;color:var(--muted);font-family:var(--mono);">sem processo · caso novo</span></div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;margin-top:7px;">HC — relaxamento de prisão preventiva</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Rafael S. Lima</b></div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:6px;padding:3px 8px;">⚡ urgente</span>
+                    <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">alvo 24/06</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--text);background:var(--surface);border:none;">Iniciar elaboração</button>
+                </div>
+              </article>
+
+            </div>
+          </section>
+
+          <!-- COLUNA: EM ELABORAÇÃO -->
+          <section style="flex:1 1 0;min-width:190px;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;max-height:100%;">
+            <div style="flex:none;padding:13px 15px 11px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);">
+              <span style="width:9px;height:9px;border-radius:50%;background:var(--blue);"></span>
+              <span style="font-size:12.5px;font-weight:800;color:var(--ink);">Em elaboração</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:0 7px;">2</span>
+              <span style="margin-left:auto;color:var(--muted-2);font-size:16px;line-height:1;cursor:pointer;">+</span>
+            </div>
+            <div class="kbcol" style="flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:11px;">
+
+              <article style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(22,25,34,.04);overflow:hidden;">
+                <div style="height:3px;background:var(--blue);"></div>
+                <div style="padding:12px 13px;">
+                  <span style="font-size:9.5px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:5px;padding:1px 7px;">recurso · RESE</span>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;margin-top:7px;">RESE contra decisão de pronúncia</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Cláudio R. Menezes</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0012445-09.2024.8.13.0024</div>
+                  <div style="height:5px;border-radius:3px;background:var(--surface-3);margin-top:11px;overflow:hidden;"><div style="width:55%;height:100%;background:var(--blue);"></div></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>3 dias</span>
+                    <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">Daniel · 55%</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--text);background:var(--surface);border:none;">Continuar no editor</button>
+                </div>
+              </article>
+
+              <article style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(22,25,34,.04);overflow:hidden;">
+                <div style="height:3px;background:var(--blue);"></div>
+                <div style="padding:12px 13px;">
+                  <span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">incidente · agravo em execução</span>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;margin-top:7px;">Agravo em execução — progressão</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Edmilson F. dos Santos</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0004821-55.2021.8.10.0001 · PEC</div>
+                  <div style="height:5px;border-radius:3px;background:var(--surface-3);margin-top:11px;overflow:hidden;"><div style="width:25%;height:100%;background:var(--blue);"></div></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>7 dias</span>
+                    <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">Daniel · 25%</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--text);background:var(--surface);border:none;">Continuar no editor</button>
+                </div>
+              </article>
+
+            </div>
+          </section>
+
+          <!-- COLUNA: EM REVISÃO (minutas IA) -->
+          <section style="flex:1 1 0;min-width:190px;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--ai-soft),var(--surface-2) 120px);border:1px solid var(--ai-line);border-radius:14px;max-height:100%;box-shadow:0 0 0 1px var(--ai-line);">
+            <div style="flex:none;padding:13px 15px 11px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--ai-line);">
+              <svg width="13" height="13" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>
+              <span style="font-size:12.5px;font-weight:800;color:var(--ai-strong);">Em revisão</span>
+              <span style="font-family:var(--mono);font-size:11px;color:#fff;background:var(--ai);border-radius:20px;padding:0 7px;">3</span>
+              <span style="margin-left:auto;font-size:9.5px;font-weight:700;color:var(--ai);text-transform:uppercase;letter-spacing:.04em;">minutas IA</span>
+            </div>
+            <div class="kbcol" style="flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:11px;">
+
+              <!-- minuta IA emblemática (agravo regimental STJ) -->
+              <article style="background:var(--surface);border:1px solid var(--ai);border-radius:12px;box-shadow:0 0 0 1px var(--ai),0 6px 16px rgba(63,58,230,.1);overflow:hidden;">
+                <div style="height:3px;background:var(--ai);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;">
+                    <span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">incidente · agravo regimental</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#fff;background:var(--ai);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" style="fill:#fff;"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>minuta IA · revisar</span>
+                  </div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;">Agravo regimental — monocrática STJ (HC)</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Antônio C. Brito</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">HC 882.441 · STJ</div>
+                  <div style="background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:8px;padding:7px 9px;margin-top:10px;">
+                    <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--ai-strong);"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ai)" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>gate ALTA · tese coberta pelo acervo</div>
+                    <div style="font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.4;">2 precedentes STJ favoráveis citados · 1 nota interna em aberto</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>6 dias</span>
+                    <span style="font-size:10.5px;color:var(--ai-strong);font-family:var(--mono);font-weight:600;">.docx · Drive</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--ai-line);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:#fff;background:var(--ai);border:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>Abrir minuta</button>
+                  <button style="flex:none;padding:8px 11px;font-size:11.5px;font-weight:700;color:var(--green);background:var(--surface);border:none;border-left:1px solid var(--ai-line);">Validar</button>
+                </div>
+              </article>
+
+              <!-- minuta IA dosimetria -->
+              <article style="background:var(--surface);border:1px solid var(--ai);border-radius:12px;box-shadow:0 0 0 1px var(--ai-line),0 5px 14px rgba(63,58,230,.08);overflow:hidden;">
+                <div style="height:3px;background:var(--ai);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;">
+                    <span style="font-size:9.5px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:5px;padding:1px 7px;">recurso · apelação</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#fff;background:var(--ai);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" style="fill:#fff;"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>minuta IA · revisar</span>
+                  </div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;">Apelação — dosimetria (art. 33 §4º)</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Patrícia N. Gomes</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0005533-71.2024.8.10.0040</div>
+                  <div style="background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:8px;padding:7px 9px;margin-top:10px;">
+                    <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--ai-strong);"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ai)" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>auditor-dosimetria aplicado</div>
+                    <div style="font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.4;">recálculo da pena-base + frações · 3 campos [ ] em aberto</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>8 dias</span>
+                    <span style="font-size:10.5px;color:var(--ai-strong);font-family:var(--mono);font-weight:600;">.docx · Drive</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--ai-line);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:#fff;background:var(--ai);border:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>Abrir minuta</button>
+                  <button style="flex:none;padding:8px 11px;font-size:11.5px;font-weight:700;color:var(--green);background:var(--surface);border:none;border-left:1px solid var(--ai-line);">Validar</button>
+                </div>
+              </article>
+
+              <!-- minuta IA contrarrazões segredo -->
+              <article style="background:var(--surface);border:1px solid var(--ai);border-radius:12px;box-shadow:0 0 0 1px var(--ai-line),0 5px 14px rgba(63,58,230,.08);overflow:hidden;">
+                <div style="height:3px;background:var(--ai);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;">
+                    <span style="font-size:9.5px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:5px;padding:1px 7px;">recurso · contrarrazões</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#fff;background:var(--ai);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" style="fill:#fff;"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>minuta IA · revisar</span>
+                  </div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;">Contrarrazões de apelação</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);flex-wrap:wrap;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Joana P. Ribeiro</b><span style="display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:5px;padding:1px 6px;">🔒 segredo de justiça</span></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0031902-12.2025.8.05.0001</div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>4 dias</span>
+                    <span style="font-size:10.5px;color:var(--ai-strong);font-family:var(--mono);font-weight:600;">.docx · Drive</span>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--ai-line);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:#fff;background:var(--ai);border:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>Abrir minuta</button>
+                  <button style="flex:none;padding:8px 11px;font-size:11.5px;font-weight:700;color:var(--green);background:var(--surface);border:none;border-left:1px solid var(--ai-line);">Validar</button>
+                </div>
+              </article>
+
+            </div>
+          </section>
+
+          <!-- COLUNA: AGUARDANDO INSUMO -->
+          <section style="flex:1 1 0;min-width:190px;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;max-height:100%;">
+            <div style="flex:none;padding:13px 15px 11px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);">
+              <span style="width:9px;height:9px;border-radius:50%;background:var(--amber);"></span>
+              <span style="font-size:12.5px;font-weight:800;color:var(--ink);">Aguardando insumo</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:0 7px;">2</span>
+            </div>
+            <div class="kbcol" style="flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:11px;">
+
+              <article style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(22,25,34,.04);overflow:hidden;">
+                <div style="height:3px;background:var(--amber);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;">
+                    <span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">incidente · revisão criminal</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--ai);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>gate BAIXA</span>
+                  </div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;">Revisão criminal</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Sérgio M. Andrade</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0009987-30.2018.8.10.0001</div>
+                  <div style="background:var(--amber-soft);border:1px solid rgba(176,116,7,.25);border-radius:8px;padding:7px 9px;margin-top:10px;">
+                    <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--amber);"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>falta: acórdão condenatório (inteiro teor)</div>
+                    <div style="font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.4;">tarefa de conferência (alta) aberta · não redigir às cegas</div>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--text);background:var(--surface);border:none;">Anexar insumo</button>
+                  <button style="flex:none;padding:8px 11px;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface);border:none;border-left:1px solid var(--line-soft);">Tarefa</button>
+                </div>
+              </article>
+
+              <article style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(22,25,34,.04);overflow:hidden;">
+                <div style="height:3px;background:var(--amber);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;">
+                    <span style="font-size:9.5px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:5px;padding:1px 7px;">recurso · apelação</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--ai);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>gate BAIXA</span>
+                  </div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;">Apelação — tráfico</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Luís F. Carvalho</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0002201-44.2025.8.10.0001</div>
+                  <div style="background:var(--amber-soft);border:1px solid rgba(176,116,7,.25);border-radius:8px;padding:7px 9px;margin-top:10px;">
+                    <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--amber);"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>falta: sentença integral no sistema</div>
+                    <div style="font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.4;">decisão atacável não reconhecida na íntegra</div>
+                  </div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--text);background:var(--surface);border:none;">Anexar insumo</button>
+                  <button style="flex:none;padding:8px 11px;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface);border:none;border-left:1px solid var(--line-soft);">Tarefa</button>
+                </div>
+              </article>
+
+            </div>
+          </section>
+
+          <!-- COLUNA: PRONTA -->
+          <section style="flex:1 1 0;min-width:190px;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;max-height:100%;">
+            <div style="flex:none;padding:13px 15px 11px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);">
+              <span style="width:9px;height:9px;border-radius:50%;background:var(--green);"></span>
+              <span style="font-size:12.5px;font-weight:800;color:var(--ink);">Pronta</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:0 7px;">1</span>
+              <span style="margin-left:auto;font-size:9.5px;font-weight:700;color:var(--muted);">aguarda protocolo</span>
+            </div>
+            <div class="kbcol" style="flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:11px;">
+
+              <article style="background:var(--surface);border:1px solid var(--green);border-radius:12px;box-shadow:0 1px 2px rgba(22,25,34,.04);overflow:hidden;">
+                <div style="height:3px;background:var(--green);"></div>
+                <div style="padding:12px 13px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;">
+                    <span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">manifestação · embargos decl.</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>validada · Daniel</span>
+                  </div>
+                  <div style="font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;">Embargos de declaração</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Cláudio R. Menezes</b></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">0012445-09.2024.8.13.0024</div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:6px;padding:3px 8px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>2 dias</span>
+                    <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">revisada 22/06</span>
+                  </div>
+                  <div style="font-size:10px;color:var(--muted);margin-top:9px;line-height:1.4;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:7px;padding:6px 8px;">O sistema nunca protocola — a baixa do prazo move para <b style="color:var(--text);">protocolada</b> e grava o andamento.</div>
+                </div>
+                <div style="display:flex;border-top:1px solid var(--line-soft);">
+                  <button style="flex:1;padding:8px;font-size:11.5px;font-weight:700;color:var(--text);background:var(--surface);border:none;">Baixar .docx</button>
+                  <button style="flex:none;padding:8px 11px;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface);border:none;border-left:1px solid var(--line-soft);">Abrir</button>
+                </div>
+              </article>
+
+            </div>
+          </section>
+
+          <!-- COLUNA: PROTOCOLADA -->
+          <section style="flex:1 1 0;min-width:190px;display:flex;flex-direction:column;background:var(--surface-3);border:1px solid var(--line);border-radius:14px;max-height:100%;">
+            <div style="flex:none;padding:13px 15px 11px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);">
+              <span style="width:9px;height:9px;border-radius:50%;background:var(--ink);"></span>
+              <span style="font-size:12.5px;font-weight:800;color:var(--ink);">Protocolada</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:0 7px;">38</span>
+              <span style="margin-left:auto;font-size:10.5px;color:var(--muted);font-family:var(--mono);">30d</span>
+            </div>
+            <div class="kbcol" style="flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:11px;">
+
+              <article style="background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;opacity:.92;">
+                <div style="padding:11px 13px;">
+                  <span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">recurso · RESE</span>
+                  <div style="font-weight:800;color:var(--name);font-size:13px;line-height:1.25;margin-top:7px;">Contrarrazões — recurso em sentido estrito</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:7px;font-size:11.5px;color:var(--muted);"><b style="color:var(--text);">Marcos A. Tavares</b></div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:9px;font-size:10.5px;color:var(--green);font-weight:600;font-family:var(--mono);"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.6" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg>protocolada 20/06 · andamento #4471</div>
+                </div>
+              </article>
+
+              <div style="text-align:center;padding:6px 0;font-size:11.5px;color:var(--muted);font-weight:600;cursor:pointer;">ver todas as 38 →</div>
+
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- TRILHO DIREITO -->
+      <aside style="flex:none;width:312px;border-left:1px solid var(--line);background:var(--paper);overflow-y:auto;padding:18px 22px 26px;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Redator agendado (IA) -->
+        <div style="background:var(--surface);border:1px solid var(--ai);border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px var(--ai),0 8px 22px rgba(63,58,230,.08);">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--ai-line);background:linear-gradient(180deg,var(--ai-soft),transparent);display:flex;align-items:center;gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>
+            <span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ai-strong);font-weight:700;">Redator agendado</span>
+            <span style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--green);font-weight:700;"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);"></span>03:40</span>
+          </div>
+          <div style="padding:14px 16px;">
+            <p style="font-size:12.5px;color:var(--text);line-height:1.5;margin:0 0 12px;">A 2ª passada do Cowork redige a minuta das peças de <b>alta confiança</b> e move <span style="font-family:var(--mono);font-size:11px;">a_fazer</span> → <span style="font-family:var(--mono);font-size:11px;color:var(--ai-strong);">em_revisão</span>. Sempre <b>validado=false</b> — nunca protocola.</p>
+            <div style="display:flex;gap:9px;">
+              <div style="flex:1;background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:10px;padding:9px 11px;"><div style="font-family:var(--serif);font-size:26px;color:var(--ai-strong);line-height:1;">3</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">minutas → revisão</div></div>
+              <div style="flex:1;background:var(--amber-soft);border:1px solid rgba(176,116,7,.22);border-radius:10px;padding:9px 11px;"><div style="font-family:var(--serif);font-size:26px;color:var(--amber);line-height:1;">2</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">aguard. insumo</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:11px;line-height:1.45;">Cadeia: <span style="font-family:var(--mono);">auditor-dosimetria</span> / <span style="font-family:var(--mono);">calculadora-execução</span> → <span style="font-family:var(--mono);">redator-penal</span>, ancorada no acervo curado. Jurisprudência só de súmula/vinculante/acervo.</div>
+          </div>
+        </div>
+
+        <!-- explicativo: o kanban cruza -->
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04);">
+          <div style="padding:13px 16px;border-bottom:1px solid var(--line-soft);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;">O kanban cruza</div>
+          <div style="padding:13px 16px;display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;gap:10px;align-items:flex-start;"><span style="flex:none;width:8px;height:8px;border-radius:2px;background:var(--ai);margin-top:5px;"></span><div style="font-size:12px;color:var(--text);line-height:1.45;"><b style="color:var(--ink);">vw_pecas_pendentes</b> — une peça + prazo e calcula <span style="font-family:var(--mono);font-size:11px;">dias_restantes</span> pela data herdada.</div></div>
+            <div style="display:flex;gap:10px;align-items:flex-start;"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:var(--slate);margin-top:5px;"></span><div style="font-size:12px;color:var(--text);line-height:1.45;"><b style="color:var(--ink);">mapa_providencia_peca</b> — providência → tipo/subtipo pré-preenche a nova peça.</div></div>
+            <div style="display:flex;gap:10px;align-items:flex-start;"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:var(--green);margin-top:5px;"></span><div style="font-size:12px;color:var(--text);line-height:1.45;">Na <b style="color:var(--ink);">baixa do prazo</b> a peça vai a <span style="font-family:var(--mono);font-size:11px;">protocolada</span> e grava <span style="font-family:var(--mono);font-size:11px;">andamento_id</span>.</div></div>
+          </div>
+          <div style="padding:11px 16px;background:var(--surface-2);border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted);line-height:1.5;">Nunca deletar: correção é trocar status (cancelada / prejudicada). Tudo auditado.</div>
+        </div>
+
+        <sc-if value="{{ showAssistant }}" hint-placeholder-val="{{ true }}">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04),0 10px 24px rgba(22,25,34,.05);">
+          <div style="padding:13px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:9px;">
+            <span style="flex:none;width:25px;height:25px;border-radius:8px;background:var(--ai-soft);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg></span>
+            <span style="font-family:var(--serif);font-size:18px;color:var(--ink);">Assistente</span>
+            <span style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);font-weight:600;"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);"></span>Claude</span>
+          </div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+            <div style="align-self:flex-end;max-width:88%;background:var(--surface-2);border:1px solid var(--line-soft);color:var(--text);border-radius:13px 13px 4px 13px;padding:8px 12px;font-size:12.5px;">O que falta no agravo do Antônio?</div>
+            <div style="align-self:flex-start;max-width:92%;background:var(--ai-soft);border:1px solid var(--ai-line);color:var(--ink);border-radius:13px 13px 13px 4px;padding:10px 12px;font-size:12.5px;line-height:1.55;">A minuta está pronta para revisão (gate ALTA). Resta 1 nota interna: confirmar a data de intimação da monocrática para o cabeçalho. Abro no editor?</div>
+          </div>
+          <div style="padding:0 14px 14px;">
+            <div style="display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;">
+              <span style="flex:1;font-size:12px;color:var(--muted-2);">Criar peça, redigir minuta, checar prazo…</span>
+              <span style="flex:none;width:27px;height:27px;border-radius:8px;background:var(--ai);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1024},&quot;showAssistant&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      showAssistant: this.props.showAssistant ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>
