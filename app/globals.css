@@ -670,6 +670,34 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .fonte-st.bad{color:var(--red)}
 .prox-exec{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)}
 
+/* ---------- Intimações (/intimacoes) — inbox de cards ---------- */
+.int-head{display:flex;justify-content:flex-end;margin:16px 2px 8px}
+.int-list{display:flex;flex-direction:column;gap:10px}
+.int-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px}
+.int-card.nao-lida{border-left:3px solid var(--accent)}
+.int-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.int-orig{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--muted);background:var(--surface-2);border:1px solid var(--line-soft);border-radius:6px;padding:2px 8px}
+.int-date{font-size:11.5px;color:var(--muted)}
+.int-flag-lida{font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:20px;padding:1px 8px}
+.int-cliente{margin-top:9px;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--name);font-weight:700}
+.int-orfa{color:var(--amber);font-weight:700}
+.int-card .ctx-caso{margin-top:5px}
+.int-prov{margin-top:6px;font-size:12.5px;color:var(--text);line-height:1.45}
+.int-k{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin-right:6px}
+.int-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:11px;padding-top:11px;border-top:1px solid var(--line-soft)}
+.int-enc{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.int-encp{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap}
+.int-encp.enc-ok{background:var(--green-soft);color:var(--green)}
+.int-encp.enc-prov{background:var(--tang-soft);color:var(--tang)}
+.int-encp.enc-ai{background:var(--accent-soft);color:var(--accent)}
+.int-encp.enc-caixa{background:var(--amber-soft);color:var(--amber)}
+.int-acoes{display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex:none}
+
+/* Trilho — explicador da fila */
+.fila-help{list-style:none;display:flex;flex-direction:column;gap:9px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.fila-help b{color:var(--ink);font-weight:700}
+.fila-help .enc-ok{color:var(--green);font-weight:700}
+
 /* Gráficos do financeiro */
 .fin-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:1080px){.fin-charts{grid-template-columns:1fr}}

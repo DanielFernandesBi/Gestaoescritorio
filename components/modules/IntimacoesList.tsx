@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ProcRef, SegredoTag, Pill, ContextoCaso, PartesCliente } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { Icon } from "@/components/Icon";
-import { RowLink } from "@/components/RowLink";
 import { MarcarLido } from "@/components/MarcarLido";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
@@ -13,13 +13,7 @@ import type { Intimacao } from "@/lib/data";
 const PASSO = 50;
 
 const tone = (s: string) =>
-  s === "pendente"
-    ? "amber"
-    : s === "providencia_tomada"
-      ? "green"
-      : s === "em_analise"
-        ? "blue"
-        : "gray";
+  s === "pendente" ? "amber" : s === "providencia_tomada" ? "green" : s === "em_analise" ? "blue" : "gray";
 
 // Sugestão 53 — DOIS eixos: LEITURA (default "Para revisar" = revisado_em null) e
 // FLUXO ("Na caixa" = na_caixa derivado dos fatos). Depois, os filtros por status.
@@ -41,6 +35,21 @@ const ORIGENS = [
   { id: "eproc", label: "eproc" },
 ];
 
+// Estado de encaminhamento do card (eixo de FLUXO), com a cor/aura certa.
+function encaminhamento(i: Intimacao): { label: string; cls: string; check?: boolean } | null {
+  if (!i.orfa && i.tem_prazo && i.prazo_fatal) {
+    const dias = i.prazo_dias_restantes;
+    return {
+      label: `Prazo · fatal ${fmtDate(i.prazo_fatal)}${dias != null ? ` · ${dias}d` : ""}`,
+      cls: i.prazo_validado ? "enc-ok" : "enc-prov",
+      check: Boolean(i.prazo_validado),
+    };
+  }
+  if (i.tem_peca) return { label: `Minuta IA · ${humano(i.peca_status ?? "em produção")}`, cls: "enc-ai" };
+  if (i.na_caixa) return { label: "Na caixa · sem prazo", cls: "enc-caixa" };
+  return null;
+}
+
 export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
   // Abre no eixo de LEITURA: o que o humano ainda não revisou (inbox profissional).
   const [st, setSt] = useState("para_revisar");
@@ -51,16 +60,11 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
     () =>
       intimacoes.filter((i) => {
         const okSt =
-          st === "para_revisar"
-            ? i.revisado_em == null
-            : st === "na_caixa"
-              ? Boolean(i.na_caixa)
-              : st === "pendentes"
-                ? i.status === "pendente"
-                : st === "em_analise"
-                  ? i.status === "em_analise"
-                  : st === "orfas"
-                    ? i.orfa
+          st === "para_revisar" ? i.revisado_em == null
+            : st === "na_caixa" ? Boolean(i.na_caixa)
+              : st === "pendentes" ? i.status === "pendente"
+                : st === "em_analise" ? i.status === "em_analise"
+                  : st === "orfas" ? i.orfa
                     : true;
         const okOrig = orig === "todas" ? true : i.origem === orig;
         return okSt && okOrig;
@@ -75,18 +79,11 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
   const nAnalise = intimacoes.filter((i) => i.status === "em_analise").length;
   const nOrfas = intimacoes.filter((i) => i.orfa).length;
 
-  const irPara = (id: string) => {
-    setSt(id);
-    setVisiveis(PASSO);
-  };
+  const irPara = (id: string) => { setSt(id); setVisiveis(PASSO); };
 
   const contaDe: Record<string, number> = {
-    para_revisar: nRevisar,
-    na_caixa: nCaixa,
-    todas: intimacoes.length,
-    pendentes: nPend,
-    em_analise: nAnalise,
-    orfas: nOrfas,
+    para_revisar: nRevisar, na_caixa: nCaixa, todas: intimacoes.length,
+    pendentes: nPend, em_analise: nAnalise, orfas: nOrfas,
   };
   const opcoesStatus = STATUS.map((o) => ({ ...o, label: `${o.label} (${contaDe[o.id] ?? 0})` }));
 
@@ -110,72 +107,72 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
         </div>
       </div>
 
-      <div className="card op-card">
-        <div className="card-h">
-          <h3><Icon name="inbox" /> Intimações</h3>
-          <span className="sub">{filtradas.length} no filtro</span>
-        </div>
-        <div className="card-b flush">
-          {mostradas.length ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>Origem</th>
-                  <th>Cliente · do que se trata</th>
-                  <th>Processo</th>
-                  <th>Publicação</th>
-                  <th className="center">Status · leitura</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mostradas.map((i) => {
-                  const naoLida = i.revisado_em == null;
-                  const encaminhada = Boolean(i.tem_prazo || i.tem_peca);
-                  return (
-                  <RowLink key={i.id} href={linkPara("intimacao", i.id)} className={naoLida ? "nao-lida" : ""} ariaLabel={`Abrir intimação: ${i.resumo ?? "sem resumo"}`}>
-                    <td><Pill tone="gray" dot={false}>{(i.origem ?? "—").toUpperCase()}</Pill></td>
-                    <td>
-                      {i.orfa ? (
-                        <>
-                          <div className="name" style={{ color: "var(--amber)" }}>{naoLida && <span className="dot-nova" aria-hidden />}⚠ sem processo identificado — triagem humana</div>
-                          <ContextoCaso ctx={i.contexto} />
-                          <div className="sub">{i.resumo ?? "—"}</div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="name">
-                            {naoLida && <span className="dot-nova" aria-hidden title="Não lida" />}
-                            {i.partes?.length ? <PartesCliente partes={i.partes} /> : (i.cliente ?? "Sem cliente vinculado")}
-                            {i.segredo && <> <SegredoTag on /></>}
-                          </div>
-                          <ContextoCaso ctx={i.contexto} />
-                          <div className="sub">{i.resumo ?? "—"}</div>
-                        </>
-                      )}
-                    </td>
-                    <td>
-                      {i.orfa ? (
-                        <span className="sub">—</span>
-                      ) : (
-                        <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} />
-                      )}
-                    </td>
-                    <td className="mono">{fmtDate(i.data_publicacao)}</td>
-                    <td className="center">
-                      <Pill tone={tone(i.status)}>{humano(i.status)}</Pill>
-                      {encaminhada && <div style={{ marginTop: 4 }}><Pill tone="green" dot={false}>✓ encaminhada</Pill></div>}
-                      {naoLida && <div style={{ marginTop: 6 }}><MarcarLido id={i.id} /></div>}
-                    </td>
-                  </RowLink>
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <div className="empty">Nenhuma intimação neste filtro.</div>
-          )}
-        </div>
+      <div className="int-head">
+        <span className="sub">{filtradas.length} no filtro</span>
       </div>
+
+      {mostradas.length ? (
+        <div className="int-list">
+          {mostradas.map((i) => {
+            const naoLida = i.revisado_em == null;
+            const enc = encaminhamento(i);
+            const abrir = linkPara("intimacao", i.id);
+            return (
+              <div className={`int-card${naoLida ? " nao-lida" : ""}`} key={i.id}>
+                <div className="int-top">
+                  {naoLida && <span className="dot-nova" aria-hidden title="Não lida" />}
+                  <span className="int-orig">{(i.origem ?? "—").toUpperCase()}</span>
+                  <span className="int-date mono">{fmtDate(i.data_publicacao)}</span>
+                  <Pill tone={tone(i.status)}>{humano(i.status)}</Pill>
+                  {naoLida && <span className="int-flag-lida">não lida</span>}
+                </div>
+
+                <div className="int-cliente">
+                  {i.orfa ? (
+                    <span className="int-orfa">⚠ Sem processo identificado · triagem humana</span>
+                  ) : (
+                    <>
+                      {i.partes?.length ? <PartesCliente partes={i.partes} /> : (i.cliente ?? "Sem cliente vinculado")}
+                      {i.preso && <span className="ag-flag preso">PRESO</span>}
+                      {i.segredo && <> <SegredoTag on /></>}
+                    </>
+                  )}
+                </div>
+
+                <ContextoCaso ctx={i.contexto} />
+
+                {i.providencia && (
+                  <div className="int-prov"><span className="int-k">providência</span> {i.providencia}</div>
+                )}
+
+                <div className="int-foot">
+                  <div className="int-enc">
+                    {i.orfa ? (
+                      <span className="sub">sem CNJ · fila de órfãos</span>
+                    ) : (
+                      <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} id={i.processo_id} />
+                    )}
+                    {enc && <span className={`int-encp ${enc.cls}`}>{enc.check ? "✓ " : ""}{enc.label}</span>}
+                  </div>
+                  <div className="int-acoes">
+                    {i.orfa ? (
+                      <Link className="btn sm" href={abrir}>Promover · vincular</Link>
+                    ) : i.tem_prazo && !i.prazo_validado ? (
+                      <Link className="btn sm primary" href="/validacao">Validar prazo</Link>
+                    ) : i.tem_peca ? (
+                      <Link className="btn sm" href="/producao">Ver minuta</Link>
+                    ) : null}
+                    {naoLida && <MarcarLido id={i.id} />}
+                    <Link className="btn sm" href={abrir}>Abrir</Link>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="empty">Nenhuma intimação neste filtro.</div>
+      )}
 
       {visiveis < filtradas.length && (
         <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
