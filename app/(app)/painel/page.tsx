@@ -1,12 +1,16 @@
-import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos } from "@/lib/queries";
-import { getAudiencias, getPecas } from "@/lib/data";
+import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos, getBriefingAtual } from "@/lib/queries";
+import { getAudiencias, getPecas, getPrazos } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
 import { Pill, ProcRef, SegredoTag, DiasBox } from "@/components/ui";
 import { VerMais } from "@/components/VerMais";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
-import { fmtBRL, fmtDate, fmtTime, fmtNum, humano, diasAte } from "@/lib/format";
-import { linkPara } from "@/lib/links";
+import { FormModal } from "@/components/FormModal";
+import { validarPrazoEditado, validarAudienciaEditada } from "@/app/actions";
+import { TIPO_CONTAGEM, RESPONSAVEIS, AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE } from "@/lib/enums";
+import { fmtBRL, fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
+import { linkPara, isEntidadeTipo } from "@/lib/links";
+import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +18,7 @@ export const dynamic = "force-dynamic";
 const statusTone = (s: string): "green" | "amber" | "red" =>
   s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
 
-// Caixinha de data (dia + mês) para audiências, com tom por proximidade.
+// Caixinha de data (dia + mês) para audiências.
 function diaMes(iso: string) {
   const d = new Date(iso);
   return {
@@ -27,6 +31,14 @@ function audTone(dias: number): "crit" | "warn" | "ok" {
 }
 const dl = (n: number) => `${n} ${Math.abs(n) === 1 ? "dia" : "dias"}`;
 
+// Separa o "ato" curto (título) da nota longa que a triagem às vezes anexa entre
+// colchetes (reclassificação/conferência) — a nota vira 3ª linha truncada, nunca título.
+function splitAto(ato: string): [string, string | null] {
+  const j = ato.indexOf(" [");
+  if (j > 0) return [ato.slice(0, j).trim(), ato.slice(j).trim()];
+  return [ato, null];
+}
+
 // Colunas do mini-board de produção (subset do kanban; vw_pecas_pendentes já
 // exclui protocoladas/canceladas/prejudicadas).
 const PROD_COLS: { key: string; label: string }[] = [
@@ -35,6 +47,8 @@ const PROD_COLS: { key: string; label: string }[] = [
   { key: "em_revisao", label: "Em revisão" },
   { key: "aguardando_insumo", label: "Aguardando insumo" },
 ];
+
+type FocoCard = { titulo: string; sub: string; href: string | null; tag: string; tone: "crit" | "warn" | "ok" };
 
 export default async function PainelPage() {
   const [
@@ -45,6 +59,8 @@ export default async function PainelPage() {
     pecas,
     conferencias,
     beneficios,
+    briefing,
+    prazosAll,
   ] = await Promise.all([
     getPainelData(),
     getUltimaVarredura(),
@@ -53,9 +69,13 @@ export default async function PainelPage() {
     getPecas(),
     getConferenciasEscaladas(),
     getBeneficiosProximos(),
+    getBriefingAtual(),
+    getPrazos(),
   ]);
 
   const nome = socioDoEmail(email);
+  const prazoPorId = new Map(prazosAll.map((p) => [p.id, p]));
+  const audPorId = new Map(audiencias.map((a) => [a.id, a]));
 
   const horaSP = Number(
     new Intl.DateTimeFormat("pt-BR", {
@@ -65,6 +85,12 @@ export default async function PainelPage() {
     }).format(new Date()),
   );
   const saudacao = horaSP < 12 ? "Bom dia" : horaSP < 18 ? "Boa tarde" : "Boa noite";
+  const hojeISO = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
   const agora = Date.now();
   const audProximas = audiencias
@@ -78,13 +104,17 @@ export default async function PainelPage() {
   const fonteDJEN = varredura ? ["djen", "ambas"].includes(varredura.fonte) : false;
   const fontePush = varredura ? ["push", "ambas"].includes(varredura.fonte) : false;
 
-  // "Onde focar agora" — derivação determinística dos sinais reais (sem LLM):
-  // o fatal mais próximo, a conferência mais urgente e as minutas a revisar.
-  const focos: { titulo: string; sub: string; href: string; tag: string; tone: "crit" | "warn" | "ok" }[] = [];
+  // Briefing (Sugestão 65): texto vem de vw_briefing_atual; números seguem de varredura.
+  const briefingDeHoje = briefing?.data_referencia === hojeISO;
+  const autorBriefing =
+    briefing && (briefing.gerado_por === "cowork" || briefing.gerado_por === "chat") ? "Claude" : briefing?.gerado_por;
+
+  // "Onde focar agora": do briefing quando há; senão, derivação determinística (fallback).
+  const focosDet: FocoCard[] = [];
   const fatal = prazos[0];
   if (fatal) {
-    focos.push({
-      titulo: fatal.ato,
+    focosDet.push({
+      titulo: splitAto(fatal.ato)[0],
       sub: `${fatal.clientes ?? "—"}${fatal.numero_cnj ? ` · ${fatal.numero_cnj}` : ""}`,
       href: linkPara("prazo", fatal.prazo_id),
       tag: `fatal em ${dl(fatal.dias_restantes)}`,
@@ -93,7 +123,7 @@ export default async function PainelPage() {
   }
   const confTop = conferencias.find((c) => c.prioridade === "urgente") ?? conferencias[0];
   if (confTop) {
-    focos.push({
+    focosDet.push({
       titulo: confTop.titulo,
       sub: confTop.segredo ? "🔒 segredo de justiça" : confTop.cliente ?? "conferência escalada",
       href: linkPara("tarefa", confTop.id),
@@ -102,7 +132,7 @@ export default async function PainelPage() {
     });
   }
   if (minutasRevisar > 0) {
-    focos.push({
+    focosDet.push({
       titulo: `Revisar ${minutasRevisar} ${minutasRevisar === 1 ? "minuta" : "minutas"} da produção`,
       sub: "peças em revisão · produção",
       href: "/producao",
@@ -110,8 +140,22 @@ export default async function PainelPage() {
       tone: "ok",
     });
   }
+  const refHref = (ref: { tipo: string | null; id: string | null } | null): string | null => {
+    if (!ref || !ref.id || !ref.tipo) return null;
+    if (ref.tipo === "peca") return "/producao";
+    return isEntidadeTipo(ref.tipo) ? linkPara(ref.tipo, ref.id) : null;
+  };
+  const ondeFocar: FocoCard[] = briefing
+    ? briefing.onde_focar.map((o) => ({
+        titulo: o.titulo,
+        sub: o.detalhe,
+        href: refHref(o.ref),
+        tag: o.urgencia,
+        tone: o.urgencia === "urgente" ? "crit" : o.urgencia === "alta" ? "warn" : "ok",
+      }))
+    : focosDet;
 
-  // Resumo do dia — frase determinística montada das contagens reais (sem LLM).
+  // Resumo determinístico — só usado como fallback quando ainda não há briefing.
   const resumoPartes: string[] = [];
   if (stats.prazos_abertos)
     resumoPartes.push(
@@ -141,30 +185,73 @@ export default async function PainelPage() {
         </Link>
       </div>
 
-      {/* LEITURA DO DIA — hero: resumo determinístico (sem LLM) + onde focar */}
+      {/* LEITURA DO DIA — briefing persistido (Sugestão 65); números seguem da varredura */}
       <div className="focus">
         <div className="focus-glow" />
         <div className="focus-h">
-          <span className="lhs"><Icon name="activity" size={16} /> Leitura do dia</span>
-          <span className="focus-sub">derivado dos dados de hoje · não é texto gerado por IA</span>
+          <span className="lhs">
+            {briefing && <span className="ia-seal">IA</span>}
+            <Icon name="activity" size={16} /> Leitura do dia
+          </span>
+          <span className="focus-sub">
+            {briefing ? (
+              <>
+                gerado às <b>{fmtTime(briefing.gerado_em)}</b> · {autorBriefing}
+                {!briefingDeHoje && <> · <span className="focus-stale">de {fmtDate(briefing.data_referencia)}</span></>}
+              </>
+            ) : (
+              "derivado dos dados de hoje · não é texto gerado por IA"
+            )}
+          </span>
         </div>
-        <p className="focus-resumo">{resumoTexto}</p>
-        <div className="focus-sub2">Onde focar agora</div>
-        {focos.length ? (
-          <ol className="focus-list">
-            {focos.map((f, i) => (
-              <Link className="focus-item" key={i} href={f.href}>
-                <span className="focus-n">{i + 1}</span>
-                <div className="focus-main">
-                  <div className="focus-t">{f.titulo}</div>
-                  <div className="focus-s">{f.sub}</div>
-                </div>
-                <span className={`focus-tag ${f.tone}`}>{f.tag}</span>
-              </Link>
-            ))}
-          </ol>
+
+        {briefing?.resumo ? (
+          <div className="focus-resumo md">
+            <ReactMarkdown>{briefing.resumo}</ReactMarkdown>
+          </div>
         ) : (
-          <div className="empty">Nada urgente agora. 🎉</div>
+          <p className="focus-resumo">{resumoTexto}</p>
+        )}
+
+        {briefing?.corpo && (
+          <details className="focus-corpo">
+            <summary>Ver briefing completo</summary>
+            <div className="md">
+              <ReactMarkdown>{briefing.corpo}</ReactMarkdown>
+            </div>
+          </details>
+        )}
+
+        {(!briefing || !briefingDeHoje) && (
+          <div className="focus-cta">
+            {briefing ? "Este é o último briefing disponível." : "Nenhum briefing registrado ainda."} Peça{" "}
+            <b>“rode a triagem de hoje”</b> no chat para gerar o de hoje.
+          </div>
+        )}
+
+        {ondeFocar.length > 0 && (
+          <>
+            <div className="focus-sub2">Onde focar agora</div>
+            <ol className="focus-list">
+              {ondeFocar.map((f, i) => {
+                const inner = (
+                  <>
+                    <span className="focus-n">{i + 1}</span>
+                    <div className="focus-main">
+                      <div className="focus-t">{f.titulo}</div>
+                      <div className="focus-s">{f.sub}</div>
+                    </div>
+                    <span className={`focus-tag ${f.tone}`}>{f.tag}</span>
+                  </>
+                );
+                return f.href ? (
+                  <Link className="focus-item" key={i} href={f.href}>{inner}</Link>
+                ) : (
+                  <li className="focus-item" key={i}>{inner}</li>
+                );
+              })}
+            </ol>
+          </>
         )}
       </div>
 
@@ -298,49 +385,81 @@ export default async function PainelPage() {
             <Link className="link" href="/prazos">ver todos →</Link>
           </h3>
           {prazos.length ? (
-            prazos.slice(0, 4).map((p) => (
-              <Link className="deadline" key={p.prazo_id} href={linkPara("prazo", p.prazo_id)}>
-                <DiasBox dias={p.dias_restantes} />
-                <div className="dl-main">
-                  <div className="dl-t">{p.ato}</div>
-                  <div className="dl-s">
-                    {p.clientes ?? "—"}
-                    {p.numero_cnj && <> · <span className="cnj">{p.numero_cnj}</span></>}
+            prazos.slice(0, 4).map((p) => {
+              const [ato, nota] = splitAto(p.ato);
+              return (
+                <Link className="deadline" key={p.prazo_id} href={linkPara("prazo", p.prazo_id)}>
+                  <DiasBox dias={p.dias_restantes} />
+                  <div className="dl-main">
+                    <div className="dl-t">{ato}</div>
+                    <div className="dl-s">
+                      <span className="dl-cli">{p.clientes ?? "—"}</span>
+                      {p.numero_cnj && <> · <span className="cnj">{p.numero_cnj}</span></>}
+                    </div>
+                    {nota && <div className="dl-note">{nota}</div>}
                   </div>
-                </div>
-                <div className="dl-r mono">
-                  {fmtDate(p.data_fatal)}
-                  <div className="dl-s">interna {fmtDate(p.data_interna)}</div>
-                </div>
-              </Link>
-            ))
+                  <div className="dl-r mono">
+                    {fmtDate(p.data_fatal)}
+                    <div className="dl-s">interna {fmtDate(p.data_interna)}</div>
+                  </div>
+                </Link>
+              );
+            })
           ) : (
             <div className="empty">Nenhum prazo aberto.</div>
           )}
         </div>
 
-        <div className="hcard">
+        <div className="hcard ai-card">
           <h3>
-            <span className="lhs"><Icon name="check" /> Aguardando validação</span>
-            <Link className="link" href="/validacao">revisar todos →</Link>
+            <span className="lhs"><span className="ia-seal">IA</span> Aguardando validação</span>
+            <span className="ai-count">{validacao.length}</span>
           </h3>
+          <div className="ai-intro">Itens provisórios criados pela triagem. Você confirma a ciência e a fatal.</div>
           {validacao.length ? (
             <VerMais max={5}>
-              {validacao.map((v) => (
-                <Link className="deadline" key={`${v.tipo}-${v.id}`} href="/validacao">
-                  <div className="dl-main">
-                    <div className="dl-t">{v.descricao}</div>
-                    <div className="dl-s">
-                      {humano(v.tipo)}
-                      {v.numero_cnj && <> · <span className="cnj">{v.numero_cnj}</span></>}
+              {validacao.map((v) => {
+                const t = (v.tipo ?? "").toLowerCase();
+                const p = t.includes("prazo") ? prazoPorId.get(v.id) : undefined;
+                const a = t.includes("audi") ? audPorId.get(v.id) : undefined;
+                return (
+                  <div className="deadline valida-row" key={`${v.tipo}-${v.id}`}>
+                    <div className="dl-main">
+                      <div className="dl-t">{splitAto(v.descricao)[0]}</div>
+                      <div className="dl-s">
+                        {humano(v.tipo)}
+                        {v.numero_cnj && <> · <span className="cnj">{v.numero_cnj}</span></>}
+                        {v.data_relevante && <> · fatal prov. {fmtDate(v.data_relevante)}</>}
+                      </div>
                     </div>
+                    {p ? (
+                      <FormModal label="Validar" titulo="Revisar prazo" descricao="Ajuste a data fatal exata e confirme." acao={validarPrazoEditado.bind(null, p.id)} enviarLabel="Validar">
+                        <div><label>Ato</label><input name="ato" required defaultValue={p.ato} /></div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                          <div><label>Data fatal</label><input type="date" name="data_fatal" required defaultValue={p.data_fatal?.slice(0, 10)} /></div>
+                          <div><label>Data interna</label><input type="date" name="data_interna" defaultValue={p.data_interna?.slice(0, 10) ?? ""} /></div>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                          <div><label>Contagem</label><select name="tipo_contagem" defaultValue={p.tipo_contagem ?? "corridos"}>{TIPO_CONTAGEM.map((x) => <option key={x} value={x}>{x}</option>)}</select></div>
+                          <div><label>Responsável</label><select name="responsavel" defaultValue={p.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+                        </div>
+                      </FormModal>
+                    ) : a ? (
+                      <FormModal label="Validar" titulo="Revisar audiência" descricao="Ajuste a data e hora exatas e confirme." acao={validarAudienciaEditada.bind(null, a.id)} enviarLabel="Validar">
+                        <div><label>Tipo</label><select name="tipo" defaultValue={a.tipo}>{AUDIENCIA_TIPO.map((x) => <option key={x} value={x}>{humano(x)}</option>)}</select></div>
+                        <div><label>Data e hora</label><input type="datetime-local" name="data_hora" required defaultValue={a.data_hora?.slice(0, 16)} /></div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                          <div><label>Modalidade</label><select name="modalidade" defaultValue={a.modalidade ?? "presencial"}>{AUDIENCIA_MODALIDADE.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
+                          <div><label>Responsável</label><select name="responsavel" defaultValue={a.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+                        </div>
+                        <div><label>Local / link</label><input name="local_link" defaultValue={a.local_link ?? ""} /></div>
+                      </FormModal>
+                    ) : (
+                      <Link className="btn primary" href="/validacao">Validar</Link>
+                    )}
                   </div>
-                  <div className="dl-r">
-                    <Pill tone="amber" dot={false}>provisório</Pill>
-                    {v.data_relevante && <div className="dl-s mono" style={{ marginTop: 4 }}>{fmtDate(v.data_relevante)}</div>}
-                  </div>
-                </Link>
-              ))}
+                );
+              })}
             </VerMais>
           ) : (
             <div className="empty">Fila de validação vazia. 🎉</div>
@@ -357,20 +476,24 @@ export default async function PainelPage() {
           </h3>
           {conferencias.length ? (
             <VerMais max={5}>
-              {conferencias.map((c) => (
-                <Link className="deadline" key={c.id} href={linkPara("tarefa", c.id)}>
-                  <div className="dl-main">
-                    <div className="dl-t">{c.titulo}</div>
-                    <div className="dl-s">
-                      {c.segredo ? <SegredoTag on /> : (c.cliente ?? "—")}
-                      {c.numero_cnj && !c.segredo && <> · <span className="cnj">{c.numero_cnj}</span></>}
+              {conferencias.map((c) => {
+                const motivo = c.prioridade === "urgente" ? "afeta liberdade/patrimônio" : c.prioridade === "alta" ? "decisão de mérito" : "conferência";
+                return (
+                  <Link className="deadline" key={c.id} href={linkPara("tarefa", c.id)}>
+                    <div className="dl-main">
+                      <div className="dl-t">{c.titulo}</div>
+                      <div className="dl-s">
+                        <span className="dl-cli">{c.segredo ? <SegredoTag on /> : (c.cliente ?? "—")}</span>
+                        {" · "}{motivo}
+                        <span className="ai-dot" title="escalada pela automação" />
+                      </div>
                     </div>
-                  </div>
-                  <Pill tone={c.prioridade === "urgente" ? "red" : c.prioridade === "alta" ? "amber" : "gray"} dot={false}>
-                    {(c.prioridade ?? "—").toUpperCase()}
-                  </Pill>
-                </Link>
-              ))}
+                    <Pill tone={c.prioridade === "urgente" ? "red" : c.prioridade === "alta" ? "amber" : "gray"} dot={false}>
+                      {(c.prioridade ?? "—").toUpperCase()}
+                    </Pill>
+                  </Link>
+                );
+              })}
             </VerMais>
           ) : (
             <div className="empty">Nenhuma conferência escalada. 🎉</div>
@@ -385,9 +508,10 @@ export default async function PainelPage() {
           {audProximas.length ? (
             audProximas.map((a) => {
               const { dia, mes } = diaMes(a.data_hora);
+              const stTone = a.validado ? "ok" : "warn";
               return (
                 <Link className="deadline" key={a.id} href={linkPara("audiencia", a.id)}>
-                  <span className={`ddays ${audTone(diasAte(a.data_hora))}`}>
+                  <span className={`ddays ${stTone}`}>
                     <b>{dia}</b>
                     <span>{mes}</span>
                   </span>
@@ -421,7 +545,7 @@ export default async function PainelPage() {
             {PROD_COLS.map((col) => {
               const itens = pecas.filter((p) => p.status === col.key);
               return (
-                <div className="prod-col" key={col.key}>
+                <div className={`prod-col col-${col.key}`} key={col.key}>
                   <div className="prod-col-h">
                     <span>{col.label}</span>
                     <span className="ct">{itens.length}</span>
@@ -434,15 +558,11 @@ export default async function PainelPage() {
                         href={p.processo_id ? linkPara("processo", p.processo_id) : "/producao"}
                       >
                         <div className="pi-t">{p.titulo}</div>
-                        <div className="pi-s">
-                          {p.segredo ? "🔒 sigilo" : p.cliente ?? "—"}
-                        </div>
+                        <div className="pi-s">{p.segredo ? "🔒 sigilo" : p.cliente ?? "—"}</div>
                         <div className="pi-tags">
-                          {col.key === "aguardando_insumo" && p.gate_pendencia ? (
-                            <span className="pi-tag warn">{p.gate_pendencia}</span>
-                          ) : col.key === "em_revisao" && p.cadastro_automatico ? (
+                          {col.key === "em_revisao" && p.cadastro_automatico ? (
                             <span className="pi-tag ai">minuta IA · revisar</span>
-                          ) : p.cadastro_automatico ? (
+                          ) : col.key === "a_fazer" && p.cadastro_automatico ? (
                             <span className="pi-tag ai">IA · triagem</span>
                           ) : null}
                           {p.dias_restantes != null && (
@@ -451,6 +571,9 @@ export default async function PainelPage() {
                             </span>
                           )}
                         </div>
+                        {col.key === "aguardando_insumo" && p.gate_pendencia && (
+                          <div className="pi-insumo">{p.gate_pendencia}</div>
+                        )}
                       </Link>
                     ))
                   ) : (
@@ -478,7 +601,7 @@ export default async function PainelPage() {
                 <div className="deadline" key={m.id}>
                   <div className="dl-main">
                     <div className="dl-t">{humano(m.tipo)}</div>
-                    <div className="dl-s">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</div>
+                    <div className="dl-s"><span className="dl-cli">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</span></div>
                   </div>
                   <div className="dl-r">
                     <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} id={m.processo_id} />
