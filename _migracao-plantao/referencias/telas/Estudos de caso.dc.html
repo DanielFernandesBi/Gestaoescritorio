@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#e9ecf1;--surface:#ffffff;--surface-2:#f4f6f9;--surface-3:#eaeef3;
+    --ink:#161922;--text:#2d323c;--muted:#616a78;--muted-2:#909aa8;
+    --line:#e1e6ec;--line-soft:#edf1f5;--navy:#171b25;--navy-soft:#aab2c1;
+    --ai:#3f3ae6;--ai-strong:#2e29c4;--ai-soft:#ecebfd;--ai-line:rgba(63,58,230,.22);
+    --slate:#586173;--slate-soft:#e8ebf1;
+    --red:#c63d31;--red-soft:#fbe7e3;--amber:#b07407;--amber-soft:#f7eed5;
+    --green:#2f7d57;--green-soft:#e1f0e8;--blue:#2f6fc4;--blue-soft:#e7eefa;--name:#0e1117;
+    --serif:'Instrument Serif',Georgia,serif;--sans:'Hanken Grotesk',system-ui,-apple-system,sans-serif;--mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border:3px solid var(--paper);border-radius:20px}
+</style>
+</helmet>
+<div style="display:flex;min-height:100vh;min-width:1240px;background:var(--paper);">
+
+  <aside style="width:256px;flex:none;background:var(--navy);color:var(--navy-soft);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;">
+    <div style="padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.06);">
+      <div style="font-family:var(--serif);font-size:23px;line-height:1.05;color:#fff;letter-spacing:.2px;">Fernandes <span style="color:var(--ai);font-style:italic;">&amp;</span> Fernandes</div>
+      <div style="font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:#6e7686;margin-top:7px;">Advocacia Criminal · 20+ UFs</div>
+    </div>
+    <nav style="flex:1;overflow-y:auto;padding:14px 12px;">
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;">Hoje</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h6v7H4zM14 4h6v16h-6zM4 4h6v5H4z"></path></svg>Ritual matinal</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Validação<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--amber);color:#fff;padding:1px 7px;border-radius:20px;">7</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>Agenda</div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;display:flex;align-items:center;gap:6px;">Entrada · IA <span style="width:5px;height:5px;border-radius:50%;background:var(--ai);box-shadow:0 0 6px var(--ai);"></span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6z"></path></svg>Varredura</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h5l1.5 3h5L16 12h5"></path><path d="M4 12l2.5-7h11L20 12v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"></path></svg>Intimações<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">24</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>Andamentos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h10"></path></svg>Triagem · órfãos<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">6</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"></path></svg>Alertas<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--red);color:#fff;padding:1px 7px;border-radius:20px;">3</span></div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Acervo</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6l2 3h8v13H4z"></path></svg>Processos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.5a3.5 3.5 0 0 1 0 6.5M21 20c0-2.5-1.5-4.6-3.7-5.5"></path></svg>Clientes</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M5 8v8l7 5 7-5V8"></path></svg>Execução penal</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;background:rgba(255,255,255,.06);color:#fff;font-size:13.5px;font-weight:600;position:relative;"><span style="position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--ai);"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2z"></path><path d="M8 8h4M8 12h8M8 16h8"></path></svg>Estudos de caso</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h6v15H6a2 2 0 0 0-2 2z"></path><path d="M20 19V6a2 2 0 0 0-2-2h-6v15h6a2 2 0 0 1 2 2z"></path></svg>Documentos &amp; Modelos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M4 16V6a2 2 0 0 1 2-2h10"></path></svg>Duplicados<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">2</span></div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Trabalho</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Prazos<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:var(--red);color:#fff;padding:1px 7px;border-radius:20px;">14</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21l.9-9M17.1 12l.9 9M4 8h16l-2-4H6z"></path></svg>Audiências</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M3 7h10M3 12h7M3 17h7"></path></svg>Tarefas<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">5</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11H4z"></path><path d="M8 13h8M8 17h5"></path></svg>Produção · peças<span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.1);color:#cdd3dd;padding:1px 7px;border-radius:20px;">8</span></div>
+      <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#646c7c;padding:6px 12px;font-weight:600;margin-top:14px;">Gestão</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3zM3 7l3-4h12l3 4M9 12h6"></path></svg>Financeiro</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13H5z"></path><path d="M9 13l2 2 4-4"></path></svg>Contratos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="M8 9h8M8 13h8M8 17h4"></path></svg>Auditoria</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#9aa2b1;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h8M18 7h2M4 17h2M12 17h8"></path><circle cx="15" cy="7" r="2.2"></circle><circle cx="9" cy="17" r="2.2"></circle></svg>Sistema · evolução</div>
+    </nav>
+    <div style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.06);">
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:11px 13px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#c7cdd8;font-weight:600;"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);"></span>Triagem 06:12 · concluída</div>
+        <div style="font-size:10.5px;color:#79808f;margin-top:5px;font-family:var(--mono);">próxima execução 22:00 · Cowork</div>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;" data-screen-label="Estudos de caso">
+    <header style="position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 82%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:20px;">
+      <div style="font-size:12px;color:var(--muted);">Acervo <span style="color:var(--muted-2);">/</span> <span style="color:var(--ink);font-weight:600;">Estudos de caso</span></div>
+      <div style="flex:1;max-width:420px;margin:0 auto;position:relative;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
+        <div style="width:100%;padding:9px 13px 9px 36px;border:1px solid var(--line);background:var(--surface);border-radius:10px;font-size:13px;color:var(--muted-2);display:flex;align-items:center;justify-content:space-between;"><span>Buscar estudo, cliente, tese…</span><span style="font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--muted);">⌘K</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="text-align:right;font-size:11.5px;color:var(--muted);line-height:1.3;">Segunda, 23 jun<br><b style="font-family:var(--mono);color:var(--text);">06:51</b></div>
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--ai);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-size:17px;">D</div>
+      </div>
+    </header>
+
+    <div style="padding:26px 30px 60px;">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start;">
+
+        <div style="min-width:0;display:flex;flex-direction:column;gap:18px;">
+
+          <!-- CABEÇALHO -->
+          <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ai);font-weight:700;">Estratégia · o que queremos conquistar</div>
+              <h1 style="font-family:var(--serif);font-size:40px;font-weight:400;line-height:1.04;color:var(--ink);margin:6px 0 0;">Estudos de caso</h1>
+              <p style="color:var(--muted);font-size:13.5px;margin:6px 0 0;max-width:640px;">Liga cliente → execução → condenações de origem → ações de melhoria → resultados, sem sobrescrever histórico. A IA semeia objetivos do atestado e sugere teses do acervo curado; o Daniel valida.</p>
+            </div>
+            <button style="flex:none;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;background:var(--ai);color:#fff;border:1px solid var(--ai);box-shadow:0 2px 8px rgba(63,58,230,.22);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Novo estudo</button>
+          </div>
+
+          <!-- CONTADORES -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 15px;"><div style="font-family:var(--serif);font-size:28px;color:var(--ink);line-height:1;">12</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">estudos ativos</div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 15px;"><div style="font-family:var(--serif);font-size:28px;color:var(--blue);line-height:1;">19</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">objetivos em curso</div></div>
+            <div style="background:var(--surface);border:1px solid var(--ai);border-radius:13px;padding:13px 15px;box-shadow:0 0 0 1px var(--ai);"><div style="font-family:var(--serif);font-size:28px;color:var(--ai-strong);line-height:1;">4</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">próx. marcos · 30d</div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 15px;"><div style="font-family:var(--serif);font-size:28px;color:var(--green);line-height:1;">31</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">teses no acervo</div></div>
+          </div>
+
+          <!-- FILTROS -->
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+            <span style="padding:6px 13px;border-radius:8px;font-size:12.5px;font-weight:700;background:var(--ink);color:#fff;">Todos</span>
+            <span style="padding:6px 13px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--surface);color:var(--text);border:1px solid var(--line);">Execução global</span>
+            <span style="padding:6px 13px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--surface);color:var(--text);border:1px solid var(--line);">Tese de processo</span>
+            <span style="padding:6px 13px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--surface);color:var(--text);border:1px solid var(--line);">Geral</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--muted);font-family:var(--mono);">ordenar: próximo marco</span>
+          </div>
+
+          <!-- ESTUDO EM DESTAQUE -->
+          <article style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04),0 10px 30px rgba(22,25,34,.06);">
+            <!-- topo do estudo -->
+            <div style="padding:20px 24px 18px;border-bottom:1px solid var(--line-soft);">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px;">
+                <span style="font-size:9.5px;font-weight:700;color:var(--ai);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:2px 8px;text-transform:uppercase;letter-spacing:.04em;">execução global</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:5px;padding:2px 8px;"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>em elaboração</span>
+                <span style="font-size:10px;color:var(--muted);font-family:var(--mono);">3 processos vinculados · atualizado 02/06</span>
+                <span style="margin-left:auto;font-size:10.5px;font-weight:700;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:3px 9px;">em destaque</span>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:240px;">
+                  <h2 style="font-family:var(--serif);font-size:27px;font-weight:400;line-height:1.1;color:var(--ink);margin:0;">Progressão e livramento na pena unificada</h2>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:8px;font-size:13px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg>
+                    <b style="color:var(--name);font-size:15px;">Edmilson Ferreira dos Santos</b>
+                    <span style="font-size:10px;color:var(--muted);font-family:var(--mono);">PEC 0004821-55.2021.8.10.0001</span>
+                  </div>
+                </div>
+                <div style="flex:none;display:flex;gap:8px;">
+                  <button style="padding:8px 14px;border-radius:9px;font-size:12.5px;font-weight:700;background:var(--surface);color:var(--text);border:1px solid var(--line);">Abrir na execução</button>
+                  <button style="padding:8px 14px;border-radius:9px;font-size:12.5px;font-weight:700;background:var(--ink);color:#fff;border:1px solid var(--ink);">Editar estudo</button>
+                </div>
+              </div>
+              <p style="font-size:13px;color:var(--text);line-height:1.6;margin:14px 0 0;max-width:760px;">Pena unificada de 12a 6m (tráfico + roubo majorado), hoje em semiaberto. O caminho de melhoria persegue dois benefícios encadeados: <b>progressão ao aberto</b> (requisito objetivo já cumprido) e, adiante, <b>livramento condicional</b> a 2/3. A unificação (CP art. 75) já foi deferida e baliza todos os cálculos.</p>
+            </div>
+
+            <!-- diagnóstico × estratégia por processo -->
+            <div style="padding:18px 24px;border-bottom:1px solid var(--line-soft);">
+              <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:13px;">Diagnóstico × estratégia por processo</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">
+                <div style="border:1px solid var(--line);border-radius:13px;padding:14px 16px;background:var(--surface-2);">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-weight:800;color:var(--name);font-size:13.5px;">Tráfico de drogas</span><span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:5px;padding:1px 7px;">hediondo</span></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--ai-strong);margin-top:4px;">0008812-44.2020.8.10.0001</div>
+                  <div style="margin-top:10px;"><span style="font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Diagnóstico</span><div style="font-size:12px;color:var(--text);line-height:1.5;margin-top:3px;">Pena de 8a, fração de progressão de 2/5 (réu primário, hediondo s/ resultado morte). É a condenação que rege o marco.</div></div>
+                  <div style="margin-top:10px;"><span style="font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Estratégia</span><div style="font-size:12px;color:var(--text);line-height:1.5;margin-top:3px;">Pleitear progressão com base no atestado de 02/06; sustentar tráfico privilegiado (§4º) para revisão da fração em recurso paralelo.</div></div>
+                </div>
+                <div style="border:1px solid var(--line);border-radius:13px;padding:14px 16px;background:var(--surface-2);">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-weight:800;color:var(--name);font-size:13.5px;">Roubo majorado</span><span style="font-size:10px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:5px;padding:1px 7px;">reincidente</span></div>
+                  <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;">proc. 0021.2019 · TJBA · sem ação vinculada</div>
+                  <div style="margin-top:10px;"><span style="font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Diagnóstico</span><div style="font-size:12px;color:var(--text);line-height:1.5;margin-top:3px;">Pena de 4a 6m somada na unificação. Reincidência impacta a fração de livramento (1/2) — gargalo do objetivo seguinte.</div></div>
+                  <div style="margin-top:10px;"><span style="font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Estratégia</span><div style="font-size:12px;color:var(--text);line-height:1.5;margin-top:3px;">Confirmar trânsito e detração; avaliar pedido de unificação de fração mais benéfica no juízo da execução.</div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- teses & jurisprudência (aura IA) -->
+            <div style="padding:18px 24px;border-bottom:1px solid var(--line-soft);background:linear-gradient(180deg,var(--ai-soft),transparent 70px);">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px;flex-wrap:wrap;">
+                <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;">Teses &amp; jurisprudência</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--ai);background:#fff;border:1px solid var(--ai-line);border-radius:20px;padding:2px 9px;"><svg width="11" height="11" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>sugerido pela IA · acervo curado</span>
+                <span style="margin-left:auto;font-size:11px;color:var(--muted);">jurisprudência só de súmula / vinculante / acervo</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <!-- tese validada (perde aura) -->
+                <div style="display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface);">
+                  <span style="flex:none;width:26px;height:26px;border-radius:8px;background:var(--green-soft);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.6" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><b style="color:var(--name);font-size:13px;">Progressão pelo requisito objetivo cumprido + boa conduta</b><span style="font-size:9.5px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:5px;padding:1px 7px;">validada · Daniel</span></div>
+                    <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px;">Atestado de 02/06 confirma 2/5 cumpridos. Fundamento: LEP art. 112 + <b style="color:var(--text);">Súmula Vinculante 26</b> (exame do mérito). Lastro: 2 modelos do acervo.</div>
+                  </div>
+                </div>
+                <!-- tese IA (aura) -->
+                <div style="display:flex;gap:12px;align-items:flex-start;border:1px solid var(--ai);border-radius:12px;padding:12px 14px;background:var(--surface);box-shadow:0 0 0 1px var(--ai-line);">
+                  <span style="flex:none;width:26px;height:26px;border-radius:8px;background:var(--ai-soft);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg></span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><b style="color:var(--name);font-size:13px;">Tráfico privilegiado (§4º) para reduzir a fração de progressão</b><span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;color:#fff;background:var(--ai);border-radius:5px;padding:1px 7px;">sugerida IA · revisar</span></div>
+                    <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px;">Se reconhecido o §4º, a fração cai e antecipa o livramento. Acervo cobre a tese (<b style="color:var(--text);">3 decisões STJ favoráveis</b>). Lacuna: confirmar primariedade e ausência de organização criminosa.</div>
+                  </div>
+                </div>
+                <!-- tese IA (aura) -->
+                <div style="display:flex;gap:12px;align-items:flex-start;border:1px solid var(--ai);border-radius:12px;padding:12px 14px;background:var(--surface);box-shadow:0 0 0 1px var(--ai-line);">
+                  <span style="flex:none;width:26px;height:26px;border-radius:8px;background:var(--ai-soft);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg></span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><b style="color:var(--name);font-size:13px;">Remição por trabalho/estudo no recálculo do marco</b><span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;color:#fff;background:var(--ai);border-radius:5px;padding:1px 7px;">sugerida IA · revisar</span></div>
+                    <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px;">142 dias remidos no atestado. Pleitear que componham o tempo de pena para fins de progressão (LEP art. 126). Lastro: 1 modelo do acervo.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- objetivos × instrumento -->
+            <div style="padding:18px 24px 20px;">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;flex-wrap:wrap;">
+                <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;">Objetivos × instrumento</span>
+                <span style="font-size:11px;color:var(--muted);">alvo ↔ ação-meio · <span style="font-family:var(--mono);">vw_objetivos_instrumento</span></span>
+              </div>
+              <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+                <colgroup><col style="width:30%"><col style="width:17%"><col style="width:26%"><col style="width:13%"><col style="width:14%"></colgroup>
+                <thead>
+                  <tr>
+                    <th style="text-align:left;padding:8px 10px 8px 0;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Objetivo</th>
+                    <th style="text-align:left;padding:8px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Benefício-alvo</th>
+                    <th style="text-align:left;padding:8px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Instrumento (ação-meio)</th>
+                    <th style="text-align:left;padding:8px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Data-alvo</th>
+                    <th style="text-align:left;padding:8px 0 8px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-top:1px solid var(--line-soft);vertical-align:top;">
+                    <td style="padding:12px 10px 12px 0;"><div style="font-weight:800;color:var(--name);font-size:13px;">Progressão ao regime aberto</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">requisito objetivo cumprido</div></td>
+                    <td style="padding:12px 10px;"><span style="font-size:10.5px;font-weight:700;color:var(--ai-strong);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:2px 8px;">progressão</span></td>
+                    <td style="padding:12px 10px;font-size:12px;color:var(--text);">Petição de progressão<div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:2px;">PEC 0004821-55 · 1ª inst.</div></td>
+                    <td style="padding:12px 10px;font-family:var(--mono);font-size:12px;color:var(--red);font-weight:600;">11/06/2026<div style="font-size:10px;font-weight:500;">vencida −12d</div></td>
+                    <td style="padding:12px 0 12px 10px;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--amber);"><span style="width:7px;height:7px;border-radius:50%;background:var(--amber);"></span>em curso</span></td>
+                  </tr>
+                  <tr style="border-top:1px solid var(--line-soft);vertical-align:top;">
+                    <td style="padding:12px 10px 12px 0;"><div style="font-weight:800;color:var(--name);font-size:13px;">Unificação das penas</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">CP art. 75 · baliza dos cálculos</div></td>
+                    <td style="padding:12px 10px;"><span style="font-size:10.5px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:5px;padding:2px 8px;">unificação</span></td>
+                    <td style="padding:12px 10px;font-size:12px;color:var(--text);">Incidente de unificação<div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:2px;">PEC 0004821-55 · 1ª inst.</div></td>
+                    <td style="padding:12px 10px;font-family:var(--mono);font-size:12px;color:var(--text);">14/03/2024</td>
+                    <td style="padding:12px 0 12px 10px;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);"></span>atingido</span></td>
+                  </tr>
+                  <tr style="border-top:1px solid var(--line-soft);vertical-align:top;">
+                    <td style="padding:12px 10px 12px 0;"><div style="font-weight:800;color:var(--name);font-size:13px;">Livramento condicional</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">fração 1/2 (reincidência)</div></td>
+                    <td style="padding:12px 10px;"><span style="font-size:10.5px;font-weight:700;color:var(--ai-strong);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:2px 8px;">livramento</span></td>
+                    <td style="padding:12px 10px;font-size:12px;color:var(--text);">Pedido de livramento<div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:2px;">PEC 0004821-55 · 1ª inst.</div></td>
+                    <td style="padding:12px 10px;font-family:var(--mono);font-size:12px;color:var(--text);">25/02/2028</td>
+                    <td style="padding:12px 0 12px 10px;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--slate);"><span style="width:7px;height:7px;border-radius:50%;background:var(--slate);"></span>planejado</span></td>
+                  </tr>
+                  <tr style="border-top:1px solid var(--line-soft);vertical-align:top;">
+                    <td style="padding:12px 10px 12px 0;"><div style="font-weight:800;color:var(--name);font-size:13px;">Redução da fração (privilégio §4º)</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">antecipa progressão e livramento</div></td>
+                    <td style="padding:12px 10px;"><span style="font-size:10.5px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:5px;padding:2px 8px;">redução de pena</span></td>
+                    <td style="padding:12px 10px;font-size:12px;color:var(--text);">Recurso / revisão<div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:2px;">0008812-44 · 2ª inst.</div></td>
+                    <td style="padding:12px 10px;font-family:var(--mono);font-size:12px;color:var(--muted);">a definir</td>
+                    <td style="padding:12px 0 12px 10px;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--slate);"><span style="width:7px;height:7px;border-radius:50%;background:var(--slate);"></span>planejado</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <!-- OUTROS ESTUDOS -->
+          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:6px;">Outros estudos</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+            <!-- card estudo: tese de processo (IA seeded) -->
+            <article style="position:relative;background:var(--surface);border:1px solid var(--ai-line);border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px var(--ai-line),0 4px 14px rgba(63,58,230,.06);">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ai);"></div>
+              <div style="padding:15px 18px 15px 20px;">
+                <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+                  <span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">tese de processo</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--ai);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:1px 6px;"><svg width="9" height="9" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>semeado pela IA</span>
+                </div>
+                <div style="font-family:var(--serif);font-size:19px;color:var(--ink);line-height:1.12;">Nulidade da busca domiciliar sem mandado</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Marcos A. Tavares</b></div>
+                <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:3px;">0007214-88.2024.8.10.0001</div>
+                <div style="display:flex;align-items:center;gap:14px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line-soft);">
+                  <div><div style="font-family:var(--mono);font-size:11px;color:var(--muted);">objetivos</div><div style="font-size:12.5px;font-weight:700;color:var(--text);margin-top:1px;"><span style="color:var(--green);">1</span> · <span style="color:var(--blue);">2</span> · <span style="color:var(--slate);">0</span></div></div>
+                  <div style="flex:1;"><div style="font-family:var(--mono);font-size:11px;color:var(--muted);">próx. marco</div><div style="font-size:12.5px;font-weight:600;color:var(--amber);margin-top:1px;">apelação · 9d</div></div>
+                  <span style="font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:5px;padding:2px 8px;">em elaboração</span>
+                </div>
+              </div>
+            </article>
+
+            <!-- card estudo: execução global (segredo) -->
+            <article style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04);">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--amber);"></div>
+              <div style="padding:15px 18px 15px 20px;">
+                <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+                  <span style="font-size:9.5px;font-weight:700;color:var(--ai);background:var(--ai-soft);border:1px solid var(--ai-line);border-radius:5px;padding:1px 7px;">execução global</span>
+                  <span style="display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:5px;padding:1px 6px;">🔒 segredo de justiça</span>
+                </div>
+                <div style="font-family:var(--serif);font-size:19px;color:var(--ink);line-height:1.12;">Comutação e indulto natalino</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Joana P. Ribeiro</b></div>
+                <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:3px;">0031902-12.2025.8.05.0001</div>
+                <div style="display:flex;align-items:center;gap:14px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line-soft);">
+                  <div><div style="font-family:var(--mono);font-size:11px;color:var(--muted);">objetivos</div><div style="font-size:12.5px;font-weight:700;color:var(--text);margin-top:1px;"><span style="color:var(--green);">0</span> · <span style="color:var(--blue);">1</span> · <span style="color:var(--slate);">2</span></div></div>
+                  <div style="flex:1;"><div style="font-family:var(--mono);font-size:11px;color:var(--muted);">próx. marco</div><div style="font-size:12.5px;font-weight:600;color:var(--text);margin-top:1px;">decreto · dez/26</div></div>
+                  <span style="font-size:10px;font-weight:700;color:var(--slate);background:var(--slate-soft);border-radius:5px;padding:2px 8px;">planejado</span>
+                </div>
+              </div>
+            </article>
+
+            <!-- card estudo: geral -->
+            <article style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04);">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green);"></div>
+              <div style="padding:15px 18px 15px 20px;">
+                <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+                  <span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">geral</span>
+                  <span style="font-size:9.5px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:5px;padding:1px 7px;">concluído</span>
+                </div>
+                <div style="font-family:var(--serif);font-size:19px;color:var(--ink);line-height:1.12;">Absolvição por insuficiência probatória</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Cláudio R. Menezes</b></div>
+                <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:3px;">0012445-09.2024.8.13.0024</div>
+                <div style="display:flex;align-items:center;gap:14px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line-soft);">
+                  <div><div style="font-family:var(--mono);font-size:11px;color:var(--muted);">objetivos</div><div style="font-size:12.5px;font-weight:700;color:var(--text);margin-top:1px;"><span style="color:var(--green);">2</span> · <span style="color:var(--blue);">0</span> · <span style="color:var(--slate);">0</span></div></div>
+                  <div style="flex:1;"><div style="font-family:var(--mono);font-size:11px;color:var(--muted);">resultado</div><div style="font-size:12.5px;font-weight:600;color:var(--green);margin-top:1px;">absolvição mantida</div></div>
+                  <span style="font-size:10px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:5px;padding:2px 8px;">êxito</span>
+                </div>
+              </div>
+            </article>
+
+            <!-- card estudo: tese de processo (frustrado) -->
+            <article style="position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04);">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--slate);"></div>
+              <div style="padding:15px 18px 15px 20px;">
+                <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+                  <span style="font-size:9.5px;font-weight:700;color:var(--text);background:var(--surface-3);border-radius:5px;padding:1px 7px;">tese de processo</span>
+                </div>
+                <div style="font-family:var(--serif);font-size:19px;color:var(--ink);line-height:1.12;">Desclassificação do tráfico para uso</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path></svg><b style="color:var(--name);">Luís F. Carvalho</b></div>
+                <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:3px;">0002201-44.2025.8.10.0001</div>
+                <div style="display:flex;align-items:center;gap:14px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line-soft);">
+                  <div><div style="font-family:var(--mono);font-size:11px;color:var(--muted);">objetivos</div><div style="font-size:12.5px;font-weight:700;color:var(--text);margin-top:1px;"><span style="color:var(--green);">0</span> · <span style="color:var(--blue);">1</span> · <span style="color:var(--red);">1</span></div></div>
+                  <div style="flex:1;"><div style="font-family:var(--mono);font-size:11px;color:var(--muted);">próx. marco</div><div style="font-size:12.5px;font-weight:600;color:var(--text);margin-top:1px;">apelação · em revisão</div></div>
+                  <span style="font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:5px;padding:2px 8px;">em elaboração</span>
+                </div>
+              </div>
+            </article>
+
+          </div>
+
+        </div>
+
+        <!-- TRILHO DIREITO -->
+        <aside style="position:sticky;top:84px;display:flex;flex-direction:column;gap:18px;">
+
+          <!-- como a IA monta o estudo -->
+          <div style="background:var(--surface);border:1px solid var(--ai);border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px var(--ai),0 8px 22px rgba(63,58,230,.08);">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--ai-line);background:linear-gradient(180deg,var(--ai-soft),transparent);display:flex;align-items:center;gap:8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg>
+              <span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ai-strong);font-weight:700;">Como a IA monta o estudo</span>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:13px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;"><span style="flex:none;width:20px;height:20px;border-radius:6px;background:var(--ai-soft);color:var(--ai-strong);font-family:var(--mono);font-size:11px;font-weight:700;display:grid;place-items:center;">1</span><div style="font-size:12px;color:var(--text);line-height:1.5;"><b style="color:var(--ink);">Semeia objetivos</b> a partir do atestado de pena (progressão, livramento, unificação) — provisórios, com aura cobalt.</div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;"><span style="flex:none;width:20px;height:20px;border-radius:6px;background:var(--ai-soft);color:var(--ai-strong);font-family:var(--mono);font-size:11px;font-weight:700;display:grid;place-items:center;">2</span><div style="font-size:12px;color:var(--text);line-height:1.5;"><b style="color:var(--ink);">Cruza o alvo ao instrumento</b> — a ação-meio (CNJ/instância) que persegue cada benefício.</div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;"><span style="flex:none;width:20px;height:20px;border-radius:6px;background:var(--ai-soft);color:var(--ai-strong);font-family:var(--mono);font-size:11px;font-weight:700;display:grid;place-items:center;">3</span><div style="font-size:12px;color:var(--text);line-height:1.5;"><b style="color:var(--ink);">Sugere teses do acervo curado</b> — só súmula, vinculante ou precedente do escritório; sinaliza lacunas.</div></div>
+            </div>
+            <div style="padding:11px 16px;background:var(--surface-2);border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted);line-height:1.5;">Tudo provisório até o Daniel validar — aí perde a aura. Histórico nunca é sobrescrito.</div>
+          </div>
+
+          <!-- views que alimentam -->
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04);">
+            <div style="padding:13px 16px;border-bottom:1px solid var(--line-soft);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;">Alimentado por</div>
+            <div style="padding:13px 16px;display:flex;flex-direction:column;gap:11px;">
+              <div style="display:flex;gap:9px;align-items:flex-start;"><span style="flex:none;width:8px;height:8px;border-radius:2px;background:var(--ai);margin-top:5px;"></span><div style="font-size:12px;color:var(--text);line-height:1.45;"><b style="color:var(--ink);">vw_estrategia_cliente</b> — estudo global + objetivos por status + próximo marco.</div></div>
+              <div style="display:flex;gap:9px;align-items:flex-start;"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:var(--slate);margin-top:5px;"></span><div style="font-size:12px;color:var(--text);line-height:1.45;"><b style="color:var(--ink);">vw_objetivos_instrumento</b> — alvo ↔ ação-meio (CNJ/área/instância).</div></div>
+              <div style="display:flex;gap:9px;align-items:flex-start;"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:var(--green);margin-top:5px;"></span><div style="font-size:12px;color:var(--text);line-height:1.45;"><b style="color:var(--ink);">estudo_processo</b> — diagnóstico e estratégia por processo (N:N).</div></div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showAssistant }}" hint-placeholder-val="{{ true }}">
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04),0 10px 24px rgba(22,25,34,.05);">
+            <div style="padding:13px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:9px;">
+              <span style="flex:none;width:25px;height:25px;border-radius:8px;background:var(--ai-soft);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill:var(--ai);"><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z"></path></svg></span>
+              <span style="font-family:var(--serif);font-size:18px;color:var(--ink);">Assistente</span>
+              <span style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);font-weight:600;"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);"></span>Claude</span>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+              <div style="align-self:flex-end;max-width:86%;background:var(--surface-2);border:1px solid var(--line-soft);color:var(--text);border-radius:13px 13px 4px 13px;padding:8px 12px;font-size:12.5px;">Monte o estudo do Edmilson.</div>
+              <div style="align-self:flex-start;max-width:92%;background:var(--ai-soft);border:1px solid var(--ai-line);color:var(--ink);border-radius:13px 13px 13px 4px;padding:10px 12px;font-size:12.5px;line-height:1.55;">Semeei 4 objetivos do atestado e sugeri 3 teses do acervo. A progressão está vencida há 12 dias — quer que eu já gere a peça e marque o próximo marco?</div>
+            </div>
+            <div style="padding:0 14px 14px;">
+              <div style="display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;">
+                <span style="flex:1;font-size:12px;color:var(--muted-2);">Semear objetivos, sugerir tese, cruzar instrumento…</span>
+                <span style="flex:none;width:27px;height:27px;border-radius:8px;background:var(--ai);display:grid;place-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+        </aside>
+
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1024},&quot;showAssistant&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      showAssistant: this.props.showAssistant ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>
