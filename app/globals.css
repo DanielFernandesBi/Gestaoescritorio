@@ -5,47 +5,54 @@
    Paleta, tipografia, semáforo de prazo e gate de validação.
    ===================================================================== */
 :root{
-  /* Trilho / estrutura escura — constante nos dois temas (sidebar, code) */
-  --rail:#10182a; --rail-2:#1b2740; --rail-3:#2b3450;
+  /* Trilho / estrutura escura (navy do Plantão) */
+  --rail:#171b25; --rail-2:#1f2433; --rail-3:#2b3450;
   --ink-2:#1f273b; --ink-3:#2b3450;
-  /* Títulos / texto forte — inverte no tema escuro */
-  --ink:#141b2e;
-  /* Superfícies e neutros — base fria, moderna */
-  --paper:#eceff5; --surface:#ffffff; --surface-2:#f5f7fb;
-  --line:#dce2ec; --line-soft:#e8ecf3;
-  --text:#1b2433; --muted:#5d6b7e; --muted-2:#8a97a8;
-  /* Accent índigo — ações, links, foco */
-  --accent:#4f46e5; --accent-strong:#4338ca; --accent-soft:#eef0fe; --accent-contrast:#ffffff;
-  /* Brass heritage — wordmark, sigilo, detalhes editoriais */
-  --brass:#b08d57; --brass-soft:#f3ebdd;
-  /* Semânticos */
-  --red:#cf4036; --red-soft:#fbeceb;
-  --amber:#bd7708; --amber-soft:#f8efdb;
-  --green:#127a54; --green-soft:#e3f1ea;
-  --blue:#2f6fc4; --blue-soft:#e9f0fa;
-  /* Raio / elevação (sombras em camadas) / foco */
+  /* Títulos / texto forte */
+  --ink:#161922;
+  /* Superfícies e neutros — base fria */
+  --paper:#e9ecf1; --surface:#ffffff; --surface-2:#f4f6f9;
+  --line:#e1e6ec; --line-soft:#edf1f5;
+  --text:#2d323c; --muted:#616a78; --muted-2:#909aa8;
+  /* Accent COBALT-ÍRIS — IA + ações/links/foco/marca */
+  --accent:#3f3ae6; --accent-strong:#2e29c4; --accent-soft:#ecebfd; --accent-contrast:#ffffff;
+  /* "Brass" remapeado para slate frio — sigilo, detalhes (nada de marrom) */
+  --brass:#586173; --brass-soft:#e8ebf1;
+  /* Semânticos (semáforo jurídico do Plantão) */
+  --red:#c63d31; --red-soft:#fbe7e3;
+  --amber:#b07407; --amber-soft:#f7eed5;
+  --green:#2f7d57; --green-soft:#e1f0e8;
+  --blue:#2f6fc4; --blue-soft:#e7eefa;
+  /* Tangerina — evento provisório no Calendar (novo; usado em prazos/audiências) */
+  --tang:#d2691e; --tang-soft:#fbeadb;
+  /* Nome do cliente em destaque forte (novo opcional) */
+  --name:#0e1117;
+  /* Raio / elevação / foco — inalterados */
   --radius:12px; --radius-sm:9px; --radius-lg:16px;
   --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 10px rgba(16,24,40,.06),0 14px 26px rgba(16,24,40,.07);
   --shadow-lg:0 2px 4px rgba(16,24,40,.05),0 12px 28px rgba(16,24,40,.12);
   --focus:0 0 0 3px color-mix(in srgb,var(--accent) 32%,transparent);
-  /* Grade de 8px (múltiplos de 4) */
+  /* Grade de 8px — inalterada */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
-  --serif:'Spectral',Georgia,serif;
-  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* Fontes do Plantão */
+  --serif:'Instrument Serif',Georgia,serif;
+  --sans:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
 }
 html[data-theme="dark"]{
-  --rail:#0a1320; --rail-2:#16263b; --rail-3:#1f2d44;
+  --rail:#0c0f17; --rail-2:#161b27; --rail-3:#222a3c;
   --ink:#eef1f8;
-  --paper:#0a0e16; --surface:#141a25; --surface-2:#0f1622;
-  --line:#243044; --line-soft:#1b2433;
+  --paper:#0a0d14; --surface:#141925; --surface-2:#0f1420;
+  --line:#242c3c; --line-soft:#1b2230;
   --text:#e7ebf2; --muted:#94a1b3; --muted-2:#6c7889;
-  --accent:#818cf8; --accent-strong:#a5b4fc; --accent-soft:#1e2540; --accent-contrast:#0a0e16;
-  --brass:#cda86a; --brass-soft:#2a2417;
+  --accent:#8d88ff; --accent-strong:#aaa6ff; --accent-soft:#1d1f3f; --accent-contrast:#0a0d14;
+  --brass:#8a94a6; --brass-soft:#1c2230;
   --red:#ef6258; --red-soft:#2a1817;
   --amber:#dca23c; --amber-soft:#281f11;
   --green:#34b483; --green-soft:#11231c;
   --blue:#5f9aea; --blue-soft:#142031;
+  --tang:#e08a4a; --tang-soft:#2a1d11;
+  --name:#f4f6fb;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 16px rgba(0,0,0,.4);
   --shadow-lg:0 18px 44px rgba(0,0,0,.55);
 }
@@ -70,7 +77,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .sidebar{background:var(--rail);color:#c9cedd;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
 .brand{position:relative;padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
 .brand .mark{font-family:var(--serif);font-weight:600;font-size:19px;color:#fff;letter-spacing:.2px;line-height:1.15}
-.brand .mark .amp{color:var(--brass)}
+.brand .mark .amp{color:var(--accent)}
 .brand .sub{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7e879e;margin-top:6px}
 .nav{padding:12px 12px;flex:1;overflow-y:auto}
 .nav-group{margin:6px 0 14px}
@@ -138,9 +145,9 @@ body.nav-locked{overflow:hidden}
 .pill.green{background:var(--green-soft);color:var(--green)}
 .pill.blue{background:var(--blue-soft);color:var(--blue)}
 .pill.gray{background:var(--line-soft);color:var(--muted)}
-.pill.brass{background:var(--brass-soft);color:#8a6a3a}
+.pill.brass{background:var(--brass-soft);color:var(--brass)}
 .pill.violet{background:var(--accent-soft);color:var(--accent)}
-.lock{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#8a6a3a;background:var(--brass-soft);padding:2px 8px;border-radius:6px}
+.lock{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--brass);background:var(--brass-soft);padding:2px 8px;border-radius:6px}
 
 /* ---------- Cards / grid ---------- */
 .grid{display:grid;gap:16px}
@@ -181,18 +188,18 @@ tbody tr{transition:background .1s}
 tbody tr.clickable:hover{background:var(--surface-2);cursor:pointer}
 tbody tr.clickable:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;background:var(--surface-2)}
 tbody tr:last-child td{border-bottom:none}
-td .name{font-weight:600;color:var(--ink)}
+td .name{font-weight:800;color:var(--name)}
 td .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
 /* Sugestão 56 — cliente em destaque (papel) + "do que se trata" */
 .parte+.parte::before{content:" • ";color:var(--muted)}
-.parte-nome{font-weight:600;color:var(--ink)}
+.parte-nome{font-weight:800;color:var(--name)}
 .parte-papel{font-weight:500;color:var(--muted);text-transform:capitalize}
 .ctx-caso{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
 .ctx-caso .ctx-k{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2,var(--muted));font-weight:700;margin-right:5px}
 /* Sugestão 53 — estado lido/não-lido na lista de intimações */
 tr.nao-lida{background:var(--amber-soft)}
 tr.nao-lida td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
-tr.nao-lida td .name{font-weight:700}
+tr.nao-lida td .name{font-weight:800}
 .dot-nova{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:7px;vertical-align:middle}
 .cnj{font-family:var(--mono);font-size:12px;color:var(--text)}
 .num-reg{font-family:var(--mono);font-size:11.5px;color:var(--amber);background:var(--amber-soft);padding:1px 6px;border-radius:5px}
@@ -222,7 +229,7 @@ tr.nao-lida td .name{font-weight:700}
 .kcol-h .ct{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface);padding:1px 8px;border-radius:20px;border:1px solid var(--line)}
 .kcol-b{padding:10px;display:flex;flex-direction:column;gap:9px;min-height:80px}
 .task{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
-.task .t{font-weight:600;font-size:12.5px;color:var(--ink)}
+.task .t{font-weight:800;font-size:12.5px;color:var(--name)}
 .task .d{font-size:11.5px;color:var(--muted);margin-top:4px}
 .task .f{display:flex;align-items:center;gap:8px;margin-top:9px;justify-content:space-between}
 .kanban.k5{grid-template-columns:repeat(5,1fr);gap:10px}
@@ -262,7 +269,7 @@ tr.nao-lida td .name{font-weight:700}
 .mini{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 a.mini{text-decoration:none;color:inherit;transition:.12s}
 a.mini:hover{border-color:var(--muted-2);background:var(--surface-2)}
-.mini .mt{font-weight:600;font-size:12.5px;color:var(--ink)}
+.mini .mt{font-weight:800;font-size:12.5px;color:var(--name)}
 .mini .ms{font-size:11.5px;color:var(--muted);margin-top:2px}
 
 /* banner */
