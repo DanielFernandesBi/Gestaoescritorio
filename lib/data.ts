@@ -529,6 +529,12 @@ export type Intimacao = {
   na_caixa?: boolean;         // FLUXO: ainda precisa de encaminhamento (caixa derivada)
   revisado_em?: string | null;   // LEITURA: quando o humano leu (null = não lida)
   revisado_por?: string | null;
+  // Redesign /intimacoes — flag de réu preso + detalhe do encaminhamento (prazo/peça vinculados).
+  preso?: boolean;
+  prazo_fatal?: string | null;
+  prazo_dias_restantes?: number | null;
+  prazo_validado?: boolean | null;
+  peca_status?: string | null;
   // Preenchidos no detalhe (getIntimacaoPorId):
   teor?: string | null;
   cadastrado_por?: string | null;
@@ -561,7 +567,7 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
   const { data } = await supabase
     .from("intimacoes")
     .select(
-      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, classe, area, instancia, tribunal, orgao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,assunto,area,fase,instancia,segredo_justica,cliente_processo(papel,clientes(nome)))",
+      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, classe, area, instancia, tribunal, orgao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,assunto,area,fase,instancia,segredo_justica,cliente_processo(papel,clientes(nome,situacao_prisional)))",
     )
     .order("data_publicacao", { ascending: false, nullsFirst: false })
     .limit(300);
@@ -597,6 +603,10 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
       cliente: nomesClientes(p?.cliente_processo) || null,
       partes: partesClientes(cp),
       contexto,
+      preso: ((cp ?? []) as { clientes?: { situacao_prisional?: string | null } | null }[]).some((x) => {
+        const s = x.clientes?.situacao_prisional;
+        return s != null && PRESO_SET.has(s);
+      }),
     };
   });
 
@@ -604,13 +614,29 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
   // unificada vw_intimacoes_contexto, por intimacao_id. Mantém o card rico da #56
   // (partes/contexto montados aqui) e só ACRESCENTA os flags de fluxo/leitura.
   if (lista.length) {
-    const { data: sinais } = await supabase
-      .from("vw_intimacoes_contexto")
-      .select("intimacao_id, tem_prazo, tem_peca, tem_providencia, na_caixa, revisado_em, revisado_por")
-      .in("intimacao_id", lista.map((i) => i.id));
-    const porId = new Map(
-      (sinais ?? []).map((s) => [s.intimacao_id as string, s]),
-    );
+    const ids = lista.map((i) => i.id);
+    const [{ data: sinais }, { data: prz }, { data: pcs }] = await Promise.all([
+      supabase
+        .from("vw_intimacoes_contexto")
+        .select("intimacao_id, tem_prazo, tem_peca, tem_providencia, na_caixa, revisado_em, revisado_por")
+        .in("intimacao_id", ids),
+      // Detalhe do encaminhamento: prazo aberto vinculado (fatal/dias/validado).
+      supabase.from("prazos").select("intimacao_id, data_fatal, validado").eq("status", "aberto").in("intimacao_id", ids),
+      // …e a peça vinculada (status da minuta). Preferimos em_revisao quando houver.
+      supabase.from("pecas").select("intimacao_id, status").in("intimacao_id", ids),
+    ]);
+    const porId = new Map((sinais ?? []).map((s) => [s.intimacao_id as string, s]));
+    const prazoPorInt = new Map<string, { data_fatal: string | null; validado: boolean }>();
+    for (const r of prz ?? []) {
+      const k = r.intimacao_id as string;
+      if (!prazoPorInt.has(k)) prazoPorInt.set(k, { data_fatal: (r.data_fatal as string) ?? null, validado: Boolean(r.validado) });
+    }
+    const pecaPorInt = new Map<string, string>();
+    for (const r of pcs ?? []) {
+      const k = r.intimacao_id as string;
+      const st = r.status as string;
+      if (!pecaPorInt.has(k) || st === "em_revisao") pecaPorInt.set(k, st);
+    }
     for (const i of lista) {
       const s = porId.get(i.id);
       i.tem_prazo = Boolean(s?.tem_prazo);
@@ -619,6 +645,11 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
       i.na_caixa = Boolean(s?.na_caixa);
       i.revisado_em = (s?.revisado_em as string | null) ?? null;
       i.revisado_por = (s?.revisado_por as string | null) ?? null;
+      const pz = prazoPorInt.get(i.id);
+      i.prazo_fatal = pz?.data_fatal ?? null;
+      i.prazo_dias_restantes = pz?.data_fatal ? diasAte(pz.data_fatal) : null;
+      i.prazo_validado = pz ? pz.validado : null;
+      i.peca_status = pecaPorInt.get(i.id) ?? null;
     }
   }
 
