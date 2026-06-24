@@ -620,6 +620,56 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .prov-l{font-size:12px;color:var(--muted);margin-top:4px}
 .prov-cta{display:inline-block;margin-top:8px;font-size:12px;font-weight:600;color:var(--accent)}
 
+/* ---------- Varredura (/varredura) ---------- */
+.vr-cta{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 12px}
+.vr-cta b{color:var(--text);font-weight:600}
+.vr-cta .ico{color:var(--accent)}
+.scan-h .ia-seal{margin-right:2px}
+.vr-ok{font-size:10.5px;font-weight:600;color:var(--green);background:var(--green-soft);border-radius:20px;padding:1px 8px;margin-left:6px}
+.vr-badge{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:20px;padding:1px 8px}
+.vr-hint{font-size:11px;color:var(--muted);line-height:1.5;margin-top:11px}
+.vr-hint code,.vr-step-d code{font-family:var(--mono);font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+.vr-sub{font-size:11.5px;color:var(--muted-2)}
+
+/* Janela varrida — watermarks */
+.vr-wm{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 20px 14px}
+.vr-wm-i{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px}
+.vr-wm-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.vr-wm-v{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:600;margin-top:5px}
+@media(max-width:760px){.vr-wm{grid-template-columns:1fr}}
+
+/* Etapas do pipeline */
+.vr-steps{display:flex;flex-direction:column}
+.vr-step{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line-soft)}
+.vr-step:last-child{border-bottom:none}
+.vr-step-n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font-family:var(--mono);font-size:11px;font-weight:700;display:grid;place-items:center}
+.vr-step-main{flex:1;min-width:0}
+.vr-step-t{font-weight:700;font-size:13px;color:var(--ink)}
+.vr-step-d{font-size:11.5px;color:var(--muted);margin-top:2px}
+.vr-step-tag{flex:none;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:20px;background:var(--line-soft);color:var(--muted);white-space:nowrap}
+.vr-step-tag.ai{background:var(--accent-soft);color:var(--accent)}
+.vr-step-tag.green{background:var(--green-soft);color:var(--green)}
+.vr-step-tag.amber{background:var(--amber-soft);color:var(--amber)}
+
+/* Histórico de execuções */
+.vr-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.vr-table th{text-align:left;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:11px 18px;border-bottom:1px solid var(--line-soft)}
+.vr-table td{padding:11px 18px;border-bottom:1px solid var(--line-soft);color:var(--text)}
+.vr-table tr:last-child td{border-bottom:none}
+.vr-table .num{text-align:right}
+.vr-st-hint{color:var(--muted-2);font-size:11px}
+
+/* Trilho — saúde das fontes */
+.fonte-row{display:flex;align-items:center;gap:9px;padding:7px 0;font-size:12.5px}
+.fonte-dot{flex:none;width:8px;height:8px;border-radius:50%}
+.fonte-dot.ok{background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+.fonte-dot.bad{background:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.fonte-nome{flex:1;min-width:0;color:var(--text)}
+.fonte-st{font-size:10.5px;font-weight:600}
+.fonte-st.ok{color:var(--green)}
+.fonte-st.bad{color:var(--red)}
+.prox-exec{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)}
+
 /* Gráficos do financeiro */
 .fin-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:1080px){.fin-charts{grid-template-columns:1fr}}

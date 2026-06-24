@@ -330,6 +330,57 @@ export async function getUltimaVarredura(): Promise<Varredura | null> {
   };
 }
 
+/* ===== Varredura: histórico de execuções + watermarks (tela /varredura) =====
+ * Append-only; leitura sobre a tabela varreduras e os watermarks em config_sistema. */
+
+export type VarreduraHist = {
+  id: string;
+  criado_em: string;
+  fonte: string;
+  status: "concluida" | "parcial" | "falha";
+  itens_processados: number;
+  intimacoes_novas: number;
+  andamentos_novos: number;
+  prazos_criados: number;
+  anomalias: Anomalia[] | null;
+};
+
+export async function getVarreduras(limit = 8): Promise<VarreduraHist[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("varreduras")
+    .select("id, criado_em, fonte, status, itens_processados, intimacoes_novas, andamentos_novos, prazos_criados, anomalias")
+    .order("criado_em", { ascending: false })
+    .limit(limit);
+  return ((data ?? []) as Record<string, unknown>[]).map((r): VarreduraHist => ({
+    id: r.id as string,
+    criado_em: r.criado_em as string,
+    fonte: (r.fonte as string) ?? "",
+    status: r.status as VarreduraHist["status"],
+    itens_processados: Number(r.itens_processados ?? 0),
+    intimacoes_novas: Number(r.intimacoes_novas ?? 0),
+    andamentos_novos: Number(r.andamentos_novos ?? 0),
+    prazos_criados: Number(r.prazos_criados ?? 0),
+    anomalias: (r.anomalias as Anomalia[] | null) ?? null,
+  }));
+}
+
+export type Watermarks = { djen: string | null; push: string | null };
+
+export async function getWatermarks(): Promise<Watermarks> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("config_sistema")
+    .select("chave, valor")
+    .in("chave", ["ultima_varredura_djen", "ultima_varredura_push"]);
+  const norm = (v: unknown): string | null => {
+    if (v == null) return null;
+    return String(v).replace(" ", "T"); // "2026-06-23 13:04..+00" -> ISO parseável
+  };
+  const map = new Map((data ?? []).map((r) => [r.chave as string, r.valor]));
+  return { djen: norm(map.get("ultima_varredura_djen")), push: norm(map.get("ultima_varredura_push")) };
+}
+
 /* ===== Conferências escaladas (Sugestão 30) =====
  * Tarefas automáticas do Cowork (cadastro_automatico=true / cadastrado_por='cowork')
  * que escalaram uma movimentação para atenção humana. O Painel só tinha a CONTAGEM
