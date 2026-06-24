@@ -343,8 +343,12 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .metric.metric-on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 
 /* ---------- Painel: blocos do redesign estrutural ---------- */
+/* Ritmo vertical uniforme entre TODAS as seções do painel */
+.painel-page{display:flex;flex-direction:column;gap:18px}
+.painel-page>*{margin:0}
+
 /* Onde focar agora — prioridades derivadas dos dados reais */
-.focus{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.focus{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
 .focus-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
 .focus-h .lhs{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink)}
 .focus-h .lhs .ico{color:var(--accent)}
@@ -364,14 +368,39 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .focus-tag.ok{background:var(--green-soft);color:var(--green)}
 @media(max-width:1080px){.focus-list{grid-template-columns:1fr}.focus-item{border-right:none;border-bottom:1px solid var(--line-soft)}.focus-item:last-child{border-bottom:none}}
 
-/* Chips de fonte da varredura */
-.scan-fontes{display:flex;flex-wrap:wrap;gap:8px;padding:12px 20px 0}
+/* Varredura: chips de fonte */
 .fonte{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
 .fonte .dot{width:7px;height:7px;border-radius:50%;background:var(--muted-2)}
 .fonte.on{color:var(--green);background:var(--green-soft);border-color:transparent}
 .fonte.on .dot{background:var(--green)}
 .fonte.off{opacity:.6}
 .fonte em{font-style:normal;color:var(--muted-2);font-weight:500}
+
+/* Varredura: fluxo fontes → extração → métricas */
+.scan-flow{display:grid;grid-template-columns:210px 1fr 240px;gap:14px;padding:14px 20px;align-items:stretch}
+.flow-src{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.flow-src .fonte{justify-content:flex-start}
+.flow-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px;background:var(--accent-soft);border:1px solid var(--line-soft);border-radius:12px;padding:14px 16px}
+.flow-seal{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-contrast);background:var(--accent);border-radius:20px;padding:2px 10px}
+.flow-mid-t{font-weight:700;font-size:13.5px;color:var(--ink);margin-top:5px}
+.flow-mid-s{font-size:11px;color:var(--muted)}
+.flow-mid-n{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--accent);margin-top:3px}
+.flow-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:1080px){.scan-flow{grid-template-columns:1fr}.flow-metrics{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:560px){.flow-metrics{grid-template-columns:1fr 1fr}}
+
+/* Varredura: rodapé (cobertura por OAB + anomalias) */
+.scan-foot{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line-soft)}
+.scan-block{padding:14px 20px}
+.scan-block:first-child{border-right:1px solid var(--line-soft)}
+.scan-block-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:11px}
+.scan-block .scan-grid{display:grid;grid-template-columns:1fr;border-top:none;gap:12px}
+.scan-block .oab{padding:0}
+.scan-block .oab:not(:last-child){border-right:none;border-bottom:1px solid var(--line-soft);padding-bottom:12px}
+.scan-block .oab .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.anom-list{display:flex;flex-direction:column;gap:8px}
+.empty.sm{padding:14px;font-size:12px}
+@media(max-width:1080px){.scan-foot{grid-template-columns:1fr}.scan-block:first-child{border-right:none;border-bottom:1px solid var(--line-soft)}}
 
 /* KPIs em 6 colunas */
 .kpis.kpis-6{grid-template-columns:repeat(6,1fr)}
@@ -397,15 +426,13 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(max-width:1080px){.prod-board{grid-template-columns:repeat(2,1fr)}.prod-col:nth-child(2){border-right:none}.prod-col{border-bottom:1px solid var(--line-soft)}}
 @media(max-width:560px){.prod-board{grid-template-columns:1fr}.prod-col{border-right:none}}
 
-/* Faixa Assistente (atalho) */
-.assist{display:flex;align-items:center;gap:14px;margin-top:16px;padding:15px 20px;border-radius:var(--radius);text-decoration:none;color:inherit;background:linear-gradient(180deg,var(--accent-soft),var(--surface));border:1px solid var(--line);border-left:3px solid var(--accent);transition:box-shadow .12s,transform .12s}
-.assist:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
-.assist-ico{flex:none;width:38px;height:38px;border-radius:10px;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center}
-.assist-main{flex:1;min-width:0}
-.assist-t{font-weight:700;font-size:13.5px;color:var(--ink)}
-.assist-s{font-size:12px;color:var(--muted);margin-top:2px}
-.assist-cta{flex:none;font-size:12.5px;font-weight:600;color:var(--accent)}
-@media(max-width:680px){.assist-cta{display:none}}
+/* Assistente — dock no trilho lateral (atalho; o Claude opera pelo chat) */
+.assist-rail{display:block;background:linear-gradient(180deg,var(--accent-soft),var(--surface));border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px;text-decoration:none;color:inherit;transition:box-shadow .12s,transform .12s}
+.assist-rail:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
+.assist-rail-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;color:var(--ink)}
+.assist-seal{flex:none;width:26px;height:26px;border-radius:8px;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center}
+.assist-rail-b{font-size:11.5px;color:var(--muted);margin:8px 0 10px;line-height:1.5}
+.assist-rail-cta{font-size:12px;font-weight:600;color:var(--accent)}
 
 /* Gráficos do financeiro */
 .fin-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
