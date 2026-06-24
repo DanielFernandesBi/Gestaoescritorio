@@ -442,3 +442,46 @@ export async function getBeneficiosProximos(limit = 5): Promise<BeneficioProximo
   benef.sort((a, b) => a.dias - b.dias);
   return benef.slice(0, limit);
 }
+
+/* ===== Briefing do ritual matinal (Sugestão 65) — fonte do cartão "Leitura do dia" =====
+ * vw_briefing_atual entrega o briefing mais recente por dia (topo = hoje). O TEXTO
+ * (resumo/corpo em markdown + onde_focar[]) vive no banco; os NÚMEROS seguem em
+ * vw_ultima_varredura, sem duplicar. */
+
+export type OndeFocarRef = { tipo: "prazo" | "peca" | "processo" | "audiencia" | null; id: string | null };
+export type OndeFocarItem = {
+  ordem: number;
+  titulo: string;
+  detalhe: string;
+  urgencia: "urgente" | "alta" | "normal";
+  ref: OndeFocarRef | null;
+};
+export type Briefing = {
+  data_referencia: string;
+  gerado_em: string;
+  gerado_por: string;
+  resumo: string | null;
+  corpo: string | null;
+  onde_focar: OndeFocarItem[];
+};
+
+export async function getBriefingAtual(): Promise<Briefing | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_briefing_atual")
+    .select("data_referencia, gerado_em, gerado_por, resumo, corpo, onde_focar")
+    .order("data_referencia", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const r = data as Record<string, unknown>;
+  const focar = Array.isArray(r.onde_focar) ? (r.onde_focar as OndeFocarItem[]) : [];
+  return {
+    data_referencia: r.data_referencia as string,
+    gerado_em: r.gerado_em as string,
+    gerado_por: (r.gerado_por as string) ?? "",
+    resumo: (r.resumo as string) ?? null,
+    corpo: (r.corpo as string) ?? null,
+    onde_focar: [...focar].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+  };
+}
