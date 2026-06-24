@@ -17,6 +17,7 @@ export const NAV: NavGroup[] = [
     items: [
       { id: "painel", label: "Painel — Ritual matinal", ico: "grid", href: "/painel" },
       { id: "validacao", label: "Validação de Daniel", ico: "check", href: "/validacao", badgeKey: "validacao", kind: "warn" },
+      { id: "agenda", label: "Agenda", ico: "calendar", href: "/agenda" },
       { id: "prazos", label: "Prazos penais", ico: "clock", href: "/prazos", badgeKey: "prazos" },
       { id: "audiencias", label: "Audiências", ico: "gavel", href: "/audiencias", badgeKey: "audiencias" },
       { id: "intimacoes", label: "Intimações", ico: "inbox", href: "/intimacoes", badgeKey: "intimacoes", kind: "alert" },
