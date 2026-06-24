@@ -329,3 +329,116 @@ export async function getUltimaVarredura(): Promise<Varredura | null> {
     anomalias: (row.anomalias as Anomalia[] | null) ?? null,
   };
 }
+
+/* ===== Conferências escaladas (Sugestão 30) =====
+ * Tarefas automáticas do Cowork (cadastro_automatico=true / cadastrado_por='cowork')
+ * que escalaram uma movimentação para atenção humana. O Painel só tinha a CONTAGEM
+ * (stats.conferencias_pendentes); aqui vem a LISTA, ordenada por prioridade
+ * (urgente → baixa) como manda o ritual matinal. Dado real; segredo de justiça
+ * vem do processo vinculado. */
+
+export type ConferenciaEscalada = {
+  id: string;
+  titulo: string;
+  prioridade: string | null;
+  data_limite: string | null;
+  numero_cnj: string | null;
+  cliente: string | null;
+  segredo: boolean;
+};
+
+const PRIO_ORDEM: Record<string, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+
+export async function getConferenciasEscaladas(limit = 6): Promise<ConferenciaEscalada[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tarefas")
+    .select("id, titulo, prioridade, data_limite, processos(numero_cnj,segredo_justica), clientes(nome)")
+    .eq("cadastro_automatico", true)
+    .eq("cadastrado_por", "cowork")
+    .in("status", ["pendente", "em_andamento"])
+    .limit(50);
+
+  const rows = ((data ?? []) as Record<string, unknown>[]).map((r): ConferenciaEscalada => {
+    const p = r.processos as unknown as { numero_cnj: string | null; segredo_justica: boolean | null } | null;
+    const c = r.clientes as unknown as { nome: string | null } | null;
+    return {
+      id: r.id as string,
+      titulo: r.titulo as string,
+      prioridade: (r.prioridade as string) ?? null,
+      data_limite: (r.data_limite as string) ?? null,
+      numero_cnj: p?.numero_cnj ?? null,
+      cliente: c?.nome ?? null,
+      segredo: Boolean(p?.segredo_justica),
+    };
+  });
+
+  rows.sort(
+    (a, b) =>
+      (PRIO_ORDEM[a.prioridade ?? "baixa"] ?? 9) - (PRIO_ORDEM[b.prioridade ?? "baixa"] ?? 9) ||
+      (a.data_limite ?? "9999").localeCompare(b.data_limite ?? "9999"),
+  );
+  return rows.slice(0, limit);
+}
+
+/* ===== Benefícios próximos · execução penal (cross-client) =====
+ * vw_situacao_executoria_atual já calcula dias_para_progressao/livramento por
+ * cliente; aqui pegamos o snapshot de TODOS os clientes em execução e elegemos,
+ * por cliente, o benefício mais próximo. Máscara de sigilo: nome do cliente
+ * vinculado a processo sigiloso vira "Cliente sigiloso". */
+
+export type BeneficioProximo = {
+  cliente_id: string;
+  nome: string;
+  regime_atual: string | null;
+  tipo: "progressao" | "livramento";
+  data_prevista: string | null;
+  dias: number;
+  segredo: boolean;
+};
+
+export async function getBeneficiosProximos(limit = 5): Promise<BeneficioProximo[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_situacao_executoria_atual")
+    .select(
+      "cliente_id, nome, regime_atual, processo_id, dias_para_progressao, data_prevista_progressao, dias_para_livramento, data_prevista_livramento",
+    );
+  const rows = (data ?? []) as Record<string, unknown>[];
+
+  // Sigilo: marca os processos sigilosos entre os vinculados, para mascarar o nome.
+  const procIds = rows.map((r) => r.processo_id as string).filter(Boolean);
+  const sigilo = new Set<string>();
+  if (procIds.length) {
+    const { data: ps } = await supabase
+      .from("processos")
+      .select("id")
+      .in("id", procIds)
+      .eq("segredo_justica", true);
+    for (const p of ps ?? []) sigilo.add(p.id as string);
+  }
+
+  const benef: BeneficioProximo[] = [];
+  for (const r of rows) {
+    const segredo = sigilo.has(r.processo_id as string);
+    const cands: { tipo: "progressao" | "livramento"; dias: number; data: string | null }[] = [];
+    if (r.dias_para_progressao != null)
+      cands.push({ tipo: "progressao", dias: Number(r.dias_para_progressao), data: (r.data_prevista_progressao as string) ?? null });
+    if (r.dias_para_livramento != null)
+      cands.push({ tipo: "livramento", dias: Number(r.dias_para_livramento), data: (r.data_prevista_livramento as string) ?? null });
+    if (!cands.length) continue;
+    cands.sort((a, b) => a.dias - b.dias);
+    const best = cands[0];
+    benef.push({
+      cliente_id: r.cliente_id as string,
+      nome: segredo ? "Cliente sigiloso" : (r.nome as string),
+      regime_atual: (r.regime_atual as string) ?? null,
+      tipo: best.tipo,
+      data_prevista: best.data,
+      dias: best.dias,
+      segredo,
+    });
+  }
+  benef.sort((a, b) => a.dias - b.dias);
+  return benef.slice(0, limit);
+}

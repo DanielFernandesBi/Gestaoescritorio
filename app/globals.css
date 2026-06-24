@@ -342,6 +342,71 @@ button.metric:hover{border-color:var(--line);background:var(--paper)}
 button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .metric.metric-on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 
+/* ---------- Painel: blocos do redesign estrutural ---------- */
+/* Onde focar agora — prioridades derivadas dos dados reais */
+.focus{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.focus-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.focus-h .lhs{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink)}
+.focus-h .lhs .ico{color:var(--accent)}
+.focus-sub{font-size:11.5px;color:var(--muted-2)}
+.focus-list{list-style:none;display:grid;grid-template-columns:repeat(3,1fr)}
+.focus-item{display:flex;align-items:center;gap:12px;padding:14px 18px;text-decoration:none;color:inherit;border-right:1px solid var(--line-soft);transition:background .12s}
+.focus-item:last-child{border-right:none}
+.focus-item:hover{background:var(--surface-2)}
+.focus-n{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:var(--mono);font-weight:700;font-size:12px;display:grid;place-items:center}
+.focus-main{flex:1;min-width:0}
+.focus-t{font-weight:600;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.focus-item:hover .focus-t{color:var(--accent)}
+.focus-s{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.focus-tag{flex:none;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em}
+.focus-tag.crit{background:var(--red-soft);color:var(--red)}
+.focus-tag.warn{background:var(--amber-soft);color:var(--amber)}
+.focus-tag.ok{background:var(--green-soft);color:var(--green)}
+@media(max-width:1080px){.focus-list{grid-template-columns:1fr}.focus-item{border-right:none;border-bottom:1px solid var(--line-soft)}.focus-item:last-child{border-bottom:none}}
+
+/* Chips de fonte da varredura */
+.scan-fontes{display:flex;flex-wrap:wrap;gap:8px;padding:12px 20px 0}
+.fonte{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
+.fonte .dot{width:7px;height:7px;border-radius:50%;background:var(--muted-2)}
+.fonte.on{color:var(--green);background:var(--green-soft);border-color:transparent}
+.fonte.on .dot{background:var(--green)}
+.fonte.off{opacity:.6}
+.fonte em{font-style:normal;color:var(--muted-2);font-weight:500}
+
+/* KPIs em 6 colunas */
+.kpis.kpis-6{grid-template-columns:repeat(6,1fr)}
+@media(max-width:1400px){.kpis.kpis-6{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.kpis.kpis-6{grid-template-columns:repeat(2,1fr)}}
+
+/* Mini-board de produção de peças */
+.prod-board{display:grid;grid-template-columns:repeat(4,1fr)}
+.prod-col{padding:14px;border-right:1px solid var(--line-soft)}
+.prod-col:last-child{border-right:none}
+.prod-col-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px}
+.prod-col-h .ct{font-family:var(--mono);font-size:10.5px;background:var(--line-soft);color:var(--muted);border-radius:20px;padding:1px 8px}
+.prod-item{display:block;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:9px;padding:9px 11px;margin-bottom:8px;text-decoration:none;color:inherit;transition:border-color .12s,transform .12s}
+.prod-item:hover{border-color:var(--accent);transform:translateY(-1px)}
+.pi-t{font-weight:600;font-size:12px;color:var(--ink);line-height:1.3}
+.pi-s{font-size:11px;color:var(--muted);margin-top:2px}
+.pi-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.pi-tag{font-size:10px;font-weight:600;padding:1px 7px;border-radius:5px;background:var(--line-soft);color:var(--muted)}
+.pi-tag.ai{background:var(--accent-soft);color:var(--accent)}
+.pi-tag.warn{background:var(--amber-soft);color:var(--amber)}
+.pi-tag.crit{background:var(--red-soft);color:var(--red)}
+.prod-empty{font-size:12px;color:var(--muted-2);padding:6px 2px}
+@media(max-width:1080px){.prod-board{grid-template-columns:repeat(2,1fr)}.prod-col:nth-child(2){border-right:none}.prod-col{border-bottom:1px solid var(--line-soft)}}
+@media(max-width:560px){.prod-board{grid-template-columns:1fr}.prod-col{border-right:none}}
+
+/* Faixa Assistente (atalho) */
+.assist{display:flex;align-items:center;gap:14px;margin-top:16px;padding:15px 20px;border-radius:var(--radius);text-decoration:none;color:inherit;background:linear-gradient(180deg,var(--accent-soft),var(--surface));border:1px solid var(--line);border-left:3px solid var(--accent);transition:box-shadow .12s,transform .12s}
+.assist:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.assist-ico{flex:none;width:38px;height:38px;border-radius:10px;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center}
+.assist-main{flex:1;min-width:0}
+.assist-t{font-weight:700;font-size:13.5px;color:var(--ink)}
+.assist-s{font-size:12px;color:var(--muted);margin-top:2px}
+.assist-cta{flex:none;font-size:12.5px;font-weight:600;color:var(--accent)}
+@media(max-width:680px){.assist-cta{display:none}}
+
 /* Gráficos do financeiro */
 .fin-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:1080px){.fin-charts{grid-template-columns:1fr}}
