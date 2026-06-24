@@ -1,8 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedEmail } from "@/lib/allowlist";
+import { devLoginEnabled } from "@/lib/dev-login";
 
 export type LoginState = {
   status: "idle" | "ok" | "error";
@@ -72,4 +74,48 @@ export async function enviarMagicLink(
       "Link de acesso enviado. Confira seu e-mail e clique no link para entrar.",
     email,
   };
+}
+
+/**
+ * Dev Login — entra direto com e-mail + senha (signInWithPassword), sem magic
+ * link. Útil para testar previews onde o link de e-mail não volta para o
+ * domínio certo. Disponível só quando devLoginEnabled() (ver lib/dev-login.ts);
+ * mesmo assim ainda passa pela allowlist, como o fluxo normal.
+ */
+export async function devLogin(
+  _prev: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  if (!devLoginEnabled()) {
+    return { status: "error", message: "Dev Login indisponível neste ambiente." };
+  }
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!EMAIL_RE.test(email) || !password) {
+    return { status: "error", message: "Informe e-mail e senha.", email };
+  }
+
+  if (!isAllowedEmail(email)) {
+    return {
+      status: "error",
+      message: "Este e-mail não está autorizado.",
+      email,
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    return {
+      status: "error",
+      message: `Não entrou: ${error.message}`,
+      email,
+    };
+  }
+
+  // Sessão gravada nos cookies pelo server client → vai para o painel.
+  redirect("/painel");
 }

@@ -1,4 +1,5 @@
 import { LoginForm } from "./LoginForm";
+import { devLoginEnabled } from "@/lib/dev-login";
 
 export default async function LoginPage({
   searchParams,
@@ -21,7 +22,7 @@ export default async function LoginPage({
           seu e-mail.
         </p>
 
-        <LoginForm erroInicial={erro} />
+        <LoginForm erroInicial={erro} devEnabled={devLoginEnabled()} />
 
         <div className="login-foot">
           Acesso restrito aos sócios · prazos penais em dias corridos

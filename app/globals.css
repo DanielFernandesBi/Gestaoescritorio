@@ -402,6 +402,12 @@ a.op-row:hover{background:var(--surface-2)}
 .login-msg.err{background:var(--red-soft);color:var(--red)}
 .login-foot{margin-top:22px;text-align:center;font-size:11px;color:var(--muted-2);line-height:1.5}
 
+/* ---------- Dev Login (só fora de produção / preview com flag) ---------- */
+.dev-login{margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);text-align:center}
+.dev-login-toggle{font-size:12px}
+.dev-login-form{margin-top:12px;text-align:left}
+.dev-login-form .btn.primary{margin-top:14px}
+
 /* ---------- Botão perigo + ações ---------- */
 .btn.danger{background:var(--red);color:#fff;border-color:var(--red)}
 .btn.danger:hover{background:#a8332a}
