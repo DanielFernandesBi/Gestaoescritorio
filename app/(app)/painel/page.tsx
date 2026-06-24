@@ -422,11 +422,14 @@ export default async function PainelPage() {
                 const t = (v.tipo ?? "").toLowerCase();
                 const p = t.includes("prazo") ? prazoPorId.get(v.id) : undefined;
                 const a = t.includes("audi") ? audPorId.get(v.id) : undefined;
+                const cli = p?.clientes || a?.clientes || null;
+                const seg = Boolean(p?.segredo || a?.segredo);
                 return (
                   <div className="deadline valida-row" key={`${v.tipo}-${v.id}`}>
                     <div className="dl-main">
                       <div className="dl-t">{splitAto(v.descricao)[0]}</div>
                       <div className="dl-s">
+                        {seg ? <><SegredoTag on /> · </> : cli && <><span className="dl-cli">{cli}</span> · </>}
                         {humano(v.tipo)}
                         {v.numero_cnj && <> · <span className="cnj">{v.numero_cnj}</span></>}
                         {v.data_relevante && <> · fatal prov. {fmtDate(v.data_relevante)}</>}
@@ -518,6 +521,8 @@ export default async function PainelPage() {
                   <div className="dl-main">
                     <div className="dl-t">{a.segredo ? "Audiência (sigilo)" : humano(a.tipo)}</div>
                     <div className="dl-s">
+                      {a.segredo ? <SegredoTag on /> : a.clientes && <span className="dl-cli">{a.clientes}</span>}
+                      {(a.segredo || a.clientes) && " · "}
                       {fmtTime(a.data_hora)} · {humano(a.modalidade)}
                       {a.local_link ? ` · ${a.local_link}` : ""}
                     </div>
