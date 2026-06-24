@@ -509,6 +509,53 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .anom-fonte{font-size:10.5px;color:var(--muted-2);font-weight:600}
 .anom-det{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
 
+/* ---------- /validacao — fila de provisórios (Plantão) ---------- */
+.tang{color:var(--tang);font-weight:600}
+.vermelho{color:var(--red);font-weight:600}
+.banner.ai{align-items:center;border-left-color:var(--accent);background:linear-gradient(180deg,var(--accent-soft),var(--surface))}
+.vfilter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.vchip{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:20px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;font-weight:600;color:var(--muted);text-decoration:none;transition:.12s}
+.vchip:hover{border-color:var(--muted-2)}
+.vchip.on{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent)}
+.vchip-n{font-family:var(--mono);font-size:11px}
+.vchip.preso .vchip-n{color:var(--red)}
+.vchip.on .vchip-n,.vchip.preso.on .vchip-n{color:var(--accent-contrast)}
+.vsec-h{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:20px 0 10px;display:flex;align-items:baseline;gap:10px}
+.vsec-h span{font-size:10.5px;letter-spacing:.03em;text-transform:none;color:var(--muted-2);font-weight:500}
+.vcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:14px}
+.vcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.vtags{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vtag{font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:3px 9px;border-radius:6px}
+.vtag.prov{background:var(--accent-soft);color:var(--accent)}
+.vtag.preso{background:var(--red);color:#fff}
+.vtag.quando{background:var(--amber-soft);color:var(--amber)}
+.vcard-title{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);letter-spacing:-.01em;margin-top:10px;line-height:1.2}
+.vcard-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.vcard-sub .vcli{font-weight:700;color:var(--name)}
+.vgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:16px 0;padding:14px 0;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+.vk{display:block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin-bottom:4px}
+.vv{font-size:12.5px;color:var(--text);font-weight:500}
+.vv.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.vv.fatal{color:var(--red);font-weight:700}
+.vcard-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.vfoot-l{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.vfoot-l .ico{color:var(--muted-2)}
+.vactions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vactions .btn{flex:none}
+@media(max-width:1080px){.vgrid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.vgrid{grid-template-columns:repeat(2,1fr)}.vcard-foot{align-items:flex-start;flex-direction:column}}
+/* trilho da validação */
+.vrail-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px}
+.vrail-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:11px}
+.vrail-steps{list-style:none;display:flex;flex-direction:column;gap:10px}
+.vrail-steps li{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--text);line-height:1.45}
+.vstep-n{flex:none;width:18px;height:18px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+.vrail-steps code{font-family:var(--mono);font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+.fr-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px;color:var(--muted)}
+.fr-row:last-child{border-bottom:none}
+.fr-row b{font-family:var(--serif);font-size:18px;color:var(--ink);font-weight:600}
+.fr-row.preso,.fr-row.preso b{color:var(--red)}
+
 /* Gráficos do financeiro */
 .fin-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:1080px){.fin-charts{grid-template-columns:1fr}}

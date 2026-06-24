@@ -215,6 +215,146 @@ export async function getValidacao(): Promise<Validacao[]> {
   return (data ?? []) as Validacao[];
 }
 
+/* Fila de validação (tela /validacao) — provisórios (validado=false) com os campos
+ * do mockup Plantão: contexto da intimação (disponibilização/ciência/fundamento/origem),
+ * prazo legal em dias, selo de evento no Calendar e flag de réu preso. Tudo via joins
+ * já existentes no schema — sem inventar dado. */
+
+const PRESO_SET = new Set(["preso_provisorio", "preso_definitivo", "regime_semiaberto"]);
+
+type CPSituacao = { clientes?: { nome?: string | null; situacao_prisional?: string | null } | null };
+type ProcValida = {
+  numero_cnj?: string | null;
+  numero_registro_tribunal?: string | null;
+  tribunal?: string | null;
+  vara_comarca?: string | null;
+  segredo_justica?: boolean | null;
+  cliente_processo?: CPSituacao[] | null;
+} | null;
+type IntimValida = {
+  data_disponibilizacao?: string | null;
+  data_ciencia?: string | null;
+  fundamento?: string | null;
+  origem?: string | null;
+} | null;
+
+export type PrazoValidacao = {
+  id: string;
+  ato: string;
+  data_fatal: string;
+  data_interna: string | null;
+  dias: number | null;
+  tipo_contagem: string | null;
+  dias_restantes: number;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  tribunal: string | null;
+  vara_comarca: string | null;
+  clientes: string;
+  preso: boolean;
+  segredo: boolean;
+  tem_calendar: boolean;
+  intimacao_id: string | null;
+  data_disponibilizacao: string | null;
+  data_ciencia: string | null;
+  fundamento: string | null;
+  origem: string | null;
+  responsavel: string | null;
+};
+
+export type AudienciaValidacao = {
+  id: string;
+  tipo: string;
+  data_hora: string;
+  modalidade: string | null;
+  local_link: string | null;
+  numero_cnj: string | null;
+  clientes: string;
+  segredo: boolean;
+  tem_calendar: boolean;
+  dias_ate: number;
+  responsavel: string | null;
+};
+
+function nomesDeCp(cps: CPSituacao[] | null | undefined): string {
+  if (!cps?.length) return "";
+  return [...new Set(cps.map((x) => x.clientes?.nome).filter(Boolean))].join(", ");
+}
+
+export async function getFilaValidacao(): Promise<{
+  prazos: PrazoValidacao[];
+  audiencias: AudienciaValidacao[];
+  presos: number;
+}> {
+  const supabase = await createClient();
+  const [pr, au] = await Promise.all([
+    supabase
+      .from("prazos")
+      .select(
+        "id, ato, data_fatal, data_interna, dias, tipo_contagem, responsavel, calendar_event_id, intimacao_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome,situacao_prisional))), intimacoes(data_disponibilizacao,data_ciencia,fundamento,origem)",
+      )
+      .eq("status", "aberto")
+      .eq("validado", false)
+      .order("data_fatal", { ascending: true }),
+    supabase
+      .from("audiencias")
+      .select(
+        "id, tipo, data_hora, modalidade, local_link, responsavel, calendar_event_id, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+      )
+      .eq("status", "designada")
+      .eq("validado", false)
+      .order("data_hora", { ascending: true }),
+  ]);
+
+  const prazos = ((pr.data ?? []) as Record<string, unknown>[]).map((r): PrazoValidacao => {
+    const p = r.processos as unknown as ProcValida;
+    const it = r.intimacoes as unknown as IntimValida;
+    const cps = p?.cliente_processo ?? [];
+    return {
+      id: r.id as string,
+      ato: r.ato as string,
+      data_fatal: r.data_fatal as string,
+      data_interna: (r.data_interna as string) ?? null,
+      dias: r.dias == null ? null : Number(r.dias),
+      tipo_contagem: (r.tipo_contagem as string) ?? null,
+      dias_restantes: diasAte(r.data_fatal as string),
+      numero_cnj: p?.numero_cnj ?? null,
+      numero_registro: p?.numero_registro_tribunal ?? null,
+      tribunal: p?.tribunal ?? null,
+      vara_comarca: p?.vara_comarca ?? null,
+      clientes: nomesDeCp(cps),
+      preso: cps.some((x) => x.clientes?.situacao_prisional != null && PRESO_SET.has(x.clientes.situacao_prisional)),
+      segredo: Boolean(p?.segredo_justica),
+      tem_calendar: Boolean(r.calendar_event_id),
+      intimacao_id: (r.intimacao_id as string) ?? null,
+      data_disponibilizacao: it?.data_disponibilizacao ?? null,
+      data_ciencia: it?.data_ciencia ?? null,
+      fundamento: it?.fundamento ?? null,
+      origem: it?.origem ?? null,
+      responsavel: (r.responsavel as string) ?? null,
+    };
+  });
+
+  const audiencias = ((au.data ?? []) as Record<string, unknown>[]).map((r): AudienciaValidacao => {
+    const p = r.processos as unknown as ProcValida;
+    return {
+      id: r.id as string,
+      tipo: r.tipo as string,
+      data_hora: r.data_hora as string,
+      modalidade: (r.modalidade as string) ?? null,
+      local_link: (r.local_link as string) ?? null,
+      numero_cnj: p?.numero_cnj ?? null,
+      clientes: nomesDeCp(p?.cliente_processo),
+      segredo: Boolean(p?.segredo_justica),
+      tem_calendar: Boolean(r.calendar_event_id),
+      dias_ate: diasAte(r.data_hora as string),
+      responsavel: (r.responsavel as string) ?? null,
+    };
+  });
+
+  return { prazos, audiencias, presos: prazos.filter((p) => p.preso).length };
+}
+
 /* Intimações ------------------------------------------------------------- */
 
 export type Intimacao = {
