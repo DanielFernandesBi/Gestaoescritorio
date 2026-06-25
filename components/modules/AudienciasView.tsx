@@ -59,6 +59,17 @@ function partesData(iso: string) {
 }
 const quando = (d: number) => (d < 0 ? "realizada" : d === 0 ? "hoje" : d === 1 ? "amanhã" : `em ${d} dias`);
 
+/* Janela de votação (Sugestão 66): início (data_hora) → fim (data_fim).
+ * Ex.: "24 – 28 jun" no mesmo mês; "28 jun – 02 jul" cruzando o mês. */
+function faixaJanela(ini: string, fim: string) {
+  const di = new Date(ini), df = new Date(fim);
+  const dia = (d: Date) => String(d.getDate()).padStart(2, "0");
+  const mes = (d: Date) => d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+  return di.getMonth() === df.getMonth()
+    ? `${dia(di)} – ${dia(df)} ${mes(df)}`
+    : `${dia(di)} ${mes(di)} – ${dia(df)} ${mes(df)}`;
+}
+
 function tipoTone(t: string) {
   if (t === "juri") return "tone-red";
   if (t === "custodia") return "tone-amber";
@@ -236,8 +247,9 @@ function VirtualCard({ a }: { a: AudienciaCard }) {
             </div>
           </div>
           <div className="aud-vwhen">
-            <div className="d mono">{dia} {my} · {hora}</div>
-            <div className="k">pauta virtual</div>
+            {a.data_fim
+              ? <><div className="d mono">{faixaJanela(a.data_hora, a.data_fim)}</div><div className="k">janela de votação</div></>
+              : <><div className="d mono">{dia} {my} · {hora}</div><div className="k">pauta virtual</div></>}
           </div>
         </div>
         <div className="aud-foot">
@@ -267,7 +279,10 @@ function AlterarModalidade({ a }: { a: AudienciaCard }) {
         <div><label>Modalidade</label><select name="modalidade" defaultValue={a.modalidade ?? "virtual"}>{AUDIENCIA_MODALIDADE.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
         <div><label>Tipo</label><select name="tipo" defaultValue={a.tipo}>{AUDIENCIA_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
       </div>
-      <div><label>Data e hora</label><input type="datetime-local" name="data_hora" required defaultValue={a.data_hora?.slice(0, 16)} /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div><label>Início {/* início da sessão / janela */}</label><input type="datetime-local" name="data_hora" required defaultValue={a.data_hora?.slice(0, 16)} /></div>
+        <div><label>Fim da janela (virtual)</label><input type="datetime-local" name="data_fim" defaultValue={a.data_fim?.slice(0, 16) ?? ""} /></div>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div><label>Responsável</label><select name="responsavel" defaultValue={a.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
         <div><label>Local / link</label><input name="local_link" defaultValue={a.local_link ?? ""} placeholder="Sala, endereço ou link" /></div>
