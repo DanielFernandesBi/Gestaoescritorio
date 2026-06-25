@@ -355,6 +355,82 @@ export async function getFilaValidacao(): Promise<{
   return { prazos, audiencias, presos: prazos.filter((p) => p.preso).length };
 }
 
+/* Painel de prazos (tela /prazos, alvo Plantão) --------------------------------
+ * Todos os prazos abertos com o contexto rico da intimação de origem
+ * (disponibilização/ciência/fundamento) e do processo (CNJ/registro/sigilo/preso),
+ * mais os flags `validado`/`orfao` para a UI separar provisórios · validados ·
+ * órfãos. Mesma malha de joins de `getFilaValidacao`, sem o filtro de validação. */
+
+export type PrazoCard = {
+  id: string;
+  ato: string;
+  data_fatal: string;
+  data_interna: string | null;
+  dias: number | null;
+  tipo_contagem: string | null;
+  dias_restantes: number;
+  validado: boolean;
+  orfao: boolean;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  tribunal: string | null;
+  vara_comarca: string | null;
+  clientes: string;
+  preso: boolean;
+  segredo: boolean;
+  tem_calendar: boolean;
+  intimacao_id: string | null;
+  data_disponibilizacao: string | null;
+  data_ciencia: string | null;
+  fundamento: string | null;
+  origem: string | null;
+  responsavel: string | null;
+};
+
+export async function getPrazosPainel(): Promise<PrazoCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("prazos")
+    .select(
+      "id, ato, data_fatal, data_interna, dias, tipo_contagem, responsavel, validado, processo_id, calendar_event_id, intimacao_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome,situacao_prisional))), intimacoes(data_disponibilizacao,data_ciencia,fundamento,origem)",
+    )
+    .eq("status", "aberto")
+    .order("data_fatal", { ascending: true });
+
+  return ((data ?? []) as Record<string, unknown>[]).map((r): PrazoCard => {
+    const p = r.processos as unknown as ProcValida;
+    const it = r.intimacoes as unknown as IntimValida;
+    const cps = p?.cliente_processo ?? [];
+    return {
+      id: r.id as string,
+      ato: r.ato as string,
+      data_fatal: r.data_fatal as string,
+      data_interna: (r.data_interna as string) ?? null,
+      dias: r.dias == null ? null : Number(r.dias),
+      tipo_contagem: (r.tipo_contagem as string) ?? null,
+      dias_restantes: diasAte(r.data_fatal as string),
+      validado: Boolean(r.validado),
+      orfao: r.processo_id == null,
+      processo_id: (r.processo_id as string) ?? null,
+      numero_cnj: p?.numero_cnj ?? null,
+      numero_registro: p?.numero_registro_tribunal ?? null,
+      tribunal: p?.tribunal ?? null,
+      vara_comarca: p?.vara_comarca ?? null,
+      clientes: nomesDeCp(cps),
+      preso: cps.some((x) => x.clientes?.situacao_prisional != null && PRESO_SET.has(x.clientes.situacao_prisional)),
+      segredo: Boolean(p?.segredo_justica),
+      tem_calendar: Boolean(r.calendar_event_id),
+      intimacao_id: (r.intimacao_id as string) ?? null,
+      data_disponibilizacao: it?.data_disponibilizacao ?? null,
+      data_ciencia: it?.data_ciencia ?? null,
+      fundamento: it?.fundamento ?? null,
+      origem: it?.origem ?? null,
+      responsavel: (r.responsavel as string) ?? null,
+    };
+  });
+}
+
 /* Agenda — eventos da semana/mês (prazos + audiências + compromissos) ------
  * Replica o alvo do mock /agenda. Lê as três tabelas-base num range de datas e
  * normaliza num evento único. Prazos entram com marcador 'fatal' (data_fatal) e,

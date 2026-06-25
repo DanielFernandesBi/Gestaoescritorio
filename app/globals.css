@@ -1266,3 +1266,164 @@ a.op-row:hover{background:var(--surface-2)}
   .dup-merge{flex-direction:row;border:none;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:8px}
   .dup-head h1{font-size:32px}
 }
+
+/* ===== /prazos — alvo Plantão (provisórios · validados · órfãos) ========= */
+.pz-page{display:flex;flex-direction:column;gap:18px}
+
+/* cabeçalho */
+.pz-head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.pz-head .lhs{flex:1;min-width:0}
+.pz-head .eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.pz-head h1{font-family:var(--serif);font-size:40px;font-weight:400;line-height:1.04;color:var(--ink);margin:6px 0 0}
+.pz-head p{color:var(--muted);font-size:13.5px;margin:6px 0 0;max-width:680px;line-height:1.5}
+
+/* contadores */
+.pz-counters{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.pz-counter{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 15px}
+.pz-counter .big{font-family:var(--serif);font-size:28px;line-height:1;color:var(--ink)}
+.pz-counter .lbl{font-size:11px;color:var(--muted);margin-top:4px}
+.pz-counter .big.amber{color:var(--amber)}
+.pz-counter.red{border-color:color-mix(in srgb,var(--red) 30%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--red) 22%,transparent)}
+.pz-counter.red .big{color:var(--red)}
+.pz-counter.accent{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pz-counter.accent .big{color:var(--accent-strong)}
+
+/* toolbar */
+.pz-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.pz-seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.pz-seg button{padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--muted);background:transparent;border:none}
+.pz-seg button:hover{color:var(--text)}
+.pz-seg button.on{color:#fff;background:var(--ink);font-weight:700}
+.pz-select{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--line)}
+.pz-select select{border:none;background:transparent;font:inherit;color:var(--text);font-weight:600;padding:0;cursor:pointer}
+.pz-select select:focus{outline:none}
+.pz-only{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--accent-strong);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+.pz-only.on{box-shadow:0 0 0 1px var(--accent)}
+.pz-feriados{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.pz-feriados svg{color:var(--amber)}
+
+/* rótulos de seção */
+.pz-seclabel{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:4px}
+.pz-seclabel .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.pz-seclabel .t.accent{color:var(--accent-strong)}
+.pz-seclabel code{font-family:var(--mono);font-size:11px;color:var(--muted-2)}
+.pz-seclabel .dim{font-size:11px;color:var(--muted)}
+.pz-pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;border-radius:20px;padding:2px 9px}
+.pz-pill .d{width:7px;height:7px;border-radius:50%}
+.pz-pill.tang{color:var(--tang);background:var(--tang-soft);border:1px solid color-mix(in srgb,var(--tang) 25%,transparent)}
+.pz-pill.tang .d{background:var(--tang)}
+.pz-pill.red{color:var(--red);background:var(--red-soft)}
+.pz-pill.red .d{background:var(--red)}
+
+/* card */
+.pz-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.pz-card.prov{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 8px 22px color-mix(in srgb,var(--accent) 9%,transparent)}
+.pz-card.orfa{border-style:dashed;border-color:color-mix(in srgb,var(--amber) 50%,var(--line))}
+.pz-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.pz-stripe.accent{background:var(--accent)}
+.pz-stripe.amber{background:var(--amber)}
+.pz-stripe.crit{background:var(--red)}
+.pz-stripe.warn{background:var(--amber)}
+.pz-stripe.ok{background:var(--green)}
+.pz-body{padding:15px 20px 14px 22px}
+
+/* etiquetas do topo */
+.pz-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.pz-tags.sm{margin-bottom:5px}
+.pz-tag{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;border-radius:5px;padding:2px 7px;line-height:1.5}
+.pz-tag .d{width:5px;height:5px;border-radius:50%}
+.pz-tag.cat-blue{color:var(--blue);background:var(--blue-soft)}
+.pz-tag.cat-slate{color:var(--brass);background:var(--brass-soft)}
+.pz-tag.cat-neutral{color:var(--text);background:var(--surface-2);border:1px solid var(--line-soft)}
+.pz-tag.tang,.pz-tag.tang2{color:#fff;background:var(--tang)}
+.pz-tag.tang .d{background:#fff}
+.pz-tag.cowork{color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+.pz-tag.val{color:var(--green);background:var(--green-soft)}
+.pz-tag.fatal-red{color:var(--red);background:var(--red-soft)}
+.pz-tag.fatal-red .d{background:var(--red)}
+.pz-tag.preso{color:var(--red);background:var(--red-soft)}
+.pz-tag.orfa{color:var(--amber);background:var(--amber-soft)}
+.pz-tag.segredo{color:var(--brass);background:var(--brass-soft)}
+
+/* corpo: nome + cliente + fundamento / dias */
+.pz-main{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.pz-lhs{flex:1;min-width:240px}
+.pz-title{display:inline-block;font-weight:800;color:var(--name);font-size:15px;text-decoration:none}
+a.pz-title:hover{text-decoration:underline}
+.pz-title.sm{font-size:14px}
+.pz-cli{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.pz-cli.sm{font-size:12px;margin-top:5px}
+.pz-cli b{color:var(--name)}
+.pz-cli.muted b{color:var(--name)}
+.pz-num{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.pz-cli .dim{color:var(--muted-2)}
+.pz-fund{font-size:12px;color:var(--muted);margin-top:6px}
+.pz-dias{flex:none;text-align:right}
+.pz-dias .big{font-family:var(--serif);font-size:30px;line-height:1;color:var(--ink)}
+.pz-dias .big span{font-size:14px}
+.pz-dias.sm .big{font-size:24px}
+.pz-dias.sm .big span{font-size:12px}
+.pz-dias .big.crit{color:var(--red)}
+.pz-dias .big.warn{color:var(--amber)}
+.pz-dias .big.ok{color:var(--green)}
+.pz-dias .lbl{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+
+/* faixa de datas */
+.pz-dates{display:flex;margin-top:13px;border:1px solid var(--line-soft);border-radius:10px;overflow:hidden}
+.pz-dates .d{flex:1;padding:8px 12px;border-right:1px solid var(--line-soft)}
+.pz-dates .d:last-child{border-right:none}
+.pz-dates .k{display:block;font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.pz-dates .v{display:block;font-size:12px;color:var(--text);margin-top:2px}
+.pz-dates .d.fatal.tang{background:var(--tang-soft)}
+.pz-dates .d.fatal.tang .k,.pz-dates .d.fatal.tang .v{color:var(--tang)}
+.pz-dates .d.fatal.tang .v{font-weight:600}
+.pz-dates .d.fatal.red{background:var(--red-soft)}
+.pz-dates .d.fatal.red .k,.pz-dates .d.fatal.red .v{color:var(--red)}
+.pz-dates .d.fatal.red .v{font-weight:600}
+
+/* barra de ações (1 clique) — o primário cobalt encaixa na faixa esquerda */
+.pz-foot{display:flex;border-top:1px solid var(--line-soft)}
+.pz-foot .grow{flex:1;display:flex}
+.pz-foot .grow .btn{flex:1;justify-content:center;border:none;border-radius:0;box-shadow:none;font-size:12px;font-weight:700;padding:11px 10px}
+.pz-foot .grow .btn.primary{background:var(--accent);color:var(--accent-contrast)}
+.pz-foot .grow .btn.primary:hover{background:var(--accent-strong)}
+.pz-foot .grow .btn:not(.primary){background:var(--surface);color:var(--text)}
+.pz-foot .grow .btn:not(.primary):hover{background:var(--surface-2)}
+.pz-foot-link{flex:none;display:inline-flex;align-items:center;gap:6px;padding:11px 16px;font-size:12px;font-weight:600;color:var(--text);background:var(--surface);border-left:1px solid var(--line-soft);text-decoration:none}
+.pz-foot-link:hover{background:var(--surface-2)}
+
+/* layout compacto (validado com folga) */
+.pz-card.compact .pz-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 20px 14px 22px}
+.pz-actions{flex:none;display:flex;gap:8px;align-items:center}
+
+.pz-empty{padding:16px;text-align:center;color:var(--muted-2);font-size:12.5px;background:var(--surface);border:1px dashed var(--line);border-radius:12px}
+
+/* ── trilho direito (@rail/prazos) ──────────────────────────────────────── */
+.pz-ciclo-card{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 8px 22px color-mix(in srgb,var(--accent) 8%,transparent)}
+.pz-ciclo-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-strong);font-weight:700;margin-bottom:12px}
+.pz-ciclo{list-style:none;display:flex;flex-direction:column;gap:12px}
+.pz-ciclo li{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--text);line-height:1.5}
+.pz-ciclo .n{flex:none;width:20px;height:20px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:700;display:grid;place-items:center}
+.pz-ciclo .n.tang{background:var(--tang-soft);color:var(--tang)}
+.pz-ciclo .n.green{background:var(--green-soft);color:var(--green)}
+.pz-ciclo .n.slate{background:var(--surface-2);color:var(--brass);border:1px solid var(--line)}
+.pz-ciclo b{color:var(--ink)}
+.pz-ciclo b.tang{color:var(--tang)}
+.pz-ciclo b.red{color:var(--red)}
+.pz-ciclo b.slate{color:var(--brass)}
+.pz-ciclo-foot{margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted);line-height:1.5}
+.pz-cores{list-style:none;display:flex;flex-direction:column;gap:10px}
+.pz-cores li{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text)}
+.pz-cores b{color:var(--ink)}
+.pz-cores .sw{flex:none;width:14px;height:14px;border-radius:4px}
+.pz-cores .sw.tang{background:var(--tang)}
+.pz-cores .sw.red{background:var(--red)}
+.pz-cores .sw.green{background:var(--green)}
+.pz-cores .sw.slate{background:var(--brass)}
+
+@media (max-width:760px){
+  .pz-counters{grid-template-columns:repeat(2,1fr)}
+  .pz-head h1{font-size:32px}
+  .pz-dates{flex-wrap:wrap}
+  .pz-dates .d{min-width:50%}
+}
