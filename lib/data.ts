@@ -813,6 +813,7 @@ export type Audiencia = {
   id: string;
   processo_id: string;
   tipo: string;
+  nome: string | null;
   data_hora: string;
   data_fim?: string | null;
   modalidade: string | null;
@@ -835,7 +836,7 @@ export async function getAudiencias(): Promise<Audiencia[]> {
   const { data } = await supabase
     .from("audiencias")
     .select(
-      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(papel,clientes(id,nome)))",
+      "id, processo_id, tipo, nome, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(papel,clientes(id,nome)))",
     )
     .order("data_hora", { ascending: true });
 
@@ -845,6 +846,7 @@ export async function getAudiencias(): Promise<Audiencia[]> {
       id: r.id as string,
       processo_id: r.processo_id as string,
       tipo: r.tipo as string,
+      nome: (r.nome as string | null) ?? null,
       data_hora: r.data_hora as string,
       modalidade: r.modalidade as string | null,
       local_link: r.local_link as string | null,
@@ -867,7 +869,7 @@ export async function getAudienciaPorId(id: string): Promise<Audiencia | null> {
   const { data: r } = await supabase
     .from("audiencias")
     .select(
-      "id, processo_id, tipo, data_hora, data_fim, modalidade, local_link, status, responsavel, observacoes, validado, redesignada_de, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(papel,clientes(id,nome)))",
+      "id, processo_id, tipo, nome, data_hora, data_fim, modalidade, local_link, status, responsavel, observacoes, validado, redesignada_de, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(papel,clientes(id,nome)))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -889,6 +891,7 @@ export async function getAudienciaPorId(id: string): Promise<Audiencia | null> {
     id: r.id as string,
     processo_id: r.processo_id as string,
     tipo: r.tipo as string,
+    nome: (r.nome as string | null) ?? null,
     data_hora: r.data_hora as string,
     data_fim: (r.data_fim as string | null) ?? null,
     modalidade: r.modalidade as string | null,
@@ -938,6 +941,7 @@ export type AudienciaCard = {
   id: string;
   processo_id: string;
   tipo: string;
+  nome: string | null;
   data_hora: string;
   data_fim: string | null;
   modalidade: string | null;
@@ -959,7 +963,7 @@ export async function getAudienciasPainel(): Promise<AudienciaCard[]> {
   const { data } = await supabase
     .from("audiencias")
     .select(
-      "id, processo_id, tipo, data_hora, data_fim, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome,situacao_prisional)))",
+      "id, processo_id, tipo, nome, data_hora, data_fim, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome,situacao_prisional)))",
     )
     .order("data_hora", { ascending: true });
 
@@ -970,6 +974,7 @@ export async function getAudienciasPainel(): Promise<AudienciaCard[]> {
       id: r.id as string,
       processo_id: r.processo_id as string,
       tipo: r.tipo as string,
+      nome: (r.nome as string | null) ?? null,
       data_hora: r.data_hora as string,
       data_fim: (r.data_fim as string) ?? null,
       modalidade: (r.modalidade as string) ?? null,

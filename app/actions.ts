@@ -1271,6 +1271,7 @@ export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resu
     await requireUser();
     const supabase = await createClient();
     const tipo = String(fd.get("tipo") || "").trim();
+    const nome = fd.has("nome") ? (String(fd.get("nome") || "").trim() || null) : undefined;
     const dataLocal = String(fd.get("data_hora") || ""); // YYYY-MM-DDTHH:mm
     const modalidade = String(fd.get("modalidade") || "") || null;
     const local_link = String(fd.get("local_link") || "") || null;
@@ -1289,9 +1290,11 @@ export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resu
       .eq("id", id)
       .single();
 
+    const patch: Record<string, unknown> = { tipo, data_hora, data_fim, modalidade, local_link, responsavel, observacoes };
+    if (nome !== undefined) patch.nome = nome;
     const { error } = await supabase
       .from("audiencias")
-      .update({ tipo, data_hora, data_fim, modalidade, local_link, responsavel, observacoes })
+      .update(patch)
       .eq("id", id);
     if (error) throw error;
 

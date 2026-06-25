@@ -60,10 +60,6 @@ const diaMes = (iso: string) => {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 const semanaLonga = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { weekday: "long" });
-const horaCurta = (iso: string) => {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}h`;
-};
 
 function tipoTone(t: string) {
   if (t === "juri") return "tone-red";
@@ -72,7 +68,8 @@ function tipoTone(t: string) {
   if (t === "instrucao" || t === "interrogatorio") return "tone-blue";
   return "tone-slate";
 }
-const tituloDe = (a: { observacoes: string | null; tipo: string }) => a.observacoes?.trim() || humano(a.tipo);
+const tituloDe = (a: { nome?: string | null; observacoes: string | null; tipo: string }) =>
+  a.nome?.trim() || a.observacoes?.trim() || humano(a.tipo);
 const procNum = (a: { numero_cnj: string | null; numero_registro: string | null }) =>
   a.numero_cnj ?? (a.numero_registro ? `reg ${a.numero_registro}` : null);
 
@@ -82,14 +79,9 @@ function MasterCard({ a, ativo }: { a: AudienciaCard; ativo: boolean }) {
   return (
     <Link className={`audp-mcard${ativo ? " on" : ""}`} href={linkPara("audiencia", a.id)}>
       {ativo && <span className="audp-mstripe" />}
-      <div className="audp-mtags">
-        <span className={`pz-tag ${tipoTone(a.tipo)}`}>{humano(a.tipo)}</span>
-        {provis && <span className="pz-tag tang"><span className="d" />provisória</span>}
-      </div>
-      <div className="audp-mtitle">{tituloDe(a)}</div>
-      <div className="audp-mmeta">
-        {(a.clientes || "Sem cliente") + " · " + diaMes(a.data_hora) + " · " + horaCurta(a.data_hora)}
-      </div>
+      <span className={`audp-mdot ${tipoTone(a.tipo)}${provis ? " prov" : ""}`} />
+      <span className="audp-mtitle" title={tituloDe(a)}>{tituloDe(a)}</span>
+      <span className="audp-mwhen">{diaMes(a.data_hora)}</span>
     </Link>
   );
 }
@@ -172,6 +164,7 @@ function EditarAudiencia({ aud }: { aud: Audiencia }) {
       enviarLabel="Salvar"
       variant="default"
     >
+      <div><label>Nome da sessão</label><input name="nome" defaultValue={aud.nome ?? ""} placeholder="Ex.: Sessão plenária do júri" /></div>
       <div><label>Tipo</label><select name="tipo" defaultValue={aud.tipo}>{AUDIENCIA_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div><label>Data e hora</label><input type="datetime-local" name="data_hora" required defaultValue={aud.data_hora?.slice(0, 16)} /></div>
@@ -182,7 +175,7 @@ function EditarAudiencia({ aud }: { aud: Audiencia }) {
         <div><label>Responsável</label><select name="responsavel" defaultValue={aud.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
       </div>
       <div><label>Local / link</label><input name="local_link" defaultValue={aud.local_link ?? ""} placeholder="Sala, endereço ou link da videoconferência" /></div>
-      <div><label>Nome / observações</label><textarea name="observacoes" defaultValue={aud.observacoes ?? ""} placeholder="Ex.: Sessão plenária do júri." /></div>
+      <div><label>Observações</label><textarea name="observacoes" defaultValue={aud.observacoes ?? ""} placeholder="Anotações sobre a sessão." /></div>
     </FormModal>
   );
 }
