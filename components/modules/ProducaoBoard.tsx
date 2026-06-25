@@ -1,26 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDrawer } from "@/components/Drawer";
-import { Pill, SegredoTag, DiasBox, ProcRef } from "@/components/ui";
+import { Pill, SegredoTag } from "@/components/ui";
 import { Acao } from "@/components/Acao";
-import { Chips } from "@/components/Chips";
-import { Icon } from "@/components/Icon";
-import { FiltrosCard } from "@/components/FiltrosCard";
 import { FormModal } from "@/components/FormModal";
 import {
   criarPeca,
   moverPeca,
   atualizarPeca,
   validarPeca,
+  validarMinuta,
+  atribuirPeca,
+  anexarInsumoPeca,
   vincularPrazoIntimacao,
   assumirPeca,
   reatribuirPeca,
   reanalisarPecas,
 } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
-import { fmtDate, humano } from "@/lib/format";
+import { fmtDate, ddClass, humano } from "@/lib/format";
 import type { Peca } from "@/lib/data";
 
 type Socio = "Daniel" | "Rodolfo";
@@ -30,16 +31,55 @@ type ProcLite = { id: string; label: string };
 type CliLite = { id: string; nome: string };
 type Lite = { id: string; label: string };
 
-const COLS: { key: string; label: string }[] = [
-  { key: "a_fazer", label: "A fazer" },
-  { key: "em_elaboracao", label: "Em elaboração" },
-  { key: "em_revisao", label: "Em revisão" },
-  { key: "aguardando_insumo", label: "Aguardando insumo" },
-  { key: "pronta", label: "Pronta" },
+// Ordem natural do pipeline: aguardar insumos → redigir → revisar → pronta.
+// (Em revisão a peça já está pronta para conferência; faltando insumo ainda não.)
+const COLS: { key: string; label: string; dot: string }[] = [
+  { key: "a_fazer", label: "A fazer", dot: "slate" },
+  { key: "em_elaboracao", label: "Em elaboração", dot: "blue" },
+  { key: "aguardando_insumo", label: "Aguardando insumo", dot: "amber" },
+  { key: "em_revisao", label: "Em revisão", dot: "accent" },
+  { key: "pronta", label: "Pronta", dot: "green" },
 ];
 
 const priTone = (p: string | null): "red" | "amber" | "gray" =>
   p === "urgente" ? "red" : p === "alta" ? "amber" : "gray";
+
+const ehIA = (p: Peca) => p.cadastro_automatico;
+// Tom da etiqueta de categoria pelo tipo da peça.
+function tipoTone(t: string): string {
+  if (t === "recurso") return "tone-blue";
+  if (t === "defesa" || t === "memorial") return "tone-slate";
+  return "tone-neutral";
+}
+function catLabel(p: Peca): string {
+  return p.subtipo ? `${humano(p.tipo)} · ${p.subtipo}` : humano(p.tipo);
+}
+const procNumPeca = (p: Peca) => p.numero_cnj ?? (p.numero_registro ? `reg ${p.numero_registro}` : (p.processo_id ? null : "sem processo · caso novo"));
+// Link de download .docx do Drive (Google Docs export; cai no download direto).
+const docxHref = (id: string) => `https://docs.google.com/document/d/${id}/export?format=docx`;
+
+/* ── glifos ──────────────────────────────────────────────────────────────── */
+const SPARK = <svg width="11" height="11" viewBox="0 0 24 24" style={{ fill: "currentColor" }} aria-hidden><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z" /></svg>;
+const Person = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" strokeWidth="1.9" strokeLinecap="round" aria-hidden><circle cx="12" cy="8" r="3.4" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>;
+const Clock = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 8v4l3 2" /></svg>;
+const Check = ({ c = "var(--green)" }: { c?: string }) => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M20 6 9 17l-5-5" /></svg>;
+const FileGlyph = ({ c = "#fff" }: { c?: string }) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>;
+const Alert = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>;
+
+/* Semáforo de dias da peça (chip colorido). */
+function PrazoChip({ p }: { p: Peca }) {
+  if (p.dias_restantes == null) {
+    if (p.prioridade === "urgente") return <span className="pc-chip red">⚡ urgente</span>;
+    return null;
+  }
+  return <span className={`pc-chip ${ddClass(p.dias_restantes)}`}><Clock />{p.dias_restantes} dias</span>;
+}
+// Texto do prazo: interno (do prazo) / alvo (data própria), indicando a natureza.
+function prazoMeta(p: Peca): string {
+  if (p.prazo_id) return `interno ${fmtDate(p.data_interna)} · do prazo`;
+  if (p.data_efetiva) return `alvo ${fmtDate(p.data_efetiva)}`;
+  return p.responsavel ?? "";
+}
 
 const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } as const;
 
@@ -189,41 +229,44 @@ export function ReanalisarFila({ processoId, label }: { processoId?: string; lab
   );
 }
 
-/* ---- Ação rápida "validar" (cartão provisório) ------------------------ */
+/* ---- Botões do rodapé do cartão -------------------------------------- */
 
-function ValidarRapido({ id }: { id: string }) {
+// Botão de uma ação (move/valida) com refresh. O rodapé já bloqueia a abertura
+// do drawer (stopPropagation no contêiner), então aqui não precisa.
+function OneClick({ run, children, className = "pc-fbtn" }: { run: () => Promise<{ ok: boolean }>; children: ReactNode; className?: string }) {
   const router = useRouter();
   const [pend, setPend] = useState(false);
-  async function go(e: React.MouseEvent) {
-    e.stopPropagation();
-    setPend(true);
-    const r = await validarPeca(id);
-    setPend(false);
-    if (r.ok) router.refresh();
-  }
   return (
-    <button className="btn sm ok" onClick={go} type="button" disabled={pend} style={{ padding: "2px 8px", fontSize: 11 }}>
-      {pend ? "…" : "validar"}
+    <button type="button" className={className} disabled={pend} onClick={async () => { setPend(true); const r = await run(); setPend(false); if (r.ok) router.refresh(); }}>
+      {pend ? "…" : children}
     </button>
   );
 }
 
-/* ---- Ação rápida "assumir" (cartão) ----------------------------------- */
-
-function AssumirRapido({ id }: { id: string }) {
-  const router = useRouter();
-  const [pend, setPend] = useState(false);
-  async function go(e: React.MouseEvent) {
-    e.stopPropagation();
-    setPend(true);
-    const r = await assumirPeca(id);
-    setPend(false);
-    if (r.ok) router.refresh();
-  }
+// "Atribuir advogado" (coluna A fazer) — escolhe o responsável, sem mover de coluna.
+function AtribuirAdvogado({ p }: { p: Peca }) {
   return (
-    <button className="btn sm" onClick={go} type="button" disabled={pend} style={{ padding: "2px 8px", fontSize: 11 }}>
-      {pend ? "…" : "assumir"}
-    </button>
+    <FormModal label="Atribuir advogado" titulo="Atribuir advogado" descricao="Define quem vai redigir a peça (não move de coluna)." acao={atribuirPeca.bind(null, p.id)} enviarLabel="Atribuir" variant="default">
+      <div>
+        <label>Responsável</label>
+        <select name="responsavel" defaultValue={p.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select>
+      </div>
+    </FormModal>
+  );
+}
+
+// "Anexar insumo" (coluna Aguardando insumo) — registra o link do Drive + nota e
+// marca para reanálise. O arquivo é salvo no Drive pelo usuário, na pasta do caso.
+function AnexarInsumo({ p }: { p: Peca }) {
+  return (
+    <FormModal label="Anexar insumo" titulo="Anexar insumo da peça" descricao="Registra o insumo que faltava e marca a peça para o redator agendado reavaliar." acao={anexarInsumoPeca.bind(null, p.id)} enviarLabel="Anexar e reanalisar" variant="default">
+      {p.gate_pendencia && (
+        <div className="banner" style={{ margin: "0 0 12px" }}><span className="ico">⏳</span><div><b>Falta:</b> {p.gate_pendencia}</div></div>
+      )}
+      <div><label>Link do insumo no Drive</label><input name="link" placeholder="https://drive.google.com/…" /></div>
+      <div><label>Nota (opcional)</label><textarea name="nota" placeholder="Ex.: acórdão condenatório (inteiro teor) anexado." /></div>
+      <p className="sub" style={{ margin: 0 }}>Salve o documento no Drive em <span className="mono">/sistema/clientes/{p.cliente ?? "<cliente>"}/peças</span>. (Um seletor visual do Drive entra numa próxima etapa.)</p>
+    </FormModal>
   );
 }
 
@@ -244,25 +287,29 @@ export function ProducaoBoard({
   const { prazos, intims } = useLites();
   const [dragCol, setDragCol] = useState<string | null>(null);
   const [filtro, setFiltro] = useState("todas");
+  const [soIA, setSoIA] = useState(false);
+  const [verProto, setVerProto] = useState(4);
   const autoAbertoRef = useRef(false);
 
-  // Filtro por responsável (atribuição entre os sócios).
+  // Filtro por responsável (atribuição entre os sócios) + "Só minutas IA".
   const outro = socio ? oUtroSocio(socio) : null;
   const pecasFiltradas = pecas.filter((p) => {
-    if (filtro === "minhas") return socio != null && p.responsavel === socio;
-    if (filtro === "socio") return outro != null && p.responsavel === outro;
-    if (filtro === "distribuir") return p.responsavel === "Ambos";
-    return true;
+    const okAtr =
+      filtro === "minhas" ? socio != null && p.responsavel === socio
+        : filtro === "socio" ? outro != null && p.responsavel === outro
+          : filtro === "distribuir" ? p.responsavel === "Ambos"
+            : true;
+    return okAtr && (!soIA || ehIA(p));
   });
   const nMinhas = socio ? pecas.filter((p) => p.responsavel === socio).length : 0;
   const nSocio = outro ? pecas.filter((p) => p.responsavel === outro).length : 0;
   const nDistribuir = pecas.filter((p) => p.responsavel === "Ambos").length;
+  const nIA = pecas.filter(ehIA).length;
   const filtros = [
     { id: "todas", label: `Todas (${pecas.length})` },
-    ...(socio ? [{ id: "minhas", label: `Minhas peças (${nMinhas})` }] : []),
-    ...(outro ? [{ id: "socio", label: `Do sócio · ${outro} (${nSocio})` }] : []),
+    ...(socio ? [{ id: "minhas", label: `Minhas (${nMinhas})` }] : []),
+    ...(outro ? [{ id: "socio", label: `${outro} (${nSocio})` }] : []),
     { id: "distribuir", label: `A distribuir (${nDistribuir})` },
-    { id: "protocoladas", label: `Protocoladas (${protocoladas.length})` },
   ];
 
   // Deep-link ?peca=<id> (vindo do dedup de "Criar petição pendente"): destaca/abre a peça.
@@ -486,129 +533,167 @@ export function ProducaoBoard({
     });
   }
 
-  if (filtro === "protocoladas") {
+  /* cartão de peça (colunas ativas) — topo comum + meio/rodapé por coluna */
+  function cartao(p: Peca) {
+    const cat = catLabel(p);
+    const proc = procNumPeca(p);
+    const status = p.status;
     return (
-      <>
-        <FiltrosCard><Chips options={filtros} value={filtro} onChange={setFiltro} /></FiltrosCard>
-        <div className="card op-card">
-          <div className="card-h"><h3><Icon name="book" /> Protocoladas</h3><span className="sub">{protocoladas.length}</span></div>
-          <div className="card-b">
-        {protocoladas.length ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-            {protocoladas.map((p) => (
-              <div key={p.id} className="task" style={{ cursor: "pointer" }} onClick={() => abrir(p)}>
-                <div className="ttop">
-                  <div className="t">{p.titulo}</div>
-                  <Pill tone="green" dot={false}>protocolada</Pill>
-                </div>
-                <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <Pill tone="blue" dot={false}>{humano(p.tipo)}{p.subtipo ? ` · ${p.subtipo}` : ""}</Pill>
-                </div>
-                <div className="d">
-                  {p.cliente ?? "—"} · {p.numero_cnj || p.numero_registro ? <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} /> : pecaProcLabel(p)}
-                </div>
-                {p.segredo && <div style={{ marginTop: 6 }}><SegredoTag on /></div>}
-                {p.drive_file_id && <div style={{ marginTop: 6, fontSize: 12 }}><MinutaLink id={p.drive_file_id} stop /></div>}
-                <div className="f">
-                  <span className="sub">{p.responsavel ?? "—"}</span>
-                  {p.protocolada_em && <span className="sub mono">protocolada {fmtDate(p.protocolada_em)}</span>}
-                </div>
-              </div>
-            ))}
+      <article
+        key={p.id}
+        className={`pc-card ${status}`}
+        draggable
+        onDragStart={(e) => onDragStart(e, p)}
+        onClick={() => abrir(p)}
+      >
+        <span className={`pc-strip ${status === "em_revisao" ? "accent" : status === "pronta" ? "green" : status === "aguardando_insumo" ? "amber" : status === "em_elaboracao" ? "blue" : "slate"}`} />
+        <div className="pc-body">
+          <div className="pc-tags">
+            <span className={`pc-tag ${tipoTone(p.tipo)}`}>{cat}</span>
+            {status === "a_fazer" && ehIA(p) && <span className="pc-tag ia soft">{SPARK}criada pela IA</span>}
+            {status === "em_revisao" && <span className="pc-tag ia solid">{SPARK}minuta IA · revisar</span>}
+            {status === "aguardando_insumo" && <span className="pc-tag ia soft">{SPARK}gate BAIXA</span>}
+            {status === "pronta" && p.validado && <span className="pc-tag tone-green"><Check />validada{p.responsavel ? ` · ${p.responsavel}` : ""}</span>}
+            {status === "em_elaboracao" && p.responsavel && <span className="pc-tag tone-blue">{p.responsavel}</span>}
+            {p.segredo && <span className="pc-tag segredo">🔒 segredo de justiça</span>}
           </div>
-        ) : (
-          <div className="empty">Nenhuma peça protocolada ainda.</div>
-        )}
-          </div>
+
+          <div className="pc-title">{p.titulo}</div>
+          <div className="pc-cli"><Person /><b>{p.cliente ?? "—"}</b></div>
+          {proc && <div className="pc-num mono">{proc}</div>}
+
+          {/* meio por coluna */}
+          {status === "em_revisao" && (
+            <div className="pc-gate">
+              <div className="h">{SPARK}{p.gate_resultado === "alta" ? "gate ALTA · tese coberta pelo acervo" : "minuta do redator agendado"}</div>
+              {p.gate_pendencia && <div className="s">{p.gate_pendencia}</div>}
+            </div>
+          )}
+          {status === "aguardando_insumo" && (
+            <div className="pc-falta">
+              <div className="h"><Alert />{p.gate_pendencia ? `falta: ${p.gate_pendencia}` : "aguardando insumo"}</div>
+              <div className="s">não redigir às cegas — o redator só minuta com o acervo íntegro</div>
+            </div>
+          )}
+
+          {(status === "a_fazer" || status === "em_elaboracao" || status === "em_revisao" || status === "pronta") && (
+            <div className="pc-foot-meta">
+              <PrazoChip p={p} />
+              <span className="pc-meta mono">
+                {status === "em_revisao" && p.drive_file_id ? ".docx · Drive"
+                  : status === "pronta" ? (p.data_efetiva ? `revisada ${fmtDate(p.data_efetiva)}` : "revisada")
+                    : prazoMeta(p)}
+              </span>
+            </div>
+          )}
+
+          {status === "pronta" && (
+            <div className="pc-note">O sistema nunca protocola — a baixa do prazo move para <b>protocolada</b> e grava o andamento.</div>
+          )}
         </div>
-      </>
+
+        {/* rodapé de ações por coluna */}
+        <div className="pc-foot" onClick={(e) => e.stopPropagation()}>
+          {status === "a_fazer" && <><span className="pc-fwrap"><AtribuirAdvogado p={p} /></span><button type="button" className="pc-fbtn sec" onClick={() => abrir(p)}>Abrir</button></>}
+          {status === "em_elaboracao" && <>
+            {p.drive_file_id
+              ? <a className="pc-fbtn" href={`https://drive.google.com/file/d/${p.drive_file_id}/view`} target="_blank" rel="noreferrer">Continuar no editor</a>
+              : <button type="button" className="pc-fbtn" onClick={() => abrir(p)}>Continuar no editor</button>}
+            <button type="button" className="pc-fbtn sec" onClick={() => abrir(p)}>Abrir</button>
+          </>}
+          {status === "aguardando_insumo" && <><span className="pc-fwrap"><AnexarInsumo p={p} /></span><Link className="pc-fbtn sec" href="/tarefas">Tarefa</Link></>}
+          {status === "em_revisao" && <>
+            {p.drive_file_id
+              ? <a className="pc-fbtn primary" href={`https://drive.google.com/file/d/${p.drive_file_id}/view`} target="_blank" rel="noreferrer"><FileGlyph />Abrir minuta</a>
+              : <button type="button" className="pc-fbtn primary" onClick={() => abrir(p)}><FileGlyph />Abrir minuta</button>}
+            <OneClick run={() => validarMinuta(p.id)} className="pc-fbtn sec ok">Validar</OneClick>
+          </>}
+          {status === "pronta" && <>
+            {p.drive_file_id
+              ? <a className="pc-fbtn" href={docxHref(p.drive_file_id)} target="_blank" rel="noreferrer">Baixar .docx</a>
+              : <button type="button" className="pc-fbtn" onClick={() => abrir(p)}>Baixar .docx</button>}
+            <button type="button" className="pc-fbtn sec" onClick={() => abrir(p)}>Abrir</button>
+          </>}
+        </div>
+      </article>
+    );
+  }
+
+  function cartaoProto(p: Peca) {
+    return (
+      <article key={p.id} className="pc-card proto" onClick={() => abrir(p)}>
+        <div className="pc-body">
+          <div className="pc-tags"><span className={`pc-tag ${tipoTone(p.tipo)}`}>{catLabel(p)}</span></div>
+          <div className="pc-title sm">{p.titulo}</div>
+          <div className="pc-cli sm"><b>{p.cliente ?? "—"}</b></div>
+          <div className="pc-proto-when mono"><Check />protocolada {fmtDate(p.protocolada_em)}</div>
+        </div>
+      </article>
     );
   }
 
   return (
-    <>
-      {filtros.length > 1 && <FiltrosCard><Chips options={filtros} value={filtro} onChange={setFiltro} /></FiltrosCard>}
-      <div className="card op-card">
-        <div className="card-h">
-          <h3><Icon name="book" /> Backlog de produção</h3>
-          <span className="sub">{pecasFiltradas.length} peças</span>
+    <div className="pc-shell">
+      {/* toolbar: atribuição + só minutas IA + contador */}
+      <div className="pc-toolbar">
+        <div className="pc-chips">
+          {filtros.map((o) => (
+            <button key={o.id} type="button" className={`tk-chip${filtro === o.id ? " on" : ""}`} onClick={() => setFiltro(o.id)}>{o.label}</button>
+          ))}
         </div>
-        <div className="card-b">
-      <div className="kanban k5">
-      {COLS.map((col) => {
-        const itens = pecasFiltradas.filter((p) => p.status === col.key);
-        return (
-          <div
-            className={`kcol${dragCol === col.key ? " drop-on" : ""}`}
-            key={col.key}
-            onDragOver={(e) => { e.preventDefault(); setDragCol(col.key); }}
-            onDragLeave={() => setDragCol((c) => (c === col.key ? null : c))}
-            onDrop={(e) => onDrop(e, col.key)}
-          >
-            <div className="kcol-h">
-              <span>{col.label}</span>
-              <span className="ct">{itens.length}</span>
-            </div>
-            <div className="kcol-b">
-              {itens.length ? (
-                itens.map((p) => {
-                  const provisorio = p.cadastro_automatico && !p.validado;
-                  return (
-                    <div
-                      key={p.id}
-                      className="task"
-                      draggable
-                      onDragStart={(e) => onDragStart(e, p)}
-                      style={{ cursor: "pointer" }}
-                      onClick={() => abrir(p)}
-                    >
-                      <div className="ttop">
-                        <div className="t">{p.titulo}</div>
-                        {p.dias_restantes != null && <DiasBox dias={p.dias_restantes} />}
-                      </div>
-                      <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        <Pill tone="blue" dot={false}>{humano(p.tipo)}{p.subtipo ? ` · ${p.subtipo}` : ""}</Pill>
-                        {p.prazo_id && (
-                          <Pill tone={p.prazo_validado ? "green" : "amber"} dot={false}>
-                            prazo {p.prazo_validado ? "validado" : "provisório"}
-                          </Pill>
-                        )}
-                      </div>
-                      <div className="d">
-                        {p.cliente ?? "—"} · {p.numero_cnj || p.numero_registro ? <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} /> : pecaProcLabel(p)}
-                      </div>
-                      {p.segredo && <div style={{ marginTop: 6 }}><SegredoTag on /></div>}
-                      {p.drive_file_id && <div style={{ marginTop: 6, fontSize: 12 }}><MinutaLink id={p.drive_file_id} stop /></div>}
-                      {p.status === "aguardando_insumo" && p.gate_pendencia && (
-                        <div className="sub" style={{ marginTop: 6, color: "var(--amber)" }}>⏳ {p.gate_pendencia}</div>
-                      )}
-                      {provisorio && (
-                        <div className="prov">
-                          ⚠ PROVISÓRIO – conferir <ValidarRapido id={p.id} />
-                        </div>
-                      )}
-                      <div className="f">
-                        <span className="sub">
-                          {p.responsavel ?? "—"}
-                          {socio && p.responsavel !== socio && (
-                            <> · <AssumirRapido id={p.id} /></>
-                          )}
-                        </span>
-                        {p.data_efetiva && <span className="sub mono">{fmtDate(p.data_efetiva)}</span>}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="empty">—</div>
-              )}
-            </div>
+        <button type="button" className={`tk-chip conf${soIA ? " on" : ""}`} onClick={() => setSoIA((v) => !v)}>{SPARK}Só minutas IA</button>
+        <span className="pc-count mono">{pecasFiltradas.length} peças ativas · <b className="accent">{nIA} geradas pela IA</b></span>
+      </div>
+
+      <div className="pc-board">
+        {COLS.map((col) => {
+          const itens = pecasFiltradas.filter((p) => p.status === col.key);
+          return (
+            <section
+              className={`pc-col${dragCol === col.key ? " drop-on" : ""}${col.key === "em_revisao" ? " revisao" : ""}`}
+              key={col.key}
+              onDragOver={(e) => { e.preventDefault(); setDragCol(col.key); }}
+              onDragLeave={() => setDragCol((c) => (c === col.key ? null : c))}
+              onDrop={(e) => onDrop(e, col.key)}
+            >
+              <div className="pc-col-h">
+                <span className={`pc-dot ${col.dot}`} />
+                <span className="pc-col-t">{col.label}</span>
+                <span className="pc-col-n mono">{itens.length}</span>
+                {col.key === "em_revisao" && <span className="pc-col-end accent">minutas IA</span>}
+                {col.key === "pronta" && <span className="pc-col-end">aguarda protocolo</span>}
+              </div>
+              <div className="pc-col-b">
+                {itens.length ? itens.map(cartao) : <div className="pc-col-empty">—</div>}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* coluna Protocolada (somente leitura, recentes) */}
+        <section className="pc-col proto-col">
+          <div className="pc-col-h">
+            <span className="pc-dot ink" />
+            <span className="pc-col-t">Protocolada</span>
+            <span className="pc-col-n mono">{protocoladas.length}</span>
+            <span className="pc-col-end">30d</span>
           </div>
-        );
-      })}
+          <div className="pc-col-b">
+            {protocoladas.length ? (
+              <>
+                {protocoladas.slice(0, verProto).map(cartaoProto)}
+                {protocoladas.length > verProto && (
+                  <button type="button" className="pc-vertodas" onClick={() => setVerProto(protocoladas.length)}>
+                    ver todas as {protocoladas.length} →
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="pc-col-empty">—</div>
+            )}
+          </div>
+        </section>
       </div>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }

@@ -989,6 +989,66 @@ export async function reatribuirPeca(id: string): Promise<Resultado> {
   }
 }
 
+/** Atribui um advogado específico à peça (A fazer) — sem mover de coluna. */
+export async function atribuirPeca(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const responsavel = String(fd.get("responsavel") || "").trim();
+    if (!responsavel) return { ok: false, message: "Selecione o advogado responsável." };
+    const supabase = await createClient();
+    const { error } = await supabase.from("pecas").update({ responsavel }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: `Peça atribuída a ${responsavel}.` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Validação humana da MINUTA do redator agendado (coluna Em revisão): aprova a
+ * minuta (validado=true) e move para 'pronta'. NUNCA protocola — o protocolo só
+ * acontece na baixa do prazo (baixarProtocoloPeca). Distinta de validarPeca, que
+ * só confere a peça provisória sem mover de coluna.
+ */
+export async function validarMinuta(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { error } = await supabase.from("pecas").update({ validado: true, status: "pronta" }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Minuta validada — movida para Pronta. O sistema nunca protocola sozinho." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Anexa um insumo (link no Drive + nota) a uma peça em 'aguardando_insumo' e a
+ * marca para reanálise do redator agendado (gate_analisado_em=null). Registra o
+ * insumo nas anotações (auditado). O documento em si é salvo no Drive pelo
+ * usuário, na pasta do caso (/sistema/clientes/<cliente>/peças).
+ */
+export async function anexarInsumoPeca(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const link = String(fd.get("link") || "").trim();
+    const nota = String(fd.get("nota") || "").trim();
+    if (!link && !nota) return { ok: false, message: "Informe o link do insumo no Drive ou uma nota." };
+    const supabase = await createClient();
+    const { data: p } = await supabase.from("pecas").select("observacoes").eq("id", id).maybeSingle();
+    const carimbo = `Insumo anexado${link ? `: ${link}` : ""}${nota ? ` — ${nota}` : ""}`;
+    const observacoes = [(p?.observacoes as string | null) ?? null, carimbo].filter(Boolean).join("\n");
+    const { error } = await supabase.from("pecas").update({ observacoes, gate_analisado_em: null }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Insumo registrado e peça marcada para reanálise do redator agendado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /** Assume a tarefa: responsavel = sócio logado; se 'pendente', vai p/ 'em_andamento'. */
 export async function assumirTarefa(id: string): Promise<Resultado> {
   try {
