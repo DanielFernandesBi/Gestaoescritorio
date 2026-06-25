@@ -24,7 +24,7 @@ export default async function ClientePage({
             <Link className="link" href="/clientes">← Clientes</Link>
             {cliente.cadastro_automatico ? " · cadastro automático" : ""}
           </div>
-          <h1>{cliente.nome}</h1>
+          <h1 className="nome-cliente">{cliente.nome}</h1>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <Pill tone="gray">{humano(cliente.situacao_prisional)}</Pill>
             {cliente.favorito && <Pill tone="brass" dot={false}>★ favorito</Pill>}

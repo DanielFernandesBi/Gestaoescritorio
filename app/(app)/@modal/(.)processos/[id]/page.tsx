@@ -19,7 +19,7 @@ export default async function ProcessoModal({
     <RouteModal
       title={
         <>
-          <h2>{proc.segredo ? "Processo em segredo de justiça" : proc.clientes || "Processo"}</h2>
+          <h2 className="nome-cliente">{proc.segredo ? "Processo em segredo de justiça" : proc.clientes || "Processo"}</h2>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <ProcRef cnj={proc.numero_cnj} registro={proc.numero_registro} />
             <SegredoTag on={proc.segredo} />
