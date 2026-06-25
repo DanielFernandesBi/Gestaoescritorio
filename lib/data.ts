@@ -1714,11 +1714,13 @@ export type Movimentacao = {
 
 export async function getAndamentos(): Promise<Movimentacao[]> {
   const supabase = await createClient();
+  // Sem cap de quantidade: a própria view já é limitada à janela recente
+  // (data ≥ hoje-7d OU criado_em nas últimas 48h). A paginação "mostrar mais"
+  // é client-side na timeline.
   const { data } = await supabase
     .from("vw_movimentacoes_recentes")
     .select("*")
-    .order("data", { ascending: false })
-    .limit(60);
+    .order("data", { ascending: false });
   const rows = data ?? [];
 
   // Camada A da Sugestão 56: enriquece com o contexto do processo (classe/assunto/área/

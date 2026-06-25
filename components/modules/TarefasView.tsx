@@ -41,6 +41,37 @@ const motivo = (p: string | null) =>
       : "conferência humana.";
 const procNum = (t: TarefaCard) => t.numero_cnj ?? (t.numero_registro ? `reg ${t.numero_registro}` : null);
 
+/* Corta do título os segmentos finais que só repetem o que o card já mostra em
+ * campo próprio: nº/identificador de processo e o nome do cliente. Só age sobre
+ * segmentos separados por travessão (— / –) — o padrão dos títulos automáticos
+ * "[CONFERIR] … — CLIENTE — 0000000-00.0000…". Texto descritivo é preservado. */
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+const CNJ_RE = /\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}/;
+const PROC_PREFIX = /^(hc|rhc|ap|re|are|resp|aresp|agrg|rvcr|ms|ed|edcl|rese|ac|apn)\b/i;
+
+function tituloLimpo(t: TarefaCard): string {
+  const bruto = (t.titulo ?? "").trim();
+  const partes = bruto.split(/\s*[—–]\s*/);
+  if (partes.length < 2) return bruto;
+
+  const cli = t.cliente ? norm(t.cliente) : [];
+  const ehProc = (seg: string) =>
+    CNJ_RE.test(seg) || PROC_PREFIX.test(seg.trim()) || /\d{6,}/.test(seg) || (!!t.numero_cnj && seg.includes(t.numero_cnj));
+  const ehCliente = (seg: string) => {
+    if (!cli.length) return false;
+    const s = norm(seg);
+    return s.length > 0 && s[0] === cli[0] && s[s.length - 1] === cli[cli.length - 1];
+  };
+
+  while (partes.length > 1) {
+    const ult = partes[partes.length - 1].trim();
+    if (ehProc(ult) || ehCliente(ult)) partes.pop();
+    else break;
+  }
+  return partes.join(" — ").trim() || bruto;
+}
+
 /* botão de ação simples (move status / assume / reatribui) */
 function AcaoBtn({ run, children, className = "tk-fbtn" }: { run: () => Promise<Resultado>; children: ReactNode; className?: string }) {
   const router = useRouter();
@@ -72,7 +103,7 @@ function PendenteCard({ t, mapa }: { t: TarefaCard; mapa: MapaProvidencia | null
             {!conf && t.responsavel === "Ambos" && <span className="tk-dist">a distribuir · Ambos</span>}
             {t.segredo && <span className="pz-tag segredo">🔒 segredo</span>}
           </div>
-          <Link className="tk-title" href={linkPara("tarefa", t.id)}>{t.titulo}</Link>
+          <Link className="tk-title" href={linkPara("tarefa", t.id)} title={t.titulo}>{tituloLimpo(t)}</Link>
           {t.descricao && <div className="tk-desc">{t.descricao}</div>}
           {conf && (
             <div className="and-banner">
@@ -122,7 +153,7 @@ function AndamentoCard({ t }: { t: TarefaCard }) {
             {t.responsavel && t.responsavel !== "Ambos" && <span className="tk-resp">{t.responsavel}</span>}
             {t.segredo && <span className="pz-tag segredo">🔒 segredo</span>}
           </div>
-          <Link className="tk-title" href={linkPara("tarefa", t.id)}>{t.titulo}</Link>
+          <Link className="tk-title" href={linkPara("tarefa", t.id)} title={t.titulo}>{tituloLimpo(t)}</Link>
           {t.descricao && <div className="tk-desc">{t.descricao}</div>}
           {t.cliente && <div className="tk-cli"><Person /><b>{t.cliente}</b></div>}
           <div className="tk-num mono">{[t.responsavel ?? "—", t.data_limite ? `limite ${fmtDate(t.data_limite)}` : null].filter(Boolean).join(" · ")}</div>
@@ -146,7 +177,7 @@ function ConcluidaCard({ t }: { t: TarefaCard }) {
           <span className="tk-done"><Check />concluída</span>
           {conf && <span className="tk-conf soft"><Spark />era conferência</span>}
         </div>
-        <Link className="tk-title sm" href={linkPara("tarefa", t.id)}>{t.titulo}</Link>
+        <Link className="tk-title sm" href={linkPara("tarefa", t.id)} title={t.titulo}>{tituloLimpo(t)}</Link>
         {t.cliente && <div className="tk-cli done"><b>{t.cliente}</b></div>}
         <div className="tk-when mono">
           {t.concluida_em ? <><Check />{fmtDate(t.concluida_em)}</> : (t.data_limite ? fmtDate(t.data_limite) : "concluída")}
