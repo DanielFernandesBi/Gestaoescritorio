@@ -1808,3 +1808,69 @@ a.tk-title:hover{text-decoration:underline}
   .aud-kpis{grid-template-columns:repeat(2,1fr)}
   .aud-head h1{font-size:32px}
 }
+
+/* ===== /sistema — alvo Plantão (manual vivo · DDL com autorização) ====== */
+.sis-page{display:flex;flex-direction:column;gap:16px}
+.sis-head .lhs{flex:1;min-width:0}
+.sis-head .eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.sis-head h1{font-family:var(--serif);font-size:40px;font-weight:400;line-height:1.04;color:var(--ink);margin:6px 0 0}
+.sis-head p{color:var(--muted);font-size:13.5px;margin:6px 0 0;max-width:680px;line-height:1.5}
+.sis-head p code,.sis-tabs code,.sis-est-h code{font-family:var(--mono);font-size:12px}
+
+.sis-banner{display:flex;gap:11px;align-items:flex-start;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);border-radius:12px;padding:12px 16px;font-size:12.5px;color:var(--text)}
+.sis-banner .ico{color:var(--accent);flex:none;margin-top:1px}
+.sis-banner b{color:var(--ink)}
+
+.sis-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.sis-kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.sis-kpi .big{font-family:var(--serif);font-size:30px;color:var(--ink);line-height:1}
+.sis-kpi .lbl{font-size:11px;color:var(--muted);margin-top:6px}
+.sis-kpi.accent{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.sis-kpi.accent .big{color:var(--accent-strong)}
+
+.sis-tabs{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sis-src{margin-left:auto;color:var(--muted-2)}
+
+/* card de sugestão */
+.sis-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 20px}
+.sis-card.pend{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 8px 22px color-mix(in srgb,var(--accent) 8%,transparent)}
+.sis-card-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.sis-card-h .num{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted)}
+.sis-card-h .ctx{font-weight:800;color:var(--name);font-size:14.5px}
+.sis-ia{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);border-radius:5px;padding:1px 7px}
+.sis-card-h .end{margin-left:auto}
+.sis-badge{font-size:9.5px;font-weight:700;border-radius:5px;padding:2px 8px;letter-spacing:.04em}
+.sis-badge.amber{color:var(--amber);background:var(--amber-soft)}
+.sis-badge.blue{color:var(--blue);background:var(--blue-soft)}
+.sis-badge.green{color:var(--green);background:var(--green-soft);font-family:var(--mono);text-transform:none;letter-spacing:0}
+.sis-badge.red{color:var(--red);background:var(--red-soft)}
+.sis-desc{font-size:13px;color:var(--text);line-height:1.5;margin-top:10px}
+.sis-desc b,.sis-desc code{color:var(--ink)}
+.sis-sql{background:#10141f;color:#d7deea;border-radius:10px;padding:13px 15px;margin-top:11px;font-family:var(--mono);font-size:12px;line-height:1.55;overflow-x:auto;white-space:pre}
+.sis-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)}
+.sis-foot .note{flex:1;min-width:160px;font-size:11.5px;color:var(--muted)}
+.sis-foot .note .ok{color:var(--green);font-weight:600}
+.sis-foot .acts{display:flex;gap:8px;flex-wrap:wrap}
+.sis-empty{padding:16px;text-align:center;color:var(--muted-2);font-size:12.5px;background:var(--surface);border:1px dashed var(--line);border-radius:12px}
+
+/* estrutura do banco */
+.sis-estrutura{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-top:4px}
+.sis-est-h{display:flex;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line-soft)}
+.sis-est-h .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.sis-est-h .end{margin-left:auto;font-size:11px;color:var(--muted-2)}
+.sis-est-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 32px;padding:6px 18px 14px}
+.sis-est-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line-soft)}
+.sis-est-row .tb{font-size:12px;color:var(--text)}
+.sis-est-row .n{font-size:12px;color:var(--muted)}
+
+/* trilho: últimas migrações */
+.sis-mig{list-style:none;display:flex;flex-direction:column;gap:10px}
+.sis-mig li{display:flex;gap:9px;align-items:baseline;font-size:12px;color:var(--text);line-height:1.4}
+.sis-mig .d{flex:none;font-size:11px;color:var(--muted-2)}
+.sis-mig .t{min-width:0}
+
+@media (max-width:760px){
+  .sis-kpis{grid-template-columns:repeat(2,1fr)}
+  .sis-est-grid{grid-template-columns:1fr;gap:0}
+  .sis-head h1{font-size:32px}
+}

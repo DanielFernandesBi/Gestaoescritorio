@@ -2249,6 +2249,7 @@ export type Sugestao = {
   sugestao: string;
   sql_proposto: string | null;
   status: string;
+  criada_em: string | null;
   decidida_em: string | null;
 };
 
@@ -2256,38 +2257,47 @@ export async function getSugestoes(): Promise<Sugestao[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("sugestoes_sistema")
-    .select("id, contexto, sugestao, sql_proposto, status, decidida_em")
-    .order("id", { ascending: true });
+    .select("id, contexto, sugestao, sql_proposto, status, criada_em, decidida_em")
+    .order("id", { ascending: false });
   return (data ?? []) as Sugestao[];
 }
+
+/* Migrações executadas (DDL autorizada) — "Últimas migrações" no trilho. */
+export type Migracao = { id: number; descricao: string | null; executada_em: string | null; autorizada_por: string | null };
+export async function getMigracoesCount(): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase.from("migracoes").select("*", { count: "exact", head: true });
+  return count ?? 0;
+}
+export async function getMigracoes(limit = 8): Promise<Migracao[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("migracoes")
+    .select("id, descricao, executada_em, autorizada_por")
+    .order("executada_em", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  return (data ?? []) as Migracao[];
+}
+
+// Ordem amigável para a grade "Estrutura do banco" (domínio primeiro; demais ao
+// fim). Cobre o schema público atual — a fonte da verdade é o próprio banco.
+const TABELAS_ESTRUTURA = [
+  "clientes", "processos", "cliente_processo", "intimacoes", "prazos",
+  "audiencias", "andamentos", "tarefas", "pecas", "documentos",
+  "contratos", "pagamentos", "despesas", "estudos_caso", "estudo_processo",
+  "estudo_objetivos", "situacao_executoria", "condenacoes", "compromissos",
+  "briefings", "radar_jurisprudencia", "varreduras", "config_sistema",
+  "auditoria", "migracoes", "sugestoes_sistema",
+] as const;
 
 export async function getEstruturaBanco(): Promise<
   { tabela: string; registros: number }[]
 > {
   const supabase = await createClient();
-  const tabelas = [
-    "clientes",
-    "processos",
-    "cliente_processo",
-    "intimacoes",
-    "prazos",
-    "audiencias",
-    "andamentos",
-    "tarefas",
-    "contratos",
-    "pagamentos",
-    "despesas",
-    "estudos_caso",
-    "auditoria",
-    "migracoes",
-    "sugestoes_sistema",
-  ];
   const res = await Promise.all(
-    tabelas.map((t) =>
-      supabase.from(t).select("*", { count: "exact", head: true }),
-    ),
+    TABELAS_ESTRUTURA.map((t) => supabase.from(t).select("*", { count: "exact", head: true })),
   );
-  return tabelas.map((t, i) => ({ tabela: t, registros: res[i].count ?? 0 }));
+  return TABELAS_ESTRUTURA.map((t, i) => ({ tabela: t, registros: res[i].count ?? 0 }));
 }
 
 /* Busca global ----------------------------------------------------------- */
