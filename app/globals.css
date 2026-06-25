@@ -1526,3 +1526,98 @@ a.aud-title:hover{text-decoration:underline}
   .aud-vmain{flex-direction:column}
   .aud-vwhen{text-align:left}
 }
+
+/* ===== /tarefas — alvo Plantão (kanban: pendente · andamento · concluída) = */
+/* filtros */
+.tk-filters{display:flex;flex-direction:column;gap:10px}
+.tk-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tk-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--line)}
+.tk-chip:hover{border-color:var(--muted-2)}
+.tk-chip.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700}
+.tk-chip.conf{color:var(--accent-strong);background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 22%,transparent);font-weight:700}
+.tk-chip.conf.on{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent)}
+.tk-chip.sm{padding:5px 11px;font-size:11.5px;color:var(--muted)}
+.tk-chip.sm.tone-red{color:var(--red)}
+.tk-chip.sm.tone-amber{color:var(--amber)}
+.tk-chip.sm.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tk-filter-count{margin-left:auto;font-size:11.5px;color:var(--muted)}
+
+/* kanban */
+.tk-board{display:flex;gap:14px;align-items:flex-start}
+.tk-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--line);border-radius:14px}
+.tk-col-h{flex:none;display:flex;align-items:center;gap:8px;padding:13px 15px 11px;border-bottom:1px solid var(--line)}
+.tk-dot{width:9px;height:9px;border-radius:50%}
+.tk-dot.slate{background:var(--brass)}
+.tk-dot.blue{background:var(--blue)}
+.tk-dot.green{background:var(--green)}
+.tk-col-t{font-size:12.5px;font-weight:800;color:var(--ink)}
+.tk-col-n{font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:0 7px}
+.tk-col-end{margin-left:auto;font-size:10.5px;color:var(--muted)}
+.tk-col-hint{font-size:10.5px;color:var(--muted)}
+.tk-col-b{padding:11px;display:flex;flex-direction:column;gap:11px}
+.tk-col-empty{padding:14px;text-align:center;color:var(--muted-2);font-size:12.5px}
+
+/* card — reaproveita a doutrina de cor de /andamentos (--uc/--ucs + .and-banner) */
+.tk-card{position:relative;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.05);overflow:hidden}
+.tk-card.p-urgente{--uc:var(--red);--ucs:var(--red-soft)}
+.tk-card.p-alta{--uc:var(--amber);--ucs:var(--amber-soft)}
+.tk-card.p-media{--uc:var(--brass);--ucs:var(--brass-soft)}
+.tk-card.p-baixa{--uc:var(--brass);--ucs:var(--brass-soft)}
+.tk-card.conf{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 28%,transparent),0 6px 16px color-mix(in srgb,var(--accent) 8%,transparent)}
+.tk-card.done{opacity:.96}
+.tk-bar{flex:none;width:4px;background:var(--uc)}
+.tk-in{flex:1;min-width:0;display:flex;flex-direction:column}
+.tk-body{padding:12px 13px}
+
+.tk-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px}
+.tk-pri{font-size:9px;font-weight:700;border-radius:5px;padding:1px 6px;text-transform:capitalize}
+.tk-pri.urgente{color:#fff;background:var(--red)}
+.tk-pri.alta{color:var(--amber);background:var(--amber-soft)}
+.tk-pri.media,.tk-pri.baixa{color:var(--brass);background:var(--brass-soft)}
+.tk-conf{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#fff;background:var(--accent);border-radius:5px;padding:1px 6px}
+.tk-conf.soft{color:var(--accent-strong);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+.tk-dist,.tk-resp{font-size:9px;font-weight:600;color:var(--muted)}
+.tk-done{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:5px;padding:1px 6px}
+
+.tk-title{display:inline-block;font-weight:800;color:var(--name);font-size:13.5px;line-height:1.25;text-decoration:none}
+a.tk-title:hover{text-decoration:underline}
+.tk-title.sm{font-size:13px}
+.tk-desc{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:6px}
+.tk-card .and-banner{margin-top:9px;padding:8px 11px}
+.tk-cli{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--muted)}
+.tk-cli b{color:var(--name)}
+.tk-cli.done{margin-top:7px}
+.tk-num{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:3px}
+.tk-link{display:inline-flex;align-items:center;gap:4px;margin-top:9px;font-size:11px;font-weight:700;color:var(--accent-strong);text-decoration:none}
+.tk-link:hover{text-decoration:underline}
+.tk-when{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10.5px;color:var(--green);margin-top:6px}
+
+/* rodapé de ações (flat, encaixado) */
+.tk-foot{display:flex;border-top:1px solid var(--line-soft)}
+.tk-fbtn{flex:1;padding:8px;font-size:11px;font-weight:700;color:var(--text);background:var(--surface);border:none;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.tk-fbtn:hover{background:var(--surface-2)}
+.tk-fbtn:disabled{opacity:.6}
+.tk-fbtn.sec{flex:none;padding:8px 11px;font-weight:600;color:var(--muted);border-left:1px solid var(--line-soft)}
+.tk-fbtn.peca{flex:none;padding:8px 11px;font-weight:700;color:var(--accent-strong);background:var(--accent-soft);border-radius:0;border-left:1px solid var(--line-soft)}
+.tk-fbtn.peca:hover{background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.tk-fbtn.concluir{color:var(--green)}
+
+/* trilho */
+.tk-rail-p{font-size:12.5px;color:var(--text);line-height:1.55;margin:0 0 12px}
+.tk-rail-p code,.tk-rail-list code{font-family:var(--mono);font-size:11px}
+.tk-rail-list{list-style:none;display:flex;flex-direction:column;gap:9px}
+.tk-rail-list li{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--text);line-height:1.45}
+.tk-rail-list b{color:var(--ink)}
+.tk-rail-list .b{flex:none;width:9px;height:9px;border-radius:50%;margin-top:4px}
+.tk-rail-list .b.sq{border-radius:2px}
+.tk-rail-list .b.red{background:var(--red)}
+.tk-rail-list .b.amber{background:var(--amber)}
+.tk-rail-list .b.green{background:var(--green)}
+.tk-rail-list .b.slate{background:var(--brass)}
+.tk-rail-list .b.muted{background:var(--muted-2)}
+.tk-rail-list .b.accent{background:var(--accent)}
+
+@media (max-width:900px){
+  .tk-board{flex-direction:column}
+  .tk-col{width:100%}
+}

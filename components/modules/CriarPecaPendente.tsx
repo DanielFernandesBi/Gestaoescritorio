@@ -26,12 +26,16 @@ export function CriarPecaPendente({
   texto,
   mapa,
   baseTitulo,
+  label,
+  className = "btn sm",
 }: {
   tipoOrigem: TipoOrigem;
   origemId: string;
   texto: string | null | undefined;
   mapa: MapaProvidencia | null;
   baseTitulo?: string | null;
+  label?: React.ReactNode;
+  className?: string;
 }) {
   const router = useRouter();
   const sug = sugerirPeca(texto, mapa);
@@ -83,7 +87,7 @@ export function CriarPecaPendente({
 
   return (
     <>
-      <button className="btn sm" type="button" onClick={abrir}>+ Criar petição pendente</button>
+      <button className={className} type="button" onClick={abrir}>{label ?? "+ Criar petição pendente"}</button>
       {aberto && (
         <div className="modal-scrim" onClick={() => setAberto(false)}>
           <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={onSubmit}>

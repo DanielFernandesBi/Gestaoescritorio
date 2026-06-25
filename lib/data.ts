@@ -1881,6 +1881,52 @@ export async function getTarefaPorId(id: string): Promise<Tarefa | null> {
   };
 }
 
+/* Painel de tarefas (tela /tarefas, alvo Plantão) -----------------------------
+ * Tarefas com o cliente resolvido (processo vinculado OU cliente direto), nº do
+ * processo, selo de sigilo e a data de conclusão — para os cards do kanban
+ * (pendente · em andamento · concluída). getTarefas continua magra (drawer). */
+
+export type TarefaCard = Tarefa & {
+  cliente: string | null;
+  numero_registro: string | null;
+  concluida_em: string | null;
+};
+
+export async function getTarefasPainel(): Promise<TarefaCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tarefas")
+    .select(
+      "id, titulo, descricao, status, prioridade, responsavel, data_limite, concluida_em, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome))), clientes(nome)",
+    )
+    .order("data_limite", { ascending: true, nullsFirst: false })
+    .limit(300);
+
+  return ((data ?? []) as Record<string, unknown>[]).map((r): TarefaCard => {
+    const p = r.processos as unknown as NestedProcesso;
+    const direto = r.clientes as unknown as { nome: string | null } | null;
+    return {
+      id: r.id as string,
+      titulo: r.titulo as string,
+      descricao: (r.descricao as string | null) ?? null,
+      status: r.status as string,
+      prioridade: (r.prioridade as string | null) ?? null,
+      responsavel: (r.responsavel as string | null) ?? null,
+      data_limite: (r.data_limite as string | null) ?? null,
+      processo_id: (r.processo_id as string | null) ?? null,
+      cliente_id: (r.cliente_id as string | null) ?? null,
+      cadastro_automatico: Boolean(r.cadastro_automatico),
+      cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+      andamento_id: (r.andamento_id as string | null) ?? null,
+      numero_cnj: p?.numero_cnj ?? null,
+      numero_registro: p?.numero_registro_tribunal ?? null,
+      segredo: Boolean(p?.segredo_justica),
+      cliente: nomesClientes(p?.cliente_processo) || direto?.nome || null,
+      concluida_em: (r.concluida_em as string | null) ?? null,
+    };
+  });
+}
+
 /* Produção de peças (kanban de escrita — Sugestão 20) -------------------- */
 
 export type Peca = {
