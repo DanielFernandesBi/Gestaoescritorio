@@ -812,6 +812,48 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .al-dot.exec{background:var(--amber)}
 .al-dot.radar{background:#8a6a3a}
 
+/* ---------- Processos (/processos) — cards de acervo com saúde ---------- */
+.pc-card.b-red{--uc:var(--red)}
+.pc-card.b-amber{--uc:var(--amber)}
+.pc-card.b-blue{--uc:var(--accent)}
+.pc-card.b-slate{--uc:var(--slate,#586173)}
+
+.pc-list{display:flex;flex-direction:column;gap:12px}
+.pc-card{position:relative;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.pc-bar{flex:none;width:4px;background:var(--uc)}
+.pc-body{flex:1;min-width:0;padding:15px 20px}
+.pc-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pc-status{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--green);text-transform:capitalize}
+.pc-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.pc-trib{font-size:10.5px;font-weight:600;color:var(--slate,#586173);background:var(--brass-soft);border-radius:6px;padding:2px 9px}
+.pc-area{font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 9px;text-transform:capitalize}
+.pc-area.t-red{background:var(--red-soft);color:var(--red)}
+.pc-area.t-amber{background:var(--amber-soft);color:var(--amber)}
+.pc-area.t-slate{background:var(--brass-soft);color:var(--slate,#586173)}
+.pc-flag{font-size:10px;font-weight:700;border-radius:6px;padding:2px 8px}
+.pc-flag.amber{background:var(--amber-soft);color:var(--amber)}
+.pc-flag.cobalt{background:var(--accent-soft);color:var(--accent)}
+.pc-flag.lock{background:var(--brass-soft);color:#8a6a3a}
+.pc-flag.gray{background:var(--line-soft);color:var(--muted)}
+.pc-ident{margin-left:auto;font-size:11px;color:var(--muted)}
+.pc-ident.reg{color:var(--amber)}
+.pc-name{margin-top:10px;font-size:18px;font-weight:800;color:var(--name);display:flex;align-items:center;gap:9px;flex-wrap:wrap;line-height:1.2}
+.pc-papel{font-size:12px;font-weight:500;color:var(--muted);text-transform:capitalize}
+.pc-preso{font-size:10px;font-weight:700;background:var(--red);color:#fff;border-radius:5px;padding:1px 7px}
+.pc-caso{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+.pc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:13px;padding:13px 0;border-top:1px solid var(--line-soft)}
+.pc-cel-l{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.pc-cel-v{font-size:13px;font-weight:700;color:var(--ink);margin-top:4px}
+.pc-cel-v.red{color:var(--red)}
+.pc-cel-v.green{color:var(--green)}
+.pc-foot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:13px}
+.pc-card.tomb{background:var(--surface-2);box-shadow:none}
+.pc-card.tomb .pc-body{padding:14px 18px}
+.pc-card.tomb .pc-name{font-size:14px;font-weight:700;margin-top:8px}
+.pc-card.tomb .pc-foot{justify-content:flex-start;margin-top:11px}
+.pc-card.tomb code{font-family:var(--mono);font-size:11px;background:var(--surface);padding:1px 5px;border-radius:5px}
+@media(max-width:760px){.pc-grid{grid-template-columns:repeat(2,1fr)}.pc-foot{justify-content:flex-start}}
+
 /* Gráficos do financeiro */
 .fin-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:1080px){.fin-charts{grid-template-columns:1fr}}

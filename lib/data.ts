@@ -859,6 +859,154 @@ export async function getProcessos(limit = 250): Promise<Processo[]> {
   });
 }
 
+/* Acervo de processos — cards com grade de "saúde" (redesign /processos) -----
+ * Enriquece os ativos com sinais por processo (próx. fatal, prazos, peças,
+ * audiência, inércia, benefício de execução, estudo) via consultas batch
+ * (processo_id IN ids). Só leitura, sem DDL. Inclui tombstones (arquivados com
+ * merged_into) para o card "Ir ao canônico". */
+
+export type ProcSaude = {
+  prox_fatal: string | null;
+  prox_fatal_dias: number | null;
+  prazos_abertos: number;
+  pecas_afazer: number;
+  pecas_revisao: number;
+  audiencia: string | null;
+  audiencia_tipo: string | null;
+  audiencia_modalidade: string | null;
+  dias_parado: number | null;
+  ultima_mov: string | null;
+  beneficio_dias: number | null;
+  tem_atestado: boolean;
+  estudo_tipo: string | null;
+};
+export type ProcAcervo = Processo & {
+  assunto: string | null;
+  fase: string | null;
+  processo_origem: string | null;
+  preso: boolean;
+  saude: ProcSaude;
+};
+export type Tombstone = { id: string; identificador: string; merged_into: string };
+
+export async function getAcervoProcessos(limit = 120): Promise<{ processos: ProcAcervo[]; tombstones: Tombstone[] }> {
+  const supabase = await createClient();
+  const [{ data: rows }, { data: tomb }] = await Promise.all([
+    supabase
+      .from("processos")
+      .select(
+        "id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, assunto, fase, status, responsavel, segredo_justica, cadastro_automatico, processo_origem, cliente_processo(papel,clientes(nome,situacao_prisional))",
+      )
+      .eq("status", "ativo")
+      .order("criado_em", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("processos")
+      .select("id, numero_cnj, numero_registro_tribunal, merged_into")
+      .eq("status", "arquivado")
+      .not("merged_into", "is", null)
+      .limit(20),
+  ]);
+
+  const lista = rows ?? [];
+  const ids = lista.map((r) => r.id as string);
+
+  const [prz, pcs, aud, mov, exe, est] = await Promise.all([
+    supabase.from("prazos").select("processo_id, data_fatal").eq("status", "aberto").in("processo_id", ids),
+    supabase.from("pecas").select("processo_id, status").in("processo_id", ids),
+    supabase.from("audiencias").select("processo_id, data_hora, tipo, modalidade").eq("status", "designada").in("processo_id", ids),
+    supabase.from("vw_processos_movimentacao").select("processo_id, dias_parado, ultima_movimentacao").in("processo_id", ids),
+    supabase.from("vw_situacao_executoria_atual").select("processo_id, dias_para_progressao").in("processo_id", ids),
+    supabase.from("estudo_processo").select("processo_id, estudos_caso(tipo)").in("processo_id", ids),
+  ]);
+
+  const mPrz = new Map<string, { n: number; fatal: string | null }>();
+  for (const r of prz.data ?? []) {
+    const k = r.processo_id as string;
+    const f = (r.data_fatal as string) ?? null;
+    const cur = mPrz.get(k) ?? { n: 0, fatal: null };
+    cur.n += 1;
+    if (f && (!cur.fatal || f < cur.fatal)) cur.fatal = f;
+    mPrz.set(k, cur);
+  }
+  const mPcs = new Map<string, { afazer: number; revisao: number }>();
+  for (const r of pcs.data ?? []) {
+    const k = r.processo_id as string;
+    const st = r.status as string;
+    if (["protocolada", "cancelada", "prejudicada"].includes(st)) continue;
+    const cur = mPcs.get(k) ?? { afazer: 0, revisao: 0 };
+    if (st === "a_fazer") cur.afazer += 1;
+    if (st === "em_revisao") cur.revisao += 1;
+    mPcs.set(k, cur);
+  }
+  const mAud = new Map<string, { data: string; tipo: string | null; mod: string | null }>();
+  for (const r of aud.data ?? []) {
+    const k = r.processo_id as string;
+    const d = r.data_hora as string;
+    const cur = mAud.get(k);
+    if (!cur || d < cur.data) mAud.set(k, { data: d, tipo: (r.tipo as string) ?? null, mod: (r.modalidade as string) ?? null });
+  }
+  const mMov = new Map<string, { dias: number | null; ult: string | null }>();
+  for (const r of mov.data ?? []) mMov.set(r.processo_id as string, { dias: r.dias_parado == null ? null : Number(r.dias_parado), ult: (r.ultima_movimentacao as string) ?? null });
+  const mExe = new Map<string, number | null>();
+  for (const r of exe.data ?? []) mExe.set(r.processo_id as string, r.dias_para_progressao == null ? null : Number(r.dias_para_progressao));
+  const mEst = new Map<string, string>();
+  for (const r of est.data ?? []) {
+    const ec = r.estudos_caso as unknown as { tipo?: string | null } | null;
+    if (ec?.tipo && !mEst.has(r.processo_id as string)) mEst.set(r.processo_id as string, ec.tipo);
+  }
+
+  const processos = lista.map((r): ProcAcervo => {
+    const cp = r.cliente_processo as unknown as { papel?: string | null; clientes?: { nome?: string | null; situacao_prisional?: string | null } | null }[] | null;
+    const id = r.id as string;
+    const pz = mPrz.get(id);
+    return {
+      id,
+      numero_cnj: (r.numero_cnj as string) ?? null,
+      numero_registro: (r.numero_registro_tribunal as string) ?? null,
+      tribunal: (r.tribunal as string) ?? null,
+      vara_comarca: (r.vara_comarca as string) ?? null,
+      uf: (r.uf as string) ?? null,
+      instancia: (r.instancia as string) ?? null,
+      area: (r.area as string) ?? null,
+      classe: (r.classe as string) ?? null,
+      status: r.status as string,
+      responsavel: (r.responsavel as string) ?? null,
+      segredo: Boolean(r.segredo_justica),
+      cadastro_automatico: Boolean(r.cadastro_automatico),
+      clientes: nomesClientes(cp as unknown as NestedCliente[] | null),
+      papel: cp?.[0]?.papel ?? null,
+      assunto: (r.assunto as string) ?? null,
+      fase: (r.fase as string) ?? null,
+      processo_origem: (r.processo_origem as string) ?? null,
+      preso: (cp ?? []).some((x) => x.clientes?.situacao_prisional != null && PRESO_SET.has(x.clientes.situacao_prisional)),
+      saude: {
+        prox_fatal: pz?.fatal ?? null,
+        prox_fatal_dias: pz?.fatal ? diasAte(pz.fatal) : null,
+        prazos_abertos: pz?.n ?? 0,
+        pecas_afazer: mPcs.get(id)?.afazer ?? 0,
+        pecas_revisao: mPcs.get(id)?.revisao ?? 0,
+        audiencia: mAud.get(id)?.data ?? null,
+        audiencia_tipo: mAud.get(id)?.tipo ?? null,
+        audiencia_modalidade: mAud.get(id)?.mod ?? null,
+        dias_parado: mMov.get(id)?.dias ?? null,
+        ultima_mov: mMov.get(id)?.ult ?? null,
+        beneficio_dias: mExe.has(id) ? (mExe.get(id) ?? null) : null,
+        tem_atestado: mExe.has(id),
+        estudo_tipo: mEst.get(id) ?? null,
+      },
+    };
+  });
+
+  const tombstones: Tombstone[] = (tomb ?? []).map((r) => ({
+    id: r.id as string,
+    identificador: (r.numero_registro_tribunal as string) || (r.numero_cnj as string) || "—",
+    merged_into: r.merged_into as string,
+  }));
+
+  return { processos, tombstones };
+}
+
 /** Um processo pelo id (qualquer status), na mesma forma de `getProcessos`. */
 export async function getProcessoPorId(id: string): Promise<Processo | null> {
   const supabase = await createClient();

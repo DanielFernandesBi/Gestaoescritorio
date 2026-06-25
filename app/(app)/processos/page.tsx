@@ -1,4 +1,4 @@
-import { getProcessos } from "@/lib/data";
+import { getAcervoProcessos } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { ProcessosList } from "@/components/modules/ProcessosList";
 import { FormModal } from "@/components/FormModal";
@@ -11,28 +11,34 @@ export const dynamic = "force-dynamic";
 
 export default async function ProcessosPage() {
   const supabase = await createClient();
-  const [processos, ativos, semCnj, sigilosos, clientes] = await Promise.all([
-    getProcessos(400),
+  const [{ processos, tombstones }, ativos, semCnj, sigilosos, parados, clientes] = await Promise.all([
+    getAcervoProcessos(150),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
-    supabase.from("processos").select("*", { count: "exact", head: true }).is("numero_cnj", null),
-    supabase.from("processos").select("*", { count: "exact", head: true }).eq("segredo_justica", true),
+    supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo").is("numero_cnj", null),
+    supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo").eq("segredo_justica", true),
+    supabase.from("vw_processos_movimentacao").select("*", { count: "exact", head: true }).gte("dias_parado", 30),
     getClientes(),
   ]);
 
-  const totalAtivos = ativos.count ?? 0;
+  const stats = {
+    ativos: ativos.count ?? 0,
+    parados: parados.count ?? 0,
+    sigilosos: sigilosos.count ?? 0,
+    semcnj: semCnj.count ?? 0,
+  };
 
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">{totalAtivos.toLocaleString("pt-BR")} ativos no acervo</div>
+          <div className="eyebrow">Acervo · criminal em 20+ UFs</div>
           <h1>Processos</h1>
           <p>
-            Chave natural: CNJ ou nº de registro do tribunal. {semCnj.count ?? 0} sem CNJ ·{" "}
-            {sigilosos.count ?? 0} em segredo de justiça.
+            Identificados por CNJ ou registro do tribunal. Cada caso mostra sua saúde: próximo fatal,
+            inércia, peças e marcos de execução.
           </p>
         </div>
-        <FormModal label={<><Icon name="folder" size={15} /> Novo processo</>} titulo="Novo processo" descricao="Chave: CNJ ou nº de registro. Checa duplicata antes de criar." acao={criarProcesso} enviarLabel="Cadastrar">
+        <FormModal label={<><Icon name="folder" size={15} /> Cadastrar processo</>} titulo="Novo processo" descricao="Chave: CNJ ou nº de registro. Checa duplicata antes de criar." acao={criarProcesso} enviarLabel="Cadastrar">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label>Nº CNJ</label><input name="numero_cnj" placeholder="0000000-00.0000.0.00.0000" /></div>
             <div><label>Nº registro</label><input name="numero_registro_tribunal" placeholder="ex.: 2022/0044623-6" /></div>
@@ -63,7 +69,7 @@ export default async function ProcessosPage() {
           </label>
         </FormModal>
       </div>
-      <ProcessosList processos={processos} totalAtivos={totalAtivos} />
+      <ProcessosList processos={processos} tombstones={tombstones} stats={stats} />
     </>
   );
 }
