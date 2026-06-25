@@ -1075,6 +1075,11 @@ a.op-row:hover{background:var(--surface-2)}
 .xp-obj{display:flex;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:9px}
 .xp-obj .bar{flex:none;width:4px;border-radius:4px;background:var(--brass);align-self:stretch}
 .xp-obj.t-red .bar{background:var(--red)} .xp-obj.t-green .bar{background:var(--green)} .xp-obj.t-blue .bar{background:var(--blue)} .xp-obj.t-amber .bar{background:var(--amber)}
+.xp-obj.t-red{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 30%,var(--line))}
+.xp-obj.t-green{background:var(--green-soft);border-color:color-mix(in srgb,var(--green) 30%,var(--line))}
+.xp-obj.t-blue{background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 30%,var(--line))}
+.xp-obj.t-amber{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 30%,var(--line))}
+.xp-obj.t-gray{background:var(--brass-soft);border-color:color-mix(in srgb,var(--brass) 26%,var(--line))}
 .xp-obj .body{flex:1;min-width:0}
 .xp-obj .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .xp-obj .ti{font-size:14px;font-weight:700;color:var(--name)}
@@ -1098,6 +1103,7 @@ a.op-row:hover{background:var(--surface-2)}
 .xp-time .vbadge{font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 7px}
 .xp-time .src{font-size:11px;color:var(--muted-2)}
 .xp-time .pm{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.xp-time .pm b{color:var(--text);font-weight:700}
 .xp-time .pm .up{color:var(--green);font-weight:600}
 .xp-time .pm .mark{color:var(--red)}
 

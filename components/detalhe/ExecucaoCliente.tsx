@@ -291,9 +291,9 @@ export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExe
                     )}
                   </div>
                   <div className="pm">
-                    {regimeTxt(a.regime_atual)}
-                    {a.dias_remidos != null && <> · remido {a.dias_remidos}d{delta != null && delta > 0 && <span className="up"> (+{delta} no período)</span>}</>}
-                    {a.data_prevista_progressao && <> · progressão prevista {fmtDate(a.data_prevista_progressao)}</>}
+                    <b>{regimeTxt(a.regime_atual)}</b>
+                    {a.dias_remidos != null && <> · remido <b>{a.dias_remidos}d</b>{delta != null && delta > 0 && <span className="up"> (+{delta} no período)</span>}</>}
+                    {a.data_prevista_progressao && <> · progressão prevista <b>{fmtDate(a.data_prevista_progressao)}</b></>}
                     {a.observacoes && <><br /><span className="mark">{a.observacoes}</span></>}
                   </div>
                 </div>
