@@ -1,9 +1,9 @@
 "use client";
 
-import { Pill, SegredoTag } from "@/components/ui";
+import Link from "next/link";
 import { AtestadoForm } from "@/components/detalhe/AtestadoForm";
-import { fmtDate, humano } from "@/lib/format";
-import type { ExecucaoCliente as TExec } from "@/lib/data";
+import { fmtDate, fmtNum, humano } from "@/lib/format";
+import type { ExecucaoCliente as TExec, ExecObjetivo, ExecAtestado } from "@/lib/data";
 
 const REGIME_LBL: Record<string, string> = {
   fechado: "Regime fechado",
@@ -12,22 +12,34 @@ const REGIME_LBL: Record<string, string> = {
   livramento: "Livramento condicional",
 };
 const regimeTxt = (r: string | null) => (r ? REGIME_LBL[r] ?? humano(r) : "—");
+const fonteTxt = (f: string | null) => (f && /seeu/i.test(f) ? "push SEEU" : f || "manual");
+const anoDe = (iso: string | null) => (iso ? iso.slice(0, 4) : "—");
 
-function Counter({ label, dias, data }: { label: string; dias: number | null; data: string | null }) {
-  if (dias == null && !data) return null;
-  const soon = dias != null && dias < 90;
-  const venceu = dias != null && dias <= 0;
+// Contador grande (progressão, livramento, término, remição) com tom opcional.
+function Ct({ lbl, big, unit, sub, tone }: { lbl: string; big: string; unit?: string; sub?: string; tone?: "red" | "green" }) {
   return (
-    <div className={`exec-counter${soon ? " soon" : ""}`}>
-      <div className="lbl">{label}</div>
-      <div className="big">{dias == null ? "—" : venceu ? "atingível" : `${dias} dias`}</div>
-      {data && <div className="when">{venceu ? "marco em " : "previsto p/ "}{fmtDate(data)}</div>}
+    <div className={`xp-ct${tone ? " " + tone : ""}`}>
+      <div className="lbl">{lbl}</div>
+      <div className="big">{big}{unit && <span className="u">{unit}</span>}</div>
+      {sub && <div className="sub">{sub}</div>}
     </div>
   );
 }
 
-const objTone = (s: string) =>
-  s === "atingido" ? "green" : s === "em_curso" ? "blue" : s === "frustrado" ? "red" : s === "prejudicado" ? "gray" : "amber";
+// Tom da barra lateral / etiqueta do objetivo conforme status (e vencimento).
+function objTone(o: ExecObjetivo, vencido: boolean): "red" | "green" | "blue" | "amber" | "gray" {
+  if (o.status === "atingido") return "green";
+  if (o.status === "frustrado") return "red";
+  if (o.status === "prejudicado") return "gray";
+  if (o.status === "planejado") return "gray";
+  if (o.status === "em_curso") return vencido ? "red" : "blue";
+  return "amber";
+}
+function resTone(status: string): "green" | "amber" | "muted" {
+  if (status === "atingido") return "green";
+  if (status === "frustrado") return "amber";
+  return "amber";
+}
 
 export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExec; clienteId: string; situacaoAtual: string | null }) {
   if (!exec.temDados) {
@@ -49,140 +61,254 @@ export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExe
   }
 
   const s = exec.situacao;
+  const nCond = exec.condenacoes.length;
+  const progVenc = s?.dias_para_progressao != null && s.dias_para_progressao <= 0;
+
+  // Barra de cumprimento: fração total = progresso%, dividida em cumprido + remido.
+  const total = s?.pena_total_dias ?? null;
+  const cumpDias = s?.pena_cumprida_dias ?? null;
+  const remidos = s?.dias_remidos ?? 0;
+  const remanescente = s?.pena_remanescente_dias ?? (total != null && cumpDias != null ? total - cumpDias : null);
+  const fill = s?.progresso ?? null;
+  const remShare = cumpDias && cumpDias > 0 ? Math.min(1, remidos / cumpDias) : 0;
+  const segR = fill != null ? fill * remShare : 0;
+  const segC = fill != null ? fill - segR : 0;
 
   return (
     <>
+      {/* contexto da pena (cabeçalho da aba) */}
+      {s && (
+        <div className="xp-base" style={{ marginBottom: 14, fontSize: 12 }}>
+          {nCond > 0 && <>pena unificada de <b style={{ color: "var(--text)" }}>{nCond}</b> condenaç{nCond === 1 ? "ão" : "ões"}</>}
+          {s.pec_cnj && <> · PEC nº <b style={{ color: "var(--text)" }}>{s.pec_cnj}</b></>}
+          {s.pec_tribunal && <> · {s.pec_tribunal}</>}
+          {s.pec_instancia && <> · {humano(s.pec_instancia)}</>}
+        </div>
+      )}
+
+      {/* alerta de marco vencido */}
+      {progVenc && (
+        <div className="xp-alert">
+          <span className="ico">⚠</span>
+          <div className="txt">
+            <b>Progressão de regime vencida há {Math.abs(s!.dias_para_progressao!)} dias.</b>{" "}
+            {s!.data_prevista_progressao && <>Marco previsto {fmtDate(s!.data_prevista_progressao)} · </>}
+            pedido de progressão a protocolar.
+          </div>
+          <Link className="btn primary" href={`/producao?cliente=${clienteId}`}>Criar peça · progressão</Link>
+        </div>
+      )}
+
+      {/* situação executória atual */}
+      {s && (
+        <div className="xp-sit">
+          <div className="xp-sit-h">
+            <span className="xp-eyebrow">
+              Situação executória atual
+              <span className="xp-ia">+ extraído pela IA · {fonteTxt(s.fonte)}</span>
+            </span>
+            <span className="meta">
+              {s.data_atestado ? `atestado de ${fmtDate(s.data_atestado)}` : "sem atestado"}
+              {exec.atestados.length > 0 && ` · v${exec.atestados.length}`}
+            </span>
+          </div>
+
+          <div className="xp-counters">
+            <Ct
+              lbl="Progressão"
+              big={s.dias_para_progressao == null ? "—" : `${s.dias_para_progressao <= 0 ? "−" : ""}${Math.abs(s.dias_para_progressao)}`}
+              unit={s.dias_para_progressao == null ? undefined : "d"}
+              sub={s.data_prevista_progressao ? `previsto ${fmtDate(s.data_prevista_progressao)}${progVenc ? " · vencida" : ""}` : undefined}
+              tone={progVenc ? "red" : undefined}
+            />
+            <Ct
+              lbl="Livramento cond."
+              big={s.dias_para_livramento == null ? "—" : `${s.dias_para_livramento}`}
+              unit={s.dias_para_livramento == null ? undefined : "d"}
+              sub={s.data_prevista_livramento ? `previsto ${fmtDate(s.data_prevista_livramento)}` : undefined}
+            />
+            <Ct
+              lbl="Término da pena"
+              big={anoDe(s.data_termino_pena)}
+              sub={s.data_termino_pena ? fmtDate(s.data_termino_pena) : undefined}
+            />
+            <Ct
+              lbl="Remição"
+              big={`${fmtNum(s.dias_remidos ?? 0)}`}
+              unit="d"
+              sub={s.dias_perdidos ? `−${s.dias_perdidos} perdidos` : "sem perdas"}
+              tone="green"
+            />
+          </div>
+
+          {fill != null && (
+            <div className="xp-prog">
+              <div className="xp-prog-h">
+                <span className="k">Cumprimento da pena unificada</span>
+                <span className="v">{s.pena_cumprida_texto ?? "—"} de {s.pena_total_texto ?? "—"} · {fill}%</span>
+              </div>
+              <div className="xp-bar">
+                <span className="seg-c" style={{ width: `${segC}%` }} />
+                <span className="seg-r" style={{ width: `${segR}%` }} />
+              </div>
+              <div className="xp-legend">
+                {cumpDias != null && <span className="lg"><span className="d c" /> cumprido <b>{fmtNum(cumpDias)} d</b></span>}
+                {remidos > 0 && <span className="lg"><span className="d r" /> remido <b>{fmtNum(remidos)} d</b></span>}
+                {remanescente != null && <span className="lg"><span className="d x" /> remanescente <b>{fmtNum(remanescente)} d</b></span>}
+              </div>
+              {(s.data_base_progressao || s.data_base_livramento) && (
+                <div className="xp-base">
+                  datas-base:
+                  {s.data_base_progressao && <> progressão {fmtDate(s.data_base_progressao)}</>}
+                  {s.data_base_livramento && <> · livramento {fmtDate(s.data_base_livramento)}</>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* condenações que compõem a pena */}
+      {nCond > 0 && (
+        <div className="xp-sec">
+          <div className="xp-sec-h">
+            <span className="t">Condenações que compõem a pena<span className="n">{nCond} ativa{nCond === 1 ? "" : "s"}</span></span>
+          </div>
+          {exec.condenacoes.map((c, i) => {
+            const titulo = c.descricao_crime || [c.artigo, c.lei].filter(Boolean).join(" — ") || "Condenação";
+            return (
+              <div className="xp-cond" key={c.processo_origem_id ?? c.numero_processo_origem ?? i}>
+                <div className="xp-cond-top">
+                  <div style={{ minWidth: 0 }}>
+                    <div className="crime">{titulo}</div>
+                    <div className="org">
+                      {c.processo_origem_id ? (
+                        <Link href={`/processos/${c.processo_origem_id}`}>{c.numero_processo_origem ?? "ver processo"} ↗</Link>
+                      ) : (
+                        <>{c.numero_processo_origem ?? "sem nº"} · <span className="nolink">⚠ sem ação vinculada</span></>
+                      )}
+                      {c.juizo_vara ? ` · ${c.juizo_vara}` : ""}{c.uf ? ` · ${c.uf}` : ""}
+                    </div>
+                  </div>
+                  <div className="xp-cond-right">
+                    {c.data_transito && <div className="tr">trânsito {fmtDate(c.data_transito)}</div>}
+                    {c.situacao && <span className="xp-tag sit" style={{ marginTop: 6, display: "inline-flex" }}>{humano(c.situacao)}</span>}
+                  </div>
+                </div>
+
+                <div className="xp-cond-grid">
+                  <div className="xp-cell">
+                    <div className="l">Artigo / lei</div>
+                    <div className="v">{[c.artigo, c.lei].filter(Boolean).join(" · ") || "—"}</div>
+                  </div>
+                  <div className="xp-cell">
+                    <div className="l">Pena</div>
+                    <div className="v"><b>{c.pena_texto ?? "—"}</b>{c.regime_imposto ? ` · ${humano(c.regime_imposto)}` : ""}</div>
+                  </div>
+                  <div className="xp-cell">
+                    <div className="l">Frações</div>
+                    <div className="v">
+                      {c.fracao_progressao ? `prog. ${c.fracao_progressao}` : "—"}
+                      {c.fracao_livramento ? <><br />{`livr. ${c.fracao_livramento}`}</> : null}
+                    </div>
+                  </div>
+                </div>
+
+                {(c.hediondo || c.reincidente) && (
+                  <div className="xp-flags">
+                    {c.hediondo && <span className="xp-tag hediondo">hediondo</span>}
+                    {c.reincidente && <span className="xp-tag reincidente">reincidente</span>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <div className="xp-note">
+            Condenações são autossuficientes — chegam pelo atestado. Vincule à ação de origem quando o processo existir no acervo, sem recadastrar.
+          </div>
+        </div>
+      )}
+
+      {/* objetivos × resultados */}
+      {exec.objetivos.length > 0 && (
+        <div className="xp-sec">
+          <div className="xp-sec-h">
+            <span className="t">
+              Objetivos × resultados
+              <span className="n">{exec.estrategia[0]?.titulo ? `${exec.estrategia[0].titulo} · ` : ""}{exec.objetivos.length} marco{exec.objetivos.length === 1 ? "" : "s"}</span>
+            </span>
+            <Link className="act" href={`/estudos?cliente=${clienteId}`}>Abrir estudo de caso</Link>
+          </div>
+          {exec.objetivos.map((o) => {
+            const vencido = Boolean(o.data_alvo && o.data_alvo.slice(0, 10) < new Date().toISOString().slice(0, 10) && o.status !== "atingido" && o.status !== "frustrado");
+            const tone = objTone(o, vencido);
+            return (
+              <div className={`xp-obj t-${tone}`} key={o.objetivo_id}>
+                <span className="bar" />
+                <div className="body">
+                  <div className="head">
+                    <span className="ti">{o.objetivo}</span>
+                    <span className={`xp-st ${tone === "blue" ? "blue" : tone === "green" ? "green" : tone === "red" ? "red" : tone === "amber" ? "amber" : "gray"}`}>
+                      {humano(o.status)}{vencido ? " · vencido" : ""}
+                    </span>
+                  </div>
+                  <div className="desc">
+                    {o.beneficio_alvo && <>Alvo: <b>{o.beneficio_alvo}</b></>}
+                    {o.alvo_cnj && <> · alvo {o.alvo_cnj}</>}
+                    {o.instrumento_cnj && <> · via {o.instrumento_cnj}{o.instrumento_area ? ` (${humano(o.instrumento_area)})` : ""}</>}
+                    {o.data_alvo && <> · data-alvo {fmtDate(o.data_alvo)}</>}
+                  </div>
+                </div>
+                <div className="res">
+                  <div className="rl">Resultado</div>
+                  <div className={`rv ${o.resultado ? resTone(o.status) : "muted"}`}>{o.resultado || "—"}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* atestados — evolução versionada */}
+      {exec.atestados.length > 0 && (
+        <div className="xp-sec">
+          <div className="xp-sec-h">
+            <span className="t">Atestados de pena · evolução<span className="n">snapshot versionado · nunca sobrescrito</span></span>
+          </div>
+          <div className="xp-time">
+            {exec.atestados.map((a, i) => {
+              const versao = exec.atestados.length - i;
+              const anterior: ExecAtestado | undefined = exec.atestados[i + 1];
+              const delta = a.dias_remidos != null && anterior?.dias_remidos != null ? a.dias_remidos - anterior.dias_remidos : null;
+              return (
+                <div className={`pt${i === 0 ? "" : " old"}`} key={a.id}>
+                  <div className="ph">
+                    <span className="pd">{fmtDate(a.data_atestado)}</span>
+                    <span className="vbadge">v{versao}{i === 0 ? " · atual" : ""}</span>
+                    <span className="src">fonte: {fonteTxt(a.fonte)}</span>
+                    {a.drive_file_id && (
+                      <a className="link" href={`https://drive.google.com/file/d/${a.drive_file_id}/view`} target="_blank" rel="noreferrer">PDF</a>
+                    )}
+                  </div>
+                  <div className="pm">
+                    {regimeTxt(a.regime_atual)}
+                    {a.dias_remidos != null && <> · remido {a.dias_remidos}d{delta != null && delta > 0 && <span className="up"> (+{delta} no período)</span>}</>}
+                    {a.data_prevista_progressao && <> · progressão prevista {fmtDate(a.data_prevista_progressao)}</>}
+                    {a.observacoes && <><br /><span className="mark">{a.observacoes}</span></>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* lançar novo atestado */}
       <div className="dsec">
         <div className="acoes">
           <AtestadoForm clienteId={clienteId} situacaoAtual={situacaoAtual} />
         </div>
       </div>
-
-      {s && (
-        <div className="dsec">
-          <h4>Situação atual {s.data_atestado && <span style={{ color: "var(--muted)", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>· atestado de {fmtDate(s.data_atestado)}</span>}</h4>
-          <div className="exec-card">
-            <div className="exec-top">
-              <div>
-                <div className="exec-regime">{regimeTxt(s.regime_atual)}</div>
-                {s.segredo && <div style={{ marginTop: 4 }}><SegredoTag on /></div>}
-              </div>
-              <div style={{ textAlign: "right", fontSize: 11.5, color: "var(--muted)" }}>
-                {s.dias_remidos ? <div>remidos: <b className="mono">{s.dias_remidos}</b> d</div> : null}
-                {s.dias_perdidos ? <div>perdidos: <b className="mono">{s.dias_perdidos}</b> d</div> : null}
-                {s.data_termino_pena && <div>término: <b className="mono">{fmtDate(s.data_termino_pena)}</b></div>}
-              </div>
-            </div>
-
-            {s.progresso != null && (
-              <>
-                <div className="exec-bar"><span style={{ width: `${s.progresso}%` }} /></div>
-                <div className="exec-bar-lbl">
-                  <span>cumprido: {s.pena_cumprida_texto ?? "—"}</span>
-                  <span>{s.progresso}% de {s.pena_total_texto ?? "—"}</span>
-                </div>
-              </>
-            )}
-
-            <div className="exec-counters">
-              <Counter label="Próxima progressão" dias={s.dias_para_progressao} data={s.data_prevista_progressao} />
-              <Counter label="Livramento condicional" dias={s.dias_para_livramento} data={s.data_prevista_livramento} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {exec.atestados.length > 1 && (
-        <div className="dsec">
-          <h4>Evolução (atestados)</h4>
-          <div className="exec-time">
-            {exec.atestados.map((a) => (
-              <div className="pt" key={a.id}>
-                <div className="pd">
-                  {fmtDate(a.data_atestado)} · {regimeTxt(a.regime_atual)}
-                  {a.drive_file_id && (
-                    <>
-                      {" "}
-                      <a className="link" href={`https://drive.google.com/file/d/${a.drive_file_id}/view`} target="_blank" rel="noreferrer">PDF</a>
-                    </>
-                  )}
-                </div>
-                <div className="pm">
-                  cumprido {a.pena_cumprida_texto ?? "—"}
-                  {a.dias_remidos ? ` · remidos ${a.dias_remidos}d` : ""}
-                  {a.data_prevista_progressao ? ` · progressão ${fmtDate(a.data_prevista_progressao)}` : ""}
-                  {a.fonte ? ` · ${a.fonte}` : ""}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {exec.condenacoes.length > 0 && (
-        <div className="dsec">
-          <h4>Condenações ({exec.condenacoes.length})</h4>
-          <div className="mini-list">
-            {exec.condenacoes.map((c, i) => (
-              <div className="mini" key={c.processo_origem_id ?? c.numero_processo_origem ?? i} style={{ alignItems: "flex-start" }}>
-                <div>
-                  <div className="mt mono">{c.numero_processo_origem ?? "sem nº"} {c.uf ? `· ${c.uf}` : ""}</div>
-                  <div className="ms">
-                    {[c.artigo, c.lei].filter(Boolean).join(" — ") || "tipificação não informada"}
-                    {c.juizo_vara ? ` · ${c.juizo_vara}` : ""}
-                  </div>
-                  <div className="ms">
-                    pena <b>{c.pena_texto ?? "—"}</b> · {humano(c.regime_imposto)}
-                    {c.fracao_progressao ? ` · prog ${c.fracao_progressao}` : ""}
-                    {c.fracao_livramento ? ` · livr ${c.fracao_livramento}` : ""}
-                  </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
-                    {c.hediondo && <Pill tone="red" dot={false}>hediondo</Pill>}
-                    {c.reincidente && <Pill tone="amber" dot={false}>reincidente</Pill>}
-                    {c.situacao && <Pill tone="gray" dot={false}>{humano(c.situacao)}</Pill>}
-                    {!c.processo_origem_id && <span className="ms" style={{ color: "var(--amber)" }}>ação de origem não vinculada</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {(exec.estrategia.length > 0 || exec.objetivos.length > 0) && (
-        <div className="dsec">
-          <h4>Objetivos × resultados</h4>
-          {exec.estrategia.map((e) => (
-            <div className="mini" key={e.estudo_id} style={{ marginBottom: 8 }}>
-              <div>
-                <div className="mt">{e.titulo}</div>
-                <div className="ms">
-                  {e.objetivos_planejados + e.objetivos_em_curso} em aberto · {e.objetivos_atingidos} atingidos
-                  {e.objetivos_frustrados ? ` · ${e.objetivos_frustrados} frustrados` : ""}
-                  {e.proximo_marco ? ` · próximo marco ${fmtDate(e.proximo_marco)}` : ""}
-                </div>
-              </div>
-              <a className="link" href={`/estudos?cliente=${clienteId}`}>abrir estudo</a>
-            </div>
-          ))}
-          <div className="mini-list" style={{ marginTop: exec.estrategia.length ? 4 : 0 }}>
-            {exec.objetivos.map((o) => (
-              <div className="mini" key={o.objetivo_id} style={{ alignItems: "flex-start" }}>
-                <div>
-                  <div className="mt">{o.objetivo} {o.beneficio_alvo && <span className="ms">· {o.beneficio_alvo}</span>}</div>
-                  <div className="ms">
-                    {o.alvo_cnj ? <>alvo <b className="mono">{o.alvo_cnj}</b></> : "sem alvo"}
-                    {o.instrumento_cnj && <> · via <b className="mono">{o.instrumento_cnj}</b>{o.instrumento_area ? ` (${humano(o.instrumento_area)})` : ""}</>}
-                    {o.data_alvo && <> · meta {fmtDate(o.data_alvo)}</>}
-                  </div>
-                  {o.resultado && <div className="ms">resultado: {o.resultado}</div>}
-                </div>
-                <Pill tone={objTone(o.status)}>{humano(o.status)}</Pill>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 }
