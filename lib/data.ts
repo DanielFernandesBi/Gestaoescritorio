@@ -2579,6 +2579,9 @@ export async function getDocumentosContrato(contrato_id: string): Promise<Docume
 
 /* Merge / duplicados ----------------------------------------------------- */
 
+/** Vínculos (o que migra/se religa) de um membro de cluster. */
+export type ClienteVinculos = { n_processos: number; n_contratos: number; n_docs: number };
+
 export type ClienteDuplicadoCluster = {
   nome_normalizado: string;
   qtd: number;
@@ -2589,12 +2592,16 @@ export type ClienteDuplicadoCluster = {
   cpfs: (string | null)[];
   primeiro_cadastro: string | null;
   ultimo_cadastro: string | null;
+  // Por membro (alinhado a `ids`): vínculos + proveniência, para os cards.
+  vinculos: ClienteVinculos[];
+  criados: (string | null)[];
+  cadastrados_por: (string | null)[];
 };
 
 export async function getClientesDuplicados(): Promise<ClienteDuplicadoCluster[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("vw_clientes_duplicados").select("*");
-  return (data ?? []).map((r): ClienteDuplicadoCluster => ({
+  const clusters = (data ?? []).map((r) => ({
     nome_normalizado: r.nome_normalizado as string,
     qtd: Number(r.qtd ?? 0),
     algum_com_cpf: Boolean(r.algum_com_cpf),
@@ -2604,6 +2611,30 @@ export async function getClientesDuplicados(): Promise<ClienteDuplicadoCluster[]
     cpfs: (r.cpfs as (string | null)[]) ?? [],
     primeiro_cadastro: (r.primeiro_cadastro as string) ?? null,
     ultimo_cadastro: (r.ultimo_cadastro as string) ?? null,
+  }));
+
+  // Enriquece cada membro com vínculos + proveniência (uma query só, batch por id).
+  const todosIds = clusters.flatMap((c) => c.ids);
+  const porId = new Map<string, { v: ClienteVinculos; criado: string | null; por: string | null }>();
+  if (todosIds.length) {
+    const { data: vinc } = await supabase
+      .from("vw_cliente_vinculos")
+      .select("cliente_id, criado_em, cadastrado_por, n_processos, n_contratos, n_docs")
+      .in("cliente_id", todosIds);
+    for (const r of vinc ?? []) {
+      porId.set(r.cliente_id as string, {
+        v: { n_processos: Number(r.n_processos ?? 0), n_contratos: Number(r.n_contratos ?? 0), n_docs: Number(r.n_docs ?? 0) },
+        criado: (r.criado_em as string) ?? null,
+        por: (r.cadastrado_por as string) ?? null,
+      });
+    }
+  }
+
+  return clusters.map((c): ClienteDuplicadoCluster => ({
+    ...c,
+    vinculos: c.ids.map((id) => porId.get(id)?.v ?? { n_processos: 0, n_contratos: 0, n_docs: 0 }),
+    criados: c.ids.map((id) => porId.get(id)?.criado ?? null),
+    cadastrados_por: c.ids.map((id) => porId.get(id)?.por ?? null),
   }));
 }
 
@@ -2617,11 +2648,16 @@ export type ProcessoReconciliacao = {
   segredo_justica: boolean;
   clientes: string | null;
   criado_em: string | null;
+  cadastrado_por: string | null;
+  n_intim: number;
+  n_prazos: number;
+  n_andam: number;
+  n_docs: number;
 };
 
 export async function getProcessosReconciliacao(): Promise<ProcessoReconciliacao[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("vw_reconciliacao_registro").select("*");
+  const { data } = await supabase.from("vw_reconciliacao_registro_full").select("*");
   return (data ?? []).map((r): ProcessoReconciliacao => ({
     id: r.id as string,
     numero_registro_tribunal: (r.numero_registro_tribunal as string) ?? null,
@@ -2632,6 +2668,61 @@ export async function getProcessosReconciliacao(): Promise<ProcessoReconciliacao
     segredo_justica: Boolean(r.segredo_justica),
     clientes: (r.clientes as string) ?? null,
     criado_em: (r.criado_em as string) ?? null,
+    cadastrado_por: (r.cadastrado_por as string) ?? null,
+    n_intim: Number(r.n_intim ?? 0),
+    n_prazos: Number(r.n_prazos ?? 0),
+    n_andam: Number(r.n_andam ?? 0),
+    n_docs: Number(r.n_docs ?? 0),
+  }));
+}
+
+/** Contadores do topo do painel de duplicados. */
+export type DuplicadosContadores = {
+  processos_revisar: number;
+  clientes_revisar: number;
+  mesclados_30d: number;
+  vinculos_religados: number;
+};
+
+export async function getDuplicadosContadores(): Promise<DuplicadosContadores> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("vw_duplicados_contadores").select("*").single();
+  return {
+    processos_revisar: Number(data?.processos_revisar ?? 0),
+    clientes_revisar: Number(data?.clientes_revisar ?? 0),
+    mesclados_30d: Number(data?.mesclados_30d ?? 0),
+    vinculos_religados: Number(data?.vinculos_religados ?? 0),
+  };
+}
+
+/** Tombstones já resolvidos (merge concluído) — derivado da auditoria. */
+export type TombstoneResolvido = {
+  id: string;
+  reg_antigo: string | null;
+  cnj_antigo: string | null;
+  canonico_ident: string | null;
+  cliente: string | null;
+  vinculos: number;
+  resolvido_em: string | null;
+  origem: string | null;
+};
+
+export async function getTombstonesResolvidos(limit = 8): Promise<TombstoneResolvido[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_tombstones_resolvidos")
+    .select("*")
+    .order("resolvido_em", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  return (data ?? []).map((r): TombstoneResolvido => ({
+    id: r.id as string,
+    reg_antigo: (r.reg_antigo as string) ?? null,
+    cnj_antigo: (r.cnj_antigo as string) ?? null,
+    canonico_ident: (r.canonico_ident as string) ?? null,
+    cliente: (r.cliente as string) ?? null,
+    vinculos: Number(r.vinculos ?? 0),
+    resolvido_em: (r.resolvido_em as string) ?? null,
+    origem: (r.origem as string) ?? null,
   }));
 }
 
