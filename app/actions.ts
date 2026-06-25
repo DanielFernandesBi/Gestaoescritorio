@@ -25,6 +25,7 @@ import {
   DOCUMENTO_TIPO,
   PECA_STATUS,
   PECA_TIPO,
+  AUDIENCIA_MODALIDADE,
 } from "@/lib/enums";
 import { soDigitos, humano, fmtDate } from "@/lib/format";
 
@@ -1309,6 +1310,37 @@ export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resu
   }
 }
 
+/** Troca rápida de modalidade (botões do card de IA no detalhe). Re-sincroniza o
+ * Calendar quando a audiência já está validada. */
+export async function definirModalidadeAudiencia(id: string, modalidade: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!AUDIENCIA_MODALIDADE.includes(modalidade as (typeof AUDIENCIA_MODALIDADE)[number])) {
+      return { ok: false, message: "Modalidade inválida." };
+    }
+    const supabase = await createClient();
+    const { data: a } = await supabase
+      .from("audiencias")
+      .select("tipo, data_hora, local_link, validado, calendar_event_id, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")
+      .eq("id", id)
+      .single();
+    const { error } = await supabase.from("audiencias").update({ modalidade }).eq("id", id);
+    if (error) throw error;
+    let msg = `Modalidade definida: ${humano(modalidade)}.`;
+    if (a?.validado && a.calendar_event_id) {
+      const ok = await atualizarEventoAudiencia(a.calendar_event_id as string, {
+        tipo: a.tipo as string, dataHora: a.data_hora as string, modalidade, local: a.local_link as string | null, ref: refProcesso(a?.processos),
+      });
+      if (ok) msg += " Calendar atualizado.";
+    }
+    revalidarTudo();
+    revalidatePath(`/audiencias/${id}`);
+    return { ok: true, message: msg };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /* ==================== EDIÇÃO (UPDATE) ==================== */
 
 function patchDeCampos(fd: FormData, campos: string[]): Record<string, unknown> {
@@ -1894,6 +1926,64 @@ export async function redesignarAudiencia(id: string, fd: FormData): Promise<Res
 
     revalidarTudo();
     return { ok: true, message: "Audiência redesignada — nova data criada (aguardando validação)." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ============================ ANOTAÇÕES ============================
+ * Controle próprio do usuário — texto livre, cada anotação é um card
+ * independente (criar / editar / apagar). Genérica por entidade. */
+
+export async function criarAnotacao(
+  entidadeTipo: string,
+  entidadeId: string,
+  fd: FormData,
+): Promise<Resultado> {
+  try {
+    const email = await requireUser();
+    const texto = String(fd.get("texto") || "").trim();
+    if (!texto) return { ok: false, message: "Escreva algo antes de salvar." };
+    if (!entidadeTipo || !entidadeId) return { ok: false, message: "Entidade inválida." };
+    const supabase = await createClient();
+    const { error } = await supabase.from("anotacoes").insert({
+      entidade_tipo: entidadeTipo,
+      entidade_id: entidadeId,
+      texto,
+      autor: email,
+    });
+    if (error) throw error;
+    revalidatePath(`/audiencias/${entidadeId}`);
+    return { ok: true, message: "Anotação salva." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function editarAnotacao(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const texto = String(fd.get("texto") || "").trim();
+    if (!texto) return { ok: false, message: "A anotação não pode ficar vazia." };
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("anotacoes")
+      .update({ texto, atualizado_em: agora() })
+      .eq("id", id);
+    if (error) throw error;
+    return { ok: true, message: "Anotação atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function excluirAnotacao(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { error } = await supabase.from("anotacoes").delete().eq("id", id);
+    if (error) throw error;
+    return { ok: true, message: "Anotação apagada." };
   } catch (e) {
     return falha(e);
   }
