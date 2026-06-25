@@ -1305,6 +1305,12 @@ export type Movimentacao = {
   clientes: string | null;
   // Sugestão 56 — "do que se trata" do processo vinculado (null para órfãos/sem processo).
   contexto?: CasoContexto | null;
+  // Redesign /andamentos — cliente(s) com papel, escalonamento (Sug. 30) e ids p/ deep-link.
+  processo_id?: string | null;
+  partes?: ParteCliente[];
+  escalado?: boolean;
+  prioridade?: string | null;
+  tarefa_id?: string | null;
 };
 
 export async function getAndamentos(): Promise<Movimentacao[]> {
@@ -1321,10 +1327,11 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
   // não há DDL. tribunal vem da própria view (fallback ok).
   const procIds = [...new Set(rows.map((r) => r.processo_id as string | null).filter(Boolean))] as string[];
   const ctxPorProcesso = new Map<string, CasoContexto>();
+  const partesPorProcesso = new Map<string, ParteCliente[]>();
   if (procIds.length) {
     const { data: procs } = await supabase
       .from("processos")
-      .select("id, classe, assunto, area, fase, instancia, tribunal, vara_comarca")
+      .select("id, classe, assunto, area, fase, instancia, tribunal, vara_comarca, cliente_processo(papel,clientes(nome))")
       .in("id", procIds);
     for (const pr of procs ?? []) {
       ctxPorProcesso.set(pr.id as string, {
@@ -1336,11 +1343,32 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
         tribunal: (pr.tribunal as string | null) ?? null,
         vara_comarca: (pr.vara_comarca as string | null) ?? null,
       });
+      partesPorProcesso.set(
+        pr.id as string,
+        partesClientes(pr.cliente_processo as unknown as (NestedCliente & { papel?: string | null })[] | null),
+      );
+    }
+  }
+
+  // Escalonamento (Sug. 30): tarefa de conferência vinculada por andamento_id.
+  const escalPorAnd = new Map<string, { tarefa_id: string; prioridade: string | null }>();
+  const andIds = rows.map((r) => r.id as string);
+  if (andIds.length) {
+    const { data: tarefas } = await supabase
+      .from("tarefas")
+      .select("id, andamento_id, prioridade, status")
+      .in("andamento_id", andIds)
+      .neq("status", "cancelada");
+    for (const t of tarefas ?? []) {
+      const k = t.andamento_id as string;
+      if (!escalPorAnd.has(k) || t.status === "pendente")
+        escalPorAnd.set(k, { tarefa_id: t.id as string, prioridade: (t.prioridade as string) ?? null });
     }
   }
 
   return rows.map((r) => {
     const procId = r.processo_id as string | null;
+    const esc = escalPorAnd.get(r.id as string);
     return {
       id: r.id as string,
       data: r.data as string,
@@ -1354,6 +1382,11 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
       segredo: Boolean(r.segredo_justica),
       clientes: r.clientes as string | null,
       contexto: (procId && ctxPorProcesso.get(procId)) || null,
+      processo_id: procId,
+      partes: (procId && partesPorProcesso.get(procId)) || [],
+      escalado: Boolean(esc),
+      prioridade: esc?.prioridade ?? null,
+      tarefa_id: esc?.tarefa_id ?? null,
     };
   });
 }
