@@ -288,6 +288,23 @@ export async function getPainelData(): Promise<PainelData> {
 
 export type DiagnosticoOab = { oab: string; acervo_total: number; itens_janela: number };
 export type Anomalia = { fonte: string; tipo: string; detalhe: string };
+
+/** O `detalhe` da anomalia às vezes vem como array/objeto (ex.: minuta_diferida);
+ * coage para string legível — render direto de objeto quebra o React. */
+function detStr(d: unknown): string {
+  if (d == null) return "";
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) return d.map((x) => detStr(x)).filter(Boolean).join(" | ");
+  if (typeof d === "object") return Object.values(d as Record<string, unknown>).filter((v) => typeof v === "string").join(" · ");
+  return String(d);
+}
+function normAnomalias(raw: unknown): Anomalia[] | null {
+  if (!Array.isArray(raw)) return null;
+  return raw.map((a) => {
+    const o = (a ?? {}) as Record<string, unknown>;
+    return { fonte: String(o.fonte ?? ""), tipo: String(o.tipo ?? ""), detalhe: detStr(o.detalhe) };
+  });
+}
 export type Varredura = {
   fonte: string;
   criado_em: string;
@@ -326,7 +343,7 @@ export async function getUltimaVarredura(): Promise<Varredura | null> {
     andamentos_novos: Number(row.andamentos_novos ?? 0),
     prazos_criados: Number(row.prazos_criados ?? 0),
     diagnostico_oab: (row.diagnostico_oab as DiagnosticoOab[] | null) ?? null,
-    anomalias: (row.anomalias as Anomalia[] | null) ?? null,
+    anomalias: normAnomalias(row.anomalias),
   };
 }
 
@@ -361,7 +378,7 @@ export async function getVarreduras(limit = 8): Promise<VarreduraHist[]> {
     intimacoes_novas: Number(r.intimacoes_novas ?? 0),
     andamentos_novos: Number(r.andamentos_novos ?? 0),
     prazos_criados: Number(r.prazos_criados ?? 0),
-    anomalias: (r.anomalias as Anomalia[] | null) ?? null,
+    anomalias: normAnomalias(r.anomalias),
   }));
 }
 
@@ -533,6 +550,14 @@ export async function getBriefingAtual(): Promise<Briefing | null> {
     gerado_por: (r.gerado_por as string) ?? "",
     resumo: (r.resumo as string) ?? null,
     corpo: (r.corpo as string) ?? null,
-    onde_focar: [...focar].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+    onde_focar: [...focar]
+      .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+      .map((o) => ({
+        ordem: Number(o?.ordem ?? 0),
+        titulo: detStr(o?.titulo),
+        detalhe: detStr(o?.detalhe),
+        urgencia: (o?.urgencia === "urgente" || o?.urgencia === "alta" ? o.urgencia : "normal") as OndeFocarItem["urgencia"],
+        ref: o?.ref && typeof o.ref === "object" ? { tipo: (o.ref.tipo ?? null) as OndeFocarRef["tipo"], id: o.ref.id ?? null } : null,
+      })),
   };
 }
