@@ -62,6 +62,45 @@ export function humano(s: string | null | undefined): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
+/**
+ * Encurta um título automático que repete dados já exibidos em campo próprio do
+ * card (nome do cliente e nº/identificador do processo). Atua só sobre segmentos
+ * separados por travessão (— / –) — o padrão dos títulos automáticos
+ * "Assunto — CLIENTE — 0000000-00.0000…". Remove do fim os segmentos que são
+ * processo (CNJ / dígitos longos) ou o nome do cliente (1ª e última palavra
+ * batendo, tolerando abreviações). Texto descritivo é preservado.
+ */
+const _toks = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+const _CNJ_RE = /\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}/;
+
+export function encurtarTitulo(
+  titulo: string | null | undefined,
+  cliente?: string | null,
+  numeroCnj?: string | null,
+  numeroRegistro?: string | null,
+): string {
+  const bruto = (titulo ?? "").trim();
+  const partes = bruto.split(/\s*[—–]\s*/);
+  if (partes.length < 2) return bruto;
+
+  const cli = cliente ? _toks(cliente) : [];
+  const ehProc = (seg: string) =>
+    _CNJ_RE.test(seg) || /\d{6,}/.test(seg) || (!!numeroCnj && seg.includes(numeroCnj)) || (!!numeroRegistro && seg.includes(numeroRegistro));
+  const ehCliente = (seg: string) => {
+    if (!cli.length) return false;
+    const s = _toks(seg);
+    return s.length > 0 && s[0] === cli[0] && s[s.length - 1] === cli[cli.length - 1];
+  };
+
+  while (partes.length > 1) {
+    const ult = partes[partes.length - 1].trim();
+    if (ehProc(ult) || ehCliente(ult)) partes.pop();
+    else break;
+  }
+  return partes.join(" — ").trim() || bruto;
+}
+
 /** Normaliza nome p/ deduplicação: sem acento, maiúsculas, espaços simples. */
 export function normalizarNome(s: string | null | undefined): string {
   if (!s) return "";
