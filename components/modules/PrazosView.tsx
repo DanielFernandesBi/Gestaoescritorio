@@ -55,6 +55,22 @@ function categoria(ato: string): { tone: string; label: string } | null {
   return null;
 }
 
+/* Divide o `ato` num nome curto e direto + o resto (nota da IA, parte, cite,
+ * reclassificação). Corta no primeiro separador estrutural — travessão, colchete
+ * de reclassificação ou parêntese explicativo. O resto vira linha discreta, no
+ * estilo do nº do processo. Sem separador útil, trunca por comprimento. */
+function dividirAto(ato: string): { curto: string; resto: string | null } {
+  const t = (ato ?? "").trim();
+  const m = t.match(/\s*(—|–|\[|\(id\.|\()/);
+  if (!m || m.index === undefined || m.index < 3) {
+    if (t.length <= 72) return { curto: t, resto: null };
+    return { curto: t.slice(0, 70).trimEnd() + "…", resto: t };
+  }
+  const curto = t.slice(0, m.index).trim();
+  const resto = t.slice(m.index).trim();
+  return curto.length >= 3 ? { curto, resto: resto || null } : { curto: t, resto: null };
+}
+
 const num = (p: { numero_cnj: string | null; numero_registro: string | null }) =>
   p.numero_cnj ?? (p.numero_registro ? `reg ${p.numero_registro}` : null);
 
@@ -62,6 +78,7 @@ const num = (p: { numero_cnj: string | null; numero_registro: string | null }) =
 function ProvisorioCard({ p }: { p: PrazoCard }) {
   const cat = categoria(p.ato);
   const tone = ddClass(p.dias_restantes);
+  const { curto, resto } = dividirAto(p.ato);
   return (
     <article className="pz-card prov">
       <span className="pz-stripe accent" />
@@ -75,7 +92,8 @@ function ProvisorioCard({ p }: { p: PrazoCard }) {
         </div>
         <div className="pz-main">
           <div className="pz-lhs">
-            <Link className="pz-title" href={linkPara("prazo", p.id)}>{p.ato}</Link>
+            <Link className="pz-title" href={linkPara("prazo", p.id)}>{curto}</Link>
+            {resto && <div className="pz-detalhe" title={p.ato}>{resto}</div>}
             <div className="pz-cli">
               <Person /><b>{p.clientes || "—"}</b>
               {num(p) && <span className="pz-num mono">{num(p)}</span>}
@@ -133,6 +151,7 @@ function DarBaixa({ p, label }: { p: PrazoCard; label: React.ReactNode }) {
 function ValidadoRico({ p }: { p: PrazoCard }) {
   const cat = categoria(p.ato);
   const tone = ddClass(p.dias_restantes);
+  const { curto, resto } = dividirAto(p.ato);
   return (
     <article className={`pz-card val ${tone}`}>
       <span className={`pz-stripe ${tone}`} />
@@ -146,7 +165,8 @@ function ValidadoRico({ p }: { p: PrazoCard }) {
         </div>
         <div className="pz-main">
           <div className="pz-lhs">
-            <Link className="pz-title" href={linkPara("prazo", p.id)}>{p.ato}</Link>
+            <Link className="pz-title" href={linkPara("prazo", p.id)}>{curto}</Link>
+            {resto && <div className="pz-detalhe" title={p.ato}>{resto}</div>}
             <div className="pz-cli">
               <Person /><b>{p.clientes || "—"}</b>
               {num(p) && <span className="pz-num mono">{num(p)}</span>}
@@ -178,6 +198,7 @@ function ValidadoRico({ p }: { p: PrazoCard }) {
 function ValidadoCompacto({ p }: { p: PrazoCard }) {
   const cat = categoria(p.ato);
   const tone = ddClass(p.dias_restantes);
+  const { curto, resto } = dividirAto(p.ato);
   return (
     <article className={`pz-card val compact ${tone}`}>
       <span className={`pz-stripe ${tone}`} />
@@ -188,7 +209,8 @@ function ValidadoCompacto({ p }: { p: PrazoCard }) {
             <span className="pz-tag val"><Check s={9} c="var(--green)" />validado</span>
             {p.segredo && <span className="pz-tag segredo">🔒</span>}
           </div>
-          <Link className="pz-title sm" href={linkPara("prazo", p.id)}>{p.ato}</Link>
+          <Link className="pz-title sm" href={linkPara("prazo", p.id)}>{curto}</Link>
+          {resto && <div className="pz-detalhe" title={p.ato}>{resto}</div>}
           <div className="pz-cli sm">
             <b>{p.clientes || "—"}</b>
             {num(p) && <span className="pz-num mono">{num(p)}</span>}
@@ -211,6 +233,7 @@ function ValidadoCompacto({ p }: { p: PrazoCard }) {
 /* ── card de prazo órfão (sem processo) ─────────────────────────────────── */
 function OrfaoCard({ o, procs, clis }: { o: PrazoOrfao; procs: ProcLite[]; clis: CliLite[] }) {
   const tone = ddClass(o.dias_restantes);
+  const { curto, resto } = dividirAto(o.ato);
   return (
     <article className="pz-card orfa">
       <span className="pz-stripe amber" />
@@ -222,7 +245,8 @@ function OrfaoCard({ o, procs, clis }: { o: PrazoOrfao; procs: ProcLite[]; clis:
         </div>
         <div className="pz-main">
           <div className="pz-lhs">
-            <div className="pz-title">{o.ato}</div>
+            <div className="pz-title">{curto}</div>
+            {resto && <div className="pz-detalhe" title={o.ato}>{resto}</div>}
             <div className="pz-cli muted">
               <Rows />
               {o.intimacao_id ? <>origem: intimação{o.intimacao_resumo ? <> · {o.intimacao_resumo}</> : null}</> : <>cadastro manual{o.cadastrado_por ? ` · ${o.cadastrado_por}` : ""}</>}

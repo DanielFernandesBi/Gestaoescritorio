@@ -1351,6 +1351,7 @@ a.op-row:hover{background:var(--surface-2)}
 .pz-title{display:inline-block;font-weight:800;color:var(--name);font-size:15px;text-decoration:none}
 a.pz-title:hover{text-decoration:underline}
 .pz-title.sm{font-size:14px}
+.pz-detalhe{margin-top:3px;font-size:11px;line-height:1.45;color:var(--muted-2);max-width:680px}
 .pz-cli{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--muted)}
 .pz-cli.sm{font-size:12px;margin-top:5px}
 .pz-cli b{color:var(--name)}
