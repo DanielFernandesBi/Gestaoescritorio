@@ -1880,3 +1880,152 @@ a.tk-title:hover{text-decoration:underline}
   .sis-est-grid{grid-template-columns:1fr;gap:0}
   .sis-head h1{font-size:32px}
 }
+
+/* ===== /financeiro — alvo Plantão ======================================= */
+.fin-page{display:flex;flex-direction:column;gap:18px}
+.fin-head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.fin-head .lhs{flex:1;min-width:0}
+.fin-head .eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.fin-head h1{font-family:var(--serif);font-size:40px;font-weight:400;line-height:1.04;color:var(--ink);margin:6px 0 0}
+.fin-head p{color:var(--muted);font-size:13.5px;margin:6px 0 0;max-width:660px;line-height:1.5}
+.fin-head p code{font-family:var(--mono);font-size:12px}
+.fin-head .acoes{display:flex;gap:8px;flex-wrap:wrap}
+
+/* KPIs */
+.fin-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.fin-kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+.fin-kpi.red-card{border-color:color-mix(in srgb,var(--red) 30%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--red) 18%,transparent)}
+.fin-kpi .lbl{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.fin-kpi .lbl .d{width:7px;height:7px;border-radius:50%}
+.fin-kpi .lbl.green{color:var(--green)}.fin-kpi .lbl.green .d{background:var(--green)}
+.fin-kpi .lbl.red{color:var(--red)}.fin-kpi .lbl.red .d{background:var(--red)}
+.fin-kpi .lbl.blue{color:var(--blue)}.fin-kpi .lbl.blue .d{background:var(--blue)}
+.fin-kpi .lbl.slate{color:var(--muted)}.fin-kpi .lbl.slate .d{background:var(--brass)}
+.fin-kpi .big{font-family:var(--serif);font-size:32px;color:var(--ink);line-height:1;margin-top:8px}
+.fin-kpi .big.red{color:var(--red)}
+.fin-kpi .big .sub{font-size:18px;color:var(--muted)}
+.fin-kpi .cap{font-size:11px;color:var(--muted);margin-top:5px}
+
+/* card genérico */
+.fin-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.fin-card.red-card{border-color:color-mix(in srgb,var(--red) 30%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--red) 16%,transparent)}
+.fin-card-h{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line-soft)}
+.fin-card-h .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.fin-card-h.red .t,.fin-card-h.red svg{color:var(--red)}
+.fin-card-h .sub{font-size:11px;color:var(--muted-2)}
+.fin-card-h .end{margin-left:auto;font-size:11px;color:var(--muted-2)}
+.fin-card-b{padding:18px 22px 16px}
+.fin-2col{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.fin-empty{padding:16px;text-align:center;color:var(--muted-2);font-size:12.5px}
+
+/* fluxo de caixa */
+.fin-leg{margin-left:auto;display:flex;gap:14px;font-size:11px;color:var(--muted)}
+.fin-leg span{display:inline-flex;align-items:center;gap:5px}
+.fin-leg .sw{width:10px;height:10px;border-radius:3px}
+.fin-leg .sw.green{background:var(--green)}
+.fin-leg .sw.prev,.fin-fluxo .bar .prev{background:repeating-linear-gradient(135deg,var(--line),var(--line) 3px,var(--surface-2) 3px,var(--surface-2) 6px)}
+.fin-fluxo{display:flex;align-items:flex-end;gap:10px;height:172px}
+.fin-fluxo .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.fin-fluxo .bar{width:60%;max-width:30px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:4px;overflow:hidden}
+.fin-fluxo .bar .real{background:var(--green)}
+.fin-fluxo .col .m{font-size:10px;color:var(--muted-2);font-family:var(--mono)}
+.fin-fluxo .col .m.on{color:var(--ink);font-weight:700}
+.fin-fluxo-foot{display:flex;align-items:center;gap:18px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line-soft);font-size:11.5px;color:var(--muted)}
+.fin-fluxo-foot b{font-family:var(--mono)}
+.fin-fluxo-foot .green{color:var(--green)}
+.fin-fluxo-foot .ink{color:var(--ink)}
+.fin-fluxo-foot .end{margin-left:auto}
+
+/* fechamento */
+.fin-fech{padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fin-fech .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted-2);font-weight:700}
+.fin-fech .v{font-family:var(--serif);font-size:26px;color:var(--ink);line-height:1;margin-top:5px}
+.fin-fech .s{font-size:10.5px;color:var(--muted);margin-top:3px}
+.fin-fech .s.red{color:var(--red)}
+
+/* carteira donut */
+.fin-carteira{padding:16px 18px;display:flex;align-items:center;gap:16px}
+.fin-donut{flex:none;width:96px;height:96px;border-radius:50%;display:grid;place-items:center}
+.fin-donut .hole{width:60px;height:60px;border-radius:50%;background:var(--surface);display:grid;place-items:center}
+.fin-donut .hole span{font-family:var(--serif);font-size:22px;color:var(--ink)}
+.fin-carteira .leg{flex:1;display:flex;flex-direction:column;gap:7px}
+.fin-carteira .leg div{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text)}
+.fin-carteira .leg b{margin-left:auto;font-family:var(--mono)}
+.fin-carteira .sw{width:9px;height:9px;border-radius:3px}
+.fin-carteira .sw.green{background:var(--green)}.fin-carteira .sw.blue{background:var(--blue)}.fin-carteira .sw.red{background:var(--red)}.fin-carteira .sw.slate{background:var(--brass)}
+
+/* receita por cliente */
+.fin-receita{padding:15px 18px;display:flex;flex-direction:column;gap:11px}
+.fin-receita .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.fin-receita .top b{color:var(--name)}
+.fin-receita .top span{font-family:var(--mono);color:var(--text)}
+.fin-receita .track{height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.fin-receita .fill{height:100%;background:var(--green)}
+
+/* inadimplência */
+.fin-inad{padding:15px 18px}
+.fin-inad .pct{font-family:var(--serif);font-size:30px;color:var(--red);line-height:1}
+.fin-inad .base{font-size:11px;color:var(--muted);margin-top:4px}
+.fin-inad .lista{margin-top:13px;display:flex;flex-direction:column;gap:9px}
+.fin-inad .item{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:10px}
+.fin-inad .who{flex:1;min-width:0}
+.fin-inad .who b{color:var(--name);font-size:12.5px}
+.fin-inad .who .sub{font-size:10.5px;color:var(--muted);margin-top:1px}
+.fin-inad .val{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--red)}
+.fin-regua{display:block;width:100%;margin-top:12px;padding:9px;border-radius:9px;font-size:12px;font-weight:700;text-align:center;color:var(--red);background:var(--surface);border:1px solid color-mix(in srgb,var(--red) 35%,transparent);text-decoration:none}
+.fin-regua:hover{background:var(--red-soft)}
+
+/* contratos */
+.fin-tabs{margin-left:auto;display:flex;gap:6px}
+.fin-contratos{display:flex;flex-direction:column}
+.fin-contratos .row{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line-soft);text-decoration:none}
+.fin-contratos .row:hover{background:var(--surface-2)}
+.fin-contratos .lhs{flex:1;min-width:0}
+.fin-contratos .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fin-contratos .top b{color:var(--name);font-size:13.5px}
+.fin-contratos .obj{font-size:12px;color:var(--muted);margin-top:3px}
+.fin-contratos .obj .dim{color:var(--muted-2)}
+.fin-contratos .prog{flex:none;width:180px}
+.fin-contratos .prog .meta{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-bottom:4px}
+.fin-contratos .prog .meta .red{color:var(--red)}.fin-contratos .prog .meta .blue{color:var(--blue)}
+.fin-contratos .prog .track{height:7px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.fin-contratos .prog .fill{height:100%;background:var(--green)}
+.fin-contratos .prog .fill.red{background:var(--red)}.fin-contratos .prog .fill.blue{background:var(--blue)}
+.fin-contratos .val{flex:none;width:120px;text-align:right}
+.fin-contratos .val .tot{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)}
+.fin-contratos .val .paid{font-size:10.5px;font-family:var(--mono);margin-top:1px}
+.fin-contratos .val .paid.green{color:var(--green)}.fin-contratos .val .paid.red{color:var(--red)}.fin-contratos .val .paid.blue{color:var(--blue)}
+.fin-contratos .pill{font-size:9.5px;font-weight:700;border-radius:5px;padding:1px 7px;text-transform:capitalize}
+.fin-contratos .pill.green{color:var(--green);background:var(--green-soft)}
+.fin-contratos .pill.red{color:var(--red);background:var(--red-soft)}
+.fin-contratos .pill.blue{color:var(--blue);background:var(--blue-soft)}
+.fin-contratos .pill.slate{color:var(--brass);background:var(--brass-soft)}
+.fin-vermais{display:block;width:100%;padding:10px 20px;background:var(--surface-2);border:none;border-top:1px solid var(--line-soft);text-align:center;font-size:11.5px;color:var(--muted);font-weight:600;cursor:pointer}
+.fin-vermais:hover{color:var(--text)}
+
+/* tabelas (parcelas, despesas) */
+.fin-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.fin-table thead tr{background:var(--surface-2)}
+.fin-table th{text-align:left;padding:9px 20px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.fin-table th:not(:first-child){padding-left:8px}
+.fin-table th.c,.fin-table td.c{text-align:center}
+.fin-table th.r,.fin-table td.r{text-align:right}
+.fin-table td{padding:12px 8px;border-top:1px solid var(--line-soft);font-size:11.5px;color:var(--text)}
+.fin-table td:first-child{padding-left:20px}
+.fin-table td:last-child{padding-right:20px}
+.fin-table .nm{color:var(--name);font-size:12.5px}
+.fin-table .obj{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fin-table .money{font-weight:600;color:var(--ink)}
+.fin-table .sub{font-size:10px;margin-top:2px}
+.fin-table .sub.red{color:var(--red)}.fin-table .sub.amber{color:var(--amber)}
+.fin-tag{font-size:10px;font-weight:700;border-radius:5px;padding:2px 8px}
+.fin-tag.green{color:var(--green);background:var(--green-soft)}
+.fin-tag.gray{color:var(--muted);background:var(--surface-2)}
+
+@media (max-width:900px){
+  .fin-kpis{grid-template-columns:repeat(2,1fr)}
+  .fin-2col{grid-template-columns:1fr}
+  .fin-head h1{font-size:32px}
+  .fin-contratos .row{flex-wrap:wrap}
+  .fin-contratos .prog{width:100%}
+}
