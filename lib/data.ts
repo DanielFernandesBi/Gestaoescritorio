@@ -893,6 +893,7 @@ export type AudienciaCard = {
   processo_id: string;
   tipo: string;
   data_hora: string;
+  data_fim: string | null;
   modalidade: string | null;
   local_link: string | null;
   status: string;
@@ -912,7 +913,7 @@ export async function getAudienciasPainel(): Promise<AudienciaCard[]> {
   const { data } = await supabase
     .from("audiencias")
     .select(
-      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome,situacao_prisional)))",
+      "id, processo_id, tipo, data_hora, data_fim, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome,situacao_prisional)))",
     )
     .order("data_hora", { ascending: true });
 
@@ -924,6 +925,7 @@ export async function getAudienciasPainel(): Promise<AudienciaCard[]> {
       processo_id: r.processo_id as string,
       tipo: r.tipo as string,
       data_hora: r.data_hora as string,
+      data_fim: (r.data_fim as string) ?? null,
       modalidade: (r.modalidade as string) ?? null,
       local_link: (r.local_link as string) ?? null,
       status: r.status as string,

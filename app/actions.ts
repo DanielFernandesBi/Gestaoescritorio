@@ -307,12 +307,15 @@ export async function criarAudiencia(fd: FormData): Promise<Resultado> {
     if (!processo_id || !tipo || !dataLocal) return { ok: false, message: "Processo, tipo e data/hora são obrigatórios." };
     const data_hora = `${dataLocal}:00-03:00`; // horário de Brasília
     const modalidade = String(fd.get("modalidade") || "") || null;
+    const fimLocal = String(fd.get("data_fim") || "");
+    const data_fim = fimLocal ? `${fimLocal}:00-03:00` : null; // Sugestão 66: fim da janela (sessão virtual)
+    if (data_fim && data_fim < data_hora) return { ok: false, message: "O fim da janela deve ser igual ou posterior ao início." };
     const local_link = String(fd.get("local_link") || "").trim() || null;
     const responsavel = String(fd.get("responsavel") || "Daniel");
     const observacoes = String(fd.get("observacoes") || "").trim() || null;
 
     const { error } = await supabase.from("audiencias").insert({
-      processo_id, tipo, data_hora, modalidade, local_link, responsavel, observacoes,
+      processo_id, tipo, data_hora, data_fim, modalidade, local_link, responsavel, observacoes,
       status: "designada", validado: false,
     });
     if (error) throw error;
@@ -1215,6 +1218,9 @@ export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resu
     if (!tipo) return { ok: false, message: "Tipo é obrigatório." };
     if (!dataLocal) return { ok: false, message: "Data e hora são obrigatórias." };
     const data_hora = `${dataLocal}:00-03:00`; // horário de Brasília
+    const fimLocal = String(fd.get("data_fim") || "");
+    const data_fim = fimLocal ? `${fimLocal}:00-03:00` : null; // Sugestão 66: fim da janela (sessão virtual)
+    if (data_fim && data_fim < data_hora) return { ok: false, message: "O fim da janela deve ser igual ou posterior ao início." };
 
     const { data: a } = await supabase
       .from("audiencias")
@@ -1224,7 +1230,7 @@ export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resu
 
     const { error } = await supabase
       .from("audiencias")
-      .update({ tipo, data_hora, modalidade, local_link, responsavel, observacoes })
+      .update({ tipo, data_hora, data_fim, modalidade, local_link, responsavel, observacoes })
       .eq("id", id);
     if (error) throw error;
 
