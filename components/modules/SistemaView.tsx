@@ -20,6 +20,72 @@ function StatusBadge({ s }: { s: Sugestao }) {
   return <span className="sis-badge amber">PENDENTE</span>;
 }
 
+/* Considera "grande" quando o texto + SQL passam de um limiar — aí o corpo nasce
+ * recolhido (altura padrão) com botão Expandir. */
+function ehGrande(s: Sugestao): boolean {
+  const sql = s.sql_proposto ?? "";
+  const linhasSql = sql ? sql.split("\n").length : 0;
+  return (s.sugestao?.length ?? 0) > 240 || sql.length > 220 || linhasSql > 5;
+}
+
+function SugestaoCard({ s }: { s: Sugestao }) {
+  const grande = ehGrande(s);
+  const [aberto, setAberto] = useState(false);
+  const recolhido = grande && !aberto;
+  return (
+    <article className={`sis-card${s.status === "pendente" ? " pend" : ""}`}>
+      <div className="sis-card-h">
+        <span className="num">#{s.id}</span>
+        <span className="ctx">{s.contexto}</span>
+        <span className="sis-ia"><Spark />sugerida pela IA</span>
+        <span className="end"><StatusBadge s={s} /></span>
+      </div>
+
+      <div className={`sis-body${recolhido ? " recolhido" : ""}`}>
+        <div className="sis-desc">{s.sugestao}</div>
+        {s.sql_proposto && <pre className="sis-sql">{s.sql_proposto}</pre>}
+        {recolhido && <div className="sis-fade" aria-hidden />}
+      </div>
+      {grande && (
+        <button type="button" className="sis-expand" onClick={() => setAberto((v) => !v)}>
+          {aberto ? "Recolher ▲" : "Expandir ▼"}
+        </button>
+      )}
+
+      <div className="sis-foot">
+        <span className="note">
+          {s.status === "pendente" && "Decisão só registra o status — não executa DDL."}
+          {s.status === "aprovada" && "Aprovada por Daniel · aguarda execução autorizada."}
+          {s.status === "executada" && <span className="ok">✓ Implementada{s.decidida_em ? ` em ${fmtDate(s.decidida_em)}` : ""}</span>}
+          {s.status === "rejeitada" && <>Rejeitada{s.decidida_em ? ` em ${fmtDate(s.decidida_em)}` : ""}</>}
+        </span>
+        <span className="acts">
+          {s.status === "pendente" && (
+            <Acao label="Aprovar" size="sm" titulo="Aprovar sugestão"
+              resumo={<>Marcar a sugestão #{s.id} como <b>aprovada</b>? (não executa DDL — só registra a decisão)</>}
+              acao={atualizarSugestao.bind(null, s.id, "aprovada")} />
+          )}
+          {(s.status === "pendente" || s.status === "aprovada") && (
+            <Acao label="Marcar executada" variant="ok" size="sm" titulo="Marcar executada"
+              resumo={<>Confirmar que a sugestão #{s.id} já foi <b>executada</b> no banco (DDL registrada em migracoes)?</>}
+              acao={atualizarSugestao.bind(null, s.id, "executada")} />
+          )}
+          {(s.status === "pendente" || s.status === "aprovada") && (
+            <Acao label="Rejeitar" variant="danger" size="sm" titulo="Rejeitar sugestão"
+              resumo={<>Marcar a sugestão #{s.id} como <b>rejeitada</b>?</>}
+              acao={atualizarSugestao.bind(null, s.id, "rejeitada")} />
+          )}
+          {s.status === "rejeitada" && (
+            <Acao label="Reconsiderar" variant="ghost" size="sm" titulo="Reconsiderar sugestão"
+              resumo={<>Voltar a sugestão #{s.id} para <b>pendente</b>?</>}
+              acao={atualizarSugestao.bind(null, s.id, "pendente")} />
+          )}
+        </span>
+      </div>
+    </article>
+  );
+}
+
 export function SistemaView({
   sugestoes,
   estrutura,
@@ -83,50 +149,9 @@ export function SistemaView({
       </div>
 
       {/* sugestões */}
-      {filtradas.length ? filtradas.map((s) => (
-        <article className={`sis-card${s.status === "pendente" ? " pend" : ""}`} key={s.id}>
-          <div className="sis-card-h">
-            <span className="num">#{s.id}</span>
-            <span className="ctx">{s.contexto}</span>
-            <span className="sis-ia"><Spark />sugerida pela IA</span>
-            <span className="end"><StatusBadge s={s} /></span>
-          </div>
-          <div className="sis-desc">{s.sugestao}</div>
-          {s.sql_proposto && <pre className="sis-sql">{s.sql_proposto}</pre>}
-          <div className="sis-foot">
-            <span className="note">
-              {s.status === "pendente" && "Decisão só registra o status — não executa DDL."}
-              {s.status === "aprovada" && "Aprovada por Daniel · aguarda execução autorizada."}
-              {s.status === "executada" && <span className="ok">✓ Implementada{s.decidida_em ? ` em ${fmtDate(s.decidida_em)}` : ""}</span>}
-              {s.status === "rejeitada" && <>Rejeitada{s.decidida_em ? ` em ${fmtDate(s.decidida_em)}` : ""}</>}
-            </span>
-            <span className="acts">
-              {s.status === "pendente" && (
-                <Acao label="Aprovar" size="sm" titulo="Aprovar sugestão"
-                  resumo={<>Marcar a sugestão #{s.id} como <b>aprovada</b>? (não executa DDL — só registra a decisão)</>}
-                  acao={atualizarSugestao.bind(null, s.id, "aprovada")} />
-              )}
-              {(s.status === "pendente" || s.status === "aprovada") && (
-                <Acao label="Marcar executada" variant="ok" size="sm" titulo="Marcar executada"
-                  resumo={<>Confirmar que a sugestão #{s.id} já foi <b>executada</b> no banco (DDL registrada em migracoes)?</>}
-                  acao={atualizarSugestao.bind(null, s.id, "executada")} />
-              )}
-              {(s.status === "pendente" || s.status === "aprovada") && (
-                <Acao label="Rejeitar" variant="danger" size="sm" titulo="Rejeitar sugestão"
-                  resumo={<>Marcar a sugestão #{s.id} como <b>rejeitada</b>?</>}
-                  acao={atualizarSugestao.bind(null, s.id, "rejeitada")} />
-              )}
-              {s.status === "rejeitada" && (
-                <Acao label="Reconsiderar" variant="ghost" size="sm" titulo="Reconsiderar sugestão"
-                  resumo={<>Voltar a sugestão #{s.id} para <b>pendente</b>?</>}
-                  acao={atualizarSugestao.bind(null, s.id, "pendente")} />
-              )}
-            </span>
-          </div>
-        </article>
-      )) : (
-        <div className="sis-empty">Nenhuma sugestão neste filtro.</div>
-      )}
+      {filtradas.length
+        ? filtradas.map((s) => <SugestaoCard key={s.id} s={s} />)
+        : <div className="sis-empty">Nenhuma sugestão neste filtro.</div>}
 
       {/* estrutura do banco */}
       <div className="sis-estrutura">

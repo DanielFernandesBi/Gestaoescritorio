@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { getMigracoes } from "@/lib/data";
-import { fmtDate } from "@/lib/format";
+
+/** Nome curto da migração: 1ª oração da descrição (corta em . / — / : / quebra). */
+function nomeMigracao(desc: string | null): string | null {
+  if (!desc) return null;
+  const t = desc.trim().split(/[.\n]|\s[—–]\s|:\s/)[0].trim();
+  return t.length > 52 ? t.slice(0, 50).trimEnd() + "…" : t;
+}
 
 /**
  * Trilho lateral da /sistema — 3ª coluna do shell (slot @rail). Como o sistema
@@ -36,9 +42,9 @@ export default async function SistemaRail() {
         {migracoes.length ? (
           <ul className="sis-mig">
             {migracoes.map((m) => (
-              <li key={m.id}>
-                <span className="d mono">{fmtDate(m.executada_em)}</span>
-                <span className="t">{m.descricao ?? `migração #${m.id}`}</span>
+              <li key={m.id} title={m.descricao ?? ""}>
+                <span className="d mono">#{m.id}</span>
+                <span className="t">{nomeMigracao(m.descricao) ?? `migração #${m.id}`}</span>
               </li>
             ))}
           </ul>
