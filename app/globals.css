@@ -131,6 +131,10 @@ body.nav-locked{overflow:hidden}
 .btn.ghost:hover{background:var(--line-soft);color:var(--text)}
 .btn.sm{padding:5px 10px;font-size:12px}
 .btn:disabled{opacity:.6;cursor:not-allowed}
+/* "Marcar lido" — único caminho para carimbar a leitura; destaque em azul + olho */
+.btn.marcar-lido{color:var(--blue);background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 35%,transparent);font-weight:700}
+.btn.marcar-lido:hover{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,var(--surface))}
+.btn.marcar-lido svg{color:var(--blue)}
 
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 .chip{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--muted);transition:.12s}
