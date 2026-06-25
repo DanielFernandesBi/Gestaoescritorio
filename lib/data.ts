@@ -2142,6 +2142,105 @@ export async function getAuditoria(): Promise<{
   };
 }
 
+/* Auditoria — painel rico (tela /auditoria, alvo Plantão) ---------------------
+ * Lê a própria tabela `auditoria` (não a view magra) para trazer a ORIGEM e o
+ * diff REAL antes/depois (dados_antes → dados_depois). Sem inventar texto: a
+ * linha de detalhe é o que mudou de fato. Contadores por operação nas 24h +
+ * total histórico (a prova append-only). */
+
+export type AuditoriaMudanca = { campo: string; antes: string; depois: string };
+export type EventoAuditoriaRico = {
+  id: number;
+  ocorrido_em: string;
+  tabela: string;
+  operacao: string;
+  referencia: string | null;
+  registro_id: string | null;
+  origem: string | null;
+  mudancas: AuditoriaMudanca[];
+  detalhe: string | null;
+  segredo: boolean;
+};
+
+const _RUIDO = new Set(["atualizado_em", "updated_at", "criado_em", "created_at", "ocorrido_em"]);
+const _PRIOR = ["validado", "status", "merged_into", "modalidade", "favorito", "situacao_prisional", "regime_atual", "responsavel", "prioridade", "cumprido_em", "revisado_em", "data_hora", "data_fatal"];
+function _valAudit(v: unknown): string {
+  if (v == null || v === "") return "∅";
+  if (typeof v === "boolean") return v ? "true" : "false";
+  const s = String(v);
+  return s.length > 22 ? s.slice(0, 20).trimEnd() + "…" : s;
+}
+function _refAudit(d: Record<string, unknown> | null, registro_id: string | null): string | null {
+  if (!d) return registro_id;
+  return (d.numero_cnj as string) || (d.ato as string) || (d.titulo as string) || (d.nome as string) || (d.resumo as string) || registro_id;
+}
+
+export async function getAuditoriaPainel(): Promise<{
+  eventos: EventoAuditoriaRico[];
+  contadores: { eventos24h: number; insert: number; update: number; delete: number };
+  total: number;
+}> {
+  const supabase = await createClient();
+  const desde = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const cnt = (op?: string) => {
+    let q = supabase.from("auditoria").select("*", { count: "exact", head: true }).gte("ocorrido_em", desde);
+    if (op) q = q.eq("operacao", op);
+    return q;
+  };
+  const [lista, c24, ci, cu, cd, totalAll] = await Promise.all([
+    supabase.from("auditoria").select("id, ocorrido_em, tabela, operacao, registro_id, dados_antes, dados_depois, origem").order("ocorrido_em", { ascending: false }).limit(120),
+    cnt(), cnt("INSERT"), cnt("UPDATE"), cnt("DELETE"),
+    supabase.from("auditoria").select("*", { count: "exact", head: true }),
+  ]);
+
+  const eventos = ((lista.data ?? []) as Record<string, unknown>[]).map((r): EventoAuditoriaRico => {
+    const antes = (r.dados_antes as Record<string, unknown> | null) ?? null;
+    const depois = (r.dados_depois as Record<string, unknown> | null) ?? null;
+    const operacao = r.operacao as string;
+
+    let mudancas: AuditoriaMudanca[] = [];
+    let detalhe: string | null = null;
+
+    if (operacao === "UPDATE" && antes && depois) {
+      const mudou = Object.keys(depois).filter(
+        (k) => !_RUIDO.has(k) && JSON.stringify(antes[k]) !== JSON.stringify(depois[k]),
+      );
+      mudou.sort((a, b) => {
+        const ra = _PRIOR.indexOf(a), rb = _PRIOR.indexOf(b);
+        return (ra === -1 ? 99 : ra) - (rb === -1 ? 99 : rb);
+      });
+      mudancas = mudou.slice(0, 2).map((k) => ({ campo: k, antes: _valAudit(antes[k]), depois: _valAudit(depois[k]) }));
+    } else if (operacao === "INSERT" && depois) {
+      const bits: string[] = [];
+      if (depois.status) bits.push(`status ${depois.status}`);
+      if (depois.validado != null) bits.push(`validado=${_valAudit(depois.validado)}`);
+      if (depois.origem) bits.push(`origem ${depois.origem}`);
+      else if (depois.cadastro_automatico) bits.push("escalonamento");
+      detalhe = bits.join(" · ") || null;
+    }
+
+    const d = depois ?? antes;
+    return {
+      id: Number(r.id),
+      ocorrido_em: r.ocorrido_em as string,
+      tabela: r.tabela as string,
+      operacao,
+      referencia: _refAudit(d, (r.registro_id as string) ?? null),
+      registro_id: (r.registro_id as string) ?? null,
+      origem: (r.origem as string) ?? null,
+      mudancas,
+      detalhe,
+      segredo: Boolean(d?.segredo_justica),
+    };
+  });
+
+  return {
+    eventos,
+    contadores: { eventos24h: c24.count ?? 0, insert: ci.count ?? 0, update: cu.count ?? 0, delete: cd.count ?? 0 },
+    total: totalAll.count ?? 0,
+  };
+}
+
 /* Sistema ---------------------------------------------------------------- */
 
 export type Sugestao = {
