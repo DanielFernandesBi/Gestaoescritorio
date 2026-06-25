@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { ProcRef } from "@/components/ui";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
-import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa, vincularClienteProcesso, marcarIntimacaoLida } from "@/app/actions";
+import { atualizarIntimacao, atualizarIntimacaoCampos, promoverOrfa, vincularClienteProcesso } from "@/app/actions";
+import { MarcarLido } from "@/components/MarcarLido";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm";
@@ -35,11 +36,9 @@ export function IntimacaoDetalhe({
     return () => { vivo = false; };
   }, []);
 
-  // Sugestão 53 — abrir o detalhe = ler. Carimba revisado_em uma vez (COALESCE no
-  // servidor: reabrir não sobrescreve). O Cowork nunca passa por aqui.
-  useEffect(() => {
-    marcarIntimacaoLida(i.id).catch(() => {});
-  }, [i.id]);
+  // Sugestão 53 — a leitura NÃO é mais carimbada ao abrir o detalhe (evita
+  // miss-click sem observância). Só o botão explícito "Marcar lido" abaixo
+  // grava revisado_em. O Cowork nunca passa por aqui.
 
   return (
     <>
@@ -104,6 +103,7 @@ export function IntimacaoDetalhe({
       <div className="dsec">
         <h4>Ações</h4>
         <div className="acoes">
+          {i.revisado_em == null && <MarcarLido id={i.id} />}
           <FormModal label="Editar dados" titulo="Editar intimação" acao={atualizarIntimacaoCampos.bind(null, i.id)} enviarLabel="Salvar" variant="default">
             <div><label>Resumo</label><input name="resumo" defaultValue={i.resumo ?? ""} placeholder="Resumo da intimação" /></div>
             <div><label>Teor integral</label><textarea name="teor" rows={6} defaultValue={i.teor ?? ""} placeholder="Cole o teor integral da intimação." /></div>
