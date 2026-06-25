@@ -1,4 +1,4 @@
-import { getClientes } from "@/lib/data";
+import { getAcervoClientes } from "@/lib/data";
 import { ClientesList } from "@/components/modules/ClientesList";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
@@ -8,16 +8,16 @@ import { SITUACAO_PRISIONAL } from "@/lib/enums";
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
-  const clientes = await getClientes();
+  const clientes = await getAcervoClientes();
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">{clientes.length} ativos</div>
+          <div className="eyebrow">Acervo de pessoas · situação consolidada</div>
           <h1>Clientes</h1>
-          <p>Dados pessoais, situação prisional e contato da família. Dedup por nome normalizado / CPF.</p>
+          <p>Cada pessoa com a situação consolidada — prisional, processos, prazos, financeiro e marcos de execução — num único olhar.</p>
         </div>
-        <FormModal label={<><Icon name="users" size={15} /> Novo cliente</>} titulo="Novo cliente" descricao="Checagem de duplicata por nome (sem acento) e CPF." acao={criarCliente} enviarLabel="Cadastrar">
+        <FormModal label={<><Icon name="users" size={15} /> Cadastrar cliente</>} titulo="Novo cliente" descricao="Checagem de duplicata por nome (sem acento) e CPF." acao={criarCliente} enviarLabel="Cadastrar">
           <div><label>Nome completo</label><input name="nome" required placeholder="Nome do cliente" /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label>CPF</label><input name="cpf" placeholder="(opcional)" /></div>

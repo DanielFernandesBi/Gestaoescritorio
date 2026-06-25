@@ -1113,6 +1113,121 @@ export async function getClientes(): Promise<Cliente[]> {
   });
 }
 
+/* Acervo de clientes — cards com situação consolidada (redesign /clientes) ----
+ * Reusa getClientes (vw_situacao_cliente) e enriquece por cliente com sinais
+ * (papel, sigilo, próx. fatal, audiência, execução, financeiro) via consultas
+ * batch pequenas. Só leitura, sem DDL. */
+
+type CliRef = { clientes?: { id?: string | null } | null }[];
+const idsDeProc = (p: unknown): string[] => {
+  const proc = p as { cliente_processo?: CliRef } | null;
+  return (proc?.cliente_processo ?? []).map((x) => x.clientes?.id).filter(Boolean) as string[];
+};
+
+export type ClienteAcervo = Cliente & {
+  contato_familia: string | null;
+  papel: string | null;
+  segredo: boolean;
+  prox_fatal: string | null;
+  prox_fatal_dias: number | null;
+  audiencia: string | null;
+  regime: string | null;
+  beneficio_dias: number | null;
+  livramento_dias: number | null;
+  tem_atestado: boolean;
+  em_execucao: boolean;
+  inadimplente: boolean;
+  fin_parcela: number | null;
+  fin_dias_atraso: number | null;
+  fin_valor: number | null;
+};
+
+export async function getAcervoClientes(): Promise<ClienteAcervo[]> {
+  const supabase = await createClient();
+  const base = await getClientes();
+  const ids = base.map((c) => c.id);
+
+  const [cont, prz, aud, exe, ctr, pag, cp] = await Promise.all([
+    supabase.from("clientes").select("id, contato_familia").in("id", ids),
+    supabase.from("prazos").select("data_fatal, processos(cliente_processo(clientes(id)))").eq("status", "aberto"),
+    supabase.from("audiencias").select("data_hora, processos(cliente_processo(clientes(id)))").eq("status", "designada"),
+    supabase.from("vw_situacao_executoria_atual").select("cliente_id, regime_atual, dias_para_progressao, dias_para_livramento"),
+    supabase.from("contratos").select("cliente_id, status"),
+    supabase.from("pagamentos").select("numero_parcela, valor, vencimento, contratos(cliente_id)").eq("status", "atrasado"),
+    supabase.from("cliente_processo").select("cliente_id, papel, processos(segredo_justica)"),
+  ]);
+
+  const mCont = new Map((cont.data ?? []).map((r) => [r.id as string, (r.contato_familia as string) ?? null]));
+  const mFatal = new Map<string, string>();
+  for (const r of prz.data ?? []) {
+    const f = (r.data_fatal as string) ?? null;
+    if (!f) continue;
+    for (const cid of idsDeProc(r.processos)) {
+      const cur = mFatal.get(cid);
+      if (!cur || f < cur) mFatal.set(cid, f);
+    }
+  }
+  const mAud = new Map<string, string>();
+  for (const r of aud.data ?? []) {
+    const d = (r.data_hora as string) ?? null;
+    if (!d) continue;
+    for (const cid of idsDeProc(r.processos)) {
+      const cur = mAud.get(cid);
+      if (!cur || d < cur) mAud.set(cid, d);
+    }
+  }
+  const mExe = new Map<string, { regime: string | null; prog: number | null; livr: number | null }>();
+  for (const r of exe.data ?? [])
+    mExe.set(r.cliente_id as string, {
+      regime: (r.regime_atual as string) ?? null,
+      prog: r.dias_para_progressao == null ? null : Number(r.dias_para_progressao),
+      livr: r.dias_para_livramento == null ? null : Number(r.dias_para_livramento),
+    });
+  const inadimSet = new Set<string>();
+  for (const r of ctr.data ?? []) if (r.status === "inadimplente") inadimSet.add(r.cliente_id as string);
+  const mPag = new Map<string, { parcela: number; valor: number; dias: number }>();
+  for (const r of pag.data ?? []) {
+    const c = r.contratos as unknown as { cliente_id?: string | null } | null;
+    const cid = c?.cliente_id;
+    if (!cid) continue;
+    const dias = -diasAte(r.vencimento as string);
+    const cur = mPag.get(cid);
+    if (!cur || dias > cur.dias) mPag.set(cid, { parcela: Number(r.numero_parcela ?? 0), valor: Number(r.valor ?? 0), dias });
+  }
+  const mCp = new Map<string, { papel: string | null; segredo: boolean }>();
+  for (const r of cp.data ?? []) {
+    const cid = r.cliente_id as string;
+    const seg = Boolean((r.processos as unknown as { segredo_justica?: boolean | null } | null)?.segredo_justica);
+    const cur = mCp.get(cid);
+    if (!cur) mCp.set(cid, { papel: (r.papel as string) ?? null, segredo: seg });
+    else if (seg) cur.segredo = true;
+  }
+
+  return base.map((c): ClienteAcervo => {
+    const exec = mExe.get(c.id);
+    const pg = mPag.get(c.id);
+    const fatal = mFatal.get(c.id) ?? null;
+    return {
+      ...c,
+      contato_familia: mCont.get(c.id) ?? null,
+      papel: mCp.get(c.id)?.papel ?? null,
+      segredo: mCp.get(c.id)?.segredo ?? false,
+      prox_fatal: fatal,
+      prox_fatal_dias: fatal ? diasAte(fatal) : null,
+      audiencia: mAud.get(c.id) ?? null,
+      regime: exec?.regime ?? null,
+      beneficio_dias: exec?.prog ?? null,
+      livramento_dias: exec?.livr ?? null,
+      tem_atestado: Boolean(exec),
+      em_execucao: Boolean(exec),
+      inadimplente: inadimSet.has(c.id) || mPag.has(c.id),
+      fin_parcela: pg?.parcela ?? null,
+      fin_dias_atraso: pg?.dias ?? null,
+      fin_valor: pg?.valor ?? null,
+    };
+  });
+}
+
 /** Um cliente pelo id (inclusive inativo), na mesma forma de `getClientes`. */
 export async function getClientePorId(id: string): Promise<Cliente | null> {
   const supabase = await createClient();
