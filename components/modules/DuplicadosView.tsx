@@ -1,285 +1,401 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Chips } from "@/components/Chips";
-import { Icon } from "@/components/Icon";
-import { FiltrosCard } from "@/components/FiltrosCard";
-import { Pill, SegredoTag } from "@/components/ui";
+import { SegredoTag } from "@/components/ui";
 import { mesclarCliente, mesclarProcesso } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 import type { Resultado } from "@/app/actions";
-import type { ClienteDuplicadoCluster, ProcessoReconciliacao } from "@/lib/data";
+import type {
+  ClienteDuplicadoCluster,
+  ProcessoReconciliacao,
+  DuplicadosContadores,
+  TombstoneResolvido,
+} from "@/lib/data";
 
 type ProcLite = { id: string; label: string; numero_cnj: string | null; segredo: boolean };
 
-/* Bloco de contagens (o que será reassociado) ---------------------------- */
-function Contagens({ tipo, dup }: { tipo: "cliente" | "processo"; dup: string | null }) {
-  const [cont, setCont] = useState<Record<string, number> | null>(null);
-  const [carregando, setCarregando] = useState(false);
-  useEffect(() => {
-    if (!dup) { setCont(null); return; }
-    let vivo = true;
-    setCarregando(true);
-    fetch(`/api/merge-preview?tipo=${tipo}&dup=${dup}`)
-      .then((r) => r.json())
-      .then((d) => { if (vivo) setCont(d.contagens ?? {}); })
-      .catch(() => { if (vivo) setCont({}); })
-      .finally(() => { if (vivo) setCarregando(false); });
-    return () => { vivo = false; };
-  }, [tipo, dup]);
+/* ── glifos (fora do set do Icon.tsx) ───────────────────────────────────── */
+const Spark = ({ s = 11, c = "#fff" }: { s?: number; c?: string }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" style={{ fill: c }} aria-hidden>
+    <path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z" />
+  </svg>
+);
+const Person = ({ c = "var(--muted-2)" }: { c?: string }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+    <circle cx="12" cy="8" r="3.4" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" />
+  </svg>
+);
+const Merge = ({ s = 17, c = "var(--accent)", tail = true }: { s?: number; c?: string; tail?: boolean }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M7 4v5a5 5 0 0 0 5 5 5 5 0 0 1 5 5v1M17 4v5a5 5 0 0 1-5 5" />
+    {tail && <path d="M14 18l3 2-3 2" />}
+  </svg>
+);
+const Minus = ({ c = "var(--slate)" }: { c?: string }) => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M5 12h14" /></svg>
+);
+const Check = ({ c = "var(--green)" }: { c?: string }) => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" aria-hidden><path d="M20 6 9 17l-5-5" /></svg>
+);
+const Alert = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+  </svg>
+);
+const Refresh = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.4 2.6L3 8" /><path d="M3 4v4h4" />
+  </svg>
+);
+const Arrow = ({ c = "var(--muted-2)" }: { c?: string }) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+);
 
-  if (!dup) return null;
-  if (carregando) return <p className="sub">Calculando o que será reassociado…</p>;
-  const itens = Object.entries(cont ?? {}).filter(([, n]) => n > 0);
+/* ── peça reutilizável: linha de contagens de vínculos ──────────────────── */
+function Counts({ items }: { items: [number, string][] }) {
   return (
-    <div className="dsec" style={{ marginBottom: 0 }}>
-      <h4>Será reassociado ao canônico</h4>
-      {itens.length ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {itens.map(([t, n]) => <Pill key={t} tone="blue" dot={false}>{humano(t)}: {n}</Pill>)}
-        </div>
-      ) : (
-        <p className="sub" style={{ margin: 0 }}>Nenhum vínculo filho no duplicado — apenas a desativação/arquivamento.</p>
-      )}
+    <div className="dup-counts">
+      {items.map(([n, lbl]) => (
+        <span key={lbl}><b>{n}</b> {lbl}</span>
+      ))}
     </div>
   );
 }
 
-/* Modal genérico --------------------------------------------------------- */
-function Modal({ titulo, children, onClose }: { titulo: string; children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className="modal-scrim" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
-        <div className="modal-h"><h3>{titulo}</h3></div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-/* Assistente — clientes -------------------------------------------------- */
-function MergeClienteModal({ cluster }: { cluster: ClienteDuplicadoCluster }) {
+/* ── card de processo sem CNJ (reconciliação) ───────────────────────────── */
+function ProcessoCard({
+  proc,
+  carregarLista,
+}: {
+  proc: ProcessoReconciliacao;
+  carregarLista: () => Promise<ProcLite[]>;
+}) {
   const router = useRouter();
-  const [aberto, setAberto] = useState(false);
-  const [canonico, setCanonico] = useState("");
-  const [duplicado, setDuplicado] = useState("");
+  const [lista, setLista] = useState<ProcLite[] | null>(null);
+  const [escolha, setEscolha] = useState("");      // id do processo com CNJ (par)
+  const [inverter, setInverter] = useState(false); // por padrão o canônico é o que tem CNJ
   const [pend, setPend] = useState(false);
   const [res, setRes] = useState<Resultado | null>(null);
+  const [oculto, setOculto] = useState(false);
 
-  const membros = cluster.ids.map((id, i) => ({ id, nome: cluster.nomes[i], cpf: cluster.cpfs[i] }));
-  const homonimo = cluster.cpfs_distintos > 1;
+  const par = lista?.find((x) => x.id === escolha) ?? null;
+  // canônico = o que tem CNJ (o par escolhido), salvo inversão
+  const canonico = inverter ? proc.id : escolha;
+  const duplicado = inverter ? escolha : proc.id;
 
-  function abrir() {
-    setAberto(true); setRes(null);
-    setCanonico(cluster.ids[0] ?? "");
-    setDuplicado(cluster.ids[1] ?? "");
+  async function abrirSeletor() {
+    if (lista) return;
+    const todos = await carregarLista();
+    setLista(todos.filter((x) => x.numero_cnj && x.id !== proc.id));
   }
   async function confirmar() {
-    setPend(true);
-    const r = await mesclarCliente(canonico, duplicado);
-    setPend(false); setRes(r);
-    if (r.ok) { router.refresh(); setTimeout(() => setAberto(false), 1000); }
-  }
-
-  return (
-    <>
-      <button className="btn sm" onClick={abrir} type="button">Mesclar…</button>
-      {aberto && (
-        <Modal titulo="Mesclar clientes duplicados" onClose={() => setAberto(false)}>
-          <div className="modal-b">
-            {homonimo && (
-              <div className="banner" style={{ margin: "0 0 14px", borderLeftColor: "var(--red)" }}>
-                <span className="ico" style={{ color: "var(--red)" }}>⚠</span>
-                <div><b>CPFs distintos neste grupo</b> — forte indício de <b>homônimos</b> (pessoas diferentes). Em geral, <b>NÃO mescle</b>.</div>
-              </div>
-            )}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div>
-                <label>Canônico (mantém)</label>
-                <select value={canonico} onChange={(e) => setCanonico(e.target.value)}>
-                  {membros.map((m) => <option key={m.id} value={m.id}>{m.nome}{m.cpf ? ` · ${m.cpf}` : " · sem CPF"}</option>)}
-                </select>
-              </div>
-              <div>
-                <label>Duplicado (desativa)</label>
-                <select value={duplicado} onChange={(e) => { setDuplicado(e.target.value); setRes(null); }}>
-                  {membros.map((m) => <option key={m.id} value={m.id}>{m.nome}{m.cpf ? ` · ${m.cpf}` : " · sem CPF"}</option>)}
-                </select>
-              </div>
-            </div>
-            <p className="sub" style={{ marginTop: 8 }}>Campos vazios do canônico serão completados pelo duplicado (nunca sobrescreve preenchido). O duplicado fica inativo — não é apagado.</p>
-            <Contagens tipo="cliente" dup={duplicado} />
-            {res && <div className={`modal-msg ${res.ok ? "ok" : "err"}`}>{res.message}</div>}
-          </div>
-          <div className="modal-f">
-            <button className="btn ghost" type="button" onClick={() => setAberto(false)} disabled={pend}>Fechar</button>
-            <button className="btn primary" type="button" onClick={confirmar}
-              disabled={pend || !canonico || !duplicado || canonico === duplicado || Boolean(res?.ok)}>
-              {pend ? "Mesclando…" : "Confirmar mesclagem"}
-            </button>
-          </div>
-        </Modal>
-      )}
-    </>
-  );
-}
-
-/* Assistente — processos ------------------------------------------------- */
-function MergeProcessoModal({ proc }: { proc: ProcessoReconciliacao }) {
-  const router = useRouter();
-  const [aberto, setAberto] = useState(false);
-  const [lista, setLista] = useState<ProcLite[]>([]);
-  const [outro, setOutro] = useState("");
-  const [canonicoEhEste, setCanonicoEhEste] = useState(false);
-  const [pend, setPend] = useState(false);
-  const [res, setRes] = useState<Resultado | null>(null);
-
-  useEffect(() => {
-    if (!aberto || lista.length) return;
-    fetch("/api/processos-lite").then((r) => r.json()).then((d) => setLista((d.processos ?? []).filter((x: ProcLite) => x.id !== proc.id))).catch(() => {});
-  }, [aberto, lista.length, proc.id]);
-
-  const outroProc = lista.find((x) => x.id === outro);
-  // por padrão "este" (registro-só) é o duplicado e o outro (com CNJ) é o canônico
-  const canonico = canonicoEhEste ? proc.id : outro;
-  const duplicado = canonicoEhEste ? outro : proc.id;
-  const segredoEnvolvido = proc.segredo_justica || Boolean(outroProc?.segredo);
-
-  function abrir() { setAberto(true); setRes(null); setOutro(""); setCanonicoEhEste(false); }
-  async function confirmar() {
+    if (!canonico || !duplicado) return;
     setPend(true);
     const r = await mesclarProcesso(canonico, duplicado);
-    setPend(false); setRes(r);
-    if (r.ok) { router.refresh(); setTimeout(() => setAberto(false), 1000); }
+    setPend(false);
+    setRes(r);
+    if (r.ok) { router.refresh(); }
   }
 
+  if (oculto) {
+    return (
+      <div className="dup-dismissed">
+        Marcado como <b>não duplicado</b> nesta sessão · <span className="mono">{proc.numero_registro_tribunal ?? "sem nº"}</span>
+        <button type="button" onClick={() => setOculto(false)}>desfazer</button>
+      </div>
+    );
+  }
+
+  const tot = proc.n_intim + proc.n_prazos + proc.n_andam + proc.n_docs;
+
   return (
-    <>
-      <button className="btn sm" onClick={abrir} type="button">Mesclar…</button>
-      {aberto && (
-        <Modal titulo="Mesclar / reconciliar processo" onClose={() => setAberto(false)}>
-          <div className="modal-b">
-            {segredoEnvolvido && (
-              <div className="banner" style={{ margin: "0 0 14px", borderLeftColor: "var(--amber)" }}>
-                <span className="ico" style={{ color: "var(--amber)" }}>⚠</span>
-                <div><b>Segredo de justiça envolvido</b> — confira o sigilo antes de mesclar.</div>
-              </div>
-            )}
-            <div className="field" style={{ marginBottom: 10 }}>
-              <div className="k">Este registro (sem CNJ)</div>
-              <div className="v mono">{proc.numero_registro_tribunal ?? "—"} · {proc.tribunal ?? "—"} {proc.segredo_justica && <SegredoTag on />}</div>
-              {proc.clientes && <div className="sub">{proc.clientes}</div>}
-            </div>
-            <div>
-              <label>Processo correspondente (com CNJ)</label>
-              <select value={outro} onChange={(e) => { setOutro(e.target.value); setRes(null); }}>
-                <option value="">Selecione…</option>
-                {lista.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+    <article className="dup-card ai">
+      <div className="dup-card-h">
+        <span className="dup-badge"><Spark />candidato a duplicata</span>
+        <span className="dup-scn">CNJ ↔ registro do tribunal{proc.tribunal ? ` (${proc.tribunal})` : ""}</span>
+        <span className="dup-warn"><Alert />conferir antes de mesclar</span>
+      </div>
+
+      <div className="dup-split">
+        {/* canônico (com CNJ) — escolhido pelo usuário */}
+        <div className="dup-side">
+          <div className="dup-tag keep"><Check />manter · canônico (com CNJ)</div>
+          {par ? (
+            <>
+              <div className="dup-person"><Person /><b>{par.segredo ? "Processo sigiloso" : (par.numero_cnj ?? par.label)}</b></div>
+              <div className="dup-id mono">{par.segredo ? "—" : par.numero_cnj}</div>
+              <div className="dup-sub">{par.label}</div>
+              <button type="button" className="dup-link" onClick={() => { setEscolha(""); setRes(null); }}>trocar processo</button>
+            </>
+          ) : (
+            <div className="dup-pick">
+              <label>Processo com CNJ correspondente</label>
+              <select
+                value={escolha}
+                onFocus={abrirSeletor}
+                onChange={(e) => { setEscolha(e.target.value); setRes(null); }}
+              >
+                <option value="">{lista ? "Selecione…" : "Carregar processos…"}</option>
+                {(lista ?? []).map((x) => (
+                  <option key={x.id} value={x.id}>{x.label}</option>
+                ))}
               </select>
+              <span className="dup-hint">o canônico é o registro que já tem CNJ</span>
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, textTransform: "none", letterSpacing: 0 }}>
-              <input type="checkbox" checked={canonicoEhEste} onChange={(e) => setCanonicoEhEste(e.target.checked)} style={{ width: "auto" }} />
-              Manter ESTE como canônico (por padrão, o canônico é o que já tem CNJ)
-            </label>
-            <p className="sub" style={{ marginTop: 8 }}>
-              Canônico: <b>{canonicoEhEste ? "este registro" : (outroProc?.label ?? "—")}</b>.
-              Se o canônico não tiver CNJ, ele é completado a partir do duplicado (não cria outro). Duplicado vira <b>arquivado</b>.
-            </p>
-            <Contagens tipo="processo" dup={duplicado === proc.id ? proc.id : outro} />
-            {res && <div className={`modal-msg ${res.ok ? "ok" : "err"}`}>{res.message}</div>}
-          </div>
-          <div className="modal-f">
-            <button className="btn ghost" type="button" onClick={() => setAberto(false)} disabled={pend}>Fechar</button>
-            <button className="btn primary" type="button" onClick={confirmar}
-              disabled={pend || !outro || Boolean(res?.ok)}>
-              {pend ? "Mesclando…" : "Confirmar mesclagem"}
-            </button>
-          </div>
-        </Modal>
-      )}
-    </>
+          )}
+        </div>
+
+        {/* eixo religar */}
+        <div className="dup-merge">
+          <span className="ring"><Merge /></span>
+          <span className="lbl">religar</span>
+        </div>
+
+        {/* tombstone (este registro, sem CNJ) */}
+        <div className="dup-side tomb">
+          <div className="dup-tag tomb"><Minus />vira tombstone (sem CNJ)</div>
+          <div className="dup-person"><Person /><b>{proc.numero_registro_tribunal ?? "registro sem nº"}</b>{proc.segredo_justica && <SegredoTag on />}</div>
+          <div className="dup-id mono">reg. {proc.numero_registro_tribunal ?? "—"}</div>
+          <div className="dup-sub">{[proc.tribunal, proc.uf, proc.instancia ? humano(proc.instancia) : null].filter(Boolean).join(" · ") || "—"}</div>
+          <div className="dup-prov">criado {fmtDate(proc.criado_em)}{proc.cadastrado_por ? ` · ${proc.cadastrado_por}` : ""}</div>
+          <Counts items={[[proc.n_intim, "intim."], [proc.n_prazos, proc.n_prazos === 1 ? "prazo" : "prazos"], [proc.n_andam, "andam."], [proc.n_docs, proc.n_docs === 1 ? "doc" : "docs"]]} />
+        </div>
+      </div>
+
+      <div className="dup-foot">
+        <span className="note">
+          {tot > 0
+            ? <>O histórico (<b>{tot}</b> vínculo{tot === 1 ? "" : "s"}) migra para o canônico com CNJ; o registro do tribunal fica preservado como chave alternativa. </>
+            : <>Sem vínculos filhos — apenas o registro vira tombstone apontando o canônico. </>}
+          <span className="warn-txt">Confirme que é o mesmo processo antes de mesclar.</span>
+        </span>
+        {par && (
+          <button type="button" className="btn sm ghost" onClick={() => setInverter((v) => !v)}>
+            {inverter ? "Canônico: este registro" : "Inverter canônico"}
+          </button>
+        )}
+        <button type="button" className="btn sm" onClick={() => setOculto(true)}>Não é duplicado</button>
+        <button type="button" className="btn sm primary" onClick={confirmar} disabled={pend || !escolha || Boolean(res?.ok)}>
+          <Merge s={13} c="#fff" tail={false} />{pend ? "Mesclando…" : "Mesclar · manter CNJ"}
+        </button>
+      </div>
+      {res && <div className={`dup-msg ${res.ok ? "ok" : "err"}`}>{res.message}</div>}
+    </article>
   );
 }
 
-/* Tela ------------------------------------------------------------------- */
-export function DuplicadosView({ clusters, processos }: { clusters: ClienteDuplicadoCluster[]; processos: ProcessoReconciliacao[] }) {
-  const [aba, setAba] = useState("clientes");
-  const abas = [
-    { id: "clientes", label: `Clientes (${clusters.length})` },
-    { id: "processos", label: `Processos sem CNJ (${processos.length})` },
+/* ── card de cliente duplicado (mesmo nome normalizado) ─────────────────── */
+function ClienteCard({ cluster }: { cluster: ClienteDuplicadoCluster }) {
+  const router = useRouter();
+  const [canonIdx, setCanonIdx] = useState(0);
+  const [pend, setPend] = useState(false);
+  const [res, setRes] = useState<Resultado | null>(null);
+  const [oculto, setOculto] = useState(false);
+
+  const n = cluster.ids.length;
+  const dupIdx = canonIdx === 0 ? 1 : 0; // o "outro" exibido como tombstone
+  const homonimo = cluster.cpfs_distintos > 1;
+
+  const membro = (i: number) => ({
+    id: cluster.ids[i],
+    nome: cluster.nomes[i],
+    cpf: cluster.cpfs[i],
+    criado: cluster.criados[i],
+    por: cluster.cadastrados_por[i],
+    v: cluster.vinculos[i] ?? { n_processos: 0, n_contratos: 0, n_docs: 0 },
+  });
+  const canon = membro(canonIdx);
+  const dup = membro(dupIdx);
+
+  async function confirmar() {
+    setPend(true);
+    const r = await mesclarCliente(canon.id, dup.id);
+    setPend(false);
+    setRes(r);
+    if (r.ok) router.refresh();
+  }
+
+  if (oculto) {
+    return (
+      <div className="dup-dismissed">
+        Marcado como <b>não duplicado</b> nesta sessão · {cluster.nomes[0]}
+        <button type="button" onClick={() => setOculto(false)}>desfazer</button>
+      </div>
+    );
+  }
+
+  const flag = homonimo
+    ? <span className="dup-flag red"><Alert />homônimo? · CPFs distintos</span>
+    : cluster.algum_com_cpf
+      ? <span className="dup-flag amber"><Alert />revisar · confirmar CPF</span>
+      : <span className="dup-flag gray">sem CPF</span>;
+
+  const counts = (m: ReturnType<typeof membro>): [number, string][] => [
+    [m.v.n_processos, m.v.n_processos === 1 ? "processo" : "processos"],
+    [m.v.n_contratos, m.v.n_contratos === 1 ? "contrato" : "contratos"],
+    [m.v.n_docs, m.v.n_docs === 1 ? "doc" : "docs"],
   ];
 
   return (
-    <>
-      <FiltrosCard>
-        <Chips options={abas} value={aba} onChange={setAba} />
-      </FiltrosCard>
+    <article className="dup-card">
+      <div className="dup-card-h plain">
+        <span className="dup-badge soft"><Spark c="var(--accent)" />candidato a duplicata</span>
+        <span className="dup-scn">Acento / maiúsculas</span>
+        <span className="dup-ident mono">{cluster.nome_normalizado}</span>
+        <span className="dup-h-end">{flag}</span>
+      </div>
 
-      {aba === "clientes" ? (
-        <div className="card op-card">
-          <div className="card-h"><h3><Icon name="users" /> Clientes duplicados</h3><span className="sub">{clusters.length} grupos</span></div>
-          <div className="card-b flush">
-            {clusters.length ? (
-              <table>
-                <thead>
-                  <tr><th>Nome</th><th className="center">Registros</th><th>CPFs no grupo</th><th className="center">Sinal</th><th className="right">Ação</th></tr>
-                </thead>
-                <tbody>
-                  {clusters.map((c) => {
-                    const homonimo = c.cpfs_distintos > 1;
-                    return (
-                      <tr key={c.nome_normalizado}>
-                        <td>
-                          <div className="name">{c.nomes[0]}</div>
-                          <div className="sub">{c.nomes.join(" · ")}</div>
-                        </td>
-                        <td className="center mono">{c.qtd}</td>
-                        <td className="mono" style={{ fontSize: 12 }}>{c.cpfs.map((x) => x ?? "—").join(" · ")}</td>
-                        <td className="center">
-                          {homonimo
-                            ? <Pill tone="red">homônimo?</Pill>
-                            : c.algum_com_cpf ? <Pill tone="amber">revisar</Pill> : <Pill tone="gray" dot={false}>sem CPF</Pill>}
-                        </td>
-                        <td className="right"><MergeClienteModal cluster={c} /></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="empty">Nenhum cliente duplicado por nome. 🎉</div>
-            )}
-          </div>
+      <div className="dup-split">
+        <div className="dup-side">
+          <div className="dup-tag keep"><Check />manter · canônico</div>
+          <div className="dup-person"><Person /><b>{canon.nome}</b></div>
+          <div className="dup-id mono">{canon.cpf ? `CPF ${canon.cpf}` : "sem CPF"}</div>
+          <div className="dup-prov">criado {fmtDate(canon.criado)}{canon.por ? ` · ${canon.por}` : ""}</div>
+          <Counts items={counts(canon)} />
         </div>
-      ) : (
-        <div className="card op-card">
-          <div className="card-h"><h3><Icon name="folder" /> Processos sem CNJ</h3><span className="sub">{processos.length} a revisar</span></div>
-          <div className="card-b flush">
-            {processos.length ? (
-              <table>
-                <thead>
-                  <tr><th>Registro</th><th>Tribunal / UF</th><th>Área</th><th>Cliente(s)</th><th>Criado</th><th className="right">Ação</th></tr>
-                </thead>
-                <tbody>
-                  {processos.map((p) => (
-                    <tr key={p.id}>
-                      <td className="mono">{p.numero_registro_tribunal ?? "—"} {p.segredo_justica && <SegredoTag on />}</td>
-                      <td>{[p.tribunal, p.uf].filter(Boolean).join(" · ") || "—"}</td>
-                      <td><Pill tone="gray" dot={false}>{humano(p.area)}</Pill></td>
-                      <td className="sub">{p.clientes ?? "—"}</td>
-                      <td className="mono">{fmtDate(p.criado_em)}</td>
-                      <td className="right"><MergeProcessoModal proc={p} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="empty">Nenhum processo sem CNJ para reconciliar. 🎉</div>
-            )}
-          </div>
+
+        <div className="dup-merge">
+          <span className="ring"><Merge /></span>
+          <span className="lbl">religar</span>
         </div>
+
+        <div className="dup-side tomb">
+          <div className="dup-tag tomb"><Minus />vira tombstone</div>
+          <div className="dup-person"><Person /><b>{dup.nome}</b></div>
+          <div className="dup-id mono">{dup.cpf ? `CPF ${dup.cpf}` : "sem CPF"}</div>
+          <div className="dup-prov">criado {fmtDate(dup.criado)}{dup.por ? ` · ${dup.por}` : ""}</div>
+          <Counts items={counts(dup)} />
+        </div>
+      </div>
+
+      <div className="dup-foot">
+        <span className="note">
+          Religa processos, contratos e documentos ao canônico. Campos vazios do canônico são completados pelo duplicado (nunca sobrescreve).{" "}
+          {homonimo
+            ? <span className="warn-txt">CPFs distintos — forte indício de pessoas diferentes; em geral NÃO mescle.</span>
+            : <span className="dim">Nome difere só por acento/caixa — confirme o CPF.</span>}
+          {n > 2 && <> Grupo com <b>{n}</b> registros — mescle um de cada vez.</>}
+        </span>
+        <button type="button" className="btn sm ghost" onClick={() => setCanonIdx((i) => (i === 0 ? 1 : 0))}>Inverter canônico</button>
+        <button type="button" className="btn sm" onClick={() => setOculto(true)}>Não é duplicado</button>
+        <button type="button" className="btn sm primary" onClick={confirmar} disabled={pend || canon.id === dup.id || Boolean(res?.ok)}>
+          <Merge s={13} c="#fff" tail={false} />{pend ? "Mesclando…" : "Mesclar clientes"}
+        </button>
+      </div>
+      {res && <div className={`dup-msg ${res.ok ? "ok" : "err"}`}>{res.message}</div>}
+    </article>
+  );
+}
+
+/* ── tela ────────────────────────────────────────────────────────────────── */
+const LOTE = 6;
+
+export function DuplicadosView({
+  contadores,
+  clusters,
+  processos,
+  tombstones,
+}: {
+  contadores: DuplicadosContadores;
+  clusters: ClienteDuplicadoCluster[];
+  processos: ProcessoReconciliacao[];
+  tombstones: TombstoneResolvido[];
+}) {
+  const router = useRouter();
+  const [verTodos, setVerTodos] = useState(false);
+  const listaRef = useRef<ProcLite[] | null>(null);
+
+  // /api/processos-lite é buscada uma única vez e compartilhada por todos os cards.
+  const carregarLista = useCallback(async (): Promise<ProcLite[]> => {
+    if (listaRef.current) return listaRef.current;
+    const r = await fetch("/api/processos-lite").then((x) => x.json()).catch(() => ({ processos: [] }));
+    listaRef.current = (r.processos ?? []) as ProcLite[];
+    return listaRef.current;
+  }, []);
+
+  const visiveis = verTodos ? processos : processos.slice(0, LOTE);
+
+  return (
+    <div className="dup-page">
+      {/* cabeçalho */}
+      <div className="dup-head">
+        <div className="lhs">
+          <div className="eyebrow">Conferência de identidade · nunca descarta</div>
+          <h1>Duplicados</h1>
+          <p>
+            A IA sinaliza candidatos a duplicata por <code>numero_cnj</code> <b>ou</b> <code>numero_registro_tribunal</code> (STJ/STF)
+            e por nome normalizado. Mesclar não apaga: o registro vira <b>tombstone</b> (<code>merged_into</code>) e os vínculos
+            religam pelo canônico.
+          </p>
+        </div>
+        <button type="button" className="btn" onClick={() => router.refresh()}><Refresh />Rodar conferência</button>
+      </div>
+
+      {/* contadores */}
+      <div className="dup-counters">
+        <div className="dup-counter accent"><div className="big">{contadores.processos_revisar}</div><div className="lbl">processos · a revisar</div></div>
+        <div className="dup-counter"><div className="big">{contadores.clientes_revisar}</div><div className="lbl">clientes · a revisar</div></div>
+        <div className="dup-counter"><div className="big green">{contadores.mesclados_30d}</div><div className="lbl">mesclados · 30d</div></div>
+        <div className="dup-counter"><div className="big">{contadores.vinculos_religados}</div><div className="lbl">vínculos religados</div></div>
+      </div>
+
+      {/* processos sem CNJ */}
+      {processos.length > 0 && (
+        <>
+          <div className="dup-seclabel">
+            <span className="t">Processos · registro do tribunal sem CNJ</span>
+            <code>numero_cnj IS NULL</code>
+          </div>
+          {visiveis.map((p) => <ProcessoCard key={p.id} proc={p} carregarLista={carregarLista} />)}
+          {processos.length > LOTE && !verTodos && (
+            <button type="button" className="dup-vertodos" onClick={() => setVerTodos(true)}>
+              Ver todos os {processos.length} registros sem CNJ
+            </button>
+          )}
+        </>
       )}
-    </>
+
+      {/* clientes */}
+      <div className="dup-seclabel">
+        <span className="t">Clientes · mesmo nome normalizado</span>
+        <code>nome_normalizado</code>
+      </div>
+      {clusters.length > 0 ? (
+        clusters.map((c) => <ClienteCard key={c.nome_normalizado} cluster={c} />)
+      ) : (
+        <div className="dup-empty">Nenhum cliente duplicado por nome normalizado. 🎉</div>
+      )}
+
+      {/* tombstones resolvidos */}
+      {tombstones.length > 0 && (
+        <article className="dup-card dup-resolved">
+          <div className="dup-resolved-h">
+            <span className="t">Tombstones resolvidos</span>
+            <code>merged_into → canônico · fn_resolver_processo</code>
+            <span className="end">auditado · irreversível por DELETE</span>
+          </div>
+          <div className="dup-resolved-list">
+            {tombstones.map((t) => (
+              <div className="row" key={t.id}>
+                <span className="ico"><Minus c="var(--slate)" /></span>
+                <div className="mid">
+                  <div className="keys">
+                    <span className="mono old">{t.reg_antigo ? `reg. ${t.reg_antigo}` : (t.cnj_antigo ?? "—")}</span>
+                    <Arrow />
+                    <span className="mono new">{t.canonico_ident ?? "—"}</span>
+                  </div>
+                  <div className="sub">
+                    {t.cliente && <b>{t.cliente}</b>}
+                    {t.vinculos > 0 && <> · {t.vinculos} vínculo{t.vinculos === 1 ? "" : "s"} religado{t.vinculos === 1 ? "" : "s"}</>}
+                  </div>
+                </div>
+                <span className="when mono">{fmtDate(t.resolvido_em)}{t.origem ? ` · ${t.origem}` : ""}</span>
+              </div>
+            ))}
+          </div>
+        </article>
+      )}
+    </div>
   );
 }

@@ -1125,3 +1125,144 @@ a.op-row:hover{background:var(--surface-2)}
   .content{padding:18px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+
+/* ============================ Duplicados (redesign) ============================ */
+/* Tokens locais: slate = brass; ai-line/surface-3 derivados, p/ claro+escuro. */
+.dup-page{
+  --ai-line:color-mix(in srgb,var(--accent) 22%,transparent);
+  --surface-3:color-mix(in srgb,var(--line) 65%,var(--surface-2));
+  --slate:var(--brass); --slate-soft:var(--brass-soft);
+  display:flex;flex-direction:column;gap:18px;
+}
+.dup-page code{font-family:var(--mono);font-size:.86em;color:inherit}
+
+/* cabeçalho */
+.dup-head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.dup-head .lhs{flex:1;min-width:0}
+.dup-head .eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.dup-head h1{font-family:var(--serif);font-size:40px;font-weight:400;line-height:1.04;color:var(--ink);margin:6px 0 0}
+.dup-head p{color:var(--muted);font-size:13.5px;margin:6px 0 0;max-width:680px;line-height:1.5}
+.dup-head p code{font-size:12px}
+
+/* contadores */
+.dup-counters{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.dup-counter{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 15px}
+.dup-counter.accent{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.dup-counter .big{font-family:var(--serif);font-size:28px;line-height:1;color:var(--ink)}
+.dup-counter.accent .big{color:var(--accent-strong)}
+.dup-counter .big.green{color:var(--green)}
+.dup-counter .lbl{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* rótulo de seção */
+.dup-seclabel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+.dup-seclabel .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.dup-seclabel code{font-family:var(--mono);font-size:11px;color:var(--muted-2)}
+
+/* card candidato */
+.dup-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(22,25,34,.04)}
+.dup-card.ai{border-color:var(--accent);box-shadow:0 0 0 1px var(--ai-line),0 6px 18px rgba(63,58,230,.06)}
+.dup-card-h{padding:13px 20px;border-bottom:1px solid var(--ai-line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,var(--accent-soft),transparent)}
+.dup-card-h.plain{border-bottom-color:var(--line-soft);background:none}
+.dup-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#fff;background:var(--accent);border-radius:5px;padding:2px 8px}
+.dup-badge.soft{color:var(--accent);background:var(--accent-soft);border:1px solid var(--ai-line)}
+.dup-scn{font-size:12px;color:var(--text);font-weight:600}
+.dup-ident{font-size:11px;color:var(--muted)}
+.dup-warn{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--amber);font-weight:600}
+.dup-h-end{margin-left:auto;display:inline-flex;align-items:center}
+.dup-flag{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;border-radius:5px;padding:2px 8px}
+.dup-flag.red{color:var(--red);background:var(--red-soft)}
+.dup-flag.amber{color:var(--amber);background:var(--amber-soft)}
+.dup-flag.gray{color:var(--slate);background:var(--slate-soft)}
+
+/* corpo lado-a-lado */
+.dup-split{display:grid;grid-template-columns:1fr 56px 1fr;align-items:stretch}
+.dup-side{padding:16px 18px;min-width:0}
+.dup-side.tomb{background:repeating-linear-gradient(135deg,transparent,transparent 9px,rgba(96,106,120,.045) 9px,rgba(96,106,120,.045) 18px)}
+.dup-tag{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;border-radius:5px;padding:2px 8px}
+.dup-tag.keep{color:var(--green);background:var(--green-soft)}
+.dup-tag.tomb{color:var(--slate);background:var(--slate-soft)}
+.dup-person{display:flex;align-items:center;gap:6px;margin-top:9px}
+.dup-person b{color:var(--name);font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dup-id{font-size:11px;color:var(--text);margin-top:6px}
+.dup-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.dup-prov{font-size:9.5px;font-weight:600;color:var(--muted);margin-top:9px}
+.dup-counts{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft);font-family:var(--mono);font-size:11px;color:var(--text)}
+.dup-counts b{font-weight:700}
+.dup-link{margin-top:8px;font-size:11px;color:var(--accent);font-weight:600;background:none;border:none;padding:0;cursor:pointer}
+.dup-link:hover{text-decoration:underline}
+
+/* seletor do par (processo com CNJ) */
+.dup-pick{margin-top:10px}
+.dup-pick label{display:block;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin-bottom:5px}
+.dup-pick select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px}
+.dup-hint{display:block;font-size:10.5px;color:var(--muted-2);margin-top:5px}
+
+/* eixo religar */
+.dup-merge{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--surface-2);border-left:1px solid var(--line-soft);border-right:1px solid var(--line-soft)}
+.dup-merge .ring{width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--ai-line);display:grid;place-items:center}
+.dup-merge .lbl{font-size:9px;font-weight:700;color:var(--accent-strong);text-transform:uppercase;letter-spacing:.04em}
+
+/* rodapé do card */
+.dup-foot{padding:11px 20px;background:var(--surface-2);border-top:1px solid var(--line-soft);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.dup-foot .note{font-size:11px;color:var(--muted);flex:1;min-width:180px;line-height:1.45}
+.dup-foot .note b{color:var(--text)}
+.dup-foot .warn-txt{color:var(--amber)}
+.dup-foot .note .dim{color:var(--muted-2)}
+.dup-msg{padding:9px 20px;font-size:12px;font-weight:600}
+.dup-msg.ok{color:var(--green);background:var(--green-soft)}
+.dup-msg.err{color:var(--red);background:var(--red-soft)}
+
+/* "não é duplicado" (oculto na sessão) */
+.dup-dismissed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line);border-radius:12px;padding:11px 16px}
+.dup-dismissed .mono{font-family:var(--mono);font-size:11.5px}
+.dup-dismissed button{margin-left:auto;font-size:11px;color:var(--accent);font-weight:600;background:none;border:none;cursor:pointer}
+.dup-dismissed button:hover{text-decoration:underline}
+
+/* ver todos */
+.dup-vertodos{align-self:flex-start;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:1px solid var(--ai-line);border-radius:9px;padding:8px 14px;cursor:pointer}
+.dup-vertodos:hover{background:var(--surface)}
+
+/* estado vazio (clientes) */
+.dup-empty{padding:26px;text-align:center;color:var(--muted-2);font-size:13px;background:var(--surface);border:1px solid var(--line-soft);border-radius:16px}
+
+/* tombstones resolvidos */
+.dup-resolved-h{padding:14px 20px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dup-resolved-h .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.dup-resolved-h code{font-family:var(--mono);font-size:11px;color:var(--muted-2)}
+.dup-resolved-h .end{margin-left:auto;font-size:11px;color:var(--muted)}
+.dup-resolved-list .row{display:flex;align-items:center;gap:13px;padding:12px 20px;border-bottom:1px solid var(--line-soft)}
+.dup-resolved-list .row:last-child{border-bottom:none}
+.dup-resolved-list .ico{flex:none;width:28px;height:28px;border-radius:8px;background:var(--surface-3);display:grid;place-items:center}
+.dup-resolved-list .mid{flex:1;min-width:0}
+.dup-resolved-list .keys{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dup-resolved-list .keys .mono{font-family:var(--mono);font-size:11.5px}
+.dup-resolved-list .keys .old{color:var(--muted);text-decoration:line-through}
+.dup-resolved-list .keys .new{color:var(--accent-strong);font-weight:600}
+.dup-resolved-list .sub{font-size:11px;color:var(--muted);margin-top:2px}
+.dup-resolved-list .sub b{color:var(--name)}
+.dup-resolved-list .when{flex:none;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* ─── trilho direito (@rail/duplicados) ─── */
+.dup-detect-card{border-color:var(--accent);box-shadow:0 0 0 1px var(--ai-line,color-mix(in srgb,var(--accent) 22%,transparent)),0 6px 18px rgba(63,58,230,.07)}
+.dup-detect-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-strong);font-weight:700;margin-bottom:12px}
+.dup-detect{list-style:none;display:flex;flex-direction:column;gap:12px;margin:0;padding:0}
+.dup-detect li{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--text);line-height:1.5}
+.dup-detect li b{color:var(--ink);font-weight:700}
+.dup-detect li code{font-family:var(--mono);font-size:11px}
+.dup-detect .b{flex:none;width:8px;height:8px;margin-top:5px}
+.dup-detect .t-proc .b{border-radius:2px;background:var(--accent)}
+.dup-detect .t-cli .b{border-radius:50%;background:var(--brass)}
+.dup-detect .t-pub .b{border-radius:50%;background:var(--green)}
+.dup-steps{list-style:none;display:flex;flex-direction:column;gap:11px;margin:0;padding:0}
+.dup-steps li{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--text);line-height:1.45}
+.dup-steps li b{color:var(--ink)}
+.dup-steps li code{font-family:var(--mono);font-size:11px}
+.dup-steps .n{flex:none;width:20px;height:20px;border-radius:6px;background:var(--surface-2);color:var(--text);font-family:var(--mono);font-size:11px;font-weight:700;display:grid;place-items:center;border:1px solid var(--line)}
+.dup-steps-foot{margin:11px -14px -14px;padding:11px 14px;background:var(--surface-2);border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted);line-height:1.5}
+
+@media (max-width:760px){
+  .dup-counters{grid-template-columns:repeat(2,1fr)}
+  .dup-split{grid-template-columns:1fr}
+  .dup-merge{flex-direction:row;border:none;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:8px}
+  .dup-head h1{font-size:32px}
+}
