@@ -1432,3 +1432,97 @@ a.pz-title:hover{text-decoration:underline}
   .pz-dates{flex-wrap:wrap}
   .pz-dates .d{min-width:50%}
 }
+
+/* ===== /audiencias — alvo Plantão ======================================== */
+/* tons de etiqueta reaproveitados (modalidade, tipo, status) */
+.pz-tag.tone-blue{color:var(--blue);background:var(--blue-soft)}
+.pz-tag.tone-red{color:var(--red);background:var(--red-soft)}
+.pz-tag.tone-amber{color:var(--amber);background:var(--amber-soft)}
+.pz-tag.tone-green{color:var(--green);background:var(--green-soft)}
+.pz-tag.tone-slate{color:var(--brass);background:var(--brass-soft)}
+.pz-tag.tone-neutral{color:var(--text);background:var(--surface-2);border:1px solid var(--line-soft)}
+
+/* contadores: tons extras */
+.pz-counter .big.slate{color:var(--brass)}
+.pz-counter.blue{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}
+.pz-counter.blue .big{color:var(--blue)}
+
+/* card de audiência (próxima/confirmada e provisória) */
+.aud-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.aud-card.prov{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 8px 22px color-mix(in srgb,var(--accent) 9%,transparent)}
+.aud-stripe{position:absolute;left:0;top:0;bottom:0;width:4px;z-index:1}
+.aud-stripe.blue{background:var(--blue)}
+.aud-stripe.accent{background:var(--accent)}
+.aud-stripe.slate{background:var(--brass)}
+.aud-grid{display:grid;grid-template-columns:128px 1fr;align-items:stretch}
+
+/* bloco de data (linha vertical separa data das informações) */
+.aud-date{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 10px;border-right:1px solid var(--line-soft);text-align:center}
+.aud-date.conf{background:var(--green-soft)}
+.aud-date.prov{background:var(--accent-soft);border-right-color:color-mix(in srgb,var(--accent) 22%,transparent)}
+.aud-date .dow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.aud-date.prov .dow{color:var(--accent-strong)}
+.aud-date .day{font-family:var(--serif);font-size:40px;line-height:1;color:var(--ink)}
+.aud-date .day.hero{font-size:46px}
+.aud-date.prov .day{color:var(--accent-strong)}
+.aud-date .my{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.aud-date .time{margin-top:8px;font-family:var(--mono);font-size:13px;font-weight:600;border-radius:6px;padding:2px 9px}
+.aud-date .time.conf{color:var(--blue);background:var(--blue-soft)}
+.aud-date .time.prov{color:#fff;background:var(--tang)}
+.aud-date .when{margin-top:6px;font-size:10px;font-family:var(--mono);color:var(--muted)}
+.aud-date .when.prov{color:var(--tang)}
+
+.aud-body{padding:16px 20px;min-width:0}
+.aud-title{display:inline-block;font-weight:800;color:var(--name);font-size:16px;text-decoration:none}
+a.aud-title:hover{text-decoration:underline}
+.aud-body .pz-cli{margin-top:7px}
+.aud-loc{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12.5px;color:var(--text)}
+.aud-loc .dim{color:var(--muted-2)}
+.aud-link{color:var(--blue);font-weight:600;text-decoration:none}
+.aud-link:hover{text-decoration:underline}
+
+.aud-foot{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft);flex-wrap:wrap}
+.aud-resp{font-size:11px;color:var(--muted);flex:1;min-width:130px}
+.aud-resp b{color:var(--text)}
+.aud-resp.dim{color:var(--muted-2)}
+
+/* sessão de julgamento virtual (sem placar — não factível) */
+.aud-vbody{padding:16px 20px 16px 22px}
+.aud-vnote{margin-left:auto;font-size:10px;color:var(--amber);font-weight:600}
+.aud-vmain{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-top:2px}
+.aud-vlhs{flex:1;min-width:240px}
+.aud-vwhen{flex:none;text-align:right}
+.aud-vwhen .d{font-size:13px;color:var(--text);font-weight:600}
+.aud-vwhen .k{font-size:10.5px;color:var(--muted);margin-top:2px}
+
+/* realizadas / redesignadas / canceladas */
+.aud-rz{padding:0}
+.aud-rz-row{display:flex;align-items:center;gap:13px;padding:13px 20px;border-bottom:1px solid var(--line-soft)}
+.aud-rz-row:last-child{border-bottom:none}
+.aud-rz-row .ic{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center}
+.aud-rz-row .ic.green{background:var(--green-soft)}
+.aud-rz-row .ic.amber{background:var(--amber-soft)}
+.aud-rz-row .ic.red{background:var(--red-soft)}
+.aud-rz-row .mid{flex:1;min-width:0}
+.aud-rz-row .mid .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.aud-rz-row .mid .top b{color:var(--name);font-size:13px}
+.aud-rz-row .mid .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.aud-rz-row .mid .sub b{color:var(--name)}
+.aud-rz-row .when{flex:none;font-size:11px;color:var(--muted)}
+
+/* trilho: virtual ≠ videoconferência */
+.aud-vv{list-style:none;display:flex;flex-direction:column;gap:12px}
+.aud-vv li{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--text);line-height:1.5}
+.aud-vv b{color:var(--ink)}
+.aud-vv code{font-family:var(--mono);font-size:11px}
+.aud-vv .m{flex:none;width:8px;height:8px;margin-top:5px;background:var(--brass)}
+.aud-vv .m.sq{border-radius:2px;background:var(--brass)}
+.aud-vv .m.dot{border-radius:50%;background:var(--blue)}
+
+@media (max-width:760px){
+  .aud-grid{grid-template-columns:96px 1fr}
+  .aud-date .day{font-size:34px}
+  .aud-date .day.hero{font-size:38px}
+  .aud-vmain{flex-direction:column}
+  .aud-vwhen{text-align:left}
+}
