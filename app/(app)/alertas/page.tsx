@@ -1,115 +1,145 @@
-import Link from "next/link";
-import { getProcessosParados, getClientesPresos } from "@/lib/data";
-import { Icon } from "@/components/Icon";
-import { Pill, ProcRef, SegredoTag } from "@/components/ui";
-import { CriarAlerta } from "@/components/CriarAlerta";
-import { fmtDate, humano } from "@/lib/format";
+import { getFilaValidacao, getProcessosParados, getFinanceiro } from "@/lib/data";
+import { getBeneficiosProximos, getUltimaVarredura } from "@/lib/queries";
+import { AlertasView, type Alerta } from "@/components/modules/AlertasView";
+import { fmtDate, fmtBRL, fmtTime, humano } from "@/lib/format";
+import { linkPara } from "@/lib/links";
 
 export const dynamic = "force-dynamic";
 
-const FAIXAS = [15, 30, 60, 90];
-const SIT: Record<string, string> = { preso_provisorio: "Preso provisório", preso_definitivo: "Preso definitivo" };
+const TITULO_ANOMALIA: Record<string, string> = {
+  cobertura_djen: "Possível buraco de cobertura do DJEN",
+  minuta_falha: "Minuta não gerada pelo redator",
+  minuta_diferida: "Minuta diferida — aguardando insumo",
+  digest_duplicado: "Recorte Digital duplicado",
+  fonte_nao_ingerida: "Fonte não ingerida",
+};
+const tituloAnomalia = (t: string) => TITULO_ANOMALIA[t] ?? humano(t);
 
-export default async function AlertasPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ dias?: string }>;
-}) {
-  const sp = await searchParams;
-  const dias = Number(sp?.dias ?? "30") || 30;
-  const [parados, presos] = await Promise.all([getProcessosParados(dias), getClientesPresos()]);
-  const presosParados = parados.filter((p) => p.tem_preso).length;
+const ORDEM: Record<Alerta["categoria"], number> = { prazo_fatal: 0, execucao: 1, parado: 2, anomalia: 3, financeiro: 4 };
+
+export default async function AlertasPage() {
+  const [fila, parados, fin, beneficios, varredura] = await Promise.all([
+    getFilaValidacao(),
+    getProcessosParados(30),
+    getFinanceiro(),
+    getBeneficiosProximos(50),
+    getUltimaVarredura(),
+  ]);
+
+  const alertas: Alerta[] = [];
+
+  // 1. Prazos fatais críticos (provisórios no limite ≤ 5 dias).
+  for (const p of fila.prazos.filter((p) => p.dias_restantes <= 5)) {
+    alertas.push({
+      id: `prazo-${p.id}`,
+      categoria: "prazo_fatal",
+      severidade: "critico",
+      tag: "PRAZO FATAL",
+      preso: p.preso,
+      titulo: `${p.ato}${p.clientes ? ` — ${p.segredo ? "Cliente sigiloso" : p.clientes}` : ""}`,
+      sub: [p.fundamento, p.numero_cnj].filter(Boolean).join(" · ") || null,
+      metrica: `fatal ${fmtDate(p.data_fatal)}${p.data_interna ? ` · interna ${fmtDate(p.data_interna)}` : ""}${p.preso ? " · réu preso" : ""}`,
+      dias: p.dias_restantes,
+      acoes: [
+        { label: "Abrir prazo", href: "/validacao", primary: true },
+        { label: "Ver minuta", href: "/producao" },
+      ],
+    });
+  }
+
+  // 2. Benefícios de execução (vencidos = crítico; próximos ≤180d = acompanhar).
+  for (const b of beneficios.filter((b) => b.dias <= 180)) {
+    const vencido = b.dias < 0;
+    alertas.push({
+      id: `exec-${b.cliente_id}-${b.tipo}`,
+      categoria: "execucao",
+      severidade: vencido ? "critico" : "acompanhar",
+      tag: "EXECUÇÃO · BENEFÍCIO",
+      titulo: `${b.tipo === "progressao" ? "Progressão" : "Livramento"} ${vencido ? "vencida" : "próxima"} — ${b.segredo ? "Cliente sigiloso" : b.nome}`,
+      sub: `${b.regime_atual ? `${humano(b.regime_atual)} · ` : ""}marco ${vencido ? "vencido" : "atingível"} · benefício a requerer`,
+      metrica: `vw_situacao_executoria_atual · data prevista ${fmtDate(b.data_prevista)}`,
+      dias: b.dias,
+      acoes: [
+        { label: "Requerer progressão", href: linkPara("cliente", b.cliente_id), primary: true },
+        { label: "Abrir execução", href: linkPara("cliente", b.cliente_id) },
+      ],
+    });
+  }
+
+  // 3. Processos parados ≥30d (com réu preso = crítico). Cap p/ manter o radar enxuto.
+  for (const p of parados.slice(0, 25)) {
+    alertas.push({
+      id: `parado-${p.processo_id}`,
+      categoria: "parado",
+      severidade: p.tem_preso ? "critico" : "acompanhar",
+      tag: "RADAR · PARADO",
+      preso: p.tem_preso,
+      titulo: `Sem movimentação há ${p.dias_parado} dias`,
+      sub: [p.segredo_justica ? "🔒 sigiloso" : p.clientes, humano(p.area), p.numero_cnj ?? p.numero_registro_tribunal].filter(Boolean).join(" · ") || null,
+      metrica: `getProcessosParados(30) · último andamento ${fmtDate(p.ultima_movimentacao)}`,
+      dias: p.dias_parado,
+      acoes: [
+        { label: "Provocar andamento", href: linkPara("processo", p.processo_id), primary: true },
+        { label: "Abrir processo", href: linkPara("processo", p.processo_id) },
+      ],
+    });
+  }
+
+  // 4. Anomalias da última varredura (acompanhar).
+  (varredura?.anomalias ?? []).forEach((an, idx) => {
+    alertas.push({
+      id: `anom-${idx}`,
+      categoria: "anomalia",
+      severidade: "acompanhar",
+      tag: an.tipo,
+      tag2: an.fonte ? humano(an.fonte) : null,
+      titulo: tituloAnomalia(an.tipo),
+      sub: an.detalhe,
+      metrica: "vw_ultima_varredura · anomalias",
+      canto: varredura ? fmtTime(varredura.criado_em) : null,
+      acoes: [
+        { label: "Ver na varredura", href: "/varredura", primary: true },
+        { label: "Marcar conferido", href: "/varredura" },
+      ],
+    });
+  });
+
+  // 5. Financeiro atrasado (alerta pontual — acompanhar).
+  for (const pa of fin.parcelas.filter((p) => p.status === "atrasado")) {
+    alertas.push({
+      id: `fin-${pa.id}`,
+      categoria: "financeiro",
+      severidade: "acompanhar",
+      tag: "FINANCEIRO · ATRASADO",
+      titulo: pa.cliente,
+      sub: `parcela ${pa.numero_parcela} · ${pa.dias_atraso} dias em atraso`,
+      canto: `venc. ${fmtDate(pa.vencimento)}`,
+      valor: fmtBRL(pa.valor),
+      acoes: [
+        { label: "Cobrar", href: pa.contrato_id ? linkPara("contrato", pa.contrato_id) : "/financeiro", primary: true },
+        { label: "Financeiro", href: "/financeiro" },
+      ],
+    });
+  }
+
+  alertas.sort((a, b) => {
+    const sev = (a.severidade === "critico" ? 0 : 1) - (b.severidade === "critico" ? 0 : 1);
+    if (sev) return sev;
+    const cat = ORDEM[a.categoria] - ORDEM[b.categoria];
+    if (cat) return cat;
+    return (a.dias ?? 9999) - (b.dias ?? 9999);
+  });
 
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Inteligência · radar de risco</div>
+          <div className="eyebrow">Radar de riscos</div>
           <h1>Alertas</h1>
-          <p>
-            Processos não arquivados sem movimentação (andamento, intimação, prazo,
-            audiência ou atualização) há um tempo, e réus presos para priorizar.
-          </p>
-        </div>
-        <CriarAlerta />
-      </div>
-
-      <div className="banner">
-        <span className="ico"><Icon name="shield" /></span>
-        <div>
-          “Movimentação” = sinal mais recente de atividade no processo. A base foi importada
-          recentemente, então a lista cresce com o tempo. Réu preso tem prioridade constitucional
-          (duração razoável da prisão) — confira excesso de prazo.
+          <p>O que pode escapar: prazos no limite, benefícios de execução, processos parados e anomalias da varredura. Críticos no topo.</p>
         </div>
       </div>
-
-      <div className="card op-card" style={{ marginBottom: 16 }}>
-        <div className="card-h"><h3><Icon name="list" /> Filtros</h3></div>
-        <div className="card-b">
-          <div className="chips" style={{ marginBottom: 0 }}>
-            {FAIXAS.map((f) => (
-              <Link key={f} href={`/alertas?dias=${f}`} className={`chip${f === dias ? " on" : ""}`}>
-                sem mov. ≥ {f} dias
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="card op-card">
-        <div className="card-h">
-          <h3><Icon name="clock" /> Processos sem movimentação ({parados.length}{presosParados > 0 && <span className="sub"> · {presosParados} com réu preso</span>})</h3>
-        </div>
-        <div className="card-b flush">
-          {parados.length ? (
-            <table>
-              <thead>
-                <tr><th className="center">Parado</th><th>Processo</th><th>Cliente(s)</th><th>Área</th><th>Resp.</th><th>Últ. mov.</th></tr>
-              </thead>
-              <tbody>
-                {parados.map((p) => (
-                  <tr key={p.processo_id}>
-                    <td className="center"><Pill tone={p.dias_parado >= 90 ? "red" : p.dias_parado >= 60 ? "amber" : "gray"}>{p.dias_parado}d</Pill></td>
-                    <td><ProcRef cnj={p.numero_cnj} registro={p.numero_registro_tribunal} /> <SegredoTag on={p.segredo_justica} /><div className="sub">{[p.tribunal, p.vara_comarca].filter(Boolean).join(" · ") || "—"}</div></td>
-                    <td>{p.clientes || "—"}{p.tem_preso && <div className="sub" style={{ color: "var(--red)" }}>réu preso</div>}</td>
-                    <td>{humano(p.area)}</td>
-                    <td>{p.responsavel ?? "—"}</td>
-                    <td className="mono">{fmtDate(p.ultima_movimentacao)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="empty">Nenhum processo parado há ≥{dias} dias. 🎉</div>
-          )}
-        </div>
-      </div>
-
-      <div className="card section-gap">
-        <div className="card-h"><h3><Icon name="users" /> Réus presos ({presos.length})</h3></div>
-        <div className="card-b flush">
-          {presos.length ? (
-            <table>
-              <thead>
-                <tr><th>Cliente</th><th>Situação</th><th className="center">Processos</th><th className="center">Prazos abertos</th><th className="center">Audiências</th></tr>
-              </thead>
-              <tbody>
-                {presos.map((c) => (
-                  <tr key={c.cliente_id}>
-                    <td className="name">{c.nome}</td>
-                    <td><Pill tone="red">{SIT[c.situacao_prisional] ?? humano(c.situacao_prisional)}</Pill></td>
-                    <td className="center mono">{c.processos_ativos}/{c.total_processos}</td>
-                    <td className="center mono">{c.prazos_abertos || "—"}</td>
-                    <td className="center mono">{c.audiencias_futuras || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="empty">Nenhum cliente preso no momento.</div>
-          )}
-        </div>
-      </div>
+      <AlertasView alertas={alertas} />
     </>
   );
 }
