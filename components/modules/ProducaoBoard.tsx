@@ -21,7 +21,7 @@ import {
   reanalisarPecas,
 } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
-import { fmtDate, ddClass, humano } from "@/lib/format";
+import { fmtDate, ddClass, humano, encurtarTitulo } from "@/lib/format";
 import type { Peca } from "@/lib/data";
 
 type Socio = "Daniel" | "Rodolfo";
@@ -558,7 +558,7 @@ export function ProducaoBoard({
             {p.segredo && <span className="prd-tag segredo">🔒 segredo de justiça</span>}
           </div>
 
-          <div className="prd-title">{p.titulo}</div>
+          <div className="prd-title" title={p.titulo}>{encurtarTitulo(p.titulo, p.cliente, p.numero_cnj, p.numero_registro)}</div>
           <div className="prd-cli"><Person /><b>{p.cliente ?? "—"}</b></div>
           {proc && <div className="prd-num mono">{proc}</div>}
 
@@ -624,7 +624,7 @@ export function ProducaoBoard({
       <article key={p.id} className="prd-card proto" onClick={() => abrir(p)}>
         <div className="prd-body">
           <div className="prd-tags"><span className={`prd-tag ${tipoTone(p.tipo)}`}>{catLabel(p)}</span></div>
-          <div className="prd-title sm">{p.titulo}</div>
+          <div className="prd-title sm" title={p.titulo}>{encurtarTitulo(p.titulo, p.cliente, p.numero_cnj, p.numero_registro)}</div>
           <div className="prd-cli sm"><b>{p.cliente ?? "—"}</b></div>
           <div className="prd-proto-when mono"><Check />protocolada {fmtDate(p.protocolada_em)}</div>
         </div>
