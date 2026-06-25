@@ -24,7 +24,7 @@ export default async function ProcessoPage({
             <Link className="link" href="/processos">← Processos</Link>
             {proc.cadastro_automatico ? " · cadastro automático" : ""}
           </div>
-          <h1>{proc.segredo ? "Processo em segredo de justiça" : proc.clientes || "Processo"}</h1>
+          <h1 className="nome-cliente">{proc.segredo ? "Processo em segredo de justiça" : proc.clientes || "Processo"}</h1>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <ProcRef cnj={proc.numero_cnj} registro={proc.numero_registro} />
             <SegredoTag on={proc.segredo} />

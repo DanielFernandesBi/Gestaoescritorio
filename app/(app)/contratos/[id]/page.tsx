@@ -22,7 +22,7 @@ export default async function ContratoPage({ params }: { params: Promise<{ id: s
       <div className="page-head">
         <div>
           <div className="eyebrow"><Link className="link" href="/financeiro">← Financeiro</Link></div>
-          <h1>{c.cliente}</h1>
+          <h1 className="nome-cliente">{c.cliente}</h1>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <Pill tone={TONE[c.status] ?? "gray"}>{humano(c.status)}</Pill>
             <span className="sub">{fmtBRL(c.valor_total)}</span>

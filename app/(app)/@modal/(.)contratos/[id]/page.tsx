@@ -21,7 +21,7 @@ export default async function ContratoModal({ params }: { params: Promise<{ id: 
     <RouteModal
       title={
         <>
-          <h2>{c.cliente}</h2>
+          <h2 className="nome-cliente">{c.cliente}</h2>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <Pill tone={TONE[c.status] ?? "gray"}>{humano(c.status)}</Pill>
             <span className="sub">{fmtBRL(c.valor_total)}</span>

@@ -20,7 +20,7 @@ export default async function ClienteModal({
     <RouteModal
       title={
         <>
-          <h2>{cliente.nome}</h2>
+          <h2 className="nome-cliente">{cliente.nome}</h2>
           <div style={{ marginTop: 8 }}><Pill tone="gray">{humano(cliente.situacao_prisional)}</Pill></div>
         </>
       }
