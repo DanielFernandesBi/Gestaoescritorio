@@ -1,5 +1,6 @@
 import { getAndamentos, getAndamentosOrfaos, getMapaProvidenciaPeca } from "@/lib/data";
 import { AndamentosModulo } from "@/components/modules/AndamentosModulo";
+import { RegistrarAndamento } from "@/components/modules/RegistrarAndamento";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +14,14 @@ export default async function AndamentosPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Movimentações recentes (7 dias)</div>
+          <div className="eyebrow">Histórico processual · captura automática</div>
           <h1>Andamentos</h1>
           <p>
-            Petições, decisões, HC, diligências, visitas e movimentações de tribunal.
-            Dedup por código de movimentação. Órfãos (sem processo) entram na triagem.
+            Toda movimentação útil — decisões, despachos, juntadas, pautas — capturada e deduplicada.
+            São informativos; o que tem consequência é escalado para conferência.
           </p>
         </div>
+        <RegistrarAndamento />
       </div>
       <AndamentosModulo movimentacoes={movimentacoes} orfaos={orfaos} mapa={mapa} />
     </>

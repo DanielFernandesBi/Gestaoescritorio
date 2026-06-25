@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Chips } from "@/components/Chips";
-import { Icon } from "@/components/Icon";
 import { AndamentosTimeline } from "@/components/modules/AndamentosTimeline";
 import { AndamentosOrfaosList } from "@/components/modules/AndamentosOrfaosList";
 import type { Movimentacao, AndamentoOrfao } from "@/lib/data";
@@ -44,32 +43,32 @@ export function AndamentosModulo({
   const filtradas = useMemo(
     () =>
       movimentacoes.filter((m) => {
-        const okAba =
-          aba === "escalados" ? m.escalado : aba === "decisoes" ? ehDecisao(m.tipo) : true;
+        const okAba = aba === "escalados" ? m.escalado : aba === "decisoes" ? ehDecisao(m.tipo) : true;
         const okOrig = orig === "todas" ? true : (m.origem ?? "") === orig;
         return okAba && okOrig;
       }),
     [movimentacoes, aba, orig],
   );
 
+  const stats = [
+    { id: "recentes", n: movimentacoes.length, label: "Recentes · últimos 7 dias" },
+    { id: "escalados", n: nEscalados, label: "Escalados · conferência" },
+    { id: "orfaos", n: orfaos.length, label: "Órfãos · sem processo" },
+    { id: "decisoes", n: nDecisoes, label: "Decisões · mérito/despacho" },
+  ];
+
   return (
     <>
-      <div className="card op-card" style={{ marginBottom: 16 }}>
-        <div className="card-h"><h3><Icon name="list" /> Filtros</h3></div>
-        <div className="card-b">
-          <Chips options={abas} value={aba} onChange={setAba} />
-          {aba !== "orfaos" && <Chips options={ORIGENS} value={orig} onChange={setOrig} />}
-        </div>
-      </div>
+      <Chips options={abas} value={aba} onChange={setAba} />
+      {aba !== "orfaos" && <Chips options={ORIGENS} value={orig} onChange={setOrig} />}
 
-      <div className="scan">
-        <div className="scan-h"><h3><Icon name="activity" /> Panorama dos andamentos</h3></div>
-        <div className="scan-metrics">
-          <button type="button" className={`metric${aba === "recentes" ? " metric-on" : ""}`} onClick={() => setAba("recentes")}><b>{movimentacoes.length}</b><span>Recentes · últimos 7 dias</span></button>
-          <button type="button" className={`metric${aba === "escalados" ? " metric-on" : ""}`} onClick={() => setAba("escalados")}><b>{nEscalados}</b><span>Escalados · conferência</span></button>
-          <button type="button" className={`metric${aba === "orfaos" ? " metric-on" : ""}`} onClick={() => setAba("orfaos")}><b>{orfaos.length}</b><span>Órfãos · sem processo</span></button>
-          <button type="button" className={`metric${aba === "decisoes" ? " metric-on" : ""}`} onClick={() => setAba("decisoes")}><b>{nDecisoes}</b><span>Decisões · mérito/despacho</span></button>
-        </div>
+      <div className="stat-row">
+        {stats.map((s) => (
+          <button key={s.id} type="button" className={`stat${aba === s.id ? " on" : ""}`} onClick={() => setAba(s.id)}>
+            <b>{s.n}</b>
+            <span>{s.label}</span>
+          </button>
+        ))}
       </div>
 
       {aba === "orfaos" ? (

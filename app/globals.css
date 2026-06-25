@@ -699,32 +699,70 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .fila-help .enc-ok{color:var(--green);font-weight:700}
 
 /* ---------- Andamentos (/andamentos) — cards com escalonamento ---------- */
-.and-list{display:flex;flex-direction:column;gap:10px}
-.and-card{position:relative;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-.and-bar{flex:none;width:4px;background:var(--line)}
-.and-card.red .and-bar{background:var(--red)}
-.and-card.blue .and-bar{background:var(--blue)}
-.and-card.green .and-bar{background:var(--green)}
-.and-card.escalado{border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
-.and-main{flex:1;min-width:0;padding:13px 16px}
-.and-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.and-tipo{font-size:11px;font-weight:700;text-transform:capitalize;color:var(--ink);background:var(--surface-2);border:1px solid var(--line-soft);border-radius:6px;padding:2px 8px}
-.and-orig{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
-.and-date{font-size:11px;color:var(--muted);margin-left:auto}
-.and-t{font-weight:700;font-size:14px;color:var(--ink);margin-top:8px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.and-cli{font-size:12px;color:var(--muted);margin-top:3px}
+/* Stats soltos (número em serif; 1º/ativo com anel cobalt) */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:2px 0 18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 16px;text-align:left;box-shadow:var(--shadow);cursor:pointer;transition:border-color .12s,box-shadow .12s,transform .12s}
+.stat:hover{transform:translateY(-1px)}
+.stat b{font-family:var(--serif);font-size:28px;font-weight:600;color:var(--ink);display:block;line-height:1;letter-spacing:-.01em}
+.stat span{font-size:11px;color:var(--muted);margin-top:5px;display:block}
+.stat.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+@media(max-width:1080px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+
+/* Cor por urgência (barra/banner) */
+.and-card.u-urg{--uc:var(--red);--ucs:var(--red-soft)}
+.and-card.u-alta{--uc:var(--amber);--ucs:var(--amber-soft)}
+.and-card.u-ok{--uc:var(--green);--ucs:var(--green-soft)}
+.and-card.u-info{--uc:var(--line);--ucs:var(--surface-2)}
+
+.and-list{display:flex;flex-direction:column;gap:12px}
+.and-card{position:relative;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.and-bar{flex:none;width:4px;background:var(--uc)}
+.and-body{flex:1;min-width:0;padding:15px 20px 14px 20px}
+.and-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.and-tipo{font-size:10.5px;font-weight:700;text-transform:capitalize;border-radius:6px;padding:2px 9px}
+.and-tipo.t-red{background:var(--red-soft);color:var(--red)}
+.and-tipo.t-green{background:var(--green-soft);color:var(--green)}
+.and-tipo.t-blue{background:var(--blue-soft);color:var(--blue)}
+.and-tipo.t-slate{background:var(--brass-soft);color:var(--slate,#586173)}
+.and-trib{font-size:10.5px;font-weight:600;color:var(--slate,#586173);background:var(--brass-soft);border-radius:6px;padding:2px 9px}
+.and-date{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-left:auto}
+.and-h{font-weight:800;font-size:18px;color:var(--name);margin-top:10px;line-height:1.2;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.and-kw{font-size:11px;font-weight:800;letter-spacing:.03em;padding:1px 8px;border-radius:6px}
+.and-kw.fav{background:var(--green-soft);color:var(--green)}
+.and-kw.adv{background:var(--red-soft);color:var(--red)}
+.and-cli{font-size:12px;color:var(--muted);margin-top:5px}
 .and-cli .dl-cli{font-weight:700;color:var(--name)}
 .and-card .ctx-caso{margin-top:4px}
-.and-esc{font-size:11.5px;margin-top:9px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:500}
-.and-esc.urg{color:var(--red)}
-.and-esc.alta{color:var(--amber)}
-.and-esc.info{color:var(--muted-2)}
-.and-esc-pill{font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px}
-.and-esc.urg .and-esc-pill{background:var(--red);color:#fff}
-.and-esc.alta .and-esc-pill{background:var(--amber-soft);color:var(--amber)}
-.and-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:11px;padding-top:10px;border-top:1px solid var(--line-soft)}
-.and-cap{font-size:11px;color:var(--muted-2)}
+.and-desc{font-size:12.5px;color:var(--text);margin-top:7px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.and-banner{display:flex;align-items:flex-start;gap:9px;margin-top:11px;padding:9px 12px;border-radius:10px;background:var(--ucs);border:1px solid color-mix(in srgb,var(--uc) 30%,transparent);font-size:12px;color:var(--text);line-height:1.45}
+.and-banner b{color:var(--uc)}
+.and-banner-ico{color:var(--uc);flex:none;font-size:13px;line-height:1.3}
+.and-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft)}
+.and-cap{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted-2)}
+.and-cap-dot{width:6px;height:6px;border-radius:50%;background:var(--uc)}
 .and-acoes{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+
+/* Trilho — legenda + chat do Assistente */
+.leg{list-style:none;display:flex;flex-direction:column;gap:9px;font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+.leg li{position:relative;padding-left:16px}
+.leg b{color:var(--ink)}
+.leg-dot{position:absolute;left:0;top:5px;width:8px;height:8px;border-radius:50%}
+.leg-dot.info{background:var(--muted-2)}
+.leg-dot.urg{background:var(--red)}
+.leg-dot.slate{background:var(--amber)}
+.chat-card{background:var(--surface)}
+.chat-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.chat-seal{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink)}
+.chat-claude{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.chat-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+.chat-body{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.bubble{font-size:11.5px;line-height:1.45;padding:8px 11px;border-radius:12px;max-width:90%}
+.bubble.user{align-self:flex-end;background:var(--surface-2);color:var(--text);border-bottom-right-radius:4px}
+.bubble.ia{align-self:flex-start;background:var(--accent-soft);color:var(--text);border-bottom-left-radius:4px}
+.bubble.ia b{color:var(--accent)}
+.chat-input{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:11.5px;color:var(--muted-2);text-decoration:none}
+.chat-input span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-send{flex:none;width:24px;height:24px;border-radius:7px;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center;font-weight:700}
 
 /* ---------- Triagem (/triagem) — seções de órfãos ---------- */
 .tri-sec{margin-bottom:22px}
