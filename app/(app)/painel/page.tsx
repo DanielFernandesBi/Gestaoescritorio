@@ -10,7 +10,7 @@ import { validarPrazoEditado, validarAudienciaEditada } from "@/app/actions";
 import { TIPO_CONTAGEM, RESPONSAVEIS, AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE } from "@/lib/enums";
 import { fmtBRL, fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
 import { linkPara, isEntidadeTipo } from "@/lib/links";
-import ReactMarkdown from "react-markdown";
+import { Markdown } from "@/components/Markdown";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -207,7 +207,7 @@ export default async function PainelPage() {
 
         {briefing?.resumo ? (
           <div className="focus-resumo md">
-            <ReactMarkdown>{briefing.resumo}</ReactMarkdown>
+            <Markdown>{briefing.resumo}</Markdown>
           </div>
         ) : (
           <p className="focus-resumo">{resumoTexto}</p>
@@ -217,7 +217,7 @@ export default async function PainelPage() {
           <details className="focus-corpo">
             <summary>Ver briefing completo</summary>
             <div className="md">
-              <ReactMarkdown>{briefing.corpo}</ReactMarkdown>
+              <Markdown>{briefing.corpo}</Markdown>
             </div>
           </details>
         )}
