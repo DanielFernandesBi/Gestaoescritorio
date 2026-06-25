@@ -29,6 +29,12 @@ export function AndamentosModulo({
 }) {
   const [aba, setAba] = useState("recentes");
   const [orig, setOrig] = useState("todas");
+  const PASSO = 25;
+  const [visiveis, setVisiveis] = useState(PASSO);
+  // Sem cap fixo de quantidade: paginação client-side. Trocar de filtro volta ao
+  // lote inicial (reset no próprio handler, não em efeito).
+  const irAba = (v: string) => { setAba(v); setVisiveis(PASSO); };
+  const irOrig = (v: string) => { setOrig(v); setVisiveis(PASSO); };
 
   const nEscalados = movimentacoes.filter((m) => m.escalado).length;
   const nDecisoes = movimentacoes.filter((m) => ehDecisao(m.tipo)).length;
@@ -59,12 +65,12 @@ export function AndamentosModulo({
 
   return (
     <>
-      <Chips options={abas} value={aba} onChange={setAba} />
-      {aba !== "orfaos" && <Chips options={ORIGENS} value={orig} onChange={setOrig} />}
+      <Chips options={abas} value={aba} onChange={irAba} />
+      {aba !== "orfaos" && <Chips options={ORIGENS} value={orig} onChange={irOrig} />}
 
       <div className="stat-row">
         {stats.map((s) => (
-          <button key={s.id} type="button" className={`stat${aba === s.id ? " on" : ""}`} onClick={() => setAba(s.id)}>
+          <button key={s.id} type="button" className={`stat${aba === s.id ? " on" : ""}`} onClick={() => irAba(s.id)}>
             <b>{s.n}</b>
             <span>{s.label}</span>
           </button>
@@ -74,7 +80,16 @@ export function AndamentosModulo({
       {aba === "orfaos" ? (
         <AndamentosOrfaosList orfaos={orfaos} />
       ) : (
-        <AndamentosTimeline movimentacoes={filtradas} mapa={mapa} />
+        <>
+          <AndamentosTimeline movimentacoes={filtradas.slice(0, visiveis)} mapa={mapa} />
+          {filtradas.length > visiveis && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+              <button type="button" className="btn" onClick={() => setVisiveis((v) => v + PASSO)}>
+                Mostrar mais ({filtradas.length - visiveis} restantes)
+              </button>
+            </div>
+          )}
+        </>
       )}
     </>
   );
