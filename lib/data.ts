@@ -882,6 +882,64 @@ export async function getAudienciaPorId(id: string): Promise<Audiencia | null> {
   };
 }
 
+/* Painel de audiências (tela /audiencias, alvo Plantão) ------------------------
+ * Todas as audiências com o flag de réu preso (situação prisional via join) e os
+ * dias até a sessão, para a UI separar próxima · provisórias · sessão virtual ·
+ * realizadas. Reusa a malha de joins de getAudiencias + a lógica de preso de
+ * getFilaValidacao. getAudiencias (painel antigo + painel geral) fica intacta. */
+
+export type AudienciaCard = {
+  id: string;
+  processo_id: string;
+  tipo: string;
+  data_hora: string;
+  modalidade: string | null;
+  local_link: string | null;
+  status: string;
+  responsavel: string | null;
+  observacoes: string | null;
+  validado: boolean;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  segredo: boolean;
+  clientes: string;
+  preso: boolean;
+  dias_ate: number;
+};
+
+export async function getAudienciasPainel(): Promise<AudienciaCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("audiencias")
+    .select(
+      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome,situacao_prisional)))",
+    )
+    .order("data_hora", { ascending: true });
+
+  return ((data ?? []) as Record<string, unknown>[]).map((r): AudienciaCard => {
+    const p = r.processos as unknown as ProcValida;
+    const cps = p?.cliente_processo ?? [];
+    return {
+      id: r.id as string,
+      processo_id: r.processo_id as string,
+      tipo: r.tipo as string,
+      data_hora: r.data_hora as string,
+      modalidade: (r.modalidade as string) ?? null,
+      local_link: (r.local_link as string) ?? null,
+      status: r.status as string,
+      responsavel: (r.responsavel as string) ?? null,
+      observacoes: (r.observacoes as string) ?? null,
+      validado: Boolean(r.validado),
+      numero_cnj: p?.numero_cnj ?? null,
+      numero_registro: p?.numero_registro_tribunal ?? null,
+      segredo: Boolean(p?.segredo_justica),
+      clientes: nomesDeCp(cps),
+      preso: cps.some((x) => x.clientes?.situacao_prisional != null && PRESO_SET.has(x.clientes.situacao_prisional)),
+      dias_ate: diasAte(r.data_hora as string),
+    };
+  });
+}
+
 /* Processos -------------------------------------------------------------- */
 
 export type Processo = {

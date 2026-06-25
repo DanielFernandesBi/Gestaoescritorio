@@ -294,6 +294,36 @@ export async function criarPrazo(fd: FormData): Promise<Resultado> {
 
 /* ============================ AUDIÊNCIAS ============================ */
 
+/** Cadastro manual de audiência. Nasce status='designada', validado=false
+ * (provisória): aparece em "A validar" e o evento do Calendar é criado na
+ * validação (validarAudiencia). Exige processo, tipo e data/hora. */
+export async function criarAudiencia(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const processo_id = String(fd.get("processo_id") || "");
+    const tipo = String(fd.get("tipo") || "").trim();
+    const dataLocal = String(fd.get("data_hora") || ""); // YYYY-MM-DDTHH:mm
+    if (!processo_id || !tipo || !dataLocal) return { ok: false, message: "Processo, tipo e data/hora são obrigatórios." };
+    const data_hora = `${dataLocal}:00-03:00`; // horário de Brasília
+    const modalidade = String(fd.get("modalidade") || "") || null;
+    const local_link = String(fd.get("local_link") || "").trim() || null;
+    const responsavel = String(fd.get("responsavel") || "Daniel");
+    const observacoes = String(fd.get("observacoes") || "").trim() || null;
+
+    const { error } = await supabase.from("audiencias").insert({
+      processo_id, tipo, data_hora, modalidade, local_link, responsavel, observacoes,
+      status: "designada", validado: false,
+    });
+    if (error) throw error;
+
+    revalidarTudo();
+    return { ok: true, message: "Audiência criada (provisória). Valide para fixar data/local e criar o evento no Calendar." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 export async function validarAudiencia(id: string): Promise<Resultado> {
   try {
     await requireUser();
