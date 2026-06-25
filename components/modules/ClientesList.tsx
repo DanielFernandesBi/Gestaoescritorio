@@ -1,203 +1,151 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Pill } from "@/components/ui";
+import { useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { Chips } from "@/components/Chips";
-import { Icon } from "@/components/Icon";
-import { FiltrosCard } from "@/components/FiltrosCard";
-import { FormModal } from "@/components/FormModal";
-import { FavoritoStar } from "@/components/FavoritoStar";
-import { RowLink } from "@/components/RowLink";
 import { linkPara } from "@/lib/links";
-import { favoritarCliente } from "@/app/actions";
-import { fmtDate, diasAte } from "@/lib/format";
-import type { Cliente } from "@/lib/data";
+import { fmtBRL, fmtDate, humano } from "@/lib/format";
+import type { ClienteAcervo } from "@/lib/data";
 
-type Tone = "red" | "amber" | "green" | "blue" | "gray" | "brass";
-const SIT: Record<string, [string, Tone]> = {
-  solto: ["Solto", "gray"],
-  preso_provisorio: ["Preso provisório", "red"],
-  preso_definitivo: ["Preso definitivo", "red"],
-  regime_semiaberto: ["Semiaberto", "amber"],
-  regime_aberto: ["Aberto", "amber"],
-  monitoramento: ["Tornozeleira", "blue"],
-  foragido: ["Foragido", "red"],
-  falecido: ["Falecido", "gray"],
-};
-const sitDe = (s: string | null): [string, Tone] => SIT[s ?? ""] ?? [s ?? "—", "gray"];
-const preso = (s: string | null) => s === "preso_provisorio" || s === "preso_definitivo";
+const PASSO = 20;
+const PRESO = new Set(["preso_provisorio", "preso_definitivo"]);
+const AMBER_SIT = new Set(["regime_semiaberto", "regime_aberto", "monitoramento"]);
 
-const PASSO = 60;
-
-function haDias(iso: string | null): string {
-  if (!iso) return "—";
-  const d = -diasAte(iso);
-  if (d <= 0) return "hoje";
-  if (d === 1) return "ontem";
-  return `há ${d} dias`;
+// Bolinha/barra por situação: preso vermelho · regime mostarda · solto verde · resto slate.
+function sitTone(s: string | null): string {
+  if (s && PRESO.has(s)) return "red";
+  if (s && AMBER_SIT.has(s)) return "amber";
+  if (s === "solto") return "green";
+  if (s === "foragido") return "red";
+  return "slate";
 }
 
-export function ClientesList({ clientes }: { clientes: Cliente[] }) {
-  const [f, setF] = useState("todos");
-  const [busca, setBusca] = useState("");
+type Cel = { label: string; value: ReactNode; tone?: "red" | "green" | "amber" };
+
+function celulas(c: ClienteAcervo): Cel[] {
+  const fin: Cel = c.inadimplente
+    ? { label: "Financeiro", value: c.fin_parcela != null ? `parcela ${c.fin_parcela} · ${c.fin_dias_atraso}d · ${fmtBRL(c.fin_valor ?? 0)}` : "inadimplente", tone: "red" }
+    : { label: "Financeiro", value: "em dia", tone: "green" };
+  if (c.em_execucao) {
+    const benef = c.beneficio_dias != null ? `progressão ${c.beneficio_dias}d` : c.livramento_dias != null ? `livramento ${c.livramento_dias}d` : "—";
+    return [
+      { label: "Benefício", value: benef, tone: (c.beneficio_dias != null && c.beneficio_dias < 0) || (c.livramento_dias != null && c.livramento_dias < 0) ? "red" : undefined },
+      { label: "Atestado", value: c.tem_atestado ? "lançado" : "a cadastrar", tone: c.tem_atestado ? undefined : "amber" },
+      { label: "Processos", value: `${c.processos_ativos} execução` },
+      fin,
+    ];
+  }
+  return [
+    { label: "Processos", value: c.processos_ativos ? `${c.processos_ativos} ativo${c.processos_ativos === 1 ? "" : "s"}` : "—" },
+    { label: "Próx. fatal", value: c.prox_fatal ? `${fmtDate(c.prox_fatal)} · ${c.prox_fatal_dias}d` : "—", tone: c.prox_fatal_dias != null && c.prox_fatal_dias <= 2 ? "red" : undefined },
+    { label: "Audiência", value: c.audiencia ? fmtDate(c.audiencia) : "—" },
+    fin,
+  ];
+}
+
+function acoes(c: ClienteAcervo): { label: string; href: string; primary?: boolean }[] {
+  const ficha = linkPara("cliente", c.id);
+  if (c.inadimplente) return [{ label: "Cobrar", href: "/financeiro", primary: true }, { label: "Abrir ficha", href: ficha }];
+  if (c.em_execucao) return [{ label: "Abrir ficha", href: ficha, primary: true }, { label: "Aba Execução", href: ficha }];
+  return [{ label: "Abrir ficha", href: ficha, primary: true }, { label: "Situação consolidada", href: ficha }];
+}
+
+function ClienteCard({ c }: { c: ClienteAcervo }) {
+  const tone = sitTone(c.situacao_prisional);
+  const ident = c.cpf ? `${(c.cpf || "").length > 14 ? "CNPJ" : "CPF"} ${c.cpf}` : "";
+  return (
+    <article className={`pc-card b-${tone}`}>
+      <span className="pc-bar" />
+      <div className="pc-body">
+        <div className="pc-top">
+          {c.situacao_prisional && <span className={`pc-status s-${tone}`}><span className="pc-dot" /> {humano(c.situacao_prisional)}</span>}
+          {c.unidade_prisional && <span className="pc-trib">{c.unidade_prisional}</span>}
+          {c.em_execucao && <span className="pc-area t-amber">execução penal</span>}
+          {c.segredo && <span className="pc-flag lock">🔒 segredo de justiça</span>}
+          {ident && <span className="pc-ident mono">{ident}</span>}
+        </div>
+
+        <div className="pc-name">
+          {c.nome}
+          {c.papel && <span className="pc-papel">{humano(c.papel)}</span>}
+        </div>
+        {c.contato_familia && <div className="cl-contato">Contato família: <b>{c.contato_familia}</b></div>}
+
+        <div className="pc-grid">
+          {celulas(c).map((cel, i) => (
+            <div className="pc-cel" key={i}>
+              <div className="pc-cel-l">{cel.label}</div>
+              <div className={`pc-cel-v${cel.tone ? " " + cel.tone : ""}`}>{cel.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="pc-foot">
+          {acoes(c).map((a, i) => (
+            <Link key={i} className={`btn sm${a.primary ? " primary" : ""}`} href={a.href}>{a.label}</Link>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+const CHIPS = [
+  { id: "todos", label: "Todos" },
+  { id: "presos", label: "Presos" },
+  { id: "execucao", label: "Em execução" },
+  { id: "inadimplentes", label: "Inadimplentes" },
+  { id: "favoritos", label: "Favoritos" },
+];
+
+export function ClientesList({ clientes }: { clientes: ClienteAcervo[] }) {
+  const [aba, setAba] = useState("todos");
   const [visiveis, setVisiveis] = useState(PASSO);
 
-  const porAtividade = f === "atividade";
+  const nPresos = clientes.filter((c) => c.situacao_prisional && PRESO.has(c.situacao_prisional)).length;
+  const nExec = clientes.filter((c) => c.em_execucao).length;
+  const nInad = clientes.filter((c) => c.inadimplente).length;
 
-  const filtrados = useMemo(() => {
-    const lista = clientes.filter((c) => {
-      const okF =
-        f === "presos"
-          ? preso(c.situacao_prisional)
-          : f === "favoritos"
-            ? c.favorito
-            : f === "auto"
-              ? c.cadastro_automatico
-              : f === "atividade"
-                ? c.ultima_atividade != null
-                : true;
-      const okBusca = busca ? c.nome.toLowerCase().includes(busca.toLowerCase()) : true;
-      return okF && okBusca;
-    });
-    if (porAtividade) {
-      lista.sort((a, b) => (b.ultima_atividade ?? "").localeCompare(a.ultima_atividade ?? ""));
-    }
-    return lista;
-  }, [clientes, f, busca, porAtividade]);
-
-  const mostrados = filtrados.slice(0, visiveis);
-
-  const opcoes = [
-    { id: "todos", label: `Todos (${clientes.length})` },
-    { id: "favoritos", label: `★ Favoritos (${clientes.filter((c) => c.favorito).length})` },
-    { id: "presos", label: `Presos (${clientes.filter((c) => preso(c.situacao_prisional)).length})` },
-    { id: "atividade", label: `Atividade recente (${clientes.filter((c) => c.ultima_atividade != null).length})` },
-    { id: "auto", label: `Cadastro automático (${clientes.filter((c) => c.cadastro_automatico).length})` },
-  ];
-
-  // Seletor para adicionar aos favoritos por nome (temos +200 clientes).
-  const naoFavoritos = clientes.filter((c) => !c.favorito).sort((a, b) => a.nome.localeCompare(b.nome));
-  const botaoAddFavorito = (
-    <FormModal
-      label="★ Adicionar favorito"
-      titulo="Adicionar cliente aos favoritos"
-      descricao="Marcação do escritório para acesso rápido. Não altera a situação prisional do cliente."
-      acao={favoritarCliente}
-      enviarLabel="Adicionar"
-      variant="default"
-    >
-      <div>
-        <label>Cliente</label>
-        <select name="cliente_id" required defaultValue="">
-          <option value="" disabled>Selecione o cliente…</option>
-          {naoFavoritos.map((c) => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
-      </div>
-      <p className="sub" style={{ margin: 0 }}>Dica: digite no seletor para buscar pelo nome. Você também pode clicar na ★ ao lado de qualquer cliente.</p>
-    </FormModal>
+  const filtradas = useMemo(
+    () =>
+      clientes.filter((c) => {
+        switch (aba) {
+          case "presos": return Boolean(c.situacao_prisional && PRESO.has(c.situacao_prisional));
+          case "execucao": return c.em_execucao;
+          case "inadimplentes": return c.inadimplente;
+          case "favoritos": return c.favorito;
+          default: return true;
+        }
+      }),
+    [clientes, aba],
   );
+  const mostradas = filtradas.slice(0, visiveis);
+
+  const cards = [
+    { id: "todos", n: clientes.length, label: "Clientes · ativos", cls: "" },
+    { id: "presos", n: nPresos, label: "Presos · liberdade", cls: "n-red" },
+    { id: "execucao", n: nExec, label: "Em execução penal", cls: "n-amber" },
+    { id: "inadimplentes", n: nInad, label: "Inadimplentes · cobrança", cls: "n-amber" },
+  ];
 
   return (
     <>
-      <FiltrosCard>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <Chips options={opcoes} value={f} onChange={(v) => { setF(v); setVisiveis(PASSO); }} />
-          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-            {f === "favoritos" && botaoAddFavorito}
-            <input
-              className="filtro-nome"
-              placeholder="Filtrar por nome…"
-              value={busca}
-              onChange={(e) => { setBusca(e.target.value); setVisiveis(PASSO); }}
-              style={{
-                padding: "6px 12px",
-                border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit",
-                background: "var(--surface)", color: "var(--text)", minWidth: 200,
-              }}
-            />
-          </div>
-        </div>
-      </FiltrosCard>
-      <div className="card op-card">
-        <div className="card-h">
-          <h3><Icon name="users" /> Clientes</h3>
-          <span className="sub">{filtrados.length} no filtro</span>
-        </div>
-        <div className="card-b flush">
-          {mostrados.length ? (
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 34 }}></th>
-                  <th>Cliente</th>
-                  <th>CPF</th>
-                  <th>UF</th>
-                  <th>Situação prisional</th>
-                  {porAtividade ? (
-                    <>
-                      <th>Última movimentação</th>
-                      <th>Última intimação</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="center">Processos</th>
-                      <th className="center">Prazos</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {mostrados.map((c) => {
-                  const [lbl, tone] = sitDe(c.situacao_prisional);
-                  return (
-                    <RowLink key={c.id} href={linkPara("cliente", c.id)} ariaLabel={`Abrir ficha de ${c.nome}`}>
-                      <td className="center"><FavoritoStar id={c.id} favorito={c.favorito} /></td>
-                      <td>
-                        <div className="name">{c.nome}</div>
-                        {c.cadastro_automatico && <div className="sub" style={{ color: "var(--blue)" }}>cadastro automático</div>}
-                      </td>
-                      <td className="mono">{c.cpf ?? "—"}</td>
-                      <td>{c.uf ?? "—"}</td>
-                      <td>
-                        <Pill tone={tone}>{lbl}</Pill>
-                        {c.unidade_prisional && <div className="sub">{c.unidade_prisional}</div>}
-                      </td>
-                      {porAtividade ? (
-                        <>
-                          <td className="mono">{fmtDate(c.ultima_movimentacao)}<div className="sub">{haDias(c.ultima_movimentacao)}</div></td>
-                          <td className="mono">{fmtDate(c.ultima_intimacao)}<div className="sub">{haDias(c.ultima_intimacao)}</div></td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="center mono">{c.total_processos}</td>
-                          <td className="center mono">{c.prazos_abertos || "—"}</td>
-                        </>
-                      )}
-                    </RowLink>
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : f === "favoritos" ? (
-            <div className="empty" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-              <div>Nenhum cliente nos favoritos ainda.<br />Adicione pelo botão abaixo ou clique na ★ ao lado de qualquer cliente.</div>
-              {botaoAddFavorito}
-            </div>
-          ) : f === "atividade" ? (
-            <div className="empty">Nenhum cliente com movimentação ou intimação registrada ainda.</div>
-          ) : (
-            <div className="empty">Nenhum cliente neste filtro.</div>
-          )}
-        </div>
+      <div className="stat-row">
+        {cards.map((c) => (
+          <button key={c.id} type="button" className={`stat${aba === c.id ? " on" : ""}`} onClick={() => { setAba(c.id); setVisiveis(PASSO); }}>
+            <b className={c.cls}>{c.n.toLocaleString("pt-BR")}</b><span>{c.label}</span>
+          </button>
+        ))}
       </div>
 
-      {visiveis < filtrados.length && (
+      <Chips options={CHIPS} value={aba} onChange={(v) => { setAba(v); setVisiveis(PASSO); }} />
+
+      <div className="pc-list">
+        {mostradas.length ? mostradas.map((c) => <ClienteCard key={c.id} c={c} />) : <div className="empty">Nenhum cliente neste filtro.</div>}
+      </div>
+      {visiveis < filtradas.length && (
         <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
-          <button className="btn" onClick={() => setVisiveis((v) => v + PASSO)}>
-            Carregar mais ({filtrados.length - visiveis} restantes)
-          </button>
+          <button className="btn" onClick={() => setVisiveis((v) => v + PASSO)}>Carregar mais {filtradas.length - visiveis} clientes →</button>
         </div>
       )}
     </>
