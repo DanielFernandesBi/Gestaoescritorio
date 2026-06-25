@@ -2322,14 +2322,25 @@ export type ExecSituacao = {
   pena_total_texto: string | null;
   pena_cumprida_texto: string | null;
   pena_remanescente_texto: string | null;
+  pena_total_dias: number | null;
+  pena_cumprida_dias: number | null;
+  pena_remanescente_dias: number | null;
   dias_remidos: number | null;
   dias_perdidos: number | null;
+  data_base_progressao: string | null;
+  data_base_livramento: string | null;
   data_prevista_progressao: string | null;
   dias_para_progressao: number | null;
   data_prevista_livramento: string | null;
   dias_para_livramento: number | null;
   data_termino_pena: string | null;
+  fonte: string | null;
+  versao: number; // nº de atestados (snapshots) acumulados — v1, v2, …
   processo_id: string | null;
+  // PEC (processo de execução) que consolida a pena — cabeçalho da aba
+  pec_cnj: string | null;
+  pec_tribunal: string | null;
+  pec_instancia: string | null;
   segredo: boolean;
   progresso: number | null; // % pena cumprida sobre total (0-100)
 };
@@ -2356,6 +2367,7 @@ export type ExecCondenacao = {
   uf: string | null;
   artigo: string | null;
   lei: string | null;
+  descricao_crime: string | null;
   pena_texto: string | null;
   regime_imposto: string | null;
   fracao_progressao: string | null;
@@ -2363,6 +2375,8 @@ export type ExecCondenacao = {
   hediondo: boolean;
   reincidente: boolean;
   situacao: string | null;
+  data_sentenca: string | null;
+  data_transito: string | null;
   processo_origem_id: string | null;
 };
 
@@ -2406,7 +2420,7 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
     supabase.from("vw_situacao_executoria_atual").select("*").eq("cliente_id", cliente_id).maybeSingle(),
     supabase
       .from("situacao_executoria")
-      .select("id, data_atestado, fonte, regime_atual, pena_total_dias, pena_cumprida_dias, pena_cumprida_texto, pena_remanescente_texto, dias_remidos, dias_perdidos, data_prevista_progressao, data_prevista_livramento, data_termino_pena, drive_file_id, observacoes")
+      .select("id, data_atestado, fonte, regime_atual, pena_total_dias, pena_cumprida_dias, pena_remanescente_dias, pena_cumprida_texto, pena_remanescente_texto, dias_remidos, dias_perdidos, data_base_progressao, data_base_livramento, data_prevista_progressao, data_prevista_livramento, data_termino_pena, drive_file_id, observacoes")
       .eq("cliente_id", cliente_id)
       .order("data_atestado", { ascending: false })
       .limit(60),
@@ -2416,13 +2430,19 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
   ]);
 
   let segredo = false;
+  let pec: { numero_cnj: string | null; tribunal: string | null; instancia: string | null } | null = null;
   const sitRow = sit.data as Record<string, unknown> | null;
   if (sitRow?.processo_id) {
-    const { data: p } = await supabase.from("processos").select("segredo_justica").eq("id", sitRow.processo_id as string).maybeSingle();
+    const { data: p } = await supabase
+      .from("processos")
+      .select("segredo_justica, numero_cnj, tribunal, instancia")
+      .eq("id", sitRow.processo_id as string)
+      .maybeSingle();
     segredo = Boolean(p?.segredo_justica);
+    if (p) pec = { numero_cnj: p.numero_cnj ?? null, tribunal: p.tribunal ?? null, instancia: p.instancia ?? null };
   }
 
-  const atestadosRaw = (atest.data ?? []) as (ExecAtestado & { pena_total_dias?: number | null; pena_cumprida_dias?: number | null })[];
+  const atestadosRaw = (atest.data ?? []) as (ExecAtestado & { pena_total_dias?: number | null; pena_cumprida_dias?: number | null; pena_remanescente_dias?: number | null; data_base_progressao?: string | null; data_base_livramento?: string | null })[];
   // O atestado mais recente equivale à situação atual da view; usa-o para a barra de progresso.
   const atual = atestadosRaw[0];
   const total = atual?.pena_total_dias ?? null;
@@ -2436,14 +2456,24 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
         pena_total_texto: sitRow.pena_total_texto as string | null,
         pena_cumprida_texto: sitRow.pena_cumprida_texto as string | null,
         pena_remanescente_texto: sitRow.pena_remanescente_texto as string | null,
+        pena_total_dias: total,
+        pena_cumprida_dias: cumprida,
+        pena_remanescente_dias: (atual?.pena_remanescente_dias ?? null),
         dias_remidos: sitRow.dias_remidos as number | null,
         dias_perdidos: sitRow.dias_perdidos as number | null,
+        data_base_progressao: (atual?.data_base_progressao ?? null),
+        data_base_livramento: (atual?.data_base_livramento ?? null),
         data_prevista_progressao: sitRow.data_prevista_progressao as string | null,
         dias_para_progressao: sitRow.dias_para_progressao as number | null,
         data_prevista_livramento: sitRow.data_prevista_livramento as string | null,
         dias_para_livramento: sitRow.dias_para_livramento as number | null,
         data_termino_pena: sitRow.data_termino_pena as string | null,
+        fonte: (atual?.fonte ?? null),
+        versao: atestadosRaw.length,
         processo_id: sitRow.processo_id as string | null,
+        pec_cnj: pec?.numero_cnj ?? null,
+        pec_tribunal: pec?.tribunal ?? null,
+        pec_instancia: pec?.instancia ?? null,
         segredo,
         progresso,
       }
