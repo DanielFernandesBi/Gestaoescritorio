@@ -18,7 +18,7 @@ export default function ProducaoRail() {
       <div className="vrail-card pz-ciclo-card">
         <div className="pz-ciclo-h">{SPARK}<span>Redator agendado</span></div>
         <p className="tk-rail-p">A 2ª passada do Cowork redige a minuta das peças de <b>alta confiança</b> e move <code>a_fazer</code> → <code>em_revisão</code>. Sempre <b>validado=false</b> — nunca protocola.</p>
-        <div className="pc-rail-stats">
+        <div className="prd-rail-stats">
           <div className="s accent"><div className="n">IA</div><div className="l">minutas → revisão</div></div>
           <div className="s amber"><div className="n">⏳</div><div className="l">aguard. insumo</div></div>
         </div>

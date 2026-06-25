@@ -69,10 +69,10 @@ const Alert = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" 
 /* Semáforo de dias da peça (chip colorido). */
 function PrazoChip({ p }: { p: Peca }) {
   if (p.dias_restantes == null) {
-    if (p.prioridade === "urgente") return <span className="pc-chip red">⚡ urgente</span>;
+    if (p.prioridade === "urgente") return <span className="prd-chip red">⚡ urgente</span>;
     return null;
   }
-  return <span className={`pc-chip ${ddClass(p.dias_restantes)}`}><Clock />{p.dias_restantes} dias</span>;
+  return <span className={`prd-chip ${ddClass(p.dias_restantes)}`}><Clock />{p.dias_restantes} dias</span>;
 }
 // Texto do prazo: interno (do prazo) / alvo (data própria), indicando a natureza.
 function prazoMeta(p: Peca): string {
@@ -233,7 +233,7 @@ export function ReanalisarFila({ processoId, label }: { processoId?: string; lab
 
 // Botão de uma ação (move/valida) com refresh. O rodapé já bloqueia a abertura
 // do drawer (stopPropagation no contêiner), então aqui não precisa.
-function OneClick({ run, children, className = "pc-fbtn" }: { run: () => Promise<{ ok: boolean }>; children: ReactNode; className?: string }) {
+function OneClick({ run, children, className = "prd-fbtn" }: { run: () => Promise<{ ok: boolean }>; children: ReactNode; className?: string }) {
   const router = useRouter();
   const [pend, setPend] = useState(false);
   return (
@@ -541,45 +541,45 @@ export function ProducaoBoard({
     return (
       <article
         key={p.id}
-        className={`pc-card ${status}`}
+        className={`prd-card ${status}`}
         draggable
         onDragStart={(e) => onDragStart(e, p)}
         onClick={() => abrir(p)}
       >
-        <span className={`pc-strip ${status === "em_revisao" ? "accent" : status === "pronta" ? "green" : status === "aguardando_insumo" ? "amber" : status === "em_elaboracao" ? "blue" : "slate"}`} />
-        <div className="pc-body">
-          <div className="pc-tags">
-            <span className={`pc-tag ${tipoTone(p.tipo)}`}>{cat}</span>
-            {status === "a_fazer" && ehIA(p) && <span className="pc-tag ia soft">{SPARK}criada pela IA</span>}
-            {status === "em_revisao" && <span className="pc-tag ia solid">{SPARK}minuta IA · revisar</span>}
-            {status === "aguardando_insumo" && <span className="pc-tag ia soft">{SPARK}gate BAIXA</span>}
-            {status === "pronta" && p.validado && <span className="pc-tag tone-green"><Check />validada{p.responsavel ? ` · ${p.responsavel}` : ""}</span>}
-            {status === "em_elaboracao" && p.responsavel && <span className="pc-tag tone-blue">{p.responsavel}</span>}
-            {p.segredo && <span className="pc-tag segredo">🔒 segredo de justiça</span>}
+        <span className={`prd-strip ${status === "em_revisao" ? "accent" : status === "pronta" ? "green" : status === "aguardando_insumo" ? "amber" : status === "em_elaboracao" ? "blue" : "slate"}`} />
+        <div className="prd-body">
+          <div className="prd-tags">
+            <span className={`prd-tag ${tipoTone(p.tipo)}`}>{cat}</span>
+            {status === "a_fazer" && ehIA(p) && <span className="prd-tag ia soft">{SPARK}criada pela IA</span>}
+            {status === "em_revisao" && <span className="prd-tag ia solid">{SPARK}minuta IA · revisar</span>}
+            {status === "aguardando_insumo" && <span className="prd-tag ia soft">{SPARK}gate BAIXA</span>}
+            {status === "pronta" && p.validado && <span className="prd-tag tone-green"><Check />validada{p.responsavel ? ` · ${p.responsavel}` : ""}</span>}
+            {status === "em_elaboracao" && p.responsavel && <span className="prd-tag tone-blue">{p.responsavel}</span>}
+            {p.segredo && <span className="prd-tag segredo">🔒 segredo de justiça</span>}
           </div>
 
-          <div className="pc-title">{p.titulo}</div>
-          <div className="pc-cli"><Person /><b>{p.cliente ?? "—"}</b></div>
-          {proc && <div className="pc-num mono">{proc}</div>}
+          <div className="prd-title">{p.titulo}</div>
+          <div className="prd-cli"><Person /><b>{p.cliente ?? "—"}</b></div>
+          {proc && <div className="prd-num mono">{proc}</div>}
 
           {/* meio por coluna */}
           {status === "em_revisao" && (
-            <div className="pc-gate">
+            <div className="prd-gate">
               <div className="h">{SPARK}{p.gate_resultado === "alta" ? "gate ALTA · tese coberta pelo acervo" : "minuta do redator agendado"}</div>
               {p.gate_pendencia && <div className="s">{p.gate_pendencia}</div>}
             </div>
           )}
           {status === "aguardando_insumo" && (
-            <div className="pc-falta">
+            <div className="prd-falta">
               <div className="h"><Alert />{p.gate_pendencia ? `falta: ${p.gate_pendencia}` : "aguardando insumo"}</div>
               <div className="s">não redigir às cegas — o redator só minuta com o acervo íntegro</div>
             </div>
           )}
 
           {(status === "a_fazer" || status === "em_elaboracao" || status === "em_revisao" || status === "pronta") && (
-            <div className="pc-foot-meta">
+            <div className="prd-foot-meta">
               <PrazoChip p={p} />
-              <span className="pc-meta mono">
+              <span className="prd-meta mono">
                 {status === "em_revisao" && p.drive_file_id ? ".docx · Drive"
                   : status === "pronta" ? (p.data_efetiva ? `revisada ${fmtDate(p.data_efetiva)}` : "revisada")
                     : prazoMeta(p)}
@@ -588,31 +588,31 @@ export function ProducaoBoard({
           )}
 
           {status === "pronta" && (
-            <div className="pc-note">O sistema nunca protocola — a baixa do prazo move para <b>protocolada</b> e grava o andamento.</div>
+            <div className="prd-note">O sistema nunca protocola — a baixa do prazo move para <b>protocolada</b> e grava o andamento.</div>
           )}
         </div>
 
         {/* rodapé de ações por coluna */}
-        <div className="pc-foot" onClick={(e) => e.stopPropagation()}>
-          {status === "a_fazer" && <><span className="pc-fwrap"><AtribuirAdvogado p={p} /></span><button type="button" className="pc-fbtn sec" onClick={() => abrir(p)}>Abrir</button></>}
+        <div className="prd-foot" onClick={(e) => e.stopPropagation()}>
+          {status === "a_fazer" && <><span className="prd-fwrap"><AtribuirAdvogado p={p} /></span><button type="button" className="prd-fbtn sec" onClick={() => abrir(p)}>Abrir</button></>}
           {status === "em_elaboracao" && <>
             {p.drive_file_id
-              ? <a className="pc-fbtn" href={`https://drive.google.com/file/d/${p.drive_file_id}/view`} target="_blank" rel="noreferrer">Continuar no editor</a>
-              : <button type="button" className="pc-fbtn" onClick={() => abrir(p)}>Continuar no editor</button>}
-            <button type="button" className="pc-fbtn sec" onClick={() => abrir(p)}>Abrir</button>
+              ? <a className="prd-fbtn" href={`https://drive.google.com/file/d/${p.drive_file_id}/view`} target="_blank" rel="noreferrer">Continuar no editor</a>
+              : <button type="button" className="prd-fbtn" onClick={() => abrir(p)}>Continuar no editor</button>}
+            <button type="button" className="prd-fbtn sec" onClick={() => abrir(p)}>Abrir</button>
           </>}
-          {status === "aguardando_insumo" && <><span className="pc-fwrap"><AnexarInsumo p={p} /></span><Link className="pc-fbtn sec" href="/tarefas">Tarefa</Link></>}
+          {status === "aguardando_insumo" && <><span className="prd-fwrap"><AnexarInsumo p={p} /></span><Link className="prd-fbtn sec" href="/tarefas">Tarefa</Link></>}
           {status === "em_revisao" && <>
             {p.drive_file_id
-              ? <a className="pc-fbtn primary" href={`https://drive.google.com/file/d/${p.drive_file_id}/view`} target="_blank" rel="noreferrer"><FileGlyph />Abrir minuta</a>
-              : <button type="button" className="pc-fbtn primary" onClick={() => abrir(p)}><FileGlyph />Abrir minuta</button>}
-            <OneClick run={() => validarMinuta(p.id)} className="pc-fbtn sec ok">Validar</OneClick>
+              ? <a className="prd-fbtn primary" href={`https://drive.google.com/file/d/${p.drive_file_id}/view`} target="_blank" rel="noreferrer"><FileGlyph />Abrir minuta</a>
+              : <button type="button" className="prd-fbtn primary" onClick={() => abrir(p)}><FileGlyph />Abrir minuta</button>}
+            <OneClick run={() => validarMinuta(p.id)} className="prd-fbtn sec ok">Validar</OneClick>
           </>}
           {status === "pronta" && <>
             {p.drive_file_id
-              ? <a className="pc-fbtn" href={docxHref(p.drive_file_id)} target="_blank" rel="noreferrer">Baixar .docx</a>
-              : <button type="button" className="pc-fbtn" onClick={() => abrir(p)}>Baixar .docx</button>}
-            <button type="button" className="pc-fbtn sec" onClick={() => abrir(p)}>Abrir</button>
+              ? <a className="prd-fbtn" href={docxHref(p.drive_file_id)} target="_blank" rel="noreferrer">Baixar .docx</a>
+              : <button type="button" className="prd-fbtn" onClick={() => abrir(p)}>Baixar .docx</button>}
+            <button type="button" className="prd-fbtn sec" onClick={() => abrir(p)}>Abrir</button>
           </>}
         </div>
       </article>
@@ -621,75 +621,75 @@ export function ProducaoBoard({
 
   function cartaoProto(p: Peca) {
     return (
-      <article key={p.id} className="pc-card proto" onClick={() => abrir(p)}>
-        <div className="pc-body">
-          <div className="pc-tags"><span className={`pc-tag ${tipoTone(p.tipo)}`}>{catLabel(p)}</span></div>
-          <div className="pc-title sm">{p.titulo}</div>
-          <div className="pc-cli sm"><b>{p.cliente ?? "—"}</b></div>
-          <div className="pc-proto-when mono"><Check />protocolada {fmtDate(p.protocolada_em)}</div>
+      <article key={p.id} className="prd-card proto" onClick={() => abrir(p)}>
+        <div className="prd-body">
+          <div className="prd-tags"><span className={`prd-tag ${tipoTone(p.tipo)}`}>{catLabel(p)}</span></div>
+          <div className="prd-title sm">{p.titulo}</div>
+          <div className="prd-cli sm"><b>{p.cliente ?? "—"}</b></div>
+          <div className="prd-proto-when mono"><Check />protocolada {fmtDate(p.protocolada_em)}</div>
         </div>
       </article>
     );
   }
 
   return (
-    <div className="pc-shell">
+    <div className="prd-shell">
       {/* toolbar: atribuição + só minutas IA + contador */}
-      <div className="pc-toolbar">
-        <div className="pc-chips">
+      <div className="prd-toolbar">
+        <div className="prd-chips">
           {filtros.map((o) => (
             <button key={o.id} type="button" className={`tk-chip${filtro === o.id ? " on" : ""}`} onClick={() => setFiltro(o.id)}>{o.label}</button>
           ))}
         </div>
         <button type="button" className={`tk-chip conf${soIA ? " on" : ""}`} onClick={() => setSoIA((v) => !v)}>{SPARK}Só minutas IA</button>
-        <span className="pc-count mono">{pecasFiltradas.length} peças ativas · <b className="accent">{nIA} geradas pela IA</b></span>
+        <span className="prd-count mono">{pecasFiltradas.length} peças ativas · <b className="accent">{nIA} geradas pela IA</b></span>
       </div>
 
-      <div className="pc-board">
+      <div className="prd-board">
         {COLS.map((col) => {
           const itens = pecasFiltradas.filter((p) => p.status === col.key);
           return (
             <section
-              className={`pc-col${dragCol === col.key ? " drop-on" : ""}${col.key === "em_revisao" ? " revisao" : ""}`}
+              className={`prd-col${dragCol === col.key ? " drop-on" : ""}${col.key === "em_revisao" ? " revisao" : ""}`}
               key={col.key}
               onDragOver={(e) => { e.preventDefault(); setDragCol(col.key); }}
               onDragLeave={() => setDragCol((c) => (c === col.key ? null : c))}
               onDrop={(e) => onDrop(e, col.key)}
             >
-              <div className="pc-col-h">
-                <span className={`pc-dot ${col.dot}`} />
-                <span className="pc-col-t">{col.label}</span>
-                <span className="pc-col-n mono">{itens.length}</span>
-                {col.key === "em_revisao" && <span className="pc-col-end accent">minutas IA</span>}
-                {col.key === "pronta" && <span className="pc-col-end">aguarda protocolo</span>}
+              <div className="prd-col-h">
+                <span className={`prd-dot ${col.dot}`} />
+                <span className="prd-col-t">{col.label}</span>
+                <span className="prd-col-n mono">{itens.length}</span>
+                {col.key === "em_revisao" && <span className="prd-col-end accent">minutas IA</span>}
+                {col.key === "pronta" && <span className="prd-col-end">aguarda protocolo</span>}
               </div>
-              <div className="pc-col-b">
-                {itens.length ? itens.map(cartao) : <div className="pc-col-empty">—</div>}
+              <div className="prd-col-b">
+                {itens.length ? itens.map(cartao) : <div className="prd-col-empty">—</div>}
               </div>
             </section>
           );
         })}
 
         {/* coluna Protocolada (somente leitura, recentes) */}
-        <section className="pc-col proto-col">
-          <div className="pc-col-h">
-            <span className="pc-dot ink" />
-            <span className="pc-col-t">Protocolada</span>
-            <span className="pc-col-n mono">{protocoladas.length}</span>
-            <span className="pc-col-end">30d</span>
+        <section className="prd-col proto-col">
+          <div className="prd-col-h">
+            <span className="prd-dot ink" />
+            <span className="prd-col-t">Protocolada</span>
+            <span className="prd-col-n mono">{protocoladas.length}</span>
+            <span className="prd-col-end">30d</span>
           </div>
-          <div className="pc-col-b">
+          <div className="prd-col-b">
             {protocoladas.length ? (
               <>
                 {protocoladas.slice(0, verProto).map(cartaoProto)}
                 {protocoladas.length > verProto && (
-                  <button type="button" className="pc-vertodas" onClick={() => setVerProto(protocoladas.length)}>
+                  <button type="button" className="prd-vertodas" onClick={() => setVerProto(protocoladas.length)}>
                     ver todas as {protocoladas.length} →
                   </button>
                 )}
               </>
             ) : (
-              <div className="pc-col-empty">—</div>
+              <div className="prd-col-empty">—</div>
             )}
           </div>
         </section>
