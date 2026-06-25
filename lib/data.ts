@@ -28,6 +28,21 @@ function nomesClientes(cp?: NestedCliente[] | null): string {
   return [...new Set(nomes)].join(", ");
 }
 
+/** Clientes vinculados com id navegável e papel (para links de detalhe). */
+function partesDeCp(cp?: unknown): ParteRef[] {
+  const arr = (cp ?? []) as { papel?: string | null; clientes?: { id?: string; nome?: string } | null }[];
+  const vistos = new Set<string>();
+  const out: ParteRef[] = [];
+  for (const x of arr) {
+    const id = x.clientes?.id;
+    const nome = x.clientes?.nome;
+    if (!id || !nome || vistos.has(id)) continue;
+    vistos.add(id);
+    out.push({ id, nome, papel: x.papel ?? null });
+  }
+  return out;
+}
+
 /* Contexto do caso (Sugestão 56) — bloco "do que se trata", montado deterministicamente
  * do banco (sem schema novo). Para intimações/andamentos órfãos usa-se COALESCE com os
  * campos próprios da intimação; o frontend renderiza via <ContextoCaso/>. */
@@ -791,11 +806,15 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
 
 /* Audiências ------------------------------------------------------------- */
 
+/** Cliente vinculado a um processo (com id navegável e papel). */
+export type ParteRef = { id: string; nome: string; papel: string | null };
+
 export type Audiencia = {
   id: string;
   processo_id: string;
   tipo: string;
   data_hora: string;
+  data_fim?: string | null;
   modalidade: string | null;
   local_link: string | null;
   status: string;
@@ -806,6 +825,7 @@ export type Audiencia = {
   numero_registro: string | null;
   segredo: boolean;
   clientes: string;
+  partes: ParteRef[];
   redesignada_de?: string | null;
   data_anterior?: string | null;
 };
@@ -815,7 +835,7 @@ export async function getAudiencias(): Promise<Audiencia[]> {
   const { data } = await supabase
     .from("audiencias")
     .select(
-      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(papel,clientes(id,nome)))",
     )
     .order("data_hora", { ascending: true });
 
@@ -836,6 +856,7 @@ export async function getAudiencias(): Promise<Audiencia[]> {
       numero_registro: p?.numero_registro_tribunal ?? null,
       segredo: Boolean(p?.segredo_justica),
       clientes: nomesClientes(p?.cliente_processo),
+      partes: partesDeCp(p?.cliente_processo),
     };
   });
 }
@@ -846,7 +867,7 @@ export async function getAudienciaPorId(id: string): Promise<Audiencia | null> {
   const { data: r } = await supabase
     .from("audiencias")
     .select(
-      "id, processo_id, tipo, data_hora, modalidade, local_link, status, responsavel, observacoes, validado, redesignada_de, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, processo_id, tipo, data_hora, data_fim, modalidade, local_link, status, responsavel, observacoes, validado, redesignada_de, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(papel,clientes(id,nome)))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -869,6 +890,7 @@ export async function getAudienciaPorId(id: string): Promise<Audiencia | null> {
     processo_id: r.processo_id as string,
     tipo: r.tipo as string,
     data_hora: r.data_hora as string,
+    data_fim: (r.data_fim as string | null) ?? null,
     modalidade: r.modalidade as string | null,
     local_link: r.local_link as string | null,
     status: r.status as string,
@@ -879,7 +901,31 @@ export async function getAudienciaPorId(id: string): Promise<Audiencia | null> {
     numero_registro: p?.numero_registro_tribunal ?? null,
     segredo: Boolean(p?.segredo_justica),
     clientes: nomesClientes(p?.cliente_processo),
+    partes: partesDeCp(p?.cliente_processo),
   };
+}
+
+/* Anotações livres (controle próprio) ------------------------------------------
+ * Genéricas por entidade (audiência, processo, cliente…). Cada anotação é um
+ * card independente com editar/apagar — ver tabela public.anotacoes. */
+
+export type Anotacao = {
+  id: string;
+  texto: string;
+  autor: string;
+  criado_em: string;
+  atualizado_em: string;
+};
+
+export async function getAnotacoes(entidadeTipo: string, entidadeId: string): Promise<Anotacao[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("anotacoes")
+    .select("id, texto, autor, criado_em, atualizado_em")
+    .eq("entidade_tipo", entidadeTipo)
+    .eq("entidade_id", entidadeId)
+    .order("criado_em", { ascending: false });
+  return (data ?? []) as Anotacao[];
 }
 
 /* Painel de audiências (tela /audiencias, alvo Plantão) ------------------------
