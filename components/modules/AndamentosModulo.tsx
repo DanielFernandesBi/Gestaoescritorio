@@ -81,7 +81,7 @@ export function AndamentosModulo({
         <AndamentosOrfaosList orfaos={orfaos} />
       ) : (
         <>
-          <AndamentosTimeline movimentacoes={filtradas.slice(0, visiveis)} mapa={mapa} />
+          <AndamentosTimeline movimentacoes={filtradas.slice(0, visiveis)} mapa={mapa} filtro={aba} />
           {filtradas.length > visiveis && (
             <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
               <button type="button" className="btn" onClick={() => setVisiveis((v) => v + PASSO)}>

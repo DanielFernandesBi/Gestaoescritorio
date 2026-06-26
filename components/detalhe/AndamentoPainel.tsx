@@ -59,10 +59,11 @@ function Sec({ titulo, sub, extra, children }: { titulo: string; sub?: string; e
 }
 
 /* ── master: card de andamento ───────────────────────────────────────────── */
-function MasterCard({ m, ativo }: { m: Movimentacao; ativo: boolean }) {
+function MasterCard({ m, ativo, filtro }: { m: Movimentacao; ativo: boolean; filtro: string }) {
   const orfao = !m.processo_id;
+  const href = `${linkPara("andamento", m.id)}${filtro === "escalados" ? "?f=escalados" : ""}`;
   return (
-    <Link className={`audp-mcard cli-mcard${ativo ? " on" : ""}`} href={linkPara("andamento", m.id)}>
+    <Link className={`audp-mcard cli-mcard${ativo ? " on" : ""}`} href={href}>
       <div className="int-mtags">
         <span className={`pz-tag cat-${tipoTone(m.tipo) === "red" ? "neutral" : tipoTone(m.tipo)}`}>{humano(m.tipo)}</span>
         {m.escalado && <span className="pz-tag cowork">escalou</span>}
@@ -94,8 +95,8 @@ function EditarAndamento({ a }: { a: AndamentoFull }) {
 }
 
 /* ── componente principal ────────────────────────────────────────────────── */
-export function AndamentoPainel({ a, lista, mapa, anotacoes }: { a: AndamentoFull; lista: Movimentacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[] }) {
-  const [filtro, setFiltro] = useState<"recentes" | "escalados">("recentes");
+export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "recentes" }: { a: AndamentoFull; lista: Movimentacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; filtroInicial?: "recentes" | "escalados" }) {
+  const [filtro, setFiltro] = useState<"recentes" | "escalados">(filtroInicial);
   const [verNotas, setVerNotas] = useState(false);
 
   const escalados = lista.filter((m) => m.escalado);
@@ -116,7 +117,7 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes }: { a: AndamentoFul
         <div className="audp-master-list">
           {visiveis.length === 0
             ? <div className="audp-empty">Nada por aqui.</div>
-            : visiveis.map((m) => <MasterCard key={m.id} m={m} ativo={m.id === a.id} />)}
+            : visiveis.map((m) => <MasterCard key={m.id} m={m} ativo={m.id === a.id} filtro={filtro} />)}
         </div>
       </aside>
 
