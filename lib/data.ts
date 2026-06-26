@@ -1376,6 +1376,110 @@ export async function getProcessoPorId(id: string): Promise<Processo | null> {
   };
 }
 
+/* Detalhe completo do processo (master-detail, alvo Plantão) — consolida ficha +
+ * partes + prazos + audiências + intimações + andamentos + peças + estudos +
+ * contratos + compromissos + documentos. Tudo navegável. Só leitura. */
+
+export type ProcPrazoMini = { id: string; ato: string; data_fatal: string; data_interna: string | null; dias: number; validado: boolean; status: string };
+export type ProcAudMini = { id: string; tipo: string; nome: string | null; data_hora: string; modalidade: string | null; status: string; validado: boolean };
+export type ProcIntimMini = { id: string; resumo: string | null; origem: string | null; status: string; data_publicacao: string | null; providencia: string | null };
+export type ProcAndMini = { id: string; data: string; tipo: string; descricao: string };
+export type ProcPecaMini = { id: string; titulo: string; tipo: string; subtipo: string | null; status: string };
+export type ProcEstudoMini = { id: string; titulo: string; status: string; tipo: string | null };
+export type ProcContratoMini = { id: string; objeto: string | null; status: string; valor_total: number | null };
+export type ProcCompromissoMini = { id: string; titulo: string; data_hora: string; status: string };
+
+export type ProcessoFull = {
+  id: string; numero_cnj: string | null; numero_registro: string | null;
+  tribunal: string | null; vara_comarca: string | null; uf: string | null; instancia: string | null;
+  area: string | null; classe: string | null; assunto: string | null; fase: string | null;
+  status: string; responsavel: string | null; segredo: boolean; cadastro_automatico: boolean; cadastrado_por: string | null;
+  processo_origem: string | null; link_tribunal: string | null; observacoes: string | null; merged_into: string | null; criado_em: string | null;
+  clientes: string;
+  partes: ParteRefLite[];
+  prazos: ProcPrazoMini[];
+  audiencias: ProcAudMini[];
+  intimacoes: ProcIntimMini[];
+  andamentos: ProcAndMini[];
+  pecas: ProcPecaMini[];
+  estudos: ProcEstudoMini[];
+  contratos: ProcContratoMini[];
+  compromissos: ProcCompromissoMini[];
+  documentos: Documento[];
+};
+
+export async function getProcessoFull(id: string): Promise<ProcessoFull | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("processos")
+    .select("id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, assunto, fase, status, responsavel, segredo_justica, cadastro_automatico, cadastrado_por, processo_origem, link_tribunal, observacoes, merged_into, criado_em, cliente_processo(papel, clientes(id, nome))")
+    .eq("id", id)
+    .maybeSingle();
+  if (!r) return null;
+
+  const cp = (r.cliente_processo ?? []) as { papel?: string | null; clientes?: { id?: string; nome?: string } | null }[];
+  const partes: ParteRefLite[] = [];
+  const vistos = new Set<string>();
+  for (const v of cp) {
+    const c = v.clientes;
+    if (c?.id && c.nome && !vistos.has(c.id)) { vistos.add(c.id); partes.push({ id: c.id, nome: c.nome, papel: v.papel ?? null }); }
+  }
+
+  const [prz, aud, intim, ands, pcs, est, ctr, comp, docs] = await Promise.all([
+    supabase.from("prazos").select("id, ato, data_fatal, data_interna, validado, status").eq("processo_id", id).eq("status", "aberto").order("data_fatal", { ascending: true }),
+    supabase.from("audiencias").select("id, tipo, nome, data_hora, modalidade, status, validado").eq("processo_id", id).order("data_hora", { ascending: true }),
+    supabase.from("intimacoes").select("id, resumo, origem, status, data_publicacao, providencia").eq("processo_id", id).order("data_publicacao", { ascending: false, nullsFirst: false }).limit(20),
+    supabase.from("andamentos").select("id, data, tipo, descricao").eq("processo_id", id).order("data", { ascending: false }).limit(25),
+    supabase.from("pecas").select("id, titulo, tipo, subtipo, status").eq("processo_id", id).order("criado_em", { ascending: false }),
+    supabase.from("estudo_processo").select("estudo_id, estudos_caso(id, titulo, status, tipo)").eq("processo_id", id),
+    supabase.from("contratos").select("id, objeto, status, valor_total").eq("processo_id", id).order("criado_em", { ascending: false }),
+    supabase.from("compromissos").select("id, titulo, data_hora, status").eq("processo_id", id).order("data_hora", { ascending: false }).limit(20),
+    getDocumentosProcesso(id),
+  ]);
+
+  const estudos: ProcEstudoMini[] = [];
+  const vistosEst = new Set<string>();
+  for (const e of est.data ?? []) {
+    const ec = e.estudos_caso as unknown as { id?: string; titulo?: string; status?: string; tipo?: string | null } | null;
+    if (ec?.id && !vistosEst.has(ec.id)) { vistosEst.add(ec.id); estudos.push({ id: ec.id, titulo: ec.titulo ?? "Estudo", status: ec.status ?? "—", tipo: ec.tipo ?? null }); }
+  }
+
+  return {
+    id: r.id as string,
+    numero_cnj: (r.numero_cnj as string | null) ?? null,
+    numero_registro: (r.numero_registro_tribunal as string | null) ?? null,
+    tribunal: (r.tribunal as string | null) ?? null,
+    vara_comarca: (r.vara_comarca as string | null) ?? null,
+    uf: (r.uf as string | null) ?? null,
+    instancia: (r.instancia as string | null) ?? null,
+    area: (r.area as string | null) ?? null,
+    classe: (r.classe as string | null) ?? null,
+    assunto: (r.assunto as string | null) ?? null,
+    fase: (r.fase as string | null) ?? null,
+    status: r.status as string,
+    responsavel: (r.responsavel as string | null) ?? null,
+    segredo: Boolean(r.segredo_justica),
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    processo_origem: (r.processo_origem as string | null) ?? null,
+    link_tribunal: (r.link_tribunal as string | null) ?? null,
+    observacoes: (r.observacoes as string | null) ?? null,
+    merged_into: (r.merged_into as string | null) ?? null,
+    criado_em: (r.criado_em as string | null) ?? null,
+    clientes: nomesClientes(r.cliente_processo as unknown as NestedCliente[] | null),
+    partes,
+    prazos: (prz.data ?? []).map((p) => ({ id: p.id as string, ato: p.ato as string, data_fatal: p.data_fatal as string, data_interna: (p.data_interna as string | null) ?? null, dias: diasAte(p.data_fatal as string), validado: Boolean(p.validado), status: p.status as string })),
+    audiencias: (aud.data ?? []).map((a) => ({ id: a.id as string, tipo: a.tipo as string, nome: (a.nome as string | null) ?? null, data_hora: a.data_hora as string, modalidade: (a.modalidade as string | null) ?? null, status: a.status as string, validado: Boolean(a.validado) })),
+    intimacoes: (intim.data ?? []).map((i) => ({ id: i.id as string, resumo: (i.resumo as string | null) ?? null, origem: (i.origem as string | null) ?? null, status: i.status as string, data_publicacao: (i.data_publicacao as string | null) ?? null, providencia: (i.providencia as string | null) ?? null })),
+    andamentos: (ands.data ?? []).map((a) => ({ id: a.id as string, data: a.data as string, tipo: a.tipo as string, descricao: a.descricao as string })),
+    pecas: (pcs.data ?? []).map((p) => ({ id: p.id as string, titulo: p.titulo as string, tipo: p.tipo as string, subtipo: (p.subtipo as string | null) ?? null, status: p.status as string })),
+    estudos,
+    contratos: (ctr.data ?? []).map((c) => ({ id: c.id as string, objeto: (c.objeto as string | null) ?? null, status: c.status as string, valor_total: c.valor_total == null ? null : Number(c.valor_total) })),
+    compromissos: (comp.data ?? []).map((c) => ({ id: c.id as string, titulo: c.titulo as string, data_hora: c.data_hora as string, status: c.status as string })),
+    documentos: docs,
+  };
+}
+
 /* Clientes --------------------------------------------------------------- */
 
 export type Cliente = {

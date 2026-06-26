@@ -2016,7 +2016,7 @@ export async function criarAnotacao(
       autor: email,
     });
     if (error) throw error;
-    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes", andamento: "/andamentos", contrato: "/contratos", peca: "/producao" };
+    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes", andamento: "/andamentos", contrato: "/contratos", peca: "/producao", processo: "/processos" };
     if (rota[entidadeTipo]) revalidatePath(`${rota[entidadeTipo]}/${entidadeId}`);
     return { ok: true, message: "Anotação salva." };
   } catch (e) {
