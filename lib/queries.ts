@@ -359,6 +359,8 @@ export type VarreduraHist = {
   intimacoes_novas: number;
   andamentos_novos: number;
   prazos_criados: number;
+  janela_inicio: string | null;
+  janela_fim: string | null;
   anomalias: Anomalia[] | null;
 };
 
@@ -366,7 +368,7 @@ export async function getVarreduras(limit = 8): Promise<VarreduraHist[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("varreduras")
-    .select("id, criado_em, fonte, status, itens_processados, intimacoes_novas, andamentos_novos, prazos_criados, anomalias")
+    .select("id, criado_em, fonte, status, itens_processados, intimacoes_novas, andamentos_novos, prazos_criados, janela_inicio, janela_fim, anomalias")
     .order("criado_em", { ascending: false })
     .limit(limit);
   return ((data ?? []) as Record<string, unknown>[]).map((r): VarreduraHist => ({
@@ -378,6 +380,8 @@ export async function getVarreduras(limit = 8): Promise<VarreduraHist[]> {
     intimacoes_novas: Number(r.intimacoes_novas ?? 0),
     andamentos_novos: Number(r.andamentos_novos ?? 0),
     prazos_criados: Number(r.prazos_criados ?? 0),
+    janela_inicio: (r.janela_inicio as string | null) ?? null,
+    janela_fim: (r.janela_fim as string | null) ?? null,
     anomalias: normAnomalias(r.anomalias),
   }));
 }

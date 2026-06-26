@@ -43,8 +43,14 @@ export default async function SistemaRail() {
           <ul className="sis-mig">
             {migracoes.map((m) => (
               <li key={m.id} title={m.descricao ?? ""}>
-                <span className="d mono">#{m.id}</span>
-                <span className="t">{nomeMigracao(m.descricao) ?? `migração #${m.id}`}</span>
+                {m.sql_executado ? (
+                  <details className="sis-mig-det">
+                    <summary><span className="d mono">#{m.id}</span><span className="t">{nomeMigracao(m.descricao) ?? `migração #${m.id}`}</span></summary>
+                    <pre className="sis-mig-sql">{m.sql_executado}</pre>
+                  </details>
+                ) : (
+                  <div className="sis-mig-row"><span className="d mono">#{m.id}</span><span className="t">{nomeMigracao(m.descricao) ?? `migração #${m.id}`}</span></div>
+                )}
               </li>
             ))}
           </ul>
