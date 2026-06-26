@@ -180,13 +180,32 @@ function Vinc({ tag, tagTone = "cat-slate", titulo, sub, href, vazio }: { tag: s
 }
 
 /* ── componente principal ────────────────────────────────────────────────── */
-export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista: Peca[]; anotacoes: Anotacao[]; acervo: RadarItem[] }) {
+/* ── índice (lista compacta) — reusado no drawer e na tela raiz /producao ── */
+export function PecaMaster({ lista, activeId }: { lista: Peca[]; activeId?: string }) {
   const [filtro, setFiltro] = useState<"backlog" | "ia">("backlog");
-  const [verNotas, setVerNotas] = useState(false);
-
   const backlog = lista;
   const ia = lista.filter((x) => x.cadastro_automatico);
   const visiveis = filtro === "ia" ? ia : backlog;
+  return (
+    <aside className="audp-master">
+      <div className="audp-master-h">
+        <h1>Produção</h1>
+        <div className="audp-filtros">
+          <button type="button" className={`audp-chip ink${filtro === "backlog" ? " on" : ""}`} onClick={() => setFiltro("backlog")}>Backlog ({backlog.length})</button>
+          <button type="button" className={`audp-chip tang${filtro === "ia" ? " on" : ""}`} onClick={() => setFiltro("ia")}>minutas IA ({ia.length})</button>
+        </div>
+      </div>
+      <div className="audp-master-list">
+        {visiveis.length === 0
+          ? <div className="audp-empty">Nada por aqui.</div>
+          : visiveis.map((x) => <MasterCard key={x.id} p={x} ativo={x.id === activeId} />)}
+      </div>
+    </aside>
+  );
+}
+
+export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista: Peca[]; anotacoes: Anotacao[]; acervo: RadarItem[] }) {
+  const [verNotas, setVerNotas] = useState(false);
 
   const tone = urg(p.dias_restantes);
   const ativa = !["protocolada", "cancelada", "prejudicada"].includes(p.status);
@@ -195,21 +214,8 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
 
   return (
     <div className="audp">
-      {/* MASTER */}
-      <aside className="audp-master">
-        <div className="audp-master-h">
-          <h1>Produção</h1>
-          <div className="audp-filtros">
-            <button type="button" className={`audp-chip ink${filtro === "backlog" ? " on" : ""}`} onClick={() => setFiltro("backlog")}>Backlog ({backlog.length})</button>
-            <button type="button" className={`audp-chip tang${filtro === "ia" ? " on" : ""}`} onClick={() => setFiltro("ia")}>minutas IA ({ia.length})</button>
-          </div>
-        </div>
-        <div className="audp-master-list">
-          {visiveis.length === 0
-            ? <div className="audp-empty">Nada por aqui.</div>
-            : visiveis.map((x) => <MasterCard key={x.id} p={x} ativo={x.id === p.id} />)}
-        </div>
-      </aside>
+      {/* MASTER — índice compartilhado (mesma row da tela raiz /producao) */}
+      <PecaMaster lista={lista} activeId={p.id} />
 
       {/* DETALHE */}
       <section className="audp-detail">

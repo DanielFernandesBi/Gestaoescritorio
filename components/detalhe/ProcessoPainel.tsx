@@ -70,6 +70,31 @@ function MasterCard({ p, ativo }: { p: Processo; ativo: boolean }) {
   );
 }
 
+/* ── índice (lista compacta) — reusado no drawer e na tela raiz /processos ── */
+export function ProcessoMaster({ lista, activeId }: { lista: Processo[]; activeId?: string }) {
+  const [busca, setBusca] = useState("");
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    if (!q) return lista;
+    const qd = q.replace(/\D/g, "");
+    return lista.filter((x) =>
+      (x.clientes ?? "").toLowerCase().includes(q) ||
+      (qd && ((x.numero_cnj ?? "").replace(/\D/g, "").includes(qd) || (x.numero_registro ?? "").replace(/\D/g, "").includes(qd))));
+  }, [lista, busca]);
+  return (
+    <aside className="audp-master">
+      <div className="audp-master-h">
+        <h1>Processos</h1>
+        <input className="cli-busca" placeholder="Buscar CNJ, registro, cliente…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      </div>
+      <div className="audp-master-list">
+        {filtrados.length === 0 ? <div className="audp-empty">Nenhum processo.</div>
+          : filtrados.map((x) => <MasterCard key={x.id} p={x} ativo={x.id === activeId} />)}
+      </div>
+    </aside>
+  );
+}
+
 /* ── editar processo ─────────────────────────────────────────────────────── */
 function EditarProcesso({ p }: { p: ProcessoFull }) {
   return (
@@ -136,7 +161,6 @@ function NovoPrazo({ p }: { p: ProcessoFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista: Processo[]; anotacoes: Anotacao[] }) {
-  const [busca, setBusca] = useState("");
   const [verNotas, setVerNotas] = useState(false);
   const [clis, setClis] = useState<{ id: string; nome: string }[]>([]);
 
@@ -145,15 +169,6 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
     fetch("/api/clientes-lite").then((r) => r.json()).then((d) => vivo && setClis(d.clientes ?? [])).catch(() => {});
     return () => { vivo = false; };
   }, []);
-
-  const filtrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    if (!q) return lista;
-    const qd = q.replace(/\D/g, "");
-    return lista.filter((x) =>
-      (x.clientes ?? "").toLowerCase().includes(q) ||
-      (qd && ((x.numero_cnj ?? "").replace(/\D/g, "").includes(qd) || (x.numero_registro ?? "").replace(/\D/g, "").includes(qd))));
-  }, [lista, busca]);
 
   const titulo = p.segredo ? "Processo em segredo de justiça" : (p.clientes || "Processo sem partes");
   const ativo = p.status === "ativo";
@@ -167,17 +182,8 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
 
   return (
     <div className="audp">
-      {/* MASTER */}
-      <aside className="audp-master">
-        <div className="audp-master-h">
-          <h1>Processos</h1>
-          <input className="cli-busca" placeholder="Buscar CNJ, registro, cliente…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        <div className="audp-master-list">
-          {filtrados.length === 0 ? <div className="audp-empty">Nenhum processo.</div>
-            : filtrados.map((x) => <MasterCard key={x.id} p={x} ativo={x.id === p.id} />)}
-        </div>
-      </aside>
+      {/* MASTER — índice compartilhado (mesma row da tela raiz /processos) */}
+      <ProcessoMaster lista={lista} activeId={p.id} />
 
       {/* DETALHE */}
       <section className="audp-detail">

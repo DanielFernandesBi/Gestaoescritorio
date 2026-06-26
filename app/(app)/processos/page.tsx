@@ -1,6 +1,8 @@
-import { getAcervoProcessos } from "@/lib/data";
+import { getAcervoProcessos, getProcessos } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { ProcessosList } from "@/components/modules/ProcessosList";
+import { ProcessoMaster } from "@/components/detalhe/ProcessoPainel";
+import { ListaRaiz } from "@/components/ListaRaiz";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
 import { criarProcesso } from "@/app/actions";
@@ -11,13 +13,14 @@ export const dynamic = "force-dynamic";
 
 export default async function ProcessosPage() {
   const supabase = await createClient();
-  const [{ processos, tombstones }, ativos, semCnj, sigilosos, parados, clientes] = await Promise.all([
+  const [{ processos, tombstones }, ativos, semCnj, sigilosos, parados, clientes, indice] = await Promise.all([
     getAcervoProcessos(150),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo").is("numero_cnj", null),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo").eq("segredo_justica", true),
     supabase.from("vw_processos_movimentacao").select("*", { count: "exact", head: true }).gte("dias_parado", 30),
     getClientes(),
+    getProcessos(),
   ]);
 
   const stats = {
@@ -28,7 +31,7 @@ export default async function ProcessosPage() {
   };
 
   return (
-    <>
+    <ListaRaiz indice={<ProcessoMaster lista={indice} />}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Acervo · criminal em 20+ UFs</div>
@@ -70,6 +73,6 @@ export default async function ProcessosPage() {
         </FormModal>
       </div>
       <ProcessosList processos={processos} tombstones={tombstones} stats={stats} />
-    </>
+    </ListaRaiz>
   );
 }

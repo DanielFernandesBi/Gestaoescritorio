@@ -139,38 +139,40 @@ function Sec({ titulo, extra, children }: { titulo: string; extra?: ReactNode; c
 }
 
 /* ── componente principal ────────────────────────────────────────────────── */
-export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: PrazoCard[]; anotacoes: Anotacao[] }) {
+/* ── índice (lista compacta) — reusado no drawer e na tela raiz /prazos ── */
+export function PrazoMaster({ lista, activeId }: { lista: PrazoCard[]; activeId?: string }) {
   const [filtro, setFiltro] = useState<"abertos" | "conferir">("abertos");
-  const [verNotas, setVerNotas] = useState(false);
-
   const abertos = lista; // getPrazosPainel já traz só status='aberto'
   const aConferir = abertos.filter((x) => !x.validado);
   const visiveis = filtro === "conferir" ? aConferir : abertos;
+  return (
+    <aside className="audp-master">
+      <div className="audp-master-h">
+        <h1>Prazos</h1>
+        <div className="audp-filtros">
+          <button type="button" className={`audp-chip ink${filtro === "abertos" ? " on" : ""}`} onClick={() => setFiltro("abertos")}>Abertos ({abertos.length})</button>
+          <button type="button" className={`audp-chip tang${filtro === "conferir" ? " on" : ""}`} onClick={() => setFiltro("conferir")}>a conferir ({aConferir.length})</button>
+        </div>
+      </div>
+      <div className="audp-master-list">
+        {visiveis.length === 0
+          ? <div className="audp-empty">Nada por aqui.</div>
+          : visiveis.map((x) => <MasterCard key={x.id} p={x} ativo={x.id === activeId} />)}
+      </div>
+    </aside>
+  );
+}
+
+export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: PrazoCard[]; anotacoes: Anotacao[] }) {
+  const [verNotas, setVerNotas] = useState(false);
 
   const tone = urg(p.dias_restantes);
   const ativo = p.status === "aberto";
 
   return (
     <div className="audp">
-      {/* MASTER */}
-      <aside className="audp-master">
-        <div className="audp-master-h">
-          <h1>Prazos</h1>
-          <div className="audp-filtros">
-            <button type="button" className={`audp-chip ink${filtro === "abertos" ? " on" : ""}`} onClick={() => setFiltro("abertos")}>
-              Abertos ({abertos.length})
-            </button>
-            <button type="button" className={`audp-chip tang${filtro === "conferir" ? " on" : ""}`} onClick={() => setFiltro("conferir")}>
-              a conferir ({aConferir.length})
-            </button>
-          </div>
-        </div>
-        <div className="audp-master-list">
-          {visiveis.length === 0
-            ? <div className="audp-empty">Nada por aqui.</div>
-            : visiveis.map((x) => <MasterCard key={x.id} p={x} ativo={x.id === p.id} />)}
-        </div>
-      </aside>
+      {/* MASTER — índice compartilhado (mesma row da tela raiz /prazos) */}
+      <PrazoMaster lista={lista} activeId={p.id} />
 
       {/* DETALHE */}
       <section className="audp-detail">

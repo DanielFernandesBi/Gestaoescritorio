@@ -75,6 +75,29 @@ function MasterCard({ m, ativo, filtro }: { m: Movimentacao; ativo: boolean; fil
   );
 }
 
+/* ── índice (lista compacta) — reusado no drawer e na tela raiz /andamentos ── */
+export function AndamentoMaster({ lista, activeId, filtroInicial = "recentes" }: { lista: Movimentacao[]; activeId?: string; filtroInicial?: "recentes" | "escalados" }) {
+  const [filtro, setFiltro] = useState<"recentes" | "escalados">(filtroInicial);
+  const escalados = lista.filter((m) => m.escalado);
+  const visiveis = filtro === "escalados" ? escalados : lista;
+  return (
+    <aside className="audp-master">
+      <div className="audp-master-h">
+        <h1>Andamentos</h1>
+        <div className="audp-filtros">
+          <button type="button" className={`audp-chip ink${filtro === "recentes" ? " on" : ""}`} onClick={() => setFiltro("recentes")}>7 dias</button>
+          <button type="button" className={`audp-chip tang${filtro === "escalados" ? " on" : ""}`} onClick={() => setFiltro("escalados")}>escalados ({escalados.length})</button>
+        </div>
+      </div>
+      <div className="audp-master-list">
+        {visiveis.length === 0
+          ? <div className="audp-empty">Nada por aqui.</div>
+          : visiveis.map((m) => <MasterCard key={m.id} m={m} ativo={m.id === activeId} filtro={filtro} />)}
+      </div>
+    </aside>
+  );
+}
+
 /* ── editar andamento ────────────────────────────────────────────────────── */
 function EditarAndamento({ a }: { a: AndamentoFull }) {
   return (
@@ -96,30 +119,13 @@ function EditarAndamento({ a }: { a: AndamentoFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "recentes" }: { a: AndamentoFull; lista: Movimentacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; filtroInicial?: "recentes" | "escalados" }) {
-  const [filtro, setFiltro] = useState<"recentes" | "escalados">(filtroInicial);
   const [verNotas, setVerNotas] = useState(false);
-
-  const escalados = lista.filter((m) => m.escalado);
-  const visiveis = filtro === "escalados" ? escalados : lista;
   const idc = idCurto(a.codigo_movimentacao);
 
   return (
     <div className="audp">
-      {/* MASTER */}
-      <aside className="audp-master">
-        <div className="audp-master-h">
-          <h1>Andamentos</h1>
-          <div className="audp-filtros">
-            <button type="button" className={`audp-chip ink${filtro === "recentes" ? " on" : ""}`} onClick={() => setFiltro("recentes")}>7 dias</button>
-            <button type="button" className={`audp-chip tang${filtro === "escalados" ? " on" : ""}`} onClick={() => setFiltro("escalados")}>escalados ({escalados.length})</button>
-          </div>
-        </div>
-        <div className="audp-master-list">
-          {visiveis.length === 0
-            ? <div className="audp-empty">Nada por aqui.</div>
-            : visiveis.map((m) => <MasterCard key={m.id} m={m} ativo={m.id === a.id} filtro={filtro} />)}
-        </div>
-      </aside>
+      {/* MASTER — índice compartilhado (mesma row da tela raiz /andamentos) */}
+      <AndamentoMaster lista={lista} activeId={a.id} filtroInicial={filtroInicial} />
 
       {/* DETALHE */}
       <section className="audp-detail">

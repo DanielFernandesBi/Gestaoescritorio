@@ -75,6 +75,30 @@ function MasterCard({ i, ativo }: { i: Intimacao; ativo: boolean }) {
   );
 }
 
+/* ── índice (lista compacta) — reusado no drawer e na tela raiz /intimacoes ── */
+export function IntimacaoMaster({ lista, activeId }: { lista: Intimacao[]; activeId?: string }) {
+  const [filtro, setFiltro] = useState<"janela" | "orfas">("janela");
+  const janela = lista.filter((x) => x.status !== "arquivada");
+  const orfas = lista.filter((x) => x.orfa);
+  const visiveis = filtro === "orfas" ? orfas : janela;
+  return (
+    <aside className="audp-master">
+      <div className="audp-master-h">
+        <h1>Intimações</h1>
+        <div className="audp-filtros">
+          <button type="button" className={`audp-chip ink${filtro === "janela" ? " on" : ""}`} onClick={() => setFiltro("janela")}>Janela ({janela.length})</button>
+          <button type="button" className={`audp-chip tang${filtro === "orfas" ? " on" : ""}`} onClick={() => setFiltro("orfas")}>órfãs ({orfas.length})</button>
+        </div>
+      </div>
+      <div className="audp-master-list">
+        {visiveis.length === 0
+          ? <div className="audp-empty">Nada por aqui.</div>
+          : visiveis.map((x) => <MasterCard key={x.id} i={x} ativo={x.id === activeId} />)}
+      </div>
+    </aside>
+  );
+}
+
 /* ── editar intimação ────────────────────────────────────────────────────── */
 function EditarIntimacao({ i }: { i: IntimacaoFull }) {
   return (
@@ -127,7 +151,6 @@ function EncaminharPrazo({ i, sug, label, variant = "default" }: { i: IntimacaoF
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFull; lista: Intimacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[] }) {
-  const [filtro, setFiltro] = useState<"janela" | "orfas">("janela");
   const [verNotas, setVerNotas] = useState(false);
   const [procs, setProcs] = useState<{ id: string; label: string }[]>([]);
   const [clis, setClis] = useState<{ id: string; nome: string }[]>([]);
@@ -139,31 +162,14 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFul
     return () => { vivo = false; };
   }, []);
 
-  const janela = lista.filter((x) => x.status !== "arquivada");
-  const orfas = lista.filter((x) => x.orfa);
-  const visiveis = filtro === "orfas" ? orfas : janela;
-
   const sug = useMemo(() => sugerirPeca(i.providencia || i.resumo, mapa), [i.providencia, i.resumo, mapa]);
   const ativa = i.status !== "arquivada";
   const temCobertura = Boolean(i.codigo_publicacao);
 
   return (
     <div className="audp">
-      {/* MASTER */}
-      <aside className="audp-master">
-        <div className="audp-master-h">
-          <h1>Intimações</h1>
-          <div className="audp-filtros">
-            <button type="button" className={`audp-chip ink${filtro === "janela" ? " on" : ""}`} onClick={() => setFiltro("janela")}>Janela ({janela.length})</button>
-            <button type="button" className={`audp-chip tang${filtro === "orfas" ? " on" : ""}`} onClick={() => setFiltro("orfas")}>órfãs ({orfas.length})</button>
-          </div>
-        </div>
-        <div className="audp-master-list">
-          {visiveis.length === 0
-            ? <div className="audp-empty">Nada por aqui.</div>
-            : visiveis.map((x) => <MasterCard key={x.id} i={x} ativo={x.id === i.id} />)}
-        </div>
-      </aside>
+      {/* MASTER — índice compartilhado (mesma row da tela raiz /intimacoes) */}
+      <IntimacaoMaster lista={lista} activeId={i.id} />
 
       {/* DETALHE */}
       <section className="audp-detail">
