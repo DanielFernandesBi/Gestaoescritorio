@@ -2449,3 +2449,7 @@ a.tk-title:hover{text-decoration:underline}
 .sis-mig-sql{margin:7px 0 2px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:10.5px;line-height:1.5;color:var(--text);white-space:pre-wrap;overflow-x:auto;max-height:220px}
 /* datas da condenação (estudo) */
 .est-cond-datas{font-size:10.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
+
+/* botão "Gerar PDF" ao fim do briefing expandido (Painel · Ritual matinal) */
+.bf-pdf-row{display:flex;justify-content:flex-end;margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft)}
+.bf-pdf-btn{display:inline-flex;align-items:center;gap:7px}

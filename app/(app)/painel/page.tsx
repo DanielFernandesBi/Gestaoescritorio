@@ -11,6 +11,7 @@ import { TIPO_CONTAGEM, RESPONSAVEIS, AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE } fro
 import { fmtBRL, fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
 import { linkPara, isEntidadeTipo } from "@/lib/links";
 import { Markdown } from "@/components/Markdown";
+import { BriefingPdfBtn } from "@/components/BriefingPdfBtn";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -206,7 +207,7 @@ export default async function PainelPage() {
         </div>
 
         {briefing?.resumo ? (
-          <div className="focus-resumo md">
+          <div className="focus-resumo md" id="bf-resumo">
             <Markdown>{briefing.resumo}</Markdown>
           </div>
         ) : (
@@ -216,8 +217,15 @@ export default async function PainelPage() {
         {briefing?.corpo && (
           <details className="focus-corpo">
             <summary>Ver briefing completo</summary>
-            <div className="md">
+            <div className="md" id="bf-corpo">
               <Markdown>{briefing.corpo}</Markdown>
+            </div>
+            <div className="bf-pdf-row">
+              <BriefingPdfBtn
+                data={fmtDate(briefing.data_referencia)}
+                gerado={fmtTime(briefing.gerado_em)}
+                autor={autorBriefing}
+              />
             </div>
           </details>
         )}
