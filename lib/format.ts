@@ -101,6 +101,33 @@ export function encurtarTitulo(
   return partes.join(" — ").trim() || bruto;
 }
 
+/**
+ * Divide o `ato` do prazo em nome curto (até o 1º travessão/colchete/parêntese)
+ * e o resto (anotações do cowork, reclassificações etc.). O cabeçalho usa só o
+ * `curto`; o texto completo continua em "Dados do prazo · Ato".
+ */
+export function dividirAto(ato: string | null | undefined): { curto: string; resto: string | null } {
+  const t = (ato ?? "").trim();
+  const m = t.match(/\s*(—|–|\[|\(id\.|\()/);
+  if (!m || m.index === undefined || m.index < 3) {
+    if (t.length <= 72) return { curto: t, resto: null };
+    return { curto: t.slice(0, 70).trimEnd() + "…", resto: t };
+  }
+  const curto = t.slice(0, m.index).trim();
+  const resto = t.slice(m.index).trim();
+  return curto.length >= 3 ? { curto, resto: resto || null } : { curto: t, resto: null };
+}
+
+/** Categoria do prazo (etiqueta) inferida do texto do ato — recurso/defesa/etc. */
+export function categoriaAto(ato: string): { tone: string; label: string } | null {
+  const a = ato.toLowerCase();
+  if (/memori|alega[çc][õo]es finais/.test(a)) return { tone: "neutral", label: "memorial" };
+  if (/embargos|manifesta|peti[çc][ãa]o|contrarraz/.test(a)) return { tone: "neutral", label: "manifestação" };
+  if (/apela|rese|agravo|recurso|especial|extraordin|ros|carta testemunh/.test(a)) return { tone: "blue", label: "recurso" };
+  if (/resposta|defesa|preliminar|alega[çc][õo]es/.test(a)) return { tone: "slate", label: "defesa" };
+  return null;
+}
+
 /** Normaliza nome p/ deduplicação: sem acento, maiúsculas, espaços simples. */
 export function normalizarNome(s: string | null | undefined): string {
   if (!s) return "";

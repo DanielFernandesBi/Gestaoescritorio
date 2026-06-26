@@ -7,7 +7,7 @@ import { CadastrarPrazo } from "@/components/CadastrarPrazo";
 import { PromoverOrfao, type ProcLite, type CliLite } from "@/components/PromoverOrfao";
 import { validarPrazo, baixarPrazo } from "@/app/actions";
 import { linkPara } from "@/lib/links";
-import { fmtDate, ddClass } from "@/lib/format";
+import { fmtDate, ddClass, dividirAto, categoriaAto } from "@/lib/format";
 import type { PrazoCard, PrazoOrfao } from "@/lib/data";
 
 /* ── glifos (fora do set do Icon.tsx, no estilo da /duplicados) ──────────── */
@@ -44,39 +44,13 @@ const Rows = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" strokeWidth="1.9" strokeLinecap="round" aria-hidden><path d="M3 7h18M3 12h18M3 17h10" /></svg>
 );
 
-/* ── derivação presentacional da categoria a partir do `ato` (sem inventar
- * campo: é só um rótulo sobre o texto que já existe; some quando não casa) ── */
-function categoria(ato: string): { tone: string; label: string } | null {
-  const a = ato.toLowerCase();
-  if (/memori|alega[çc][õo]es finais/.test(a)) return { tone: "neutral", label: "memorial" };
-  if (/embargos|manifesta|peti[çc][ãa]o|contrarraz/.test(a)) return { tone: "neutral", label: "manifestação" };
-  if (/apela|rese|agravo|recurso|especial|extraordin|ros|carta testemunh/.test(a)) return { tone: "blue", label: "recurso" };
-  if (/resposta|defesa|preliminar|alega[çc][õo]es/.test(a)) return { tone: "slate", label: "defesa" };
-  return null;
-}
-
-/* Divide o `ato` num nome curto e direto + o resto (nota da IA, parte, cite,
- * reclassificação). Corta no primeiro separador estrutural — travessão, colchete
- * de reclassificação ou parêntese explicativo. O resto vira linha discreta, no
- * estilo do nº do processo. Sem separador útil, trunca por comprimento. */
-function dividirAto(ato: string): { curto: string; resto: string | null } {
-  const t = (ato ?? "").trim();
-  const m = t.match(/\s*(—|–|\[|\(id\.|\()/);
-  if (!m || m.index === undefined || m.index < 3) {
-    if (t.length <= 72) return { curto: t, resto: null };
-    return { curto: t.slice(0, 70).trimEnd() + "…", resto: t };
-  }
-  const curto = t.slice(0, m.index).trim();
-  const resto = t.slice(m.index).trim();
-  return curto.length >= 3 ? { curto, resto: resto || null } : { curto: t, resto: null };
-}
 
 const num = (p: { numero_cnj: string | null; numero_registro: string | null }) =>
   p.numero_cnj ?? (p.numero_registro ? `reg ${p.numero_registro}` : null);
 
 /* ── card de prazo provisório (a validar) ───────────────────────────────── */
 function ProvisorioCard({ p }: { p: PrazoCard }) {
-  const cat = categoria(p.ato);
+  const cat = categoriaAto(p.ato);
   const tone = ddClass(p.dias_restantes);
   const { curto, resto } = dividirAto(p.ato);
   return (
@@ -149,7 +123,7 @@ function DarBaixa({ p, label }: { p: PrazoCard; label: React.ReactNode }) {
 
 /* ── card validado · layout rico (fatal crítica ≤2d) ────────────────────── */
 function ValidadoRico({ p }: { p: PrazoCard }) {
-  const cat = categoria(p.ato);
+  const cat = categoriaAto(p.ato);
   const tone = ddClass(p.dias_restantes);
   const { curto, resto } = dividirAto(p.ato);
   return (
@@ -196,7 +170,7 @@ function ValidadoRico({ p }: { p: PrazoCard }) {
 
 /* ── card validado · layout compacto (folga > 2d) ───────────────────────── */
 function ValidadoCompacto({ p }: { p: PrazoCard }) {
-  const cat = categoria(p.ato);
+  const cat = categoriaAto(p.ato);
   const tone = ddClass(p.dias_restantes);
   const { curto, resto } = dividirAto(p.ato);
   return (
