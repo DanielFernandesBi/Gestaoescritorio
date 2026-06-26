@@ -445,7 +445,7 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* Varredura: rodapé (cobertura por OAB + anomalias) */
 .scan-foot{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line-soft)}
-.scan-block{padding:14px 20px}
+.scan-block{padding:14px 20px;min-width:0}
 .scan-block:first-child{border-right:1px solid var(--line-soft)}
 .scan-block-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:11px}
 .scan-block .scan-grid{display:grid;grid-template-columns:1fr;border-top:none;gap:12px}
@@ -515,13 +515,11 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .anom-tipo{font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:20px;background:var(--brass-soft);color:var(--brass)}
 .anom-tipo.crit{background:var(--amber-soft);color:var(--amber)}
 .anom-fonte{font-size:10.5px;color:var(--muted-2);font-weight:600}
-.anom-det{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.anom-row.aberto .anom-trigger .anom-det{white-space:normal}
-.anom-caret{flex:none;color:var(--muted-2);font-size:13px;transition:transform .15s}
+.anom-det{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+.anom-caret{flex:none;margin-top:2px;color:var(--muted-2);font-size:13px;transition:transform .15s}
 .anom-caret.on{transform:rotate(180deg);color:var(--accent)}
 .anom-painel{padding:0 11px 11px 29px}
-.anom-detalhe{font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap;padding:10px 12px;background:var(--surface);border:1px solid var(--line-soft);border-radius:8px}
-.anom-apurar{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.anom-apurar{display:flex;gap:8px;flex-wrap:wrap}
 .anom-link{flex:1;min-width:160px;display:block;text-decoration:none;padding:8px 11px;border:1px solid var(--line-soft);border-radius:8px;background:var(--surface);transition:border-color .12s}
 .anom-link:hover{border-color:var(--accent)}
 .anom-link .t{display:block;font-size:12px;font-weight:700;color:var(--accent-strong)}
