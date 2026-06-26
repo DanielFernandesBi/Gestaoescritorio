@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ProcRef, SegredoTag } from "@/components/ui";
+import { ClienteMaster, mascararCpf, sitTone } from "@/components/detalhe/ClienteMaster";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
@@ -43,20 +44,8 @@ const idadeDe = (iso: string | null): number | null => {
   if (m < 0 || (m === 0 && hoje.getUTCDate() < b.getUTCDate())) a--;
   return a >= 0 && a < 130 ? a : null;
 };
-const mascararCpf = (cpf: string | null): string => {
-  const d = (cpf ?? "").replace(/\D/g, "");
-  if (d.length !== 11) return cpf || "—";
-  return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
-};
 const mesAno = (iso: string | null): string | null =>
   iso ? new Date(iso).toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).replace(".", "") : null;
-
-// Tom da situação prisional.
-const sitTone = (s: string | null): "green" | "amber" | "red" => {
-  if (s === "solto" || s === "regime_aberto") return "green";
-  if (s === "foragido" || s === "preso_provisorio" || s === "preso_definitivo" || s === "falecido") return "red";
-  return "amber";
-};
 const ddmm = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "—");
 const reais = (n: number) => `R$ ${n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : n.toFixed(0)}`;
 
@@ -86,20 +75,6 @@ function Sec({ titulo, sub, extra, children }: { titulo: string; sub?: string; e
       <div className="audp-sech">{titulo}{sub && <span className="cli-sech-sub">{sub}</span>}{extra}</div>
       {children}
     </div>
-  );
-}
-
-/* ── master: card de cliente ─────────────────────────────────────────────── */
-function MasterCard({ c, ativo }: { c: Cliente; ativo: boolean }) {
-  return (
-    <Link className={`cli-mcard${ativo ? " on" : ""}`} href={linkPara("cliente", c.id)}>
-      <div className="cli-mnome">{c.nome}</div>
-      <div className="cli-mmeta">
-        <span className={`cli-dot ${sitTone(c.situacao_prisional)}`} />
-        {humano(c.situacao_prisional)} · {c.processos_ativos} processo{c.processos_ativos === 1 ? "" : "s"}
-      </div>
-      {c.cpf && <div className="cli-mcpf mono">CPF {mascararCpf(c.cpf)}</div>}
-    </Link>
   );
 }
 
@@ -307,43 +282,18 @@ export function ClientePainel({
   p: ClienteFull; lista: Cliente[]; anotacoes: Anotacao[]; exec: TExec; documentos: Documento[];
 }) {
   const [tab, setTab] = useState<Tab>("consolidado");
-  const [busca, setBusca] = useState("");
   const [verNotas, setVerNotas] = useState(false);
 
   const idade = idadeDe(p.data_nascimento);
   const desde = mesAno(p.criado_em);
-
-  const filtrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    if (!q) return lista;
-    const qd = q.replace(/\D/g, "");
-    return lista.filter((c) =>
-      c.nome.toLowerCase().includes(q) || (qd && (c.cpf ?? "").replace(/\D/g, "").includes(qd)),
-    );
-  }, [lista, busca]);
 
   const ver = (t: Tab) => tab === "consolidado" || tab === t;
   const abrirNotas = () => { setTab("notas"); setVerNotas(true); };
 
   return (
     <div className="audp">
-      {/* MASTER */}
-      <aside className="audp-master">
-        <div className="audp-master-h">
-          <h1>Clientes</h1>
-          <input
-            className="cli-busca"
-            placeholder="Buscar nome, CPF, processo…"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-        <div className="audp-master-list">
-          {filtrados.length === 0
-            ? <div className="audp-empty">Nenhum cliente.</div>
-            : filtrados.map((c) => <MasterCard key={c.id} c={c} ativo={c.id === p.id} />)}
-        </div>
-      </aside>
+      {/* MASTER — índice compartilhado (mesma row da tela raiz /clientes) */}
+      <ClienteMaster lista={lista} activeId={p.id} />
 
       {/* DETALHE */}
       <section className="audp-detail">

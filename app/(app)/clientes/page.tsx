@@ -1,5 +1,7 @@
-import { getAcervoClientes } from "@/lib/data";
+import { getAcervoClientes, getClientes } from "@/lib/data";
 import { ClientesList } from "@/components/modules/ClientesList";
+import { ClienteMaster } from "@/components/detalhe/ClienteMaster";
+import { ListaRaiz } from "@/components/ListaRaiz";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
 import { criarCliente } from "@/app/actions";
@@ -8,9 +10,9 @@ import { SITUACAO_PRISIONAL } from "@/lib/enums";
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
-  const clientes = await getAcervoClientes();
+  const [clientes, indice] = await Promise.all([getAcervoClientes(), getClientes()]);
   return (
-    <>
+    <ListaRaiz indice={<ClienteMaster lista={indice} />}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Acervo de pessoas · situação consolidada</div>
@@ -33,6 +35,6 @@ export default async function ClientesPage() {
         </FormModal>
       </div>
       <ClientesList clientes={clientes} />
-    </>
+    </ListaRaiz>
   );
 }
