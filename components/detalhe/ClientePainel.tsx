@@ -290,13 +290,16 @@ export function ClientePainel({
   const ver = (t: Tab) => tab === "consolidado" || tab === t;
   const abrirNotas = () => { setTab("notas"); setVerNotas(true); };
 
+  // Cadastro obsoleto: foi unificado em outro (ativo=false + ponteiro do canônico).
+  const obsoleto = !p.ativo;
+
   return (
     <div className="audp">
       {/* MASTER — índice compartilhado (mesma row da tela raiz /clientes) */}
       <ClienteMaster lista={lista} activeId={p.id} />
 
       {/* DETALHE */}
-      <section className="audp-detail">
+      <section className={`audp-detail${obsoleto ? " audp-obsoleto" : ""}`}>
         <div className="audp-detail-top">
           <Link className="audp-back" href="/clientes">← Clientes</Link>
           <nav className="cli-tabs">
@@ -308,10 +311,27 @@ export function ClientePainel({
 
         <div className="audp-scroll">
           <div className="audp-inner">
+            {/* Aviso de cadastro obsoleto (unificado em outro) */}
+            {obsoleto && (
+              <div className="cli-obsoleto">
+                <span className="cli-obsoleto-ico" aria-hidden>⚠</span>
+                <div className="cli-obsoleto-txt">
+                  <b>Cadastro obsoleto.</b> Este registro foi <b>unificado</b>
+                  {p.mescladoEm ? <> em {p.mescladoEm}</> : null} e mantido apenas como histórico — não delete.
+                  {" "}Use o cadastro atual.
+                </div>
+                {p.canonicoId && (
+                  <Link className="btn sm abrir cli-obsoleto-btn" href={linkPara("cliente", p.canonicoId)}>
+                    {p.canonicoNome ? `Abrir ${p.canonicoNome}` : "Abrir cadastro atual"}
+                  </Link>
+                )}
+              </div>
+            )}
             {/* cabeçalho do perfil */}
             <div className="audp-title-row">
               <div className="audp-title-l">
                 <div className="audp-tags">
+                  {obsoleto && <span className="pz-tag obsoleto">obsoleto · mesclado</span>}
                   <span className={`pz-tag ${sitTone(p.situacao_prisional) === "green" ? "val" : sitTone(p.situacao_prisional) === "red" ? "preso" : "tang"}`}>{humano(p.situacao_prisional)}</span>
                   {p.exec && <span className="pz-tag cat-neutral">execução penal ativa</span>}
                   {p.favorito && <span className="pz-tag cowork">★ favorito</span>}
