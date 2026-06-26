@@ -13,10 +13,8 @@ import {
   cancelarAudiencia,
   validarAudiencia,
   definirModalidadeAudiencia,
-  criarAnotacao,
-  editarAnotacao,
-  excluirAnotacao,
 } from "@/app/actions";
+import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE, RESPONSAVEIS } from "@/lib/enums";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
@@ -180,102 +178,6 @@ function EditarAudiencia({ aud }: { aud: Audiencia }) {
   );
 }
 
-/* ── anotações: card individual (editar / apagar) ────────────────────────── */
-function AnotacaoCard({ nota }: { nota: Anotacao }) {
-  const router = useRouter();
-  const [editando, setEditando] = useState(false);
-  const [texto, setTexto] = useState(nota.texto);
-  const [pend, start] = useTransition();
-
-  const salvar = () => {
-    const t = texto.trim();
-    if (!t) return;
-    const fd = new FormData();
-    fd.set("texto", t);
-    start(async () => {
-      const r = await editarAnotacao(nota.id, fd);
-      if (r.ok) { setEditando(false); router.refresh(); }
-    });
-  };
-  const apagar = () => {
-    start(async () => {
-      const r = await excluirAnotacao(nota.id);
-      if (r.ok) router.refresh();
-    });
-  };
-
-  const quando = fmtDate(nota.criado_em);
-  const editado = nota.atualizado_em && nota.atualizado_em !== nota.criado_em;
-
-  return (
-    <div className="audp-nota">
-      {editando ? (
-        <>
-          <textarea className="audp-nota-ta" value={texto} onChange={(e) => setTexto(e.target.value)} rows={3} />
-          <div className="audp-nota-actions">
-            <button type="button" className="btn ghost sm" onClick={() => { setEditando(false); setTexto(nota.texto); }} disabled={pend}>Cancelar</button>
-            <button type="button" className="btn primary sm" onClick={salvar} disabled={pend || !texto.trim()}>{pend ? "Salvando…" : "Salvar"}</button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="audp-nota-txt">{nota.texto}</div>
-          <div className="audp-nota-foot">
-            <span className="audp-nota-meta">{nota.autor} · {quando}{editado ? " · editada" : ""}</span>
-            <span className="audp-nota-btns">
-              <button type="button" className="audp-iconbtn" onClick={() => setEditando(true)} disabled={pend} title="Editar"><PenIco /></button>
-              <button type="button" className="audp-iconbtn danger" onClick={apagar} disabled={pend} title="Apagar">✕</button>
-            </span>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-/* ── anotações: seção (adicionar + lista) ────────────────────────────────── */
-function Anotacoes({ aud, notas }: { aud: Audiencia; notas: Anotacao[] }) {
-  const router = useRouter();
-  const [texto, setTexto] = useState("");
-  const [pend, start] = useTransition();
-  const [erro, setErro] = useState<string | null>(null);
-
-  const adicionar = () => {
-    const t = texto.trim();
-    if (!t) return;
-    const fd = new FormData();
-    fd.set("texto", t);
-    start(async () => {
-      const r = await criarAnotacao("audiencia", aud.id, fd);
-      if (r.ok) { setTexto(""); setErro(null); router.refresh(); }
-      else setErro(r.message);
-    });
-  };
-
-  return (
-    <div className="audp-notas">
-      <div className="audp-novanota">
-        <textarea
-          className="audp-nota-ta"
-          placeholder="Escreva uma anotação para controle próprio…"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          rows={3}
-        />
-        <div className="audp-nota-actions">
-          {erro && <span className="audp-nota-err">{erro}</span>}
-          <button type="button" className="btn primary sm" onClick={adicionar} disabled={pend || !texto.trim()}>
-            {pend ? "Salvando…" : "Salvar anotação"}
-          </button>
-        </div>
-      </div>
-      {notas.length === 0
-        ? <div className="audp-empty">Nenhuma anotação ainda. Cada anotação salva vira um card independente.</div>
-        : notas.map((n) => <AnotacaoCard key={n.id} nota={n} />)}
-    </div>
-  );
-}
-
 /* ── seção rotulada ──────────────────────────────────────────────────────── */
 function Sec({ titulo, extra, children }: { titulo: string; extra?: ReactNode; children: ReactNode }) {
   return (
@@ -412,7 +314,7 @@ export function AudienciaPainel({ aud, lista, anotacoes }: { aud: Audiencia; lis
                   <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
                 </button>
               </div>
-              {verNotas && <Anotacoes aud={aud} notas={anotacoes} />}
+              {verNotas && <Anotacoes entidadeTipo="audiencia" entidadeId={aud.id} notas={anotacoes} />}
             </div>
 
             {/* STATUS */}
