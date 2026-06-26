@@ -1,11 +1,10 @@
 import { buscaGlobal } from "@/lib/data";
 import { ProcRef, SegredoTag, Pill } from "@/components/ui";
-import { DrawerRow } from "@/components/DrawerRow";
+import { LinkRow } from "@/components/LinkRow";
 import { FavoritoStar } from "@/components/FavoritoStar";
-import { ProcessoDetalhe } from "@/components/detalhe/ProcessoDetalhe";
-import { ClienteDetalhe } from "@/components/detalhe/ClienteDetalhe";
 import { Icon } from "@/components/Icon";
 import { fmtDate, humano } from "@/lib/format";
+import { linkPara } from "@/lib/links";
 
 export const dynamic = "force-dynamic";
 
@@ -49,43 +48,13 @@ export default async function BuscaPage({
               <thead><tr><th style={{ width: 34 }}></th><th>Cliente</th><th>CPF</th><th>UF</th><th>Situação</th></tr></thead>
               <tbody>
                 {clientes.map((c) => (
-                  <DrawerRow
-                    key={c.id}
-                    title={
-                      <>
-                        <h2>{c.nome}</h2>
-                        <div style={{ marginTop: 8 }}><Pill tone="gray">{humano(c.situacao_prisional)}</Pill></div>
-                      </>
-                    }
-                    body={
-                      <ClienteDetalhe
-                        cliente={{
-                          id: c.id,
-                          nome: c.nome,
-                          cpf: c.cpf,
-                          uf: c.uf,
-                          situacao_prisional: c.situacao_prisional,
-                          unidade_prisional: c.unidade_prisional,
-                          cadastro_automatico: false,
-                          favorito: c.favorito,
-                          total_processos: 0,
-                          processos_ativos: 0,
-                          prazos_abertos: 0,
-                          audiencias_futuras: 0,
-                          ultima_movimentacao: null,
-                          ultima_intimacao: null,
-                          ultima_atividade: null,
-                          unificado: false,
-                        }}
-                      />
-                    }
-                  >
+                  <LinkRow key={c.id} href={linkPara("cliente", c.id)}>
                     <td className="center"><FavoritoStar id={c.id} favorito={c.favorito} /></td>
                     <td className="name">{c.nome}</td>
                     <td className="mono">{c.cpf ?? "—"}</td>
                     <td>{c.uf ?? "—"}</td>
                     <td><Pill tone="gray">{humano(c.situacao_prisional)}</Pill></td>
-                  </DrawerRow>
+                  </LinkRow>
                 ))}
               </tbody>
             </table>
@@ -101,23 +70,12 @@ export default async function BuscaPage({
               <thead><tr><th>Processo</th><th>Tribunal</th><th>Área</th><th>Cliente</th></tr></thead>
               <tbody>
                 {processos.map((p) => (
-                  <DrawerRow
-                    key={p.id}
-                    title={
-                      <>
-                        <h2>{p.segredo ? "Processo em segredo de justiça" : p.clientes || "Processo"}</h2>
-                        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} /><SegredoTag on={p.segredo} />
-                        </div>
-                      </>
-                    }
-                    body={<ProcessoDetalhe proc={p} />}
-                  >
+                  <LinkRow key={p.id} href={linkPara("processo", p.id)}>
                     <td><ProcRef cnj={p.numero_cnj} registro={p.numero_registro} /></td>
                     <td className="sub">{p.tribunal ?? "—"}</td>
                     <td><Pill tone="gray" dot={false}>{humano(p.area)}</Pill></td>
                     <td>{p.segredo ? <SegredoTag on /> : <span className="name" style={{ fontWeight: 500 }}>{p.clientes || "—"}</span>}</td>
-                  </DrawerRow>
+                  </LinkRow>
                 ))}
               </tbody>
             </table>
@@ -133,23 +91,12 @@ export default async function BuscaPage({
               <thead><tr><th>Origem</th><th>Resumo</th><th>Processo</th><th>Publicação</th></tr></thead>
               <tbody>
                 {intimacoes.map((i) => (
-                  <DrawerRow
-                    key={i.id}
-                    title={<h2>{i.resumo ?? "Intimação"}</h2>}
-                    body={
-                      <div className="dsec"><h4>Dados</h4><div className="dgrid">
-                        <div className="field"><div className="k">Origem</div><div className="v">{(i.origem ?? "—").toUpperCase()}</div></div>
-                        <div className="field"><div className="k">Status</div><div className="v">{humano(i.status)}</div></div>
-                        <div className="field"><div className="k">Processo</div><div className="v mono">{i.numero_cnj ?? "—"}</div></div>
-                        <div className="field"><div className="k">Publicação</div><div className="v mono">{fmtDate(i.data_publicacao)}</div></div>
-                      </div></div>
-                    }
-                  >
+                  <LinkRow key={i.id} href={linkPara("intimacao", i.id)}>
                     <td><Pill tone="gray" dot={false}>{(i.origem ?? "—").toUpperCase()}</Pill></td>
                     <td className="name">{i.resumo ?? "—"}</td>
                     <td>{i.numero_cnj ? <ProcRef cnj={i.numero_cnj} /> : <span className="sub">—</span>}</td>
                     <td className="mono">{fmtDate(i.data_publicacao)}</td>
-                  </DrawerRow>
+                  </LinkRow>
                 ))}
               </tbody>
             </table>
