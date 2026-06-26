@@ -1,83 +1,52 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { useDrawer } from "@/components/Drawer";
-import { Pill } from "@/components/ui";
 import { humano } from "@/lib/format";
 import type { Anomalia } from "@/lib/queries";
 
 /**
- * Linha de anomalia da varredura. Como anomalia é só um item JSON (sem id/rota),
- * abre o drawer em memória do sistema com o detalhe completo e atalhos de
- * apuração — mantendo o mesmo padrão visual do restante.
+ * Linha de anomalia da varredura. Como anomalia é só um item JSON (sem id/rota
+ * própria), o detalhe abre inline com o mesmo efeito de evolução do sistema
+ * (teor que vai clareando) e os atalhos de apuração — sem o drawer antigo.
  */
 export function AnomaliaRow({ a, critico }: { a: Anomalia; critico?: boolean }) {
-  const { open } = useDrawer();
-
-  function abrir() {
-    open({
-      title: (
-        <>
-          <h2>Anomalia da varredura</h2>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Pill tone="red">{a.fonte.toUpperCase()}</Pill>
-            <Pill tone="amber" dot={false}>{a.tipo}</Pill>
-          </div>
-        </>
-      ),
-      body: (
-        <>
-          <div className="dsec">
-            <h4>Detalhe</h4>
-            <p style={{ whiteSpace: "pre-wrap", margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
-              {a.detalhe}
-            </p>
-          </div>
-          <div className="dsec">
-            <h4>Apurar</h4>
-            <div className="mini-list">
-              <Link className="mini" href="/auditoria">
-                <div>
-                  <div className="mt">Abrir auditoria</div>
-                  <div className="ms">Registro completo da varredura e eventos.</div>
-                </div>
-                <span className="link">abrir</span>
-              </Link>
-              <Link className="mini" href="/intimacoes">
-                <div>
-                  <div className="mt">Triagem de intimações</div>
-                  <div className="ms">Se for falha de captação, confira as órfãs.</div>
-                </div>
-                <span className="link">abrir</span>
-              </Link>
-            </div>
-          </div>
-        </>
-      ),
-    });
-  }
+  const [aberto, setAberto] = useState(false);
 
   return (
-    <div
-      className="anom-row"
-      role="button"
-      tabIndex={0}
-      onClick={abrir}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          abrir();
-        }
-      }}
-    >
-      <span className={`anom-dot ${critico ? "crit" : "warn"}`} />
-      <div className="anom-main">
-        <div className="anom-h">
-          <span className={`anom-tipo ${critico ? "crit" : ""}`}>{humano(a.tipo)}</span>
-          <span className="anom-fonte">{humano(a.fonte)}</span>
+    <div className={`anom-row${aberto ? " aberto" : ""}`}>
+      <button
+        type="button"
+        className="anom-trigger"
+        aria-expanded={aberto}
+        onClick={() => setAberto((v) => !v)}
+      >
+        <span className={`anom-dot ${critico ? "crit" : "warn"}`} />
+        <span className="anom-main">
+          <span className="anom-h">
+            <span className={`anom-tipo ${critico ? "crit" : ""}`}>{humano(a.tipo)}</span>
+            <span className="anom-fonte">{humano(a.fonte)}</span>
+          </span>
+          <span className="anom-det">{a.detalhe}</span>
+        </span>
+        <span className={`anom-caret${aberto ? " on" : ""}`}>⌄</span>
+      </button>
+
+      {aberto && (
+        <div className="anom-painel">
+          <div className="anom-detalhe">{a.detalhe}</div>
+          <div className="anom-apurar">
+            <Link className="anom-link" href="/auditoria">
+              <span className="t">Abrir auditoria</span>
+              <span className="s">Registro completo da varredura e eventos.</span>
+            </Link>
+            <Link className="anom-link" href="/intimacoes">
+              <span className="t">Triagem de intimações</span>
+              <span className="s">Se for falha de captação, confira as órfãs.</span>
+            </Link>
+          </div>
         </div>
-        <div className="anom-det">{a.detalhe}</div>
-      </div>
+      )}
     </div>
   );
 }

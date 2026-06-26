@@ -3806,23 +3806,47 @@ export async function getTombstonesResolvidos(limit = 8): Promise<TombstoneResol
 
 /* ============== Itens de uma varredura (drill-down dos tiles) ============== */
 
-export type VarreduraTipo = "intimacoes" | "andamentos" | "prazos";
+export type VarreduraTipo = "intimacoes" | "andamentos" | "prazos" | "minutas";
 
 export type VarreduraItem = {
   id: string;
   href: string;
+  /** Rótulo da entidade canônica para onde o item leva (ex.: "intimação"). */
+  entidade: string;
   titulo: string;
   cliente: string | null;
   numero_cnj: string | null;
   data: string | null;
+  /** Rótulo da data (ex.: "publicação", "fatal", "andamento"). */
+  dataLabel: string;
   tag: string | null;
+  /** Teor/descrição integral exibido sob demanda no detalhe (inteiro teor). */
+  teor: string | null;
+  teorLabel: string;
+  /** Campos extraídos (grade do detalhe). */
+  campos: { k: string; v: string }[];
 };
 
 const VARREDURA_TITULO: Record<VarreduraTipo, string> = {
   intimacoes: "Intimações novas",
   andamentos: "Andamentos novos",
   prazos: "Prazos criados",
+  minutas: "Minutas geradas",
 };
+
+const VARREDURA_ENTIDADE: Record<VarreduraTipo, string> = {
+  intimacoes: "intimação",
+  andamentos: "andamento",
+  prazos: "prazo",
+  minutas: "peça",
+};
+
+/** dd/mm/aaaa enxuto a partir de um ISO (sem fuso). */
+function fdataCurta(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const s = String(iso);
+  return s.length >= 10 ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}` : s;
+}
 
 /**
  * Reconstrói os itens contabilizados na ÚLTIMA varredura. Como a tabela
@@ -3848,25 +3872,45 @@ export async function getVarreduraItens(
   const lo = new Date(base - 30 * 60_000).toISOString();
   const hi = new Date(base + 30 * 60_000).toISOString();
   const quando = v.criado_em as string;
+  const entidade = VARREDURA_ENTIDADE[tipo];
   const procSel = "processos(numero_cnj,cliente_processo(clientes(nome)))";
+  // só campos com valor real entram na grade do detalhe
+  const campos = (pares: [string, string | null | undefined][]) =>
+    pares.filter(([, v]) => v != null && String(v).trim() !== "").map(([k, v]) => ({ k, v: String(v) }));
 
   if (tipo === "intimacoes") {
     const { data } = await supabase
       .from("intimacoes")
-      .select(`id, resumo, origem, status, data_publicacao, ${procSel}`)
+      .select(`id, resumo, teor, providencia, origem, status, data_publicacao, data_disponibilizacao, data_ciencia, tribunal, orgao, prazo_dias, fundamento, codigo_publicacao, ${procSel}`)
       .gte("criado_em", lo)
       .lte("criado_em", hi)
       .order("data_publicacao", { ascending: false });
-    const itens = (data ?? []).map((r) => {
+    const itens: VarreduraItem[] = (data ?? []).map((r) => {
       const p = r.processos as unknown as NestedProcesso;
+      const prazoDias = r.prazo_dias as number | null;
       return {
         id: r.id as string,
         href: linkPara("intimacao", r.id as string),
+        entidade,
         titulo: (r.resumo as string | null)?.trim() || "(sem resumo)",
         cliente: nomesClientes(p?.cliente_processo) || null,
         numero_cnj: p?.numero_cnj ?? null,
         data: (r.data_publicacao as string | null) ?? null,
+        dataLabel: "publicação",
         tag: (r.origem as string | null) ?? (r.status as string | null) ?? null,
+        teor: (r.teor as string | null)?.trim() || (r.resumo as string | null)?.trim() || null,
+        teorLabel: "Teor integral",
+        campos: campos([
+          ["Tribunal", r.tribunal as string | null],
+          ["Órgão / vara", r.orgao as string | null],
+          ["Providência", r.providencia as string | null],
+          ["Prazo legal", prazoDias ? `${prazoDias} dias` : null],
+          ["Fundamento", r.fundamento as string | null],
+          ["Disponibilização", r.data_disponibilizacao ? fdataCurta(r.data_disponibilizacao as string) : null],
+          ["Ciência", r.data_ciencia ? fdataCurta(r.data_ciencia as string) : null],
+          ["Código publicação", r.codigo_publicacao as string | null],
+          ["Status", r.status ? humano(r.status as string) : null],
+        ]),
       };
     });
     return { titulo, quando, itens };
@@ -3875,43 +3919,98 @@ export async function getVarreduraItens(
   if (tipo === "prazos") {
     const { data } = await supabase
       .from("prazos")
-      .select(`id, ato, status, data_fatal, ${procSel}`)
+      .select(`id, ato, status, data_fatal, data_interna, tipo_contagem, responsavel, validado, ${procSel}`)
       .gte("criado_em", lo)
       .lte("criado_em", hi)
       .order("data_fatal", { ascending: true });
-    const itens = (data ?? []).map((r) => {
+    const itens: VarreduraItem[] = (data ?? []).map((r) => {
       const p = r.processos as unknown as NestedProcesso;
       return {
         id: r.id as string,
         href: linkPara("prazo", r.id as string),
+        entidade,
         titulo: (r.ato as string | null) || "(prazo)",
         cliente: nomesClientes(p?.cliente_processo) || null,
         numero_cnj: p?.numero_cnj ?? null,
         data: (r.data_fatal as string | null) ?? null,
-        tag: (r.status as string | null) ?? null,
+        dataLabel: "fatal",
+        tag: r.validado ? "validado" : "provisório",
+        teor: null,
+        teorLabel: "Ato",
+        campos: campos([
+          ["Data fatal", r.data_fatal ? fdataCurta(r.data_fatal as string) : null],
+          ["Data interna", r.data_interna ? fdataCurta(r.data_interna as string) : null],
+          ["Contagem", r.tipo_contagem ? humano(r.tipo_contagem as string) : null],
+          ["Responsável", r.responsavel as string | null],
+          ["Status", r.status ? humano(r.status as string) : null],
+        ]),
       };
     });
     return { titulo, quando, itens };
   }
 
-  // andamentos — sem página própria: o link leva ao processo
+  if (tipo === "minutas") {
+    // Minutas/peças geradas na janela da varredura → drawer da peça (/producao/[id]).
+    const { data } = await supabase
+      .from("pecas")
+      .select(`id, titulo, tipo, subtipo, status, prioridade, responsavel, descricao, observacoes, cadastro_automatico, processos(numero_cnj,segredo_justica,cliente_processo(clientes(nome)))`)
+      .gte("criado_em", lo)
+      .lte("criado_em", hi)
+      .order("criado_em", { ascending: false });
+    const itens: VarreduraItem[] = (data ?? []).map((r) => {
+      const p = r.processos as unknown as NestedProcesso;
+      return {
+        id: r.id as string,
+        href: linkPara("peca", r.id as string),
+        entidade,
+        titulo: (r.titulo as string | null)?.trim() || "(minuta)",
+        cliente: nomesClientes(p?.cliente_processo) || null,
+        numero_cnj: p?.numero_cnj ?? null,
+        data: null,
+        dataLabel: "",
+        tag: r.cadastro_automatico ? "minuta IA" : (r.status ? humano(r.status as string) : null),
+        teor: (r.descricao as string | null)?.trim() || (r.observacoes as string | null)?.trim() || null,
+        teorLabel: "Descrição da peça",
+        campos: campos([
+          ["Tipo", r.tipo ? humano(r.tipo as string) : null],
+          ["Subtipo", r.subtipo ? humano(r.subtipo as string) : null],
+          ["Status", r.status ? humano(r.status as string) : null],
+          ["Prioridade", r.prioridade ? humano(r.prioridade as string) : null],
+          ["Responsável", r.responsavel as string | null],
+        ]),
+      };
+    });
+    return { titulo, quando, itens };
+  }
+
+  // andamentos → drawer do andamento (/andamentos/[id])
   const { data } = await supabase
     .from("andamentos")
-    .select(`id, tipo, descricao, data, processo_id, ${procSel}`)
+    .select(`id, tipo, descricao, data, autor, origem, codigo_movimentacao, processo_id, ${procSel}`)
     .gte("criado_em", lo)
     .lte("criado_em", hi)
     .order("data", { ascending: false });
-  const itens = (data ?? []).map((r) => {
+  const itens: VarreduraItem[] = (data ?? []).map((r) => {
     const p = r.processos as unknown as NestedProcesso;
-    const procId = r.processo_id as string | null;
     return {
       id: r.id as string,
-      href: procId ? linkPara("processo", procId) : "#",
+      href: linkPara("andamento", r.id as string),
+      entidade,
       titulo: (r.descricao as string | null)?.trim() || (r.tipo as string | null) || "(andamento)",
       cliente: nomesClientes(p?.cliente_processo) || null,
       numero_cnj: p?.numero_cnj ?? null,
       data: (r.data as string | null) ?? null,
+      dataLabel: "andamento",
       tag: (r.tipo as string | null) ?? null,
+      teor: (r.descricao as string | null)?.trim() || null,
+      teorLabel: "Descrição do movimento",
+      campos: campos([
+        ["Tipo", r.tipo ? humano(r.tipo as string) : null],
+        ["Autor", r.autor as string | null],
+        ["Origem", r.origem ? (r.origem as string).toUpperCase() : null],
+        ["Código movimento", r.codigo_movimentacao as string | null],
+        ["Data", r.data ? fdataCurta(r.data as string) : null],
+      ]),
     };
   });
   return { titulo, quando, itens };
