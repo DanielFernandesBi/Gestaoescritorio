@@ -503,18 +503,51 @@ button.metric:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .ai-dot{flex:none;width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block}
 
 /* Anomalias como linha de card (sinal a conferir, não log de erro) */
-.anom-row{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line-soft);border-radius:9px;background:var(--surface-2);cursor:pointer;transition:border-color .12s}
-.anom-row:hover{border-color:var(--accent)}
-.anom-row:focus-visible{outline:none;box-shadow:var(--focus)}
+.anom-row{border:1px solid var(--line-soft);border-radius:9px;background:var(--surface-2);transition:border-color .12s}
+.anom-row:hover,.anom-row.aberto{border-color:var(--accent)}
+.anom-trigger{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:9px 11px;font:inherit;color:inherit}
+.anom-trigger:focus-visible{outline:none;box-shadow:var(--focus);border-radius:9px}
 .anom-dot{flex:none;width:8px;height:8px;border-radius:50%;margin-top:5px}
 .anom-dot.warn{background:var(--amber)}
 .anom-dot.crit{background:var(--red)}
-.anom-main{min-width:0;flex:1}
+.anom-main{display:block;min-width:0;flex:1}
 .anom-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .anom-tipo{font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:20px;background:var(--brass-soft);color:var(--brass)}
 .anom-tipo.crit{background:var(--amber-soft);color:var(--amber)}
 .anom-fonte{font-size:10.5px;color:var(--muted-2);font-weight:600}
-.anom-det{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+.anom-det{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.anom-row.aberto .anom-trigger .anom-det{white-space:normal}
+.anom-caret{flex:none;color:var(--muted-2);font-size:13px;transition:transform .15s}
+.anom-caret.on{transform:rotate(180deg);color:var(--accent)}
+.anom-painel{padding:0 11px 11px 29px}
+.anom-detalhe{font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap;padding:10px 12px;background:var(--surface);border:1px solid var(--line-soft);border-radius:8px}
+.anom-apurar{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.anom-link{flex:1;min-width:160px;display:block;text-decoration:none;padding:8px 11px;border:1px solid var(--line-soft);border-radius:8px;background:var(--surface);transition:border-color .12s}
+.anom-link:hover{border-color:var(--accent)}
+.anom-link .t{display:block;font-size:12px;font-weight:700;color:var(--accent-strong)}
+.anom-link .s{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ---------- Expansível — efeito de evolução (texto que vai clareando) ---------- */
+.exp{position:relative}
+.exp-body{position:relative}
+.exp-body.recolhido{overflow:hidden}
+.exp-fade{position:absolute;left:0;right:0;bottom:0;height:56px;pointer-events:none;background:linear-gradient(180deg,transparent,var(--surface))}
+.exp-btn{margin-top:9px;font-size:11.5px;font-weight:700;color:var(--accent-strong);background:none;border:none;cursor:pointer;padding:0}
+.exp-btn:hover{text-decoration:underline}
+
+/* ---------- Varredura — painel mestre-detalhe (captação autônoma) ---------- */
+button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent}
+.vp-mtitle{display:block;font-size:12.5px;font-weight:600;color:var(--text);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.audp-mcard.on .vp-mtitle{color:var(--name);font-weight:700}
+.vp-mmeta{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vp-top-sub{font-size:11.5px;color:var(--muted-2)}
+.vp-ident{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:12px}
+.vp-ident-nome{font-size:18px;font-weight:800;color:var(--name)}
+.vp-ident-proc{font-size:12.5px;color:var(--muted)}
+.vp-titulo{font-family:var(--serif);font-size:22px;font-weight:600;line-height:1.2;color:var(--ink);margin-top:6px}
+.vp-teor p{margin:0;font-size:13px;line-height:1.65;color:var(--text);white-space:pre-wrap}
+.valida-link{text-decoration:none;color:inherit;display:block}
+.valida-link:hover .dl-t{color:var(--accent-strong)}
 
 /* ---------- /validacao — fila de provisórios (Plantão) ---------- */
 .tang{color:var(--tang);font-weight:600}

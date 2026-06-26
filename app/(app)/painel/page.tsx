@@ -2,8 +2,9 @@ import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscalad
 import { getAudiencias, getPecas, getPrazos } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
-import { Pill, ProcRef, SegredoTag, DiasBox } from "@/components/ui";
+import { Pill, SegredoTag, DiasBox } from "@/components/ui";
 import { VerMais } from "@/components/VerMais";
+import { Expansivel } from "@/components/Expansivel";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
 import { FormModal } from "@/components/FormModal";
 import { validarPrazoEditado, validarAudienciaEditada } from "@/app/actions";
@@ -295,7 +296,7 @@ export default async function PainelPage() {
                 <Link className="metric metric-link" href="/varredura/intimacoes"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações</span></Link>
                 <Link className="metric metric-link" href="/varredura/andamentos"><b>{fmtNum(varredura.andamentos_novos)}</b><span>andamentos</span></Link>
                 <Link className="metric metric-link" href="/varredura/prazos"><b>{fmtNum(varredura.prazos_criados)}</b><span>prazos</span></Link>
-                <Link className="metric metric-link" href="/producao"><b>{fmtNum(minutasRevisar)}</b><span>minutas</span></Link>
+                <Link className="metric metric-link" href="/varredura/minutas"><b>{fmtNum(minutasRevisar)}</b><span>minutas</span></Link>
               </div>
             </div>
             <div className="scan-foot">
@@ -432,17 +433,25 @@ export default async function PainelPage() {
                 const a = t.includes("audi") ? audPorId.get(v.id) : undefined;
                 const cli = p?.clientes || a?.clientes || null;
                 const seg = Boolean(p?.segredo || a?.segredo);
+                const detalheHref = p ? linkPara("prazo", p.id) : a ? linkPara("audiencia", a.id) : null;
+                const corpo = (
+                  <>
+                    <div className="dl-t">{splitAto(v.descricao)[0]}</div>
+                    <div className="dl-s">
+                      {seg ? <><SegredoTag on /> · </> : cli && <><span className="dl-cli">{cli}</span> · </>}
+                      {humano(v.tipo)}
+                      {v.numero_cnj && <> · <span className="cnj">{v.numero_cnj}</span></>}
+                      {v.data_relevante && <> · fatal prov. {fmtDate(v.data_relevante)}</>}
+                    </div>
+                  </>
+                );
                 return (
                   <div className="deadline valida-row" key={`${v.tipo}-${v.id}`}>
-                    <div className="dl-main">
-                      <div className="dl-t">{splitAto(v.descricao)[0]}</div>
-                      <div className="dl-s">
-                        {seg ? <><SegredoTag on /> · </> : cli && <><span className="dl-cli">{cli}</span> · </>}
-                        {humano(v.tipo)}
-                        {v.numero_cnj && <> · <span className="cnj">{v.numero_cnj}</span></>}
-                        {v.data_relevante && <> · fatal prov. {fmtDate(v.data_relevante)}</>}
-                      </div>
-                    </div>
+                    {detalheHref ? (
+                      <Link className="dl-main valida-link" href={detalheHref}>{corpo}</Link>
+                    ) : (
+                      <div className="dl-main">{corpo}</div>
+                    )}
                     {p ? (
                       <FormModal label="Validar" titulo="Revisar prazo" descricao="Ajuste a data fatal exata e confirme." acao={validarPrazoEditado.bind(null, p.id)} enviarLabel="Validar">
                         <div><label>Ato</label><input name="ato" required defaultValue={p.ato} /></div>
@@ -554,6 +563,7 @@ export default async function PainelPage() {
           <Link className="link" href="/producao">abrir fila →</Link>
         </div>
         {pecas.length ? (
+          <Expansivel altura={250} mais="ver board completo" menos="recolher board">
           <div className="prod-board">
             {PROD_COLS.map((col) => {
               const itens = pecas.filter((p) => p.status === col.key);
@@ -564,11 +574,11 @@ export default async function PainelPage() {
                     <span className="ct">{itens.length}</span>
                   </div>
                   {itens.length ? (
-                    itens.slice(0, 4).map((p) => (
+                    itens.map((p) => (
                       <Link
                         className="prod-item"
                         key={p.id}
-                        href={p.processo_id ? linkPara("processo", p.processo_id) : "/producao"}
+                        href={linkPara("peca", p.id)}
                       >
                         <div className="pi-t">{p.titulo}</div>
                         <div className="pi-s">{p.segredo ? "🔒 sigilo" : p.cliente ?? "—"}</div>
@@ -596,6 +606,7 @@ export default async function PainelPage() {
               );
             })}
           </div>
+          </Expansivel>
         ) : (
           <div className="empty">Nenhuma peça em produção.</div>
         )}
@@ -611,16 +622,16 @@ export default async function PainelPage() {
           {movimentacoes.length ? (
             <VerMais max={6}>
               {movimentacoes.map((m) => (
-                <div className="deadline" key={m.id}>
+                <Link className="deadline" key={m.id} href={linkPara("andamento", m.id)}>
                   <div className="dl-main">
                     <div className="dl-t">{humano(m.tipo)}</div>
                     <div className="dl-s"><span className="dl-cli">{m.segredo ? <SegredoTag on /> : (m.clientes ?? "—")}</span></div>
                   </div>
                   <div className="dl-r">
-                    <ProcRef cnj={m.numero_cnj} registro={m.numero_registro} id={m.processo_id} />
+                    <span className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>{m.numero_cnj ?? m.numero_registro ?? "—"}</span>
                     <div className="dl-s">{(m.origem ?? "").toUpperCase()} · {fmtDate(m.data)}</div>
                   </div>
-                </div>
+                </Link>
               ))}
             </VerMais>
           ) : (
