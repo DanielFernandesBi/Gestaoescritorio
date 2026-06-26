@@ -1984,7 +1984,7 @@ export async function criarAnotacao(
       autor: email,
     });
     if (error) throw error;
-    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos" };
+    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes" };
     if (rota[entidadeTipo]) revalidatePath(`${rota[entidadeTipo]}/${entidadeId}`);
     return { ok: true, message: "Anotação salva." };
   } catch (e) {

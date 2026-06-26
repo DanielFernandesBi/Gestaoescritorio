@@ -1,14 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getIntimacaoPorId, getMapaProvidenciaPeca } from "@/lib/data";
-import { IntimacaoDetalhe } from "@/components/detalhe/IntimacaoDetalhe";
-import { Pill, SegredoTag } from "@/components/ui";
-import { humano } from "@/lib/format";
+import { getIntimacaoFull, getIntimacoes, getMapaProvidenciaPeca, getAnotacoes } from "@/lib/data";
+import { IntimacaoPainel } from "@/components/detalhe/IntimacaoPainel";
 
 export const dynamic = "force-dynamic";
-
-const tone = (s: string) =>
-  s === "pendente" ? "amber" : s === "providencia_tomada" ? "green" : s === "em_analise" ? "blue" : "gray";
 
 export default async function IntimacaoPage({
   params,
@@ -16,32 +10,13 @@ export default async function IntimacaoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [i, mapa] = await Promise.all([getIntimacaoPorId(id), getMapaProvidenciaPeca()]);
+  const [i, lista, mapa, anotacoes] = await Promise.all([
+    getIntimacaoFull(id),
+    getIntimacoes(),
+    getMapaProvidenciaPeca(),
+    getAnotacoes("intimacao", id),
+  ]);
   if (!i) notFound();
 
-  return (
-    <>
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">
-            <Link className="link" href="/intimacoes">← Intimações</Link>
-            {" · "}{(i.origem ?? "—").toUpperCase()}
-          </div>
-          <h1>{i.resumo ?? "Intimação"}</h1>
-          {!i.orfa && <div className="sub" style={{ marginTop: 4 }}>{i.cliente ?? "Sem cliente vinculado"}</div>}
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <Pill tone={tone(i.status)}>{humano(i.status)}</Pill>
-            <SegredoTag on={i.segredo} />
-            {i.orfa && <Pill tone="amber">órfã</Pill>}
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-b">
-          <IntimacaoDetalhe i={i} mapa={mapa} />
-        </div>
-      </div>
-    </>
-  );
+  return <IntimacaoPainel i={i} lista={lista} mapa={mapa} anotacoes={anotacoes} />;
 }

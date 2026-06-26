@@ -891,6 +891,69 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
   };
 }
 
+/* Detalhe completo da intimação (master-detail, alvo Plantão) — enriquece
+ * getIntimacaoPorId com clientes navegáveis, prazo/peça vinculados e leitura. */
+
+export type IntimacaoVinculoPrazo = { id: string; ato: string; data_fatal: string; dias: number; validado: boolean };
+export type IntimacaoVinculoPeca = { id: string; titulo: string; status: string };
+
+export type IntimacaoFull = Intimacao & {
+  clienteRefs: ParteRefLite[];
+  prazo: IntimacaoVinculoPrazo | null;
+  peca: IntimacaoVinculoPeca | null;
+};
+
+export type ParteRefLite = { id: string; nome: string; papel: string | null };
+
+export async function getIntimacaoFull(id: string): Promise<IntimacaoFull | null> {
+  const base = await getIntimacaoPorId(id);
+  if (!base) return null;
+  const supabase = await createClient();
+
+  const [vinc, prz, pcs, sinais] = await Promise.all([
+    base.processo_id
+      ? supabase.from("cliente_processo").select("papel, clientes(id, nome)").eq("processo_id", base.processo_id)
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    supabase.from("prazos").select("id, ato, data_fatal, validado").eq("intimacao_id", id).eq("status", "aberto").order("data_fatal", { ascending: true }),
+    supabase.from("pecas").select("id, titulo, status").eq("intimacao_id", id),
+    supabase.from("vw_intimacoes_contexto").select("revisado_em, revisado_por").eq("intimacao_id", id).maybeSingle(),
+  ]);
+
+  const clienteRefs: ParteRefLite[] = [];
+  const vistos = new Set<string>();
+  for (const v of vinc.data ?? []) {
+    const c = v.clientes as unknown as { id?: string; nome?: string } | null;
+    if (c?.id && c.nome && !vistos.has(c.id)) {
+      vistos.add(c.id);
+      clienteRefs.push({ id: c.id, nome: c.nome, papel: (v.papel as string | null) ?? null });
+    }
+  }
+
+  const pzRow = (prz.data ?? [])[0] as Record<string, unknown> | undefined;
+  const prazo: IntimacaoVinculoPrazo | null = pzRow
+    ? { id: pzRow.id as string, ato: pzRow.ato as string, data_fatal: pzRow.data_fatal as string, dias: diasAte(pzRow.data_fatal as string), validado: Boolean(pzRow.validado) }
+    : null;
+
+  // Peça vinculada — prefere a não-terminal (trabalho em curso).
+  const TERMINAIS = new Set(["protocolada", "cancelada", "prejudicada"]);
+  const pecaRows = (pcs.data ?? []) as Record<string, unknown>[];
+  const pecaRow = pecaRows.find((p) => !TERMINAIS.has(p.status as string)) ?? pecaRows[0];
+  const peca: IntimacaoVinculoPeca | null = pecaRow
+    ? { id: pecaRow.id as string, titulo: pecaRow.titulo as string, status: pecaRow.status as string }
+    : null;
+
+  const s = sinais.data as Record<string, unknown> | null;
+
+  return {
+    ...base,
+    revisado_em: (s?.revisado_em as string | null) ?? null,
+    revisado_por: (s?.revisado_por as string | null) ?? null,
+    clienteRefs,
+    prazo,
+    peca,
+  };
+}
+
 /* Audiências ------------------------------------------------------------- */
 
 /** Cliente vinculado a um processo (com id navegável e papel). */
