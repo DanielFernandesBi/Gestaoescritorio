@@ -210,12 +210,13 @@ export default async function VarreduraPage() {
           {historico.length ? (
             <table className="vr-table">
               <thead>
-                <tr><th>Execução</th><th>Fonte</th><th className="num">Itens</th><th className="num">Int · And · Prz</th><th>Status</th></tr>
+                <tr><th>Execução</th><th>Janela</th><th>Fonte</th><th className="num">Itens</th><th className="num">Int · And · Prz</th><th>Status</th></tr>
               </thead>
               <tbody>
                 {historico.map((h) => (
                   <tr key={h.id}>
                     <td className="mono">{fmtDate(h.criado_em)} {fmtTime(h.criado_em)}</td>
+                    <td className="mono">{h.janela_inicio ? `${fmtDate(h.janela_inicio)} – ${fmtDate(h.janela_fim)}` : "—"}</td>
                     <td>{h.fonte.toUpperCase()}</td>
                     <td className="num mono">{fmtNum(h.itens_processados)}</td>
                     <td className="num mono">{h.intimacoes_novas} · {h.andamentos_novos} · {h.prazos_criados}</td>

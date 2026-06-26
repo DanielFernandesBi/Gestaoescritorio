@@ -2441,3 +2441,11 @@ a.tk-title:hover{text-decoration:underline}
 .rad-resumo{font-size:12.5px;color:var(--text);line-height:1.55;margin-top:4px}
 .rad-meta{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .rad-tema{font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:5px;padding:1px 7px}
+
+/* migração expansível (rail /sistema) — SQL executado */
+.sis-mig-det summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px}
+.sis-mig-det summary::-webkit-details-marker{display:none}
+.sis-mig-row{display:flex;align-items:center;gap:8px}
+.sis-mig-sql{margin:7px 0 2px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:10.5px;line-height:1.5;color:var(--text);white-space:pre-wrap;overflow-x:auto;max-height:220px}
+/* datas da condenação (estudo) */
+.est-cond-datas{font-size:10.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}

@@ -2764,7 +2764,7 @@ export async function getSugestoes(): Promise<Sugestao[]> {
 }
 
 /* Migrações executadas (DDL autorizada) — "Últimas migrações" no trilho. */
-export type Migracao = { id: number; descricao: string | null; executada_em: string | null; autorizada_por: string | null };
+export type Migracao = { id: number; descricao: string | null; executada_em: string | null; autorizada_por: string | null; sql_executado: string | null };
 export async function getMigracoesCount(): Promise<number> {
   const supabase = await createClient();
   const { count } = await supabase.from("migracoes").select("*", { count: "exact", head: true });
@@ -2774,7 +2774,7 @@ export async function getMigracoes(limit = 8): Promise<Migracao[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("migracoes")
-    .select("id, descricao, executada_em, autorizada_por")
+    .select("id, descricao, executada_em, autorizada_por, sql_executado")
     .order("executada_em", { ascending: false, nullsFirst: false })
     .limit(limit);
   return (data ?? []) as Migracao[];
@@ -3091,6 +3091,7 @@ export async function getEstudoDetalhe(id: string): Promise<EstudoDetalhe | null
 export type EstudoCondenacao = {
   artigo: string | null; lei: string | null; pena_texto: string | null;
   hediondo: boolean; reincidente: boolean; situacao: string | null; descricao_crime: string | null;
+  data_infracao: string | null; data_sentenca: string | null; data_transito: string | null;
 };
 
 export type EstudoFull = EstudoDetalhe & {
@@ -3111,7 +3112,7 @@ export async function getEstudoFull(id: string): Promise<EstudoFull | null> {
       ? supabase.from("vw_situacao_executoria_atual").select("pena_total_texto").eq("cliente_id", base.cliente_id).maybeSingle()
       : Promise.resolve({ data: null }),
     base.cliente_id
-      ? supabase.from("vw_condenacoes_cliente").select("artigo, lei, pena_texto, hediondo, reincidente, situacao, descricao_crime").eq("cliente_id", base.cliente_id)
+      ? supabase.from("condenacoes").select("artigo, lei, pena_texto, hediondo, reincidente, situacao, descricao_crime, data_infracao, data_sentenca, data_transito").eq("cliente_id", base.cliente_id).order("data_infracao", { ascending: true, nullsFirst: false })
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
   ]);
 
@@ -3126,6 +3127,7 @@ export async function getEstudoFull(id: string): Promise<EstudoFull | null> {
     artigo: (c.artigo as string | null) ?? null, lei: (c.lei as string | null) ?? null,
     pena_texto: (c.pena_texto as string | null) ?? null, hediondo: Boolean(c.hediondo), reincidente: Boolean(c.reincidente),
     situacao: (c.situacao as string | null) ?? null, descricao_crime: (c.descricao_crime as string | null) ?? null,
+    data_infracao: (c.data_infracao as string | null) ?? null, data_sentenca: (c.data_sentenca as string | null) ?? null, data_transito: (c.data_transito as string | null) ?? null,
   }));
 
   return {

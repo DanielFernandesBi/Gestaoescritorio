@@ -10,7 +10,7 @@ import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { atualizarEstudo, concluirEstudo, criarPeca } from "@/app/actions";
 import { ESTUDO_TIPO, ESTUDO_STATUS, PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { linkPara } from "@/lib/links";
-import { humano } from "@/lib/format";
+import { fmtDate, humano } from "@/lib/format";
 import type { EstudoFull, EstudoObjetivo, EstudoVinculo, EstudoCondenacao, Anotacao } from "@/lib/data";
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
@@ -226,6 +226,13 @@ export function EstudoPainel({ e, anotacoes }: { e: EstudoFull; anotacoes: Anota
                       <div className="est-cond-card" key={i}>
                         <div className="t mono">{c.artigo ? `Art. ${c.artigo}` : "—"}{c.pena_texto ? ` · ${c.pena_texto}` : ""}</div>
                         <div className="s" style={{ color: nat.c }}>{c.descricao_crime || nat.t}</div>
+                        {(c.data_infracao || c.data_sentenca || c.data_transito) && (
+                          <div className="est-cond-datas">{[
+                            c.data_infracao ? `fato ${fmtDate(c.data_infracao)}` : null,
+                            c.data_sentenca ? `sentença ${fmtDate(c.data_sentenca)}` : null,
+                            c.data_transito ? `trânsito ${fmtDate(c.data_transito)}` : null,
+                          ].filter(Boolean).join(" · ")}</div>
+                        )}
                       </div>
                     );
                   })}
