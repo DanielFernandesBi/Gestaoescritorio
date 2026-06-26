@@ -1,5 +1,7 @@
 import { getAndamentos, getAndamentosOrfaos, getMapaProvidenciaPeca } from "@/lib/data";
 import { AndamentosModulo } from "@/components/modules/AndamentosModulo";
+import { AndamentoMaster } from "@/components/detalhe/AndamentoPainel";
+import { ListaRaiz } from "@/components/ListaRaiz";
 import { RegistrarAndamento } from "@/components/modules/RegistrarAndamento";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +13,7 @@ export default async function AndamentosPage() {
     getMapaProvidenciaPeca(),
   ]);
   return (
-    <>
+    <ListaRaiz indice={<AndamentoMaster lista={movimentacoes} />}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Histórico processual · captura automática</div>
@@ -24,6 +26,6 @@ export default async function AndamentosPage() {
         <RegistrarAndamento />
       </div>
       <AndamentosModulo movimentacoes={movimentacoes} orfaos={orfaos} mapa={mapa} />
-    </>
+    </ListaRaiz>
   );
 }

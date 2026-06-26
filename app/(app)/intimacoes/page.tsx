@@ -1,5 +1,7 @@
 import { getIntimacoes } from "@/lib/data";
 import { IntimacoesList } from "@/components/modules/IntimacoesList";
+import { IntimacaoMaster } from "@/components/detalhe/IntimacaoPainel";
+import { ListaRaiz } from "@/components/ListaRaiz";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
 import { criarIntimacao } from "@/app/actions";
@@ -10,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function IntimacoesPage() {
   const intimacoes = await getIntimacoes();
   return (
-    <>
+    <ListaRaiz indice={<IntimacaoMaster lista={intimacoes} />}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Porta de entrada</div>
@@ -40,6 +42,6 @@ export default async function IntimacoesPage() {
         </FormModal>
       </div>
       <IntimacoesList intimacoes={intimacoes} />
-    </>
+    </ListaRaiz>
   );
 }

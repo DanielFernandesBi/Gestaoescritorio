@@ -84,6 +84,30 @@ function MasterCard({ a, ativo }: { a: AudienciaCard; ativo: boolean }) {
   );
 }
 
+/* ── índice (lista compacta) — reusado no drawer e na tela raiz /audiencias ── */
+export function AudienciaMaster({ lista, activeId }: { lista: AudienciaCard[]; activeId?: string }) {
+  const [filtro, setFiltro] = useState<"designadas" | "validar">("designadas");
+  const designadas = lista.filter((a) => a.status === "designada");
+  const aValidar = designadas.filter((a) => !a.validado);
+  const visiveis = filtro === "validar" ? aValidar : designadas;
+  return (
+    <aside className="audp-master">
+      <div className="audp-master-h">
+        <h1>Audiências</h1>
+        <div className="audp-filtros">
+          <button type="button" className={`audp-chip ink${filtro === "designadas" ? " on" : ""}`} onClick={() => setFiltro("designadas")}>Designadas ({designadas.length})</button>
+          <button type="button" className={`audp-chip tang${filtro === "validar" ? " on" : ""}`} onClick={() => setFiltro("validar")}>a validar ({aValidar.length})</button>
+        </div>
+      </div>
+      <div className="audp-master-list">
+        {visiveis.length === 0
+          ? <div className="audp-empty">Nada por aqui.</div>
+          : visiveis.map((a) => <MasterCard key={a.id} a={a} ativo={a.id === activeId} />)}
+      </div>
+    </aside>
+  );
+}
+
 /* ── detalhe: card de modalidade (identificada pela IA) ──────────────────── */
 function ModalidadeIA({ aud }: { aud: Audiencia }) {
   const router = useRouter();
@@ -190,37 +214,15 @@ function Sec({ titulo, extra, children }: { titulo: string; extra?: ReactNode; c
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function AudienciaPainel({ aud, lista, anotacoes }: { aud: Audiencia; lista: AudienciaCard[]; anotacoes: Anotacao[] }) {
-  const [filtro, setFiltro] = useState<"designadas" | "validar">("designadas");
   const [verNotas, setVerNotas] = useState(false);
-
-  const designadas = lista.filter((a) => a.status === "designada");
-  const aValidar = designadas.filter((a) => !a.validado);
-  const visiveis = filtro === "validar" ? aValidar : designadas;
 
   const provis = !aud.validado && aud.status === "designada";
   const ativa = aud.status === "designada";
 
   return (
     <div className="audp">
-      {/* MASTER */}
-      <aside className="audp-master">
-        <div className="audp-master-h">
-          <h1>Audiências</h1>
-          <div className="audp-filtros">
-            <button type="button" className={`audp-chip ink${filtro === "designadas" ? " on" : ""}`} onClick={() => setFiltro("designadas")}>
-              Designadas ({designadas.length})
-            </button>
-            <button type="button" className={`audp-chip tang${filtro === "validar" ? " on" : ""}`} onClick={() => setFiltro("validar")}>
-              a validar ({aValidar.length})
-            </button>
-          </div>
-        </div>
-        <div className="audp-master-list">
-          {visiveis.length === 0
-            ? <div className="audp-empty">Nada por aqui.</div>
-            : visiveis.map((a) => <MasterCard key={a.id} a={a} ativo={a.id === aud.id} />)}
-        </div>
-      </aside>
+      {/* MASTER — índice compartilhado (mesma row da tela raiz /audiencias) */}
+      <AudienciaMaster lista={lista} activeId={aud.id} />
 
       {/* DETALHE */}
       <section className="audp-detail">
