@@ -214,8 +214,8 @@ export default async function VarreduraPage() {
               </thead>
               <tbody>
                 {historico.map((h) => (
-                  <tr key={h.id}>
-                    <td className="mono">{fmtDate(h.criado_em)} {fmtTime(h.criado_em)}</td>
+                  <tr key={h.id} className="vr-row">
+                    <td className="mono"><Link className="vr-rowlink" href={`/varredura/ciclos/${h.id}`}>{fmtDate(h.criado_em)} {fmtTime(h.criado_em)}</Link></td>
                     <td className="mono">{h.janela_inicio ? `${fmtDate(h.janela_inicio)} – ${fmtDate(h.janela_fim)}` : "—"}</td>
                     <td>{h.fonte.toUpperCase()}</td>
                     <td className="num mono">{fmtNum(h.itens_processados)}</td>
@@ -223,6 +223,7 @@ export default async function VarreduraPage() {
                     <td>
                       <Pill tone={statusTone(h.status)} dot={false}>{h.status}</Pill>
                       {h.status !== "concluida" && h.anomalias?.[0] && <span className="vr-st-hint"> · {h.anomalias[0].tipo}</span>}
+                      <Link className="vr-rowabrir" href={`/varredura/ciclos/${h.id}`}>abrir →</Link>
                     </td>
                   </tr>
                 ))}

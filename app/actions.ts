@@ -1994,6 +1994,33 @@ export async function redesignarAudiencia(id: string, fd: FormData): Promise<Res
   }
 }
 
+/* ============================ VARREDURA (ciclo) ============================
+ * Ajuste de parâmetros do ciclo (fonte/status/janela). O snapshot é append-only
+ * por natureza; este UPDATE é uma correção pontual de mesa, auditada. */
+export async function atualizarVarredura(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const patch: Record<string, unknown> = {};
+    const fonte = String(fd.get("fonte") || "").trim();
+    const status = String(fd.get("status") || "").trim();
+    const ji = String(fd.get("janela_inicio") || "").trim();
+    const jf = String(fd.get("janela_fim") || "").trim();
+    if (fonte) patch.fonte = fonte;
+    if (status) patch.status = status;
+    if (ji) patch.janela_inicio = ji;
+    if (jf) patch.janela_fim = jf;
+    if (Object.keys(patch).length === 0) return { ok: false, message: "Nada para alterar." };
+    const supabase = await createClient();
+    const { error } = await supabase.from("varreduras").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidatePath(`/varredura/ciclos/${id}`);
+    revalidatePath("/varredura");
+    return { ok: true, message: "Varredura atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /* ============================ ANOTAÇÕES ============================
  * Controle próprio do usuário — texto livre, cada anotação é um card
  * independente (criar / editar / apagar). Genérica por entidade. */
@@ -2016,7 +2043,7 @@ export async function criarAnotacao(
       autor: email,
     });
     if (error) throw error;
-    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes", andamento: "/andamentos", contrato: "/contratos", peca: "/producao", processo: "/processos" };
+    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes", andamento: "/andamentos", contrato: "/contratos", peca: "/producao", processo: "/processos", varredura: "/varredura/ciclos" };
     if (rota[entidadeTipo]) revalidatePath(`${rota[entidadeTipo]}/${entidadeId}`);
     return { ok: true, message: "Anotação salva." };
   } catch (e) {

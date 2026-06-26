@@ -39,9 +39,18 @@ function estado(e: AgendaEvento): { label: string; tone: string; ia: boolean } {
   return e.validado ? { label: "fatal", tone: "fatal", ia: false } : { label: "fatal provisória", tone: "prov", ia: true };
 }
 
+// Separa o ato curto da nota longa que a triagem anexa entre colchetes
+// (reclassificação/conferência) — a nota vira uma 3ª linha menor, sem negrito.
+function splitNota(titulo: string): [string, string | null] {
+  const j = titulo.indexOf(" [");
+  if (j > 0) return [titulo.slice(0, j).trim(), titulo.slice(j).trim().replace(/^\[|\]$/g, "")];
+  return [titulo, null];
+}
+
 function EventoRow({ e }: { e: AgendaEvento }) {
   const st = estado(e);
   const fimDeSemana = e.tipo === "prazo" && e.marcador === "fatal" && wkMon(e.data.slice(0, 10)) >= 5;
+  const [tituloCurto, nota] = splitNota(e.titulo);
   const detalhe = [
     e.tipo === "audiencia" ? e.modalidade : null,
     e.local,
@@ -54,7 +63,7 @@ function EventoRow({ e }: { e: AgendaEvento }) {
       <span className="ag-ev-bar" />
       <div className="ag-ev-main">
         <div className="ag-ev-t">
-          {e.titulo}
+          {tituloCurto}
           {e.preso && <span className="ag-flag preso">PRESO</span>}
           {e.orfao && <span className="ag-flag orfao">ÓRFÃO</span>}
         </div>
@@ -62,6 +71,7 @@ function EventoRow({ e }: { e: AgendaEvento }) {
           {e.segredo ? <SegredoTag on /> : e.cliente && <span className="dl-cli">{e.cliente}</span>}
           {detalhe && <>{(e.segredo || e.cliente) ? " · " : ""}{detalhe}</>}
         </div>
+        {nota && <div className="ag-ev-nota">{nota}</div>}
         {fimDeSemana && <div className="ag-ev-note">cai em fim de semana — confira prorrogação p/ 1º dia útil</div>}
       </div>
       <div className="ag-ev-r">
