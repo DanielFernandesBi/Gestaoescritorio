@@ -35,6 +35,45 @@ const COLS: { key: string; label: string; dot: string }[] = [
   { key: "pronta", label: "Pronta", dot: "green" },
 ];
 
+// Opções de movimentação de etapa (kanban + desfechos). moverPeca valida no servidor;
+// 'protocolada' roteia para a baixa (gera andamento).
+const MOVE_OPTS: { k: string; l: string }[] = [
+  { k: "a_fazer", l: "A fazer" },
+  { k: "em_elaboracao", l: "Em elaboração" },
+  { k: "aguardando_insumo", l: "Aguardando insumo" },
+  { k: "em_revisao", l: "Em revisão" },
+  { k: "pronta", l: "Pronta" },
+  { k: "protocolada", l: "Protocolada" },
+  { k: "cancelada", l: "Cancelar" },
+  { k: "prejudicada", l: "Prejudicar" },
+];
+
+/** Seletor explícito de etapa no card — alternativa acessível ao arrastar. */
+function MoverEtapa({ p }: { p: Peca }) {
+  const router = useRouter();
+  const [pend, setPend] = useState(false);
+  return (
+    <select
+      className="prd-mover"
+      value=""
+      disabled={pend}
+      title="Mover de etapa"
+      onClick={(e) => e.stopPropagation()}
+      onChange={async (e) => {
+        const v = e.target.value;
+        if (!v) return;
+        setPend(true);
+        const r = await moverPeca(p.id, v);
+        setPend(false);
+        if (r.ok) router.refresh();
+      }}
+    >
+      <option value="">{pend ? "Movendo…" : "Mover ▾"}</option>
+      {MOVE_OPTS.filter((o) => o.k !== p.status).map((o) => <option key={o.k} value={o.k}>{o.l}</option>)}
+    </select>
+  );
+}
+
 const ehIA = (p: Peca) => p.cadastro_automatico;
 // Tom da etiqueta de categoria pelo tipo da peça.
 function tipoTone(t: string): string {
@@ -373,6 +412,7 @@ export function ProducaoBoard({
 
         {/* rodapé de ações por coluna */}
         <div className="prd-foot" onClick={(e) => e.stopPropagation()}>
+          <MoverEtapa p={p} />
           {status === "a_fazer" && <><span className="prd-fwrap"><AtribuirAdvogado p={p} /></span><button type="button" className="prd-fbtn sec" onClick={() => abrir(p)}>Abrir</button></>}
           {status === "em_elaboracao" && <>
             {p.drive_file_id
