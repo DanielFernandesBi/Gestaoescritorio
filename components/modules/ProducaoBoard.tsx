@@ -3,21 +3,15 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useDrawer } from "@/components/Drawer";
-import { Pill, SegredoTag } from "@/components/ui";
+import { linkPara } from "@/lib/links";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import {
   criarPeca,
   moverPeca,
-  atualizarPeca,
-  validarPeca,
   validarMinuta,
   atribuirPeca,
   anexarInsumoPeca,
-  vincularPrazoIntimacao,
-  assumirPeca,
-  reatribuirPeca,
   reanalisarPecas,
 } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
@@ -40,9 +34,6 @@ const COLS: { key: string; label: string; dot: string }[] = [
   { key: "em_revisao", label: "Em revisão", dot: "accent" },
   { key: "pronta", label: "Pronta", dot: "green" },
 ];
-
-const priTone = (p: string | null): "red" | "amber" | "gray" =>
-  p === "urgente" ? "red" : p === "alta" ? "amber" : "gray";
 
 const ehIA = (p: Peca) => p.cadastro_automatico;
 // Tom da etiqueta de categoria pelo tipo da peça.
@@ -82,31 +73,6 @@ function prazoMeta(p: Peca): string {
 }
 
 const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } as const;
-
-/** Rótulo do processo da peça (CNJ, registro do tribunal, ou inicial sem processo). */
-function pecaProcLabel(p: Peca): string {
-  if (p.numero_cnj) return p.numero_cnj;
-  if (p.numero_registro) return "reg " + p.numero_registro;
-  return p.processo_id ? "—" : "inicial — sem processo";
-}
-
-/**
- * Link clicável para a minuta no Drive (Sugestão 46 — fiação do redator
- * agendado/Sug. 42). `stop` evita abrir o drawer do card ao clicar no link.
- */
-function MinutaLink({ id, stop = false }: { id: string; stop?: boolean }) {
-  return (
-    <a
-      className="link"
-      href={`https://drive.google.com/file/d/${id}/view`}
-      target="_blank"
-      rel="noreferrer"
-      onClick={stop ? (e) => e.stopPropagation() : undefined}
-    >
-      📄 abrir minuta
-    </a>
-  );
-}
 
 /* ---- Lite lists (seletores) ------------------------------------------- */
 
@@ -281,10 +247,8 @@ export function ProducaoBoard({
   protocoladas?: Peca[];
   socio?: Socio | null;
 }) {
-  const { open } = useDrawer();
   const router = useRouter();
   const params = useSearchParams();
-  const { prazos, intims } = useLites();
   const [dragCol, setDragCol] = useState<string | null>(null);
   const [filtro, setFiltro] = useState("todas");
   const [soIA, setSoIA] = useState(false);
@@ -345,192 +309,7 @@ export function ProducaoBoard({
   }
 
   function abrir(p: Peca) {
-    const provisorio = p.cadastro_automatico && !p.validado;
-    open({
-      title: (
-        <>
-          <h2>{p.titulo}</h2>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Pill tone="blue" dot={false}>{humano(p.tipo)}{p.subtipo ? ` · ${p.subtipo}` : ""}</Pill>
-            <Pill tone={priTone(p.prioridade)}>{humano(p.prioridade)}</Pill>
-            <SegredoTag on={p.segredo} />
-            {provisorio && <span className="gate wait">⏳ PROVISÓRIO – conferir</span>}
-          </div>
-        </>
-      ),
-      body: (
-        <>
-          {provisorio && (
-            <div className="banner" style={{ margin: "0 0 18px" }}>
-              <span className="ico">⚠</span>
-              <div><b>Peça provisória (cadastro automático).</b> Nasceu da triagem (validado=false). Confira e valide — mesma doutrina do gate dos prazos.</div>
-            </div>
-          )}
-          <div className="dsec">
-            <h4>Dados</h4>
-            <div className="dgrid">
-              <div className="field"><div className="k">Status</div><div className="v">{humano(p.status)}</div></div>
-              <div className="field"><div className="k">Responsável</div><div className="v">{p.responsavel ?? "—"}</div></div>
-              <div className="field"><div className="k">Cliente</div><div className="v">{p.cliente ?? "—"}</div></div>
-              <div className="field"><div className="k">Processo</div><div className="v mono">{pecaProcLabel(p)}</div></div>
-              {p.status === "protocolada" ? (
-                <div className="field"><div className="k">Protocolada em</div><div className="v mono">{fmtDate(p.protocolada_em)}</div></div>
-              ) : (
-                <div className="field"><div className="k">Data efetiva</div><div className="v mono">{fmtDate(p.data_efetiva)}</div></div>
-              )}
-              <div className="field"><div className="k">Minuta (Drive)</div><div className="v">{p.drive_file_id ? <MinutaLink id={p.drive_file_id} /> : "—"}</div></div>
-            </div>
-          </div>
-
-          {(p.gate_resultado || p.gate_pendencia || p.gate_analisado_em || p.status === "aguardando_insumo") && (
-            <div className="dsec">
-              <h4>Análise do redator (gate)</h4>
-              {(p.status === "aguardando_insumo" || p.gate_resultado === "baixa") && p.gate_pendencia && (
-                <div className="banner" style={{ margin: "0 0 12px" }}>
-                  <span className="ico">⏳</span>
-                  <div><b>Aguardando insumo.</b> {p.gate_pendencia}</div>
-                </div>
-              )}
-              <div className="dgrid">
-                <div className="field">
-                  <div className="k">Resultado</div>
-                  <div className="v">
-                    {p.gate_resultado
-                      ? <Pill tone={p.gate_resultado === "alta" ? "green" : "amber"} dot={false}>{p.gate_resultado === "alta" ? "alta — redigir" : "baixa — aguardando insumo"}</Pill>
-                      : "ainda não analisada"}
-                  </div>
-                </div>
-                <div className="field"><div className="k">Analisado em</div><div className="v mono">{p.gate_analisado_em ? fmtDate(p.gate_analisado_em) : "—"}</div></div>
-              </div>
-              {p.processo_id && (
-                <div className="acoes" style={{ marginTop: 10 }}>
-                  <ReanalisarFila processoId={p.processo_id} label={<>↻ Reanalisar peças deste processo</>} />
-                </div>
-              )}
-            </div>
-          )}
-
-          {(p.descricao || p.observacoes) && (
-            <div className="dsec">
-              {p.descricao && (
-                <>
-                  <h4>Descrição</h4>
-                  <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text)", whiteSpace: "pre-wrap" }}>{p.descricao}</p>
-                </>
-              )}
-              {p.observacoes && (
-                <div className="banner" style={{ margin: p.descricao ? "12px 0 0" : 0 }}>
-                  <span className="ico">📝</span>
-                  <div><b>Anotações — observar ao redigir:</b><br /><span style={{ whiteSpace: "pre-wrap" }}>{p.observacoes}</span></div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {socio && (
-            <div className="dsec">
-              <h4>Atribuição</h4>
-              <div className="acoes">
-                {p.responsavel !== socio && (
-                  <Acao label="Assumir" titulo="Assumir peça"
-                    resumo={<>Assumir <b>{p.titulo}</b> como <b>{socio}</b>?{p.status === "a_fazer" ? <> Será movida para <b>Em elaboração</b>.</> : null}</>}
-                    acao={() => assumirPeca(p.id)} />
-                )}
-                {outro && p.responsavel !== outro && (
-                  <Acao label={`Reatribuir a ${outro}`} titulo="Reatribuir peça"
-                    resumo={<>Reatribuir <b>{p.titulo}</b> a <b>{outro}</b>?</>}
-                    acao={() => reatribuirPeca(p.id)} />
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="dsec">
-            <h4>Prazo vinculado</h4>
-            {p.prazo_id ? (
-              <div className="dgrid">
-                <div className="field"><div className="k">Data fatal</div><div className="v mono" style={{ color: "var(--red)" }}>{fmtDate(p.data_fatal)}</div></div>
-                <div className="field"><div className="k">Data interna</div><div className="v mono">{fmtDate(p.data_interna)}</div></div>
-                <div className="field"><div className="k">Dias restantes</div><div className="v mono">{p.dias_restantes ?? "—"}</div></div>
-                <div className="field"><div className="k">Prazo</div><div className="v">{p.prazo_validado ? "validado" : "provisório"}</div></div>
-              </div>
-            ) : (
-              <div className="empty">Sem prazo vinculado{p.data_efetiva ? ` · semáforo pela data alvo (${fmtDate(p.data_efetiva)})` : ""}.</div>
-            )}
-          </div>
-
-          {provisorio && (
-            <div className="dsec">
-              <h4>Conferência</h4>
-              <div className="acoes">
-                <Acao
-                  label="Validar peça"
-                  variant="ok"
-                  titulo="Validar peça provisória"
-                  resumo={<>Confirmar <b>{p.titulo}</b> como conferida (validado=true)?</>}
-                  acao={() => validarPeca(p.id)}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="dsec">
-            <h4>Editar</h4>
-            <div className="acoes">
-              <FormModal label="Editar peça" titulo="Editar peça" acao={atualizarPeca.bind(null, p.id)} enviarLabel="Salvar" variant="default">
-                <CamposBasicos p={p} />
-              </FormModal>
-              <FormModal label="Vincular prazo/intimação" titulo="Vínculos de origem" acao={vincularPrazoIntimacao.bind(null, p.id)} enviarLabel="Salvar vínculos" variant="default">
-                <div>
-                  <label>Prazo vinculado</label>
-                  <select name="prazo_id" defaultValue={p.prazo_id ?? ""}>
-                    <option value="">— nenhum —</option>
-                    {prazos.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label>Intimação de origem</label>
-                  <select name="intimacao_id" defaultValue={p.intimacao_id ?? ""}>
-                    <option value="">— nenhuma —</option>
-                    {intims.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-                  </select>
-                </div>
-                <p className="sub" style={{ margin: 0 }}>Deixe em branco para desfazer o vínculo. O prazo vinculado fecha o loop na baixa (peça → protocolada).</p>
-              </FormModal>
-            </div>
-          </div>
-
-          <div className="dsec">
-            <h4>Mover</h4>
-            <div className="acoes">
-              {COLS.filter((c) => c.key !== p.status).map((c) => (
-                <Acao key={c.key} label={c.label} titulo="Mover peça"
-                  resumo={<>Mover <b>{p.titulo}</b> para <b>{c.label}</b>?</>}
-                  acao={() => moverPeca(p.id, c.key)} />
-              ))}
-              {p.status !== "protocolada" && (
-                <Acao label="Protocolada" variant="ok" titulo="Marcar protocolada"
-                  resumo={<>Protocolar <b>{p.titulo}</b> (hoje)? Dá baixa completa: prazo vinculado → <b>cumprido</b>, registra o andamento, resolve a intimação e move a peça para <b>protocolada</b>. Sai do board.</>}
-                  campoTexto={{ label: "Andamento (opcional)", placeholder: "Ex.: Protocolada a petição de razões de apelação.", multiline: true }}
-                  acao={(texto) => moverPeca(p.id, "protocolada", texto)} />
-              )}
-            </div>
-          </div>
-
-          <div className="dsec">
-            <h4>Encerrar (nunca apaga — troca de status)</h4>
-            <div className="acoes">
-              <Acao label="Cancelar peça" variant="danger" titulo="Cancelar peça"
-                resumo={<>Cancelar <b>{p.titulo}</b>? (status → cancelada, auditado)</>}
-                acao={() => moverPeca(p.id, "cancelada")} />
-              <Acao label="Prejudicar" variant="danger" titulo="Prejudicar peça"
-                resumo={<>Marcar <b>{p.titulo}</b> como <b>prejudicada</b>? (auditado)</>}
-                acao={() => moverPeca(p.id, "prejudicada")} />
-            </div>
-          </div>
-        </>
-      ),
-    });
+    router.push(linkPara("peca", p.id));
   }
 
   /* cartão de peça (colunas ativas) — topo comum + meio/rodapé por coluna */
