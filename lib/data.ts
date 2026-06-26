@@ -2593,6 +2593,132 @@ export async function getPecasProtocoladas(limit = 200): Promise<Peca[]> {
   });
 }
 
+/* Detalhe completo da peça (master-detail, alvo Plantão) — lê direto da tabela
+ * (qualquer status) + vínculos prazo/intimação/processo/andamento/tarefa. */
+
+export type PecaVincPrazo = { id: string; ato: string; data_fatal: string | null; data_interna: string | null; dias: number | null; validado: boolean };
+export type PecaVincIntimacao = { id: string; resumo: string | null; origem: string | null; status: string };
+export type PecaVincAndamento = { id: string; tipo: string; data: string };
+export type PecaVincTarefa = { id: string; titulo: string; status: string; prioridade: string | null };
+
+export type PecaFull = {
+  id: string;
+  titulo: string;
+  tipo: string;
+  subtipo: string | null;
+  status: string;
+  prioridade: string | null;
+  responsavel: string | null;
+  cliente_id: string | null;
+  cliente: string | null;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  tribunal: string | null;
+  segredo: boolean;
+  drive_file_id: string | null;
+  validado: boolean;
+  cadastro_automatico: boolean;
+  cadastrado_por: string | null;
+  descricao: string | null;
+  observacoes: string | null;
+  data_alvo: string | null;
+  protocolada_em: string | null;
+  criado_em: string | null;
+  gate_resultado: string | null;
+  gate_pendencia: string | null;
+  gate_analisado_em: string | null;
+  clienteRefs: ParteRefLite[];
+  data_fatal: string | null;
+  data_interna: string | null;
+  dias_restantes: number | null;
+  prazo: PecaVincPrazo | null;
+  intimacao: PecaVincIntimacao | null;
+  andamentoOrigem: PecaVincAndamento | null;
+  andamentoProtocolo: PecaVincAndamento | null;
+  tarefa: PecaVincTarefa | null;
+};
+
+export async function getPecaFull(id: string): Promise<PecaFull | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("pecas")
+    .select("id, titulo, tipo, subtipo, status, prioridade, responsavel, cliente_id, processo_id, prazo_id, intimacao_id, origem_andamento_id, andamento_id, tarefa_id, drive_file_id, validado, cadastro_automatico, cadastrado_por, descricao, observacoes, data_alvo, protocolada_em, criado_em, gate_resultado, gate_pendencia, gate_analisado_em, cliente:clientes(nome), processos(numero_cnj, numero_registro_tribunal, tribunal, segredo_justica, cliente_processo(papel, clientes(id, nome)))")
+    .eq("id", id)
+    .maybeSingle();
+  if (!r) return null;
+
+  const proc = r.processos as unknown as (NestedProcesso & { tribunal?: string | null }) | null;
+  const cliDireto = r.cliente as unknown as { nome?: string } | null;
+  const cp = (proc?.cliente_processo ?? []) as { papel?: string | null; clientes?: { id?: string; nome?: string } | null }[];
+  const clienteRefs: ParteRefLite[] = [];
+  const vistos = new Set<string>();
+  for (const v of cp) {
+    const c = v.clientes;
+    if (c?.id && c.nome && !vistos.has(c.id)) { vistos.add(c.id); clienteRefs.push({ id: c.id, nome: c.nome, papel: v.papel ?? null }); }
+  }
+
+  const [pz, it, ao, ap, tf] = await Promise.all([
+    r.prazo_id ? supabase.from("prazos").select("id, ato, data_fatal, data_interna, dias, validado").eq("id", r.prazo_id as string).maybeSingle() : Promise.resolve({ data: null }),
+    r.intimacao_id ? supabase.from("intimacoes").select("id, resumo, origem, status").eq("id", r.intimacao_id as string).maybeSingle() : Promise.resolve({ data: null }),
+    r.origem_andamento_id ? supabase.from("andamentos").select("id, tipo, data").eq("id", r.origem_andamento_id as string).maybeSingle() : Promise.resolve({ data: null }),
+    r.andamento_id ? supabase.from("andamentos").select("id, tipo, data").eq("id", r.andamento_id as string).maybeSingle() : Promise.resolve({ data: null }),
+    r.tarefa_id ? supabase.from("tarefas").select("id, titulo, status, prioridade").eq("id", r.tarefa_id as string).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+
+  const pr = pz.data as Record<string, unknown> | null;
+  const prazo: PecaVincPrazo | null = pr
+    ? { id: pr.id as string, ato: pr.ato as string, data_fatal: (pr.data_fatal as string | null) ?? null, data_interna: (pr.data_interna as string | null) ?? null, dias: pr.dias == null ? null : Number(pr.dias), validado: Boolean(pr.validado) }
+    : null;
+  const itd = it.data as Record<string, unknown> | null;
+  const intimacao: PecaVincIntimacao | null = itd ? { id: itd.id as string, resumo: (itd.resumo as string | null) ?? null, origem: (itd.origem as string | null) ?? null, status: itd.status as string } : null;
+  const mkAnd = (d: Record<string, unknown> | null): PecaVincAndamento | null => d ? { id: d.id as string, tipo: d.tipo as string, data: d.data as string } : null;
+  const tfd = tf.data as Record<string, unknown> | null;
+  const tarefa: PecaVincTarefa | null = tfd ? { id: tfd.id as string, titulo: tfd.titulo as string, status: tfd.status as string, prioridade: (tfd.prioridade as string | null) ?? null } : null;
+
+  const data_interna = prazo?.data_interna ?? null;
+  const data_fatal = prazo?.data_fatal ?? null;
+  const baseDias = data_interna ?? data_fatal ?? (r.data_alvo as string | null) ?? null;
+
+  return {
+    id: r.id as string,
+    titulo: r.titulo as string,
+    tipo: (r.tipo as string) ?? "outra",
+    subtipo: (r.subtipo as string | null) ?? null,
+    status: r.status as string,
+    prioridade: (r.prioridade as string | null) ?? null,
+    responsavel: (r.responsavel as string | null) ?? null,
+    cliente_id: (r.cliente_id as string | null) ?? null,
+    cliente: cliDireto?.nome ?? nomesClientes(proc?.cliente_processo) ?? null,
+    processo_id: (r.processo_id as string | null) ?? null,
+    numero_cnj: proc?.numero_cnj ?? null,
+    numero_registro: proc?.numero_registro_tribunal ?? null,
+    tribunal: proc?.tribunal ?? null,
+    segredo: Boolean(proc?.segredo_justica),
+    drive_file_id: (r.drive_file_id as string | null) ?? null,
+    validado: Boolean(r.validado),
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    descricao: (r.descricao as string | null) ?? null,
+    observacoes: (r.observacoes as string | null) ?? null,
+    data_alvo: (r.data_alvo as string | null) ?? null,
+    protocolada_em: (r.protocolada_em as string | null) ?? null,
+    criado_em: (r.criado_em as string | null) ?? null,
+    gate_resultado: (r.gate_resultado as string | null) ?? null,
+    gate_pendencia: (r.gate_pendencia as string | null) ?? null,
+    gate_analisado_em: (r.gate_analisado_em as string | null) ?? null,
+    clienteRefs,
+    data_fatal,
+    data_interna,
+    dias_restantes: baseDias ? diasAte(baseDias) : null,
+    prazo,
+    intimacao,
+    andamentoOrigem: mkAnd(ao.data as Record<string, unknown> | null),
+    andamentoProtocolo: mkAnd(ap.data as Record<string, unknown> | null),
+    tarefa,
+  };
+}
+
 /**
  * Mapa providência→peça (config_sistema/mapa_providencia_peca). Lido pela sessão do
  * usuário (RLS auth_read). `valor` é texto JSON; degradação segura: null se ausente/ilegível.
