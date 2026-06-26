@@ -2189,6 +2189,12 @@ a.tk-title:hover{text-decoration:underline}
 .audp-scroll{flex:1;min-height:0;overflow-y:auto}
 .audp-inner{padding:22px 26px 30px;max-width:920px}
 
+/* ── telas raiz com índice (ListaRaiz) — área principal mais larga, encostada ── */
+.audp-raiz-inner{max-width:1040px;padding:26px 30px 40px}
+.audp-raiz .page-head{margin-bottom:18px}
+/* assistente como faixa inferior (mesma da gaveta) */
+.audp-assist{flex:none;border-top:1px solid var(--line-soft);background:var(--surface)}
+
 /* título */
 .audp-title-row{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
 .audp-title-l{flex:1;min-width:260px}
