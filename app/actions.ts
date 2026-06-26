@@ -1984,7 +1984,7 @@ export async function criarAnotacao(
       autor: email,
     });
     if (error) throw error;
-    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos" };
+    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos" };
     if (rota[entidadeTipo]) revalidatePath(`${rota[entidadeTipo]}/${entidadeId}`);
     return { ok: true, message: "Anotação salva." };
   } catch (e) {
@@ -2353,6 +2353,21 @@ export async function atualizarEstudo(id: string, fd: FormData): Promise<Resulta
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Estudo atualizado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Desfecho do ciclo do estudo: marca status='concluido'. Nunca DELETE. */
+export async function concluirEstudo(id: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { error } = await supabase.from("estudos_caso").update({ status: "concluido" }).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    revalidatePath(`/estudos/${id}`);
+    return { ok: true, message: "Estudo marcado como concluído." };
   } catch (e) {
     return falha(e);
   }

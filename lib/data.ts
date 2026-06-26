@@ -2877,6 +2877,58 @@ export async function getEstudoDetalhe(id: string): Promise<EstudoDetalhe | null
   };
 }
 
+/* Detalhe completo do estudo (master-detail, alvo Plantão) — enriquece
+ * getEstudoDetalhe com pena unificada, próximo marco e condenações. */
+
+export type EstudoCondenacao = {
+  artigo: string | null; lei: string | null; pena_texto: string | null;
+  hediondo: boolean; reincidente: boolean; situacao: string | null; descricao_crime: string | null;
+};
+
+export type EstudoFull = EstudoDetalhe & {
+  pena_unificada: string | null;
+  proximo_marco: string | null;
+  marco_dias: number | null;
+  condenacoes: EstudoCondenacao[];
+};
+
+export async function getEstudoFull(id: string): Promise<EstudoFull | null> {
+  const base = await getEstudoDetalhe(id);
+  if (!base) return null;
+  const supabase = await createClient();
+
+  const [estr, exe, cond] = await Promise.all([
+    supabase.from("vw_estrategia_cliente").select("proximo_marco").eq("estudo_id", id).maybeSingle(),
+    base.cliente_id
+      ? supabase.from("vw_situacao_executoria_atual").select("pena_total_texto").eq("cliente_id", base.cliente_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    base.cliente_id
+      ? supabase.from("vw_condenacoes_cliente").select("artigo, lei, pena_texto, hediondo, reincidente, situacao, descricao_crime").eq("cliente_id", base.cliente_id)
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+  ]);
+
+  // Próximo marco em dias: o objetivo não-atingido mais próximo com data-alvo.
+  const proximos = base.objetivos
+    .filter((o) => (o.status === "planejado" || o.status === "em_curso") && o.data_alvo)
+    .map((o) => o.data_alvo as string)
+    .sort();
+  const marco_dias = proximos.length ? diasAte(proximos[0]) : null;
+
+  const condenacoes: EstudoCondenacao[] = ((cond.data ?? []) as Record<string, unknown>[]).map((c) => ({
+    artigo: (c.artigo as string | null) ?? null, lei: (c.lei as string | null) ?? null,
+    pena_texto: (c.pena_texto as string | null) ?? null, hediondo: Boolean(c.hediondo), reincidente: Boolean(c.reincidente),
+    situacao: (c.situacao as string | null) ?? null, descricao_crime: (c.descricao_crime as string | null) ?? null,
+  }));
+
+  return {
+    ...base,
+    pena_unificada: ((exe.data as Record<string, unknown> | null)?.pena_total_texto as string | null) ?? null,
+    proximo_marco: ((estr.data as Record<string, unknown> | null)?.proximo_marco as string | null) ?? null,
+    marco_dias,
+    condenacoes,
+  };
+}
+
 /** Estudos vinculados a um processo (para o detalhe do processo). */
 export async function getEstudosDoProcesso(processo_id: string): Promise<
   { estudo_id: string; titulo: string; status: string; cliente: string | null; diagnostico: string | null; estrategia: string | null; prioridade: string | null }[]

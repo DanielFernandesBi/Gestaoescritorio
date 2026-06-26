@@ -8,8 +8,8 @@ import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { ExecucaoCliente } from "@/components/detalhe/ExecucaoCliente";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
-import { atualizarCliente, desativarCliente, criarTarefa } from "@/app/actions";
-import { SITUACAO_PRISIONAL, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
+import { atualizarCliente, desativarCliente, criarTarefa, criarEstudo } from "@/app/actions";
+import { SITUACAO_PRISIONAL, PRIORIDADES, RESPONSAVEIS, ESTUDO_TIPO } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type {
@@ -158,15 +158,35 @@ function NovaTarefa({ p }: { p: ClienteFull }) {
   );
 }
 
-type Tab = "consolidado" | "processos" | "execucao" | "financeiro" | "documentos" | "notas";
+type Tab = "consolidado" | "processos" | "execucao" | "estudos" | "financeiro" | "documentos" | "notas";
 const TABS: { id: Tab; label: string }[] = [
   { id: "consolidado", label: "Consolidado" },
   { id: "processos", label: "Processos" },
   { id: "execucao", label: "Execução" },
+  { id: "estudos", label: "Estudo de execução" },
   { id: "financeiro", label: "Financeiro" },
   { id: "documentos", label: "Documentos" },
   { id: "notas", label: "Notas" },
 ];
+
+/* Criar estudo de caso já vinculado ao cliente. */
+function CriarEstudo({ p }: { p: ClienteFull }) {
+  return (
+    <FormModal
+      label={<><PlusIco /> Criar estudo de caso</>}
+      titulo="Novo estudo de caso"
+      descricao="Cria um estudo de execução/estratégia já vinculado a este cliente."
+      acao={criarEstudo}
+      enviarLabel="Criar estudo"
+      variant="default"
+    >
+      <input type="hidden" name="cliente_id" defaultValue={p.id} />
+      <div><label>Título</label><input name="titulo" required placeholder="Ex.: Progressão e livramento na pena unificada" /></div>
+      <div><label>Tipo</label><select name="tipo" defaultValue="execucao_global">{ESTUDO_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
+      <div><label>Diagnóstico · estratégia geral</label><textarea name="conteudo" placeholder="Visão geral da estratégia." /></div>
+    </FormModal>
+  );
+}
 
 /* ── blocos reutilizados ─────────────────────────────────────────────────── */
 function ProcessosBloco({ p, tab, setTab }: { p: ClienteFull; tab: Tab; setTab: (t: Tab) => void }) {
@@ -226,21 +246,27 @@ function ExecBloco({ p }: { p: ClienteFull }) {
 }
 
 function EstudosBloco({ p }: { p: ClienteFull }) {
-  if (!p.estudos.length) return null;
   return (
-    <Sec titulo="Estudo de execução" extra={<span className="audp-count">{p.estudos.length}</span>}>
-      <div className="przp-stack">
-        {p.estudos.map((e) => (
-          <div className="przp-origem" key={e.id}>
-            <span className="pz-tag cowork"><Spark s={9} />{e.tipo ? humano(e.tipo) : "estudo"}</span>
-            <div className="mid">
-              <div className="t">{e.titulo}</div>
-              <div className="s">{e.status ? humano(e.status) : "—"}</div>
+    <Sec titulo="Estudo de execução" extra={<><span className="audp-count">{p.estudos.length}</span><span className="cli-sech-acao"><CriarEstudo p={p} /></span></>}>
+      {p.estudos.length === 0 ? (
+        <div className="przp-empty-row">
+          <span>Nenhum estudo de execução para este cliente.</span>
+          <CriarEstudo p={p} />
+        </div>
+      ) : (
+        <div className="przp-stack">
+          {p.estudos.map((e) => (
+            <div className="przp-origem" key={e.id}>
+              <span className="pz-tag cowork"><Spark s={9} />{e.tipo ? humano(e.tipo) : "estudo"}</span>
+              <div className="mid">
+                <div className="t">{e.titulo}</div>
+                <div className="s">{e.status ? humano(e.status) : "—"}</div>
+              </div>
+              <Link className="btn sm" href={linkPara("estudo", e.id)}>Abrir</Link>
             </div>
-            <Link className="btn sm" href="/estudos">Abrir</Link>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </Sec>
   );
 }
@@ -432,7 +458,7 @@ export function ClientePainel({
             {(tab === "consolidado" || tab === "financeiro") && <FinanceiroBloco p={p} />}
 
             {/* BLOCO 8 · ESTUDO DE EXECUÇÃO */}
-            {(tab === "consolidado" || tab === "execucao") && <EstudosBloco p={p} />}
+            {(tab === "consolidado" || tab === "execucao" || tab === "estudos") && <EstudosBloco p={p} />}
 
             {/* EXECUÇÃO — visão completa (aba) */}
             {tab === "execucao" && (

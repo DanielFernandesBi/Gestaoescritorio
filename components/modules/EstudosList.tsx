@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useDrawer } from "@/components/Drawer";
+import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { Chips } from "@/components/Chips";
 import { Icon } from "@/components/Icon";
 import { FiltrosCard } from "@/components/FiltrosCard";
-import { EstudoDetalhe } from "@/components/detalhe/EstudoDetalhe";
 import { fmtDate, humano } from "@/lib/format";
+import { linkPara } from "@/lib/links";
 import type { EstudoResumo } from "@/lib/data";
 
 const statusTone = (s: string) =>
@@ -22,7 +22,7 @@ const FILTROS = [
 ];
 
 export function EstudosList({ estudos, clienteFiltro }: { estudos: EstudoResumo[]; clienteFiltro?: string }) {
-  const { open } = useDrawer();
+  const router = useRouter();
   const [f, setF] = useState("todos");
 
   // Sugestão 41: deep-link por cliente — quando vem ?cliente=<id>, a lista já
@@ -44,18 +44,7 @@ export function EstudosList({ estudos, clienteFiltro }: { estudos: EstudoResumo[
   const opcoes = FILTROS.map((o) => (o.id === "todos" ? { ...o, label: `Todos (${base.length})` } : o));
 
   function abrir(e: EstudoResumo) {
-    open({
-      title: (
-        <>
-          <h2>{e.titulo}</h2>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Pill tone={statusTone(e.status)}>{humano(e.status)}</Pill>
-            {e.cliente && <Pill tone="brass" dot={false}>{e.cliente}</Pill>}
-          </div>
-        </>
-      ),
-      body: <EstudoDetalhe estudoId={e.id} />,
-    });
+    router.push(linkPara("estudo", e.id));
   }
 
   return (
