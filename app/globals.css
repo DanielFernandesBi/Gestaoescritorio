@@ -2398,3 +2398,10 @@ a.tk-title:hover{text-decoration:underline}
 
 /* órfã */
 .int-orfa{background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 26%,transparent);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--text);line-height:1.55}
+
+/* identificação compacta da intimação (cliente negrito + processo menor) */
+.int-ident{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:11px}
+.int-ident-nome{font-size:18px;font-weight:800;color:var(--name);line-height:1.25}
+.int-ident-nome .proc-link{color:var(--name)}
+.int-ident-proc{font-size:12.5px;color:var(--muted);font-weight:400}
+.int-ident-proc .cnj,.int-ident-proc .num-reg{font-family:var(--mono)}
