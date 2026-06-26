@@ -2430,3 +2430,14 @@ a.tk-title:hover{text-decoration:underline}
 .ctr-acao{display:flex;justify-content:flex-end}
 @media(max-width:760px){.ctr-tr{grid-template-columns:30px 1fr 1fr;gap:8px}.ctr-th{display:none}.ctr-acao{grid-column:1 / -1;justify-content:flex-start}}
 .ctr-prox-sub{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5}
+
+/* ════════════════ Radar de jurisprudência (Varredura) ══════════════════════ */
+.rad-list{display:flex;flex-direction:column}
+.rad-item{padding:13px 0;border-top:1px solid var(--line-soft)}
+.rad-item:first-child{border-top:none;padding-top:4px}
+.rad-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.rad-inf{font-size:10.5px;color:var(--muted-2)}
+.rad-titulo{font-size:13.5px;font-weight:700;color:var(--name);line-height:1.35}
+.rad-resumo{font-size:12.5px;color:var(--text);line-height:1.55;margin-top:4px}
+.rad-meta{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rad-tema{font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:5px;padding:1px 7px}
