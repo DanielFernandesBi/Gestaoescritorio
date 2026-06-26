@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProcRef } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { atualizarPeca, moverPeca, validarMinuta, anexarInsumoPeca } from "@/app/actions";
-import { PECA_TIPO, PECA_STATUS, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
+import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { Peca, PecaFull, Anotacao, RadarItem } from "@/lib/data";
@@ -61,19 +62,27 @@ function MasterCard({ p, ativo }: { p: Peca; ativo: boolean }) {
   );
 }
 
-/* ── kanban ruler ────────────────────────────────────────────────────────── */
-function KanbanRuler({ status }: { status: string }) {
+/* ── kanban ruler (clicável: move a peça de etapa) ───────────────────────── */
+function KanbanRuler({ status, pecaId }: { status: string; pecaId: string }) {
+  const router = useRouter();
+  const [pend, start] = useTransition();
   const idx = FASES.indexOf(status as (typeof FASES)[number]);
   const excecao = status === "aguardando_insumo";
   const terminal = status === "cancelada" || status === "prejudicada";
+  const mover = (f: string) => {
+    if (f === status || pend) return;
+    start(async () => { const r = await moverPeca(pecaId, f); if (r.ok) router.refresh(); });
+  };
   return (
     <div className="pkb">
       {FASES.map((f, i) => (
-        <span key={f} className={`pkb-step${i === idx ? " on" : ""}${idx >= 0 && i < idx ? " done" : ""}`}>
+        <button type="button" key={f} disabled={pend} onClick={() => mover(f)}
+          className={`pkb-step${i === idx ? " on" : ""}${idx >= 0 && i < idx ? " done" : ""}`}>
           {humano(f)}{i < FASES.length - 1 && <span className="pkb-arr">→</span>}
-        </span>
+        </button>
       ))}
-      {excecao && <span className="pkb-exc">aguardando insumo</span>}
+      <button type="button" disabled={pend} onClick={() => mover("aguardando_insumo")}
+        className={`pkb-exc${excecao ? " on" : ""}`}>aguardando insumo</button>
       {terminal && <span className="pkb-term">{humano(status)}</span>}
     </div>
   );
@@ -94,10 +103,9 @@ function EditarPeca({ p }: { p: PecaFull }) {
   return (
     <FormModal label={<><PenIco /> Editar peça</>} titulo="Editar peça" descricao="Altere classificação, responsável, status e o arquivo da minuta no Drive." acao={atualizarPeca.bind(null, p.id)} enviarLabel="Salvar" variant="default">
       <div><label>Título</label><input name="titulo" required defaultValue={p.titulo} /></div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div><label>Tipo</label><select name="tipo" defaultValue={p.tipo}>{PECA_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>
         <div><label>Subtipo</label><input name="subtipo" defaultValue={p.subtipo ?? ""} placeholder="apelação, RESE, HC…" /></div>
-        <div><label>Status</label><select name="status" defaultValue={p.status}>{PECA_STATUS.map((s) => <option key={s} value={s}>{humano(s)}</option>)}</select></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div><label>Prioridade</label><select name="prioridade" defaultValue={p.prioridade ?? "media"}>{PRIORIDADES.map((x) => <option key={x} value={x}>{humano(x)}</option>)}</select></div>
@@ -105,6 +113,7 @@ function EditarPeca({ p }: { p: PecaFull }) {
       </div>
       <div><label>Arquivo da minuta (Drive)</label><input name="drive_file_id" defaultValue={p.drive_file_id ?? ""} placeholder="id ou caminho .docx no Drive" /></div>
       <div><label>Descrição</label><textarea name="descricao" defaultValue={p.descricao ?? ""} placeholder="Resumo / instruções da peça." /></div>
+      <p className="sub" style={{ margin: 0 }}>A etapa (status) é alterada na régua do topo do detalhe ou no botão “Mover” do card.</p>
     </FormModal>
   );
 }
@@ -208,8 +217,8 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
           <Link className="audp-back" href="/producao">← Produção</Link>
         </div>
 
-        {/* régua kanban */}
-        <KanbanRuler status={p.status} />
+        {/* régua kanban — clicável para mover de etapa */}
+        <KanbanRuler status={p.status} pecaId={p.id} />
 
         <div className="audp-scroll">
           <div className="audp-inner">
