@@ -248,7 +248,7 @@ export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: Praz
                       <div className="t">{p.intimacao_resumo?.trim() || "Intimação de origem"}</div>
                       <div className="s">ciência {ddmm(p.intimacao_ciencia)}{p.intimacao_origem ? ` · ${p.intimacao_origem.toUpperCase()}` : ""}</div>
                     </div>
-                    <Link className="btn sm" href={linkPara("intimacao", p.intimacao_id)}>Abrir</Link>
+                    <Link className="btn sm abrir" href={linkPara("intimacao", p.intimacao_id)}>Abrir</Link>
                   </div>
                 ) : (
                   <div className="audp-empty">Prazo sem intimação de origem vinculada.</div>

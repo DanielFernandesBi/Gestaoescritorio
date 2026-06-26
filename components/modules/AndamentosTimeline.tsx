@@ -103,7 +103,7 @@ export function AndamentosTimeline({
                   {m.escalado && <Link className="btn sm primary" href={m.tarefa_id ? linkPara("tarefa", m.tarefa_id) : "/tarefas"}>Ver conferência</Link>}
                   <CriarPecaPendente tipoOrigem="andamento" origemId={m.id} texto={m.descricao} mapa={mapa} />
                   {m.processo_id && <Link className="btn sm" href={linkPara("processo", m.processo_id)}>Abrir processo</Link>}
-                  <Link className="btn sm ghost" href={hrefDet(m.id)}>Abrir</Link>
+                  <Link className="btn sm abrir" href={hrefDet(m.id)}>Abrir</Link>
                 </div>
               </div>
             </div>

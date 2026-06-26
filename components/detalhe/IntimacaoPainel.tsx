@@ -270,7 +270,7 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFul
                       <div className="t">{[i.classe, i.tribunal].filter(Boolean).join(" · ") || "Processo vinculado"}</div>
                       <div className="s mono"><ProcRef cnj={i.numero_cnj} registro={i.numero_registro} id={i.processo_id} /> · vinculado</div>
                     </div>
-                    {i.processo_id && <Link className="btn sm" href={linkPara("processo", i.processo_id)}>Abrir</Link>}
+                    {i.processo_id && <Link className="btn sm abrir" href={linkPara("processo", i.processo_id)}>Abrir</Link>}
                   </div>
                 )}
 
@@ -279,7 +279,7 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFul
                   <div className="przp-origem">
                     <span className="pz-tag cowork">peça</span>
                     <div className="mid"><div className="t">{i.peca.titulo}</div><div className="s">{humano(i.peca.status)}</div></div>
-                    <Link className="btn sm" href="/producao">Abrir</Link>
+                    <Link className="btn sm abrir" href="/producao">Abrir</Link>
                   </div>
                 )}
 
@@ -288,7 +288,7 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFul
                   <div className="przp-origem">
                     <span className={`pz-tag ${i.prazo.validado ? "val" : "tang"}`}>{i.prazo.validado ? "prazo validado" : "prazo provisório"}</span>
                     <div className="mid"><div className="t">{i.prazo.ato.split(/\s*[—–[]/)[0].trim()}</div><div className="s mono">fatal {ddmm(i.prazo.data_fatal)} · {i.prazo.dias < 0 ? `${i.prazo.dias} d` : `em ${i.prazo.dias} d`}</div></div>
-                    <Link className="btn sm" href={linkPara("prazo", i.prazo.id)}>Abrir</Link>
+                    <Link className="btn sm abrir" href={linkPara("prazo", i.prazo.id)}>Abrir</Link>
                   </div>
                 ) : !i.orfa ? (
                   <div className="przp-empty-row">

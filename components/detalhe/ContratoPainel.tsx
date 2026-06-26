@@ -218,7 +218,7 @@ export function ContratoPainel({ c, lista, documentos, anotacoes }: { c: Contrat
                 <div className="przp-origem" style={{ marginBottom: 8 }}>
                   <span className="pz-tag cat-slate">processo</span>
                   <div className="mid"><div className="t">{c.objeto.split(/\s*[—–]/)[0].trim()}</div><div className="s mono"><ProcRef cnj={c.processo_cnj} id={c.processo_id} /></div></div>
-                  <Link className="btn sm" href={linkPara("processo", c.processo_id)}>Abrir</Link>
+                  <Link className="btn sm abrir" href={linkPara("processo", c.processo_id)}>Abrir</Link>
                 </div>
               )}
               <DocumentosCaso documentos={documentos} vinculo={{ campo: "contrato_id", id: c.id }} titulo="Documentos financeiros" tipoPadrao="outro" />

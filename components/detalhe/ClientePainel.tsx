@@ -210,7 +210,7 @@ function ProcessosBloco({ p, tab, setTab }: { p: ClienteFull; tab: Tab; setTab: 
                   {pr.vara_comarca ? ` · ${pr.vara_comarca}` : pr.tribunal ? ` · ${pr.tribunal}` : ""}
                 </div>
               </div>
-              <Link className="btn sm" href={linkPara("processo", pr.id)}>Abrir</Link>
+              <Link className="btn sm abrir" href={linkPara("processo", pr.id)}>Abrir</Link>
             </div>
           ))}
           {resto > 0 && (
@@ -262,7 +262,7 @@ function EstudosBloco({ p }: { p: ClienteFull }) {
                 <div className="t">{e.titulo}</div>
                 <div className="s">{e.status ? humano(e.status) : "—"}</div>
               </div>
-              <Link className="btn sm" href={linkPara("estudo", e.id)}>Abrir</Link>
+              <Link className="btn sm abrir" href={linkPara("estudo", e.id)}>Abrir</Link>
             </div>
           ))}
         </div>
@@ -291,7 +291,7 @@ function FinanceiroBloco({ p }: { p: ClienteFull }) {
                   {c.prox_venc && <div className="s">próx. {ddmm(c.prox_venc)}</div>}
                 </div>
               )}
-              <Link className="btn sm" href={linkPara("contrato", c.id)}>Abrir</Link>
+              <Link className="btn sm abrir" href={linkPara("contrato", c.id)}>Abrir</Link>
             </div>
           ))}
         </div>
@@ -447,7 +447,7 @@ export function ClientePainel({
                         <div className="d">{pr.dias < 0 ? `−${Math.abs(pr.dias)} d` : `${pr.dias} d`}</div>
                         <div className="f">fatal {ddmm(pr.data_fatal)}</div>
                       </div>
-                      <Link className="btn sm" href={linkPara("prazo", pr.id)}>Abrir</Link>
+                      <Link className="btn sm abrir" href={linkPara("prazo", pr.id)}>Abrir</Link>
                     </div>
                   ))}
                 </div>
@@ -492,7 +492,7 @@ export function ClientePainel({
                           <div className="s">{humano(a.modalidade)}</div>
                         </div>
                         <div className="cli-aud-when mono">{ddmm(a.data_hora)}</div>
-                        <Link className="btn sm" href={linkPara("audiencia", a.id)}>Abrir</Link>
+                        <Link className="btn sm abrir" href={linkPara("audiencia", a.id)}>Abrir</Link>
                       </div>
                     ))}
                   </div>

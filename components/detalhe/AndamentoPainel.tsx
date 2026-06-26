@@ -197,7 +197,7 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
                 <div className="przp-origem and-tarefa">
                   <span className={`pz-tag ${prioTone(a.tarefa.prioridade)}`}>tarefa · {humano(a.tarefa.prioridade) || "alta"}</span>
                   <div className="mid"><div className="t">{a.tarefa.titulo}</div><div className="s">{humano(a.tarefa.status)}{a.tarefa.responsavel ? ` · responsável ${a.tarefa.responsavel}` : ""}</div></div>
-                  <Link className="btn sm" href={linkPara("tarefa", a.tarefa.id)}>Abrir</Link>
+                  <Link className="btn sm abrir" href={linkPara("tarefa", a.tarefa.id)}>Abrir</Link>
                 </div>
               ) : (
                 <div className="audp-empty">Sem tarefa de conferência vinculada — movimentação informativa.</div>
@@ -220,7 +220,7 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
                     <div className="przp-origem" key={p.id}>
                       <span className="pz-tag cowork">peça</span>
                       <div className="mid"><div className="t">{p.titulo}</div><div className="s">{humano(p.status)}</div></div>
-                      <Link className="btn sm" href="/producao">Abrir</Link>
+                      <Link className="btn sm abrir" href="/producao">Abrir</Link>
                     </div>
                   ))}
                 </div>

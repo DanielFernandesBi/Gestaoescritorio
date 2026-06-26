@@ -77,7 +77,7 @@ export function TriagemView({
                     <div className="int-enc"><span className="sub">sem CNJ · fila de órfãos</span></div>
                     <div className="int-acoes">
                       <Link className="btn sm primary" href={linkPara("intimacao", i.id)}>Promover · vincular</Link>
-                      <Link className="btn sm" href={linkPara("intimacao", i.id)}>Abrir</Link>
+                      <Link className="btn sm abrir" href={linkPara("intimacao", i.id)}>Abrir</Link>
                     </div>
                   </div>
                 </div>

@@ -172,7 +172,7 @@ function Vinc({ tag, tagTone = "cat-slate", titulo, sub, href, vazio }: { tag: s
       {vazio ? <span className="pk-vinc-vazio">{vazio}</span> : (
         <>
           <div className="mid"><div className="t">{titulo}</div>{sub && <div className="s">{sub}</div>}</div>
-          {href && <Link className="btn sm" href={href}>Abrir</Link>}
+          {href && <Link className="btn sm abrir" href={href}>Abrir</Link>}
         </>
       )}
     </div>
@@ -308,7 +308,7 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
                     <div className="przp-origem" key={t.id}>
                       <span className="pz-tag val">{t.tipo ? humano(t.tipo) : "precedente"}{t.tribunal ? ` ${t.tribunal}` : ""}</span>
                       <div className="mid"><div className="t">{t.titulo}</div><div className="s">curado · acervo do escritório</div></div>
-                      {(t.link_inteiro_teor || t.url) && <a className="btn sm" href={(t.link_inteiro_teor || t.url)!} target="_blank" rel="noreferrer">Abrir</a>}
+                      {(t.link_inteiro_teor || t.url) && <a className="btn sm abrir" href={(t.link_inteiro_teor || t.url)!} target="_blank" rel="noreferrer">Abrir</a>}
                     </div>
                   ))}
                 </div>
