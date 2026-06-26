@@ -246,6 +246,34 @@ export async function cancelarPrazo(id: string, motivo: string): Promise<Resulta
   }
 }
 
+/** Baixa por "prejudicado" — o prazo perdeu o objeto (ex.: recurso da parte
+ * contrária inadmitido). Troca de status, nunca DELETE; encerra os eventos. */
+export async function prejudicarPrazo(id: string, motivo: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { data: pr } = await supabase
+      .from("prazos")
+      .select("status, calendar_event_id, calendar_event_id_fatal")
+      .eq("id", id)
+      .single();
+    if (pr && pr.status !== "aberto") return { ok: false, message: `Prazo não está aberto (${pr.status}).` };
+    const obs = motivo?.trim() ? `Prejudicado: ${motivo.trim()}` : null;
+    const patch: Record<string, unknown> = { status: "prejudicado" };
+    if (obs) patch.observacoes = obs;
+    const { error } = await supabase.from("prazos").update(patch).eq("id", id);
+    if (error) throw error;
+    let msg = "Prazo marcado como prejudicado (auditado).";
+    if (await baixarEventosPrazo((pr?.calendar_event_id as string | null) ?? null, (pr?.calendar_event_id_fatal as string | null) ?? null, false)) {
+      msg += " Eventos do Calendar encerrados.";
+    }
+    revalidarTudo();
+    return { ok: true, message: msg };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 export async function criarPrazo(fd: FormData): Promise<Resultado> {
   try {
     const email = await requireUser();
@@ -1956,7 +1984,8 @@ export async function criarAnotacao(
       autor: email,
     });
     if (error) throw error;
-    revalidatePath(`/audiencias/${entidadeId}`);
+    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos" };
+    if (rota[entidadeTipo]) revalidatePath(`${rota[entidadeTipo]}/${entidadeId}`);
     return { ok: true, message: "Anotação salva." };
   } catch (e) {
     return falha(e);
@@ -2220,6 +2249,11 @@ export async function atualizarPrazo(id: string, fd: FormData): Promise<Resultad
       responsavel: String(fd.get("responsavel") || "Daniel"),
       tipo_contagem: String(fd.get("tipo_contagem") || "corridos"),
     };
+    if (fd.has("data_inicio")) patch.data_inicio = String(fd.get("data_inicio") || "") || null;
+    if (fd.has("dias")) {
+      const d = String(fd.get("dias") || "").trim();
+      patch.dias = d === "" ? null : Number(d);
+    }
     const { data: pr } = await supabase
       .from("prazos")
       .select("validado, calendar_event_id_fatal, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")

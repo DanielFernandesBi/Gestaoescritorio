@@ -9,23 +9,29 @@ export type NavItem = {
   kind?: BadgeKind;
 };
 
-export type NavGroup = { grp: string; items: NavItem[] };
+export type NavGroup = { grp: string; items: NavItem[]; ia?: boolean };
 
+/* Estrutura da barra lateral (alvo Plantão): HOJE · ENTRADA·IA · ACERVO ·
+ * TRABALHO · GESTÃO. Itens do print sem página correspondente (Execução penal,
+ * Documentos & Modelos, Contratos) ficam de fora até existirem. */
 export const NAV: NavGroup[] = [
   {
-    grp: "Operação",
+    grp: "Hoje",
     items: [
-      { id: "painel", label: "Painel — Ritual matinal", ico: "grid", href: "/painel" },
-      { id: "validacao", label: "Validação de Daniel", ico: "check", href: "/validacao", badgeKey: "validacao", kind: "warn" },
+      { id: "painel", label: "Ritual matinal", ico: "grid", href: "/painel" },
+      { id: "validacao", label: "Validação", ico: "check", href: "/validacao", badgeKey: "validacao", kind: "warn" },
       { id: "agenda", label: "Agenda", ico: "calendar", href: "/agenda" },
-      { id: "prazos", label: "Prazos penais", ico: "clock", href: "/prazos", badgeKey: "prazos" },
-      { id: "audiencias", label: "Audiências", ico: "gavel", href: "/audiencias", badgeKey: "audiencias" },
+    ],
+  },
+  {
+    grp: "Entrada · IA",
+    ia: true,
+    items: [
       { id: "varredura", label: "Varredura", ico: "shield", href: "/varredura" },
-      { id: "intimacoes", label: "Intimações", ico: "inbox", href: "/intimacoes", badgeKey: "intimacoes", kind: "alert" },
-      { id: "triagem", label: "Triagem · órfãos", ico: "inbox", href: "/triagem" },
-      { id: "tarefas", label: "Tarefas", ico: "list", href: "/tarefas", badgeKey: "tarefas" },
-      { id: "producao", label: "Produção de peças", ico: "book", href: "/producao", badgeKey: "pecas" },
-      { id: "alertas", label: "Alertas", ico: "shield", href: "/alertas", badgeKey: "alertas", kind: "warn" },
+      { id: "intimacoes", label: "Intimações", ico: "inbox", href: "/intimacoes", badgeKey: "intimacoes" },
+      { id: "andamentos", label: "Andamentos", ico: "activity", href: "/andamentos" },
+      { id: "triagem", label: "Triagem · órfãos", ico: "list", href: "/triagem" },
+      { id: "alertas", label: "Alertas", ico: "bell", href: "/alertas", badgeKey: "alertas", kind: "alert" },
     ],
   },
   {
@@ -33,17 +39,25 @@ export const NAV: NavGroup[] = [
     items: [
       { id: "processos", label: "Processos", ico: "folder", href: "/processos", badgeKey: "processos" },
       { id: "clientes", label: "Clientes", ico: "users", href: "/clientes", badgeKey: "clientes" },
-      { id: "andamentos", label: "Andamentos", ico: "activity", href: "/andamentos" },
       { id: "estudos", label: "Estudos de caso", ico: "book", href: "/estudos" },
+      { id: "duplicados", label: "Duplicados", ico: "users", href: "/duplicados", badgeKey: "duplicados", kind: "warn" },
+    ],
+  },
+  {
+    grp: "Trabalho",
+    items: [
+      { id: "prazos", label: "Prazos", ico: "clock", href: "/prazos", badgeKey: "prazos", kind: "alert" },
+      { id: "audiencias", label: "Audiências", ico: "gavel", href: "/audiencias", badgeKey: "audiencias" },
+      { id: "tarefas", label: "Tarefas", ico: "list", href: "/tarefas", badgeKey: "tarefas" },
+      { id: "producao", label: "Produção · peças", ico: "file", href: "/producao", badgeKey: "pecas" },
     ],
   },
   {
     grp: "Gestão",
     items: [
       { id: "financeiro", label: "Financeiro", ico: "wallet", href: "/financeiro" },
-      { id: "duplicados", label: "Duplicados", ico: "users", href: "/duplicados", badgeKey: "duplicados", kind: "warn" },
       { id: "auditoria", label: "Auditoria", ico: "shield", href: "/auditoria" },
-      { id: "sistema", label: "Sistema & evolução", ico: "settings", href: "/sistema" },
+      { id: "sistema", label: "Sistema · evolução", ico: "settings", href: "/sistema" },
     ],
   },
 ];

@@ -162,6 +162,93 @@ export async function getPrazoPorId(id: string): Promise<Prazo | null> {
   };
 }
 
+/* Detalhe completo do prazo (master-detail, alvo Plantão) ---------------------
+ * Enriquece getPrazoPorId com os campos do mockup: data_inicio/dias, área do
+ * processo, clientes navegáveis (partes), intimação de origem e nº de peças
+ * herdeiras. Só leitura. */
+
+export type PrazoFull = {
+  id: string;
+  ato: string;
+  data_inicio: string | null;
+  dias: number | null;
+  tipo_contagem: string | null;
+  data_interna: string | null;
+  data_fatal: string;
+  status: string;
+  validado: boolean;
+  responsavel: string | null;
+  cadastrado_por: string | null;
+  observacoes: string | null;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  tribunal: string | null;
+  vara_comarca: string | null;
+  area: string | null;
+  segredo: boolean;
+  clientes: string;
+  partes: ParteRef[];
+  dias_restantes: number;
+  orfao: boolean;
+  intimacao_id: string | null;
+  intimacao_resumo: string | null;
+  intimacao_origem: string | null;
+  intimacao_ciencia: string | null;
+  pecas_count: number;
+};
+
+export async function getPrazoFull(id: string): Promise<PrazoFull | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("prazos")
+    .select(
+      "id, ato, data_inicio, dias, tipo_contagem, data_interna, data_fatal, status, validado, responsavel, cadastrado_por, observacoes, processo_id, intimacao_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,area,segredo_justica,cliente_processo(papel,clientes(id,nome))), intimacoes(resumo,origem,data_ciencia)",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!r) return null;
+  const p = r.processos as unknown as (NestedProcesso & { area?: string | null }) | null;
+  const it = r.intimacoes as unknown as { resumo?: string | null; origem?: string | null; data_ciencia?: string | null } | null;
+
+  const { count } = await supabase
+    .from("pecas")
+    .select("*", { count: "exact", head: true })
+    .eq("prazo_id", id);
+
+  return {
+    id: r.id as string,
+    ato: r.ato as string,
+    data_inicio: (r.data_inicio as string | null) ?? null,
+    dias: r.dias == null ? null : Number(r.dias),
+    tipo_contagem: (r.tipo_contagem as string | null) ?? null,
+    data_interna: (r.data_interna as string | null) ?? null,
+    data_fatal: r.data_fatal as string,
+    status: r.status as string,
+    validado: Boolean(r.validado),
+    responsavel: (r.responsavel as string | null) ?? null,
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    observacoes: (r.observacoes as string | null) ?? null,
+    processo_id: (r.processo_id as string | null) ?? null,
+    numero_cnj: p?.numero_cnj ?? null,
+    numero_registro: p?.numero_registro_tribunal ?? null,
+    tribunal: p?.tribunal ?? null,
+    vara_comarca: p?.vara_comarca ?? null,
+    area: p?.area ?? null,
+    segredo: Boolean(p?.segredo_justica),
+    clientes: nomesClientes(p?.cliente_processo),
+    partes: partesDeCp(p?.cliente_processo),
+    dias_restantes: diasAte(r.data_fatal as string),
+    orfao: r.processo_id == null,
+    intimacao_id: (r.intimacao_id as string | null) ?? null,
+    intimacao_resumo: it?.resumo ?? null,
+    intimacao_origem: it?.origem ?? null,
+    intimacao_ciencia: it?.data_ciencia ?? null,
+    pecas_count: count ?? 0,
+  };
+}
+
 /* Prazos órfãos (triagem) ------------------------------------------------ */
 
 export type PrazoOrfao = {

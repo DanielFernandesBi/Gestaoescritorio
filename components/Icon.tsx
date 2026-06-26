@@ -24,6 +24,8 @@ const PATHS: Record<string, string> = {
   search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  file: '<path d="M4 4h11l5 5v11H4z"/><path d="M8 13h8M8 17h5"/>',
 };
 
 export type IconName = keyof typeof PATHS;

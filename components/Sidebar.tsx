@@ -75,7 +75,7 @@ export function Sidebar({
       <nav className="nav">
         {NAV.map((g) => (
           <div className="nav-group" key={g.grp}>
-            <h4>{g.grp}</h4>
+            <h4>{g.grp}{g.ia && <span className="nav-ia-dot" aria-hidden />}</h4>
             {g.items.map((it) => {
               const active =
                 pathname === it.href || pathname.startsWith(it.href + "/");
