@@ -1956,6 +1956,58 @@ export async function getDespesas(): Promise<Despesa[]> {
   });
 }
 
+/* Radar de jurisprudência (vw_radar_recente) ----------------------------------
+ * Feed da IA com informativos (STJ/STF), súmulas e precedentes capturados. Os
+ * marcados como candidato_acervo viram teses curadas nos estudos. Só leitura. */
+
+export type RadarItem = {
+  id: string;
+  tribunal: string | null;
+  fonte: string | null;
+  tipo: string | null;
+  titulo: string;
+  resumo: string | null;
+  data_publicacao: string | null;
+  numero_informativo: string | null;
+  orgao: string | null;
+  area: string | null;
+  temas: string[];
+  relevancia: string | null;
+  url: string | null;
+  link_inteiro_teor: string | null;
+  candidato_acervo: boolean;
+  numero_processo: string | null;
+  relator: string | null;
+};
+
+export async function getRadarRecente(limit = 24): Promise<RadarItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_radar_recente")
+    .select("*")
+    .order("data_publicacao", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    tribunal: (r.tribunal as string | null) ?? null,
+    fonte: (r.fonte as string | null) ?? null,
+    tipo: (r.tipo as string | null) ?? null,
+    titulo: (r.titulo as string) ?? "—",
+    resumo: (r.resumo as string | null) ?? null,
+    data_publicacao: (r.data_publicacao as string | null) ?? null,
+    numero_informativo: (r.numero_informativo as string | null) ?? null,
+    orgao: (r.orgao as string | null) ?? null,
+    area: (r.area as string | null) ?? null,
+    temas: Array.isArray(r.temas) ? (r.temas as string[]) : [],
+    relevancia: (r.relevancia as string | null) ?? null,
+    url: (r.url as string | null) ?? null,
+    link_inteiro_teor: (r.link_inteiro_teor as string | null) ?? null,
+    candidato_acervo: Boolean(r.candidato_acervo),
+    numero_processo: (r.numero_processo as string | null) ?? null,
+    relator: (r.relator as string | null) ?? null,
+  }));
+}
+
 /* Inteligência: processos sem movimentação + presos ---------------------- */
 
 export type ProcessoParado = {

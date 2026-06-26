@@ -1,9 +1,9 @@
 import { getUltimaVarredura, getVarreduras, getWatermarks } from "@/lib/queries";
-import { getPecas } from "@/lib/data";
+import { getPecas, getRadarRecente } from "@/lib/data";
 import { Icon } from "@/components/Icon";
 import { Pill } from "@/components/ui";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
-import { fmtDate, fmtTime, fmtNum } from "@/lib/format";
+import { fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -11,13 +11,18 @@ export const dynamic = "force-dynamic";
 const statusTone = (s: string): "green" | "amber" | "red" =>
   s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
 
+const relTone = (r: string | null): "red" | "amber" | "green" | "gray" =>
+  r === "alta" || r === "vinculante" ? "red" : r === "media" ? "amber" : r === "baixa" ? "gray" : "green";
+
 export default async function VarreduraPage() {
-  const [varredura, historico, wm, pecas] = await Promise.all([
+  const [varredura, historico, wm, pecas, radar] = await Promise.all([
     getUltimaVarredura(),
     getVarreduras(8),
     getWatermarks(),
     getPecas(),
+    getRadarRecente(),
   ]);
+  const radarAcervo = radar.filter((r) => r.candidato_acervo).length;
 
   const minutasRevisar = pecas.filter((p) => p.status === "em_revisao").length;
   const fonteDJEN = varredura ? ["djen", "ambas"].includes(varredura.fonte) : false;
@@ -152,6 +157,46 @@ export default async function VarreduraPage() {
               <span className={`vr-step-tag ${e.tone}`}>{e.tag}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* RADAR DE JURISPRUDÊNCIA — feed da IA (informativos/súmulas/precedentes) */}
+      <div className="card section-gap">
+        <div className="card-h">
+          <h3><span className="ia-seal">IA</span> <Icon name="book" /> Radar de jurisprudência</h3>
+          <span className="vr-sub">vw_radar_recente · {radarAcervo} candidato{radarAcervo === 1 ? "" : "s"} ao acervo curado</span>
+        </div>
+        <div className="card-b">
+          {radar.length ? (
+            <div className="rad-list">
+              {radar.map((r) => (
+                <div className="rad-item" key={r.id}>
+                  <div className="rad-tags">
+                    {(r.tribunal || r.orgao) && <span className="pz-tag cat-slate">{r.tribunal ?? r.orgao}</span>}
+                    {r.tipo && <span className="pz-tag cat-neutral">{humano(r.tipo)}</span>}
+                    {r.relevancia && <Pill tone={relTone(r.relevancia)} dot={false}>{humano(r.relevancia)}</Pill>}
+                    {r.candidato_acervo && <span className="pz-tag cowork">candidato ao acervo</span>}
+                    {r.numero_informativo && <span className="rad-inf mono">Inf. {r.numero_informativo}</span>}
+                  </div>
+                  <div className="rad-titulo">
+                    {r.link_inteiro_teor || r.url
+                      ? <a className="proc-link" href={(r.link_inteiro_teor || r.url)!} target="_blank" rel="noreferrer">{r.titulo}</a>
+                      : r.titulo}
+                  </div>
+                  {r.resumo && <div className="rad-resumo">{r.resumo}</div>}
+                  <div className="rad-meta">
+                    {[r.relator, r.numero_processo, r.area ? humano(r.area) : null, r.data_publicacao ? fmtDate(r.data_publicacao) : null].filter(Boolean).join(" · ")}
+                    {r.temas?.length ? <> · {r.temas.map((t, i) => <span key={i} className="rad-tema">{t}</span>)}</> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty">
+              Sem jurisprudência capturada ainda. O radar coleta <b>informativos</b> (STJ/STF), <b>súmulas</b> e precedentes —
+              os marcados como <b>candidato ao acervo</b> viram teses curadas nos <Link className="link" href="/estudos">estudos</Link>.
+            </div>
+          )}
         </div>
       </div>
 
