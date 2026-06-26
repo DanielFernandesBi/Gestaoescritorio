@@ -1140,6 +1140,38 @@ export async function criarAndamento(fd: FormData): Promise<Resultado> {
   }
 }
 
+/** Edição do andamento (reclassificar, ajustar código de movimentação, etc.).
+ * Só grava os campos enviados; nada é apagado. */
+export async function atualizarAndamento(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = {};
+    const tipo = String(fd.get("tipo") || "").trim();
+    if (tipo) {
+      if (!(ANDAMENTO_TIPO as readonly string[]).includes(tipo)) return { ok: false, message: "Tipo inválido." };
+      patch.tipo = tipo;
+    }
+    const data = String(fd.get("data") || "").trim();
+    if (data) patch.data = data;
+    for (const c of ["descricao", "autor", "origem", "codigo_movimentacao"] as const) {
+      if (!fd.has(c)) continue;
+      const v = String(fd.get(c) ?? "").trim();
+      patch[c] = v === "" ? null : v;
+    }
+    const processo_id = String(fd.get("processo_id") || "").trim();
+    if (processo_id) patch.processo_id = processo_id;
+    if (!Object.keys(patch).length) return { ok: false, message: "Nada para atualizar." };
+    const { error } = await supabase.from("andamentos").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    revalidatePath(`/andamentos/${id}`);
+    return { ok: true, message: "Andamento atualizado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /* ============================ FINANCEIRO ============================ */
 
 export async function marcarPagamento(
@@ -1984,7 +2016,7 @@ export async function criarAnotacao(
       autor: email,
     });
     if (error) throw error;
-    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes" };
+    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes", andamento: "/andamentos" };
     if (rota[entidadeTipo]) revalidatePath(`${rota[entidadeTipo]}/${entidadeId}`);
     return { ok: true, message: "Anotação salva." };
   } catch (e) {

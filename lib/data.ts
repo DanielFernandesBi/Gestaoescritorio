@@ -2148,6 +2148,97 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
   });
 }
 
+/* Detalhe completo do andamento (master-detail, alvo Plantão) — lê direto da
+ * tabela (qualquer data, não só a janela recente) + escalonamento (tarefa) e
+ * peça originada. */
+
+export type AndamentoTarefaVinc = { id: string; titulo: string; status: string; prioridade: string | null; responsavel: string | null };
+export type AndamentoPecaVinc = { id: string; titulo: string; status: string };
+
+export type AndamentoFull = {
+  id: string;
+  data: string;
+  tipo: string;
+  descricao: string;
+  autor: string | null;
+  origem: string | null;
+  codigo_movimentacao: string | null;
+  cadastrado_por: string | null;
+  cadastro_automatico: boolean;
+  criado_em: string | null;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  tribunal: string | null;
+  vara_comarca: string | null;
+  area: string | null;
+  classe: string | null;
+  instancia: string | null;
+  segredo: boolean;
+  clientes: string | null;
+  clienteRefs: ParteRefLite[];
+  tarefa: AndamentoTarefaVinc | null;
+  pecas: AndamentoPecaVinc[];
+};
+
+export async function getAndamentoFull(id: string): Promise<AndamentoFull | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("andamentos")
+    .select("id, data, tipo, descricao, autor, origem, codigo_movimentacao, cadastrado_por, cadastro_automatico, criado_em, processo_id, processos(numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, area, classe, instancia, segredo_justica, cliente_processo(papel, clientes(id, nome)))")
+    .eq("id", id)
+    .maybeSingle();
+  if (!r) return null;
+
+  const p = r.processos as unknown as (NestedProcesso & { area?: string | null; classe?: string | null; instancia?: string | null }) | null;
+  const cp = (p?.cliente_processo ?? []) as { papel?: string | null; clientes?: { id?: string; nome?: string } | null }[];
+  const clienteRefs: ParteRefLite[] = [];
+  const vistos = new Set<string>();
+  for (const v of cp) {
+    const c = v.clientes;
+    if (c?.id && c.nome && !vistos.has(c.id)) { vistos.add(c.id); clienteRefs.push({ id: c.id, nome: c.nome, papel: v.papel ?? null }); }
+  }
+
+  const [tar, pcs] = await Promise.all([
+    supabase.from("tarefas").select("id, titulo, status, prioridade, responsavel").eq("andamento_id", id).neq("status", "cancelada").order("criado_em", { ascending: false }),
+    supabase.from("pecas").select("id, titulo, status").eq("origem_andamento_id", id),
+  ]);
+
+  const tRows = (tar.data ?? []) as Record<string, unknown>[];
+  const tRow = tRows.find((t) => t.status === "pendente") ?? tRows[0];
+  const tarefa: AndamentoTarefaVinc | null = tRow
+    ? { id: tRow.id as string, titulo: tRow.titulo as string, status: tRow.status as string, prioridade: (tRow.prioridade as string | null) ?? null, responsavel: (tRow.responsavel as string | null) ?? null }
+    : null;
+
+  const pecas: AndamentoPecaVinc[] = ((pcs.data ?? []) as Record<string, unknown>[]).map((x) => ({ id: x.id as string, titulo: x.titulo as string, status: x.status as string }));
+
+  return {
+    id: r.id as string,
+    data: r.data as string,
+    tipo: r.tipo as string,
+    descricao: r.descricao as string,
+    autor: (r.autor as string | null) ?? null,
+    origem: (r.origem as string | null) ?? null,
+    codigo_movimentacao: (r.codigo_movimentacao as string | null) ?? null,
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    criado_em: (r.criado_em as string | null) ?? null,
+    processo_id: (r.processo_id as string | null) ?? null,
+    numero_cnj: p?.numero_cnj ?? null,
+    numero_registro: p?.numero_registro_tribunal ?? null,
+    tribunal: p?.tribunal ?? null,
+    vara_comarca: p?.vara_comarca ?? null,
+    area: p?.area ?? null,
+    classe: p?.classe ?? null,
+    instancia: p?.instancia ?? null,
+    segredo: Boolean(p?.segredo_justica),
+    clientes: nomesClientes(p?.cliente_processo) || null,
+    clienteRefs,
+    tarefa,
+    pecas,
+  };
+}
+
 /* Andamentos órfãos (triagem) -------------------------------------------- */
 
 export type AndamentoOrfao = {
