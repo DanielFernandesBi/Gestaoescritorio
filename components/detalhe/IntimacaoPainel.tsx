@@ -12,7 +12,7 @@ import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm"
 import { atualizarIntimacao, atualizarIntimacaoCampos, criarPrazo, promoverOrfa } from "@/app/actions";
 import { PROCESSO_INSTANCIA, PROCESSO_AREA, RESPONSAVEIS, TIPO_CONTAGEM } from "@/lib/enums";
 import { sugerirPeca, type MapaProvidencia } from "@/lib/pecas";
-import { fmtDate, humano } from "@/lib/format";
+import { fmtDate, humano, dividirAto } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { Intimacao, IntimacaoFull, Anotacao } from "@/lib/data";
 
@@ -38,6 +38,10 @@ const ddmm = (iso: string | null | undefined) => (iso ? `${iso.slice(8, 10)}/${i
 const statusTone = (s: string) =>
   s === "pendente" ? "tone-amber" : s === "providencia_tomada" ? "val" : s === "em_analise" ? "tone-blue" : s === "arquivada" ? "cat-neutral" : "cat-slate";
 const ehIA = (c: string | null | undefined) => !c || /cowork|chat|robo|auto|djen|push/i.test(c);
+const procNum = (i: { numero_cnj: string | null; numero_registro: string | null }) =>
+  i.numero_cnj ?? (i.numero_registro ? `reg ${i.numero_registro}` : null);
+// Identificação curta para órfãs (sem cliente/CNJ): corta o resumo gigante.
+const resumoCurto = (s: string | null) => dividirAto(s).curto;
 // fatal sugerida = ciência + prazo (corridos): exclui o dia do começo, inclui o do vencimento.
 function fatalSugerida(ciencia: string | null, dias: number | null): string {
   if (!ciencia || !dias) return "";
@@ -65,8 +69,8 @@ function MasterCard({ i, ativo }: { i: Intimacao; ativo: boolean }) {
         {i.orfa && <span className="pz-tag orfa">órfã</span>}
         {ehIA(i.cadastrado_por) && <span className="pz-tag cowork"><Spark s={8} />IA</span>}
       </div>
-      <div className="cli-mnome" style={{ whiteSpace: "normal" }}>{i.resumo ?? "Intimação"}</div>
-      <div className="cli-mmeta">{i.orfa ? "sem processo" : (i.cliente ?? "—")} · ciência {ddmm(i.data_ciencia)}</div>
+      <div className="cli-mnome">{i.orfa ? resumoCurto(i.resumo) : (i.cliente || "Sem cliente")}</div>
+      <div className="cli-mmeta">{procNum(i) ? <span className="mono">{procNum(i)}</span> : "sem processo"} · ciência {ddmm(i.data_ciencia)}</div>
     </Link>
   );
 }
@@ -177,16 +181,15 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFul
               {i.orfa && <span className="pz-tag orfa">órfã</span>}
               {i.segredo && <span className="pz-tag segredo">🔒 segredo de justiça</span>}
             </div>
-            <h2 className="audp-h2">{i.resumo ?? "Intimação"}</h2>
-            <div className="audp-cliline">
+            <div className="int-ident">
               {i.orfa ? (
-                <b className="audp-cli">Sem processo identificado</b>
+                <b className="int-ident-nome">{resumoCurto(i.resumo)}</b>
               ) : i.clienteRefs.length ? (
-                <span className="audp-cli">{i.clienteRefs.map((c, n) => <span key={c.id}>{n > 0 && ", "}<Link className="proc-link" href={linkPara("cliente", c.id)}>{c.nome}</Link></span>)}</span>
+                <b className="int-ident-nome">{i.clienteRefs.map((c, n) => <span key={c.id}>{n > 0 && ", "}<Link className="proc-link" href={linkPara("cliente", c.id)}>{c.nome}</Link></span>)}</b>
               ) : (
-                <b className="audp-cli" style={{ color: "var(--amber)" }}>Sem cliente vinculado</b>
+                <b className="int-ident-nome" style={{ color: "var(--amber)" }}>Sem cliente vinculado</b>
               )}
-              {(i.numero_cnj || i.numero_registro) && <ProcRef cnj={i.numero_cnj} registro={i.numero_registro} id={i.processo_id} />}
+              {procNum(i) && <span className="int-ident-proc"><ProcRef cnj={i.numero_cnj} registro={i.numero_registro} id={i.processo_id} /></span>}
             </div>
 
             {/* BLOCO 1 · PROVIDÊNCIA → PEÇA */}
