@@ -332,6 +332,7 @@ export function ClientePainel({
               <div className="audp-title-l">
                 <div className="audp-tags">
                   {obsoleto && <span className="pz-tag obsoleto">obsoleto · mesclado</span>}
+                  {!obsoleto && p.unificouEm && <span className="pz-tag unificado">⛓ unificado</span>}
                   <span className={`pz-tag ${sitTone(p.situacao_prisional) === "green" ? "val" : sitTone(p.situacao_prisional) === "red" ? "preso" : "tang"}`}>{humano(p.situacao_prisional)}</span>
                   {p.exec && <span className="pz-tag cat-neutral">execução penal ativa</span>}
                   {p.favorito && <span className="pz-tag cowork">★ favorito</span>}
@@ -394,6 +395,18 @@ export function ClientePainel({
                   O índice é não-único de propósito: homônimos legítimos são permitidos só após triagem humana. <b>Nome sempre visível</b>,
                   inclusive em processos sob segredo de justiça — é sistema interno.
                 </div>
+                {p.unificouEm && (
+                  <div className="cli-unif-box">
+                    <span className="cli-unif-ico" aria-hidden>⛓</span>
+                    <div>
+                      <div className="cli-unif-t">Cadastro unificado · este é o registro atual (canônico)</div>
+                      <div className="cli-unif-s">
+                        Absorveu {p.unificadosNomes.length || "outro(s)"} cadastro{p.unificadosNomes.length === 1 ? "" : "s"} duplicado{p.unificadosNomes.length === 1 ? "" : "s"} em {fmtDate(p.unificouEm)}
+                        {p.unificadosNomes.length > 0 && <> · {p.unificadosNomes.join(", ")}</>}. Os vínculos foram reassociados aqui; o duplicado ficou inativo (nunca apagado).
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

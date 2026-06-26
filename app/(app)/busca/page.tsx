@@ -75,6 +75,7 @@ export default async function BuscaPage({
                           ultima_movimentacao: null,
                           ultima_intimacao: null,
                           ultima_atividade: null,
+                          unificado: false,
                         }}
                       />
                     }

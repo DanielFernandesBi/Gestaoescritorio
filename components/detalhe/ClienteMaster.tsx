@@ -26,7 +26,10 @@ const ehPreso = (c: Cliente) => /preso|foragido/.test(c.situacao_prisional ?? ""
 function MasterCard({ c, ativo }: { c: Cliente; ativo: boolean }) {
   return (
     <Link className={`cli-mcard${ativo ? " on" : ""}`} href={linkPara("cliente", c.id)}>
-      <div className="cli-mnome">{c.nome}</div>
+      <div className="cli-mnome">
+        {c.nome}
+        {c.unificado && <span className="cli-unif-tag" title="Cadastro unificado — absorveu duplicado(s)">⛓ unificado</span>}
+      </div>
       <div className="cli-mmeta">
         <span className={`cli-dot ${sitTone(c.situacao_prisional)}`} />
         {humano(c.situacao_prisional)} · {c.processos_ativos} processo{c.processos_ativos === 1 ? "" : "s"}

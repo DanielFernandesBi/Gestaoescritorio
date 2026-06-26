@@ -2206,6 +2206,14 @@ a.tk-title:hover{text-decoration:underline}
 .audp-obsoleto .nome-cliente{color:var(--muted-2)}
 .audp-obsoleto .audp-title-l .audp-cliline,.audp-obsoleto .cli-kpis,.audp-obsoleto .audp-dados{opacity:.7}
 
+/* ── cadastro unificado (canônico que absorveu duplicados) ── */
+.pz-tag.unificado{background:var(--accent-soft);color:var(--accent-strong);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.cli-unif-tag{margin-left:8px;font-size:9.5px;font-weight:700;color:var(--accent-strong);background:var(--accent-soft);border-radius:5px;padding:1px 6px;white-space:nowrap;vertical-align:middle}
+.cli-unif-box{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:10px 13px;background:var(--surface);border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:10px}
+.cli-unif-ico{font-size:15px;color:var(--accent-strong);line-height:1.2}
+.cli-unif-t{font-size:12px;font-weight:700;color:var(--accent-strong)}
+.cli-unif-s{font-size:11.5px;color:var(--text);line-height:1.5;margin-top:2px}
+
 /* título */
 .audp-title-row{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
 .audp-title-l{flex:1;min-width:260px}

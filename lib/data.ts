@@ -1498,11 +1498,13 @@ export type Cliente = {
   ultima_movimentacao: string | null;
   ultima_intimacao: string | null;
   ultima_atividade: string | null;
+  /** Sobrevivente de uma unificação: absorveu ao menos um cadastro duplicado. */
+  unificado: boolean;
 };
 
 export async function getClientes(): Promise<Cliente[]> {
   const supabase = await createClient();
-  const [base, situacao, atividade] = await Promise.all([
+  const [base, situacao, atividade, merges] = await Promise.all([
     supabase
       .from("clientes")
       .select("id, nome, cpf, uf, situacao_prisional, unidade_prisional, cadastro_automatico, favorito")
@@ -1510,7 +1512,15 @@ export async function getClientes(): Promise<Cliente[]> {
       .order("nome", { ascending: true }),
     supabase.from("vw_situacao_cliente").select("*"),
     supabase.from("vw_cliente_ultima_atividade").select("cliente_id, ultima_movimentacao, ultima_intimacao, ultima_atividade"),
+    // Canônicos que absorveram duplicados (auditoria é a prova; manual, Princípio 5).
+    supabase.from("auditoria").select("dados_depois").eq("tabela", "clientes").eq("operacao", "MERGE"),
   ]);
+
+  const unificados = new Set<string>();
+  for (const m of merges.data ?? []) {
+    const can = (m.dados_depois as { canonico?: string } | null)?.canonico;
+    if (can) unificados.add(can);
+  }
 
   const sit = new Map<string, Record<string, number>>();
   for (const s of situacao.data ?? []) {
@@ -1550,6 +1560,7 @@ export async function getClientes(): Promise<Cliente[]> {
       ultima_movimentacao: a?.mov ?? null,
       ultima_intimacao: a?.int ?? null,
       ultima_atividade: a?.ult ?? null,
+      unificado: unificados.has(c.id as string),
     };
   });
 }
@@ -1702,6 +1713,8 @@ export type ClienteFull = {
   // mesclagem (Sugestão 28): quando ativo=false por ter sido unificado, o cadastro
   // atual (canônico) é apontado pela nota em observacoes. Resolvido aqui p/ o frontend.
   mescladoEm: string | null; canonicoId: string | null; canonicoNome: string | null;
+  // lado canônico (sobrevivente): cadastros duplicados que ESTE registro absorveu.
+  unificouEm: string | null; unificadosNomes: string[];
   // consolidado
   processos_ativos: number; prazos_abertos: number; tarefas_pendentes: number; audiencias_futuras: number;
   prazos_vencidos: number; responsavel: string | null;
@@ -1736,6 +1749,28 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
       canonicoId = m[2];
       const { data: can } = await supabase.from("clientes").select("nome").eq("id", canonicoId).maybeSingle();
       canonicoNome = (can?.nome as string | null) ?? null;
+    }
+  }
+
+  // Lado canônico: merges em que ESTE id é o canônico (auditoria = prova).
+  let unificouEm: string | null = null;
+  let unificadosNomes: string[] = [];
+  {
+    const { data: mg } = await supabase
+      .from("auditoria")
+      .select("ocorrido_em, dados_depois")
+      .eq("tabela", "clientes").eq("operacao", "MERGE")
+      .contains("dados_depois", { canonico: id });
+    const dupIds: string[] = [];
+    for (const m of mg ?? []) {
+      const o = m.dados_depois as { duplicado?: string } | null;
+      if (o?.duplicado) dupIds.push(o.duplicado);
+      const dt = m.ocorrido_em as string | null;
+      if (dt && (!unificouEm || dt > unificouEm)) unificouEm = dt;
+    }
+    if (dupIds.length) {
+      const { data: dups } = await supabase.from("clientes").select("nome").in("id", dupIds);
+      unificadosNomes = (dups ?? []).map((d) => d.nome as string).filter(Boolean);
     }
   }
 
@@ -1834,7 +1869,7 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
     nome_normalizado: (c.nome_normalizado as string | null) ?? null,
     cadastro_automatico: Boolean(c.cadastro_automatico), cadastrado_por: (c.cadastrado_por as string | null) ?? null,
     favorito: Boolean(c.favorito), ativo: Boolean(c.ativo), criado_em: (c.criado_em as string | null) ?? null,
-    mescladoEm, canonicoId, canonicoNome,
+    mescladoEm, canonicoId, canonicoNome, unificouEm, unificadosNomes,
     processos_ativos: Number(s.processos_ativos ?? 0), prazos_abertos: Number(s.prazos_abertos ?? 0),
     tarefas_pendentes: Number(s.tarefas_pendentes ?? 0), audiencias_futuras: Number(s.audiencias_futuras ?? 0),
     prazos_vencidos, responsavel, exec, processos, prazos, contratos, estudos, audiencias,
@@ -1874,6 +1909,7 @@ export async function getClientePorId(id: string): Promise<Cliente | null> {
     ultima_movimentacao: (a?.ultima_movimentacao as string) ?? null,
     ultima_intimacao: (a?.ultima_intimacao as string) ?? null,
     ultima_atividade: (a?.ultima_atividade as string) ?? null,
+    unificado: false,
   };
 }
 
