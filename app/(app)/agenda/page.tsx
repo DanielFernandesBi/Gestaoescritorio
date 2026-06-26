@@ -2,6 +2,7 @@ import { getAgendaEventos, type AgendaEvento } from "@/lib/data";
 import { SegredoTag } from "@/components/ui";
 import { fmtTime } from "@/lib/format";
 import { linkPara } from "@/lib/links";
+import { Expansivel } from "@/components/Expansivel";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +87,7 @@ function DiaSecao({ iso, eventos, hojeISO, mostrarVazio }: { iso: string; evento
   const rotulo = iso === hojeISO ? "Hoje" : iso === addDays(hojeISO, 1) ? "Amanhã" : fmtUTC(iso, { weekday: "long" });
   const r = doDia.length ? rotuloDia(doDia, iso) : { txt: "sem eventos", cls: "" };
   return (
-    <article className={`ag-dia${iso === hojeISO ? " hoje" : ""}`}>
+    <article className={`ag-dia${iso === hojeISO ? " ag-hoje" : ""}`}>
       <div className="ag-dia-h">
         <span className="ag-dia-t"><b>{rotulo}</b> {fmtUTC(iso, { weekday: "long" })} · {diaMesCurto(iso)}</span>
         <span className={`ag-dia-ct ${r.cls}`}>{r.txt}</span>
@@ -199,16 +200,19 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
               const doDia = eventos.filter((e) => e.data.slice(0, 10) === iso);
               const foraDoMes = iso.slice(0, 7) !== mesRef;
               return (
-                <div key={iso} className={`ag-cell${foraDoMes ? " fora" : ""}${iso === hojeISO ? " hoje" : ""}`}>
+                <div key={iso} className={`ag-cell${foraDoMes ? " fora" : ""}${iso === hojeISO ? " ag-hoje" : ""}`}>
                   <div className="ag-cell-n">{Number(iso.slice(8, 10))}</div>
-                  <div className="ag-cell-evs">
-                    {doDia.slice(0, 4).map((e, i) => (
-                      <Link key={`${e.id}-${i}`} className={`ag-chip ev-${estado(e).tone}`} href={linkPara(e.tipo, e.id)} title={e.titulo}>
-                        {e.titulo}
-                      </Link>
-                    ))}
-                    {doDia.length > 4 && <div className="ag-chip-mais">+{doDia.length - 4}</div>}
-                  </div>
+                  {doDia.length > 0 && (
+                    <Expansivel altura={86} mais={`+${doDia.length} ver tudo`} menos="recolher">
+                      <div className="ag-cell-evs">
+                        {doDia.map((e, i) => (
+                          <Link key={`${e.id}-${i}`} className={`ag-chip ev-${estado(e).tone}`} href={linkPara(e.tipo, e.id)} title={e.titulo}>
+                            {e.titulo}
+                          </Link>
+                        ))}
+                      </div>
+                    </Expansivel>
+                  )}
                 </div>
               );
             })}

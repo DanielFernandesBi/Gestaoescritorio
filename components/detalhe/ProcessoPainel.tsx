@@ -54,7 +54,7 @@ function Item({ tag, tagTone = "cat-slate", titulo, sub, href, dias }: { tag: st
       <span className={`pz-tag ${tagTone}`}>{tag}</span>
       <div className="mid"><div className="t">{titulo}</div>{sub && <div className="s">{sub}</div>}</div>
       {dias != null && <span className={`proc-dias ${dias < 0 ? "red" : dias <= 2 ? "red" : dias <= 5 ? "amber" : "tang"}`}>{dias < 0 ? `−${Math.abs(dias)}d` : `${dias}d`}</span>}
-      <Link className="btn sm" href={href}>Abrir</Link>
+      <Link className="btn sm abrir" href={href}>Abrir</Link>
     </div>
   );
 }
@@ -246,7 +246,7 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
                     <div className="przp-origem" key={parte.id}>
                       <span className="pz-tag cat-slate">{parte.papel ? humano(parte.papel) : "parte"}</span>
                       <div className="mid"><div className="t"><Link className="proc-link" href={linkPara("cliente", parte.id)}>{parte.nome}</Link></div></div>
-                      <Link className="btn sm" href={linkPara("cliente", parte.id)}>Abrir</Link>
+                      <Link className="btn sm abrir" href={linkPara("cliente", parte.id)}>Abrir</Link>
                     </div>
                   ))}
                   <div className="proc-vinc-extra"><VincularCliente label="Vincular outro cliente" variant="default" /></div>

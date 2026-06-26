@@ -5,7 +5,7 @@ import type { MapaProvidencia } from "@/lib/pecas";
 
 /* Helpers ---------------------------------------------------------------- */
 
-type NestedCliente = { clientes: { nome: string } | null };
+type NestedCliente = { clientes: { id?: string; nome: string } | null };
 type NestedProcesso = {
   numero_cnj: string | null;
   numero_registro_tribunal: string | null;
@@ -57,7 +57,7 @@ export type CasoContexto = {
 };
 
 /** Cliente + papel no processo (réu/paciente/executado/recorrente…), para o destaque do card. */
-export type ParteCliente = { nome: string; papel: string | null };
+export type ParteCliente = { id: string | null; nome: string; papel: string | null };
 
 function partesClientes(cp?: (NestedCliente & { papel?: string | null })[] | null): ParteCliente[] {
   if (!cp?.length) return [];
@@ -67,7 +67,7 @@ function partesClientes(cp?: (NestedCliente & { papel?: string | null })[] | nul
     const nome = x.clientes?.nome;
     if (!nome || vistos.has(nome)) continue;
     vistos.add(nome);
-    out.push({ nome, papel: x.papel ?? null });
+    out.push({ id: x.clientes?.id ?? null, nome, papel: x.papel ?? null });
   }
   return out;
 }
@@ -745,7 +745,7 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
   const { data } = await supabase
     .from("intimacoes")
     .select(
-      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, classe, area, instancia, tribunal, orgao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,assunto,area,fase,instancia,segredo_justica,cliente_processo(papel,clientes(nome,situacao_prisional)))",
+      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, classe, area, instancia, tribunal, orgao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,assunto,area,fase,instancia,segredo_justica,cliente_processo(papel,clientes(id,nome,situacao_prisional)))",
     )
     .order("data_publicacao", { ascending: false, nullsFirst: false })
     .limit(300);
@@ -2246,7 +2246,7 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
   if (procIds.length) {
     const { data: procs } = await supabase
       .from("processos")
-      .select("id, classe, assunto, area, fase, instancia, tribunal, vara_comarca, cliente_processo(papel,clientes(nome))")
+      .select("id, classe, assunto, area, fase, instancia, tribunal, vara_comarca, cliente_processo(papel,clientes(id,nome))")
       .in("id", procIds);
     for (const pr of procs ?? []) {
       ctxPorProcesso.set(pr.id as string, {

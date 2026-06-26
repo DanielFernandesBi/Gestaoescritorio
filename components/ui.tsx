@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { ddClass, ddLabel, humano } from "@/lib/format";
 import { ProcLink } from "@/components/ProcLink";
+import { linkPara } from "@/lib/links";
 import type { CasoContexto, ParteCliente } from "@/lib/data";
 
 /** Semáforo de prazo (dias restantes). */
@@ -102,7 +104,11 @@ export function PartesCliente({ partes }: { partes?: ParteCliente[] | null }) {
     <>
       {partes.map((p, i) => (
         <span key={`${p.nome}-${i}`} className="parte">
-          <span className="parte-nome">{p.nome}</span>
+          {p.id ? (
+            <Link className="parte-nome parte-link" href={linkPara("cliente", p.id)}>{p.nome}</Link>
+          ) : (
+            <span className="parte-nome">{p.nome}</span>
+          )}
           {p.papel && <span className="parte-papel"> · {humano(p.papel)}</span>}
         </span>
       ))}

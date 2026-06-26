@@ -163,7 +163,7 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
                       <Link className="btn sm" href="/producao">Ver minuta</Link>
                     ) : null}
                     {naoLida && <MarcarLido id={i.id} />}
-                    <Link className="btn sm" href={abrir}>Abrir</Link>
+                    <Link className="btn sm abrir" href={abrir}>Abrir</Link>
                   </div>
                 </div>
               </div>
