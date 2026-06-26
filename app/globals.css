@@ -555,6 +555,49 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .valida-link{text-decoration:none;color:inherit;display:block}
 .valida-link:hover .dl-t{color:var(--accent-strong)}
 
+/* ---------- Varredura — drawer do ciclo (Diagnóstico) ---------- */
+.vc-mcard{flex-direction:column;align-items:stretch}
+.vc-mtags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+.vc-mnome{display:block;font-size:12.5px;font-weight:700;color:var(--text)}
+.audp-mcard.on .vc-mnome{color:var(--name)}
+.vc-mmeta{display:block;font-size:11px;color:var(--muted-2);margin-top:2px}
+.vc-mmeta.alerta{color:var(--amber);font-weight:600;text-transform:capitalize}
+.vc-crumb{font-size:11.5px;color:var(--muted-2)}
+.vc-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.vc-head-l{flex:1;min-width:240px}
+.vc-sub{font-size:12.5px;color:var(--muted);margin-top:8px}
+.vc-anomcard{flex:none;text-align:center;background:var(--green-soft);border:1px solid color-mix(in srgb,var(--green) 30%,transparent);border-radius:13px;padding:12px 20px}
+.vc-anomcard .n{display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--serif);font-size:26px;color:var(--green);line-height:1}
+.vc-anomcard .l{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+.vc-anomcard.alerta{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 32%,transparent)}
+.vc-anomcard.alerta .n{color:var(--amber)}
+.vc-cont{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:680px){.vc-cont{grid-template-columns:repeat(2,1fr)}}
+.vc-cont-c{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.vc-cont-c b{display:block;font-family:var(--serif);font-size:28px;font-weight:500;color:var(--ink);line-height:1}
+.vc-cont-c span{display:block;font-size:11.5px;color:var(--muted);margin-top:6px}
+.vc-oabwrap{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 18%,transparent);border-radius:13px;padding:6px 16px 14px}
+.vc-oabnote{font-size:11.5px;color:var(--text);line-height:1.55;margin-top:6px}
+.vc-ok,.vc-wm{display:block;background:var(--green-soft);border:1px solid color-mix(in srgb,var(--green) 26%,transparent);border-radius:12px;padding:13px 15px;font-size:12.5px;line-height:1.6;color:var(--text)}
+.vc-wm{background:var(--surface-2);border-color:var(--line)}
+.vc-wm-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:600;color:var(--green)}
+.vc-wm-mv{color:var(--accent-strong);font-weight:700}
+.vc-wm-note{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:9px}
+.vc-cmd{flex:none;display:flex;align-items:center;gap:10px;padding:12px 24px;border-top:1px solid var(--line-soft);background:var(--surface);flex-wrap:wrap}
+.vc-prompt{flex:1;min-width:220px;display:flex;align-items:center;gap:9px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 13px;text-decoration:none;color:var(--muted);font-size:12.5px;transition:border-color .12s}
+.vc-prompt:hover{border-color:var(--accent)}
+.vc-prompt-spark{color:var(--accent)}
+.vc-prompt-go{margin-left:auto;color:var(--accent-strong);font-weight:700}
+.vc-veritens{min-width:200px;justify-content:center}
+.vc-cmd .btn{justify-content:center}
+
+/* histórico de execuções → clicável p/ o drawer do ciclo */
+.vr-row:hover{background:var(--surface-2)}
+.vr-rowlink{color:var(--name);font-weight:600;text-decoration:none}
+.vr-rowlink:hover{color:var(--accent-strong);text-decoration:underline}
+.vr-rowabrir{margin-left:8px;font-size:11px;font-weight:700;color:var(--accent-strong);text-decoration:none}
+.vr-rowabrir:hover{text-decoration:underline}
+
 /* ---------- /validacao — fila de provisórios (Plantão) ---------- */
 .tang{color:var(--tang);font-weight:600}
 .vermelho{color:var(--red);font-weight:600}
@@ -663,8 +706,9 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .ag-ev-time{flex:none;width:64px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text);padding-top:2px}
 .ag-ev-bar{flex:none;width:4px;align-self:stretch;min-height:34px;border-radius:3px;background:var(--ev)}
 .ag-ev-main{flex:1;min-width:0}
-.ag-ev-t{font-family:var(--sans);font-weight:800;font-size:16px;letter-spacing:-.005em;color:var(--name);line-height:1.2;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ag-ev-t{font-family:var(--sans);font-weight:700;font-size:13.5px;letter-spacing:-.005em;color:var(--name);line-height:1.25;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ag-ev-s{font-size:12px;color:var(--muted);margin-top:3px}
+.ag-ev-nota{font-size:11.5px;font-weight:400;color:var(--muted);margin-top:4px;line-height:1.45}
 .ag-ev-s .dl-cli{font-weight:700;color:var(--name)}
 .ag-ev-note{font-size:11px;color:var(--amber);margin-top:4px;font-weight:500}
 .ag-ev-r{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}

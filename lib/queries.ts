@@ -402,6 +402,53 @@ export async function getWatermarks(): Promise<Watermarks> {
   return { djen: norm(map.get("ultima_varredura_djen")), push: norm(map.get("ultima_varredura_push")) };
 }
 
+/* Um ciclo completo de varredura (drawer /varredura/ciclos/[id]) — snapshot
+ * append-only da tabela varreduras, com diagnóstico e rastro de origem. */
+export type VarreduraCiclo = {
+  id: string;
+  criado_em: string;
+  data_referencia: string | null;
+  fonte: string;
+  status: "concluida" | "parcial" | "falha";
+  itens_processados: number;
+  intimacoes_novas: number;
+  andamentos_novos: number;
+  prazos_criados: number;
+  janela_inicio: string | null;
+  janela_fim: string | null;
+  diagnostico_oab: DiagnosticoOab[] | null;
+  anomalias: Anomalia[] | null;
+  arquivo_drive_id: string | null;
+  cadastrado_por: string | null;
+};
+
+export async function getVarreduraPorId(id: string): Promise<VarreduraCiclo | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("varreduras")
+    .select("id, criado_em, data_referencia, fonte, status, itens_processados, intimacoes_novas, andamentos_novos, prazos_criados, janela_inicio, janela_fim, diagnostico_oab, anomalias, arquivo_drive_id, cadastrado_por")
+    .eq("id", id)
+    .maybeSingle();
+  if (!r) return null;
+  return {
+    id: r.id as string,
+    criado_em: r.criado_em as string,
+    data_referencia: (r.data_referencia as string | null) ?? null,
+    fonte: (r.fonte as string) ?? "",
+    status: r.status as VarreduraCiclo["status"],
+    itens_processados: Number(r.itens_processados ?? 0),
+    intimacoes_novas: Number(r.intimacoes_novas ?? 0),
+    andamentos_novos: Number(r.andamentos_novos ?? 0),
+    prazos_criados: Number(r.prazos_criados ?? 0),
+    janela_inicio: (r.janela_inicio as string | null) ?? null,
+    janela_fim: (r.janela_fim as string | null) ?? null,
+    diagnostico_oab: (r.diagnostico_oab as DiagnosticoOab[] | null) ?? null,
+    anomalias: normAnomalias(r.anomalias),
+    arquivo_drive_id: (r.arquivo_drive_id as string | null) ?? null,
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+  };
+}
+
 /* ===== Conferências escaladas (Sugestão 30) =====
  * Tarefas automáticas do Cowork (cadastro_automatico=true / cadastrado_por='cowork')
  * que escalaram uma movimentação para atenção humana. O Painel só tinha a CONTAGEM
