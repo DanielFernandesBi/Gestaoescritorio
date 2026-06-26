@@ -9,7 +9,7 @@ import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { atualizarPrazo, validarPrazo, baixarPrazo, prejudicarPrazo, criarPeca } from "@/app/actions";
 import { TIPO_CONTAGEM, RESPONSAVEIS, PECA_TIPO, PRIORIDADES } from "@/lib/enums";
 import { linkPara } from "@/lib/links";
-import { fmtDate, humano } from "@/lib/format";
+import { fmtDate, humano, dividirAto, categoriaAto } from "@/lib/format";
 import type { PrazoFull, PrazoCard, Anotacao } from "@/lib/data";
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
@@ -49,7 +49,7 @@ function MasterCard({ p, ativo }: { p: PrazoCard; ativo: boolean }) {
   return (
     <Link className={`przp-mcard tone-${tone}${ativo ? " on" : ""}`} href={linkPara("prazo", p.id)}>
       <div className="przp-mtop">
-        <span className="przp-mtitle" title={p.ato}>{p.ato}</span>
+        <span className="przp-mtitle" title={p.ato}>{dividirAto(p.ato).curto}</span>
         {provis && <span className="przp-mconf">conferir</span>}
       </div>
       <div className={`przp-mwhen tone-${tone}`}>fatal {ddmm(p.data_fatal)} · {emNd(p.dias_restantes)}</div>
@@ -184,7 +184,9 @@ export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: Praz
             <div className="audp-title-row">
               <div className="audp-title-l">
                 <div className="audp-tags">
-                  {p.area && <span className="pz-tag tone-blue">{humano(p.area)}</span>}
+                  {(() => { const c = categoriaAto(p.ato); return c
+                    ? <span className={`pz-tag cat-${c.tone}`}>{c.label}</span>
+                    : p.area ? <span className="pz-tag tone-blue">{humano(p.area)}</span> : null; })()}
                   {p.validado
                     ? <span className="pz-tag val"><Check s={9} c="var(--green)" />validado</span>
                     : <span className="pz-tag tang"><span className="d" />provisório · conferir</span>}
@@ -192,7 +194,7 @@ export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: Praz
                   {p.orfao && <span className="pz-tag orfa">órfão</span>}
                   {p.segredo && <span className="pz-tag segredo">🔒 segredo de justiça</span>}
                 </div>
-                <h2 className="audp-h2">{p.ato}</h2>
+                <h2 className="audp-h2">{dividirAto(p.ato).curto}</h2>
                 <div className="audp-cliline">
                   <ClientesLink p={p} />
                   {(p.numero_cnj || p.numero_registro) && <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} id={p.processo_id} />}
