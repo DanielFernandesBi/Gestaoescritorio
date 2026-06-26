@@ -40,7 +40,6 @@ export const NAV: NavGroup[] = [
       { id: "processos", label: "Processos", ico: "folder", href: "/processos", badgeKey: "processos" },
       { id: "clientes", label: "Clientes", ico: "users", href: "/clientes", badgeKey: "clientes" },
       { id: "estudos", label: "Estudos de caso", ico: "book", href: "/estudos" },
-      { id: "duplicados", label: "Duplicados", ico: "users", href: "/duplicados", badgeKey: "duplicados", kind: "warn" },
     ],
   },
   {
@@ -57,6 +56,7 @@ export const NAV: NavGroup[] = [
     items: [
       { id: "financeiro", label: "Financeiro", ico: "wallet", href: "/financeiro" },
       { id: "auditoria", label: "Auditoria", ico: "shield", href: "/auditoria" },
+      { id: "duplicados", label: "Duplicados", ico: "users", href: "/duplicados", badgeKey: "duplicados", kind: "warn" },
       { id: "sistema", label: "Sistema · evolução", ico: "settings", href: "/sistema" },
     ],
   },
