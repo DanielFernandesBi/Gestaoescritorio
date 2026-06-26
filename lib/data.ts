@@ -1502,6 +1502,161 @@ export async function getAcervoClientes(): Promise<ClienteAcervo[]> {
   });
 }
 
+/* Detalhe completo do cliente (master-detail, alvo Plantão) -------------------
+ * Consolida ficha + situação (vw_situacao_cliente) + execução
+ * (vw_situacao_executoria_atual) + processos vinculados + prazos abertos +
+ * contratos/pagamentos + estudos + audiências futuras. Só leitura. */
+
+export type ClienteProcMini = {
+  id: string; numero_cnj: string | null; numero_registro: string | null;
+  tribunal: string | null; vara_comarca: string | null; area: string | null;
+  classe: string | null; instancia: string | null; status: string; segredo: boolean; papel: string | null;
+};
+export type ClientePrazoMini = { id: string; ato: string; data_fatal: string; data_interna: string | null; validado: boolean; dias: number };
+export type ClienteContratoMini = { id: string; objeto: string | null; status: string; contratante: string | null; valor_total: number | null; valor_aberto: number; prox_venc: string | null };
+export type ClienteEstudoMini = { id: string; titulo: string; tipo: string | null; status: string | null };
+export type ClienteAudMini = { id: string; tipo: string; nome: string | null; data_hora: string; modalidade: string | null };
+
+export type ClienteExec = {
+  regime_atual: string | null;
+  pena_total_texto: string | null;
+  dias_para_progressao: number | null;
+  dias_para_livramento: number | null;
+  data_atestado: string | null;
+};
+
+export type ClienteFull = {
+  id: string; nome: string; alcunha: string | null; cpf: string | null; rg: string | null;
+  data_nascimento: string | null; nome_mae: string | null; telefone: string | null; email: string | null;
+  endereco: string | null; cidade: string | null; uf: string | null;
+  situacao_prisional: string | null; unidade_prisional: string | null; contato_familia: string | null;
+  observacoes: string | null; nome_normalizado: string | null;
+  cadastro_automatico: boolean; cadastrado_por: string | null; favorito: boolean; ativo: boolean; criado_em: string | null;
+  // consolidado
+  processos_ativos: number; prazos_abertos: number; tarefas_pendentes: number; audiencias_futuras: number;
+  prazos_vencidos: number; responsavel: string | null;
+  exec: ClienteExec | null;
+  processos: ClienteProcMini[];
+  prazos: ClientePrazoMini[];
+  contratos: ClienteContratoMini[];
+  estudos: ClienteEstudoMini[];
+  audiencias: ClienteAudMini[];
+};
+
+export async function getClienteFull(id: string): Promise<ClienteFull | null> {
+  const supabase = await createClient();
+  const [base, sit, exe, vinc] = await Promise.all([
+    supabase.from("clientes").select("*").eq("id", id).maybeSingle(),
+    supabase.from("vw_situacao_cliente").select("*").eq("cliente_id", id).maybeSingle(),
+    supabase.from("vw_situacao_executoria_atual").select("regime_atual, pena_total_texto, dias_para_progressao, dias_para_livramento, data_atestado").eq("cliente_id", id).maybeSingle(),
+    supabase.from("cliente_processo").select("papel, processos(id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, area, classe, instancia, status, segredo_justica, responsavel)").eq("cliente_id", id),
+  ]);
+
+  const c = base.data as Record<string, unknown> | null;
+  if (!c) return null;
+  const s = (sit.data ?? {}) as Record<string, unknown>;
+
+  type PV = { id: string; numero_cnj: string | null; numero_registro_tribunal: string | null; tribunal: string | null; vara_comarca: string | null; area: string | null; classe: string | null; instancia: string | null; status: string; segredo_justica: boolean | null; responsavel: string | null };
+  const processos: ClienteProcMini[] = (vinc.data ?? [])
+    .map((v) => {
+      const p = v.processos as unknown as PV | null;
+      if (!p) return null;
+      return {
+        id: p.id, numero_cnj: p.numero_cnj, numero_registro: p.numero_registro_tribunal,
+        tribunal: p.tribunal, vara_comarca: p.vara_comarca, area: p.area, classe: p.classe,
+        instancia: p.instancia, status: p.status, segredo: Boolean(p.segredo_justica), papel: v.papel as string | null,
+      } as ClienteProcMini;
+    })
+    .filter(Boolean) as ClienteProcMini[];
+
+  // Responsável "titular": o advogado mais frequente entre os processos do cliente.
+  const respCount = new Map<string, number>();
+  for (const v of vinc.data ?? []) {
+    const r = (v.processos as unknown as PV | null)?.responsavel;
+    if (r) respCount.set(r, (respCount.get(r) ?? 0) + 1);
+  }
+  const responsavel = [...respCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+  const procIds = processos.map((p) => p.id);
+  const [prz, aud, ctr] = await Promise.all([
+    procIds.length
+      ? supabase.from("prazos").select("id, ato, data_fatal, data_interna, validado").in("processo_id", procIds).eq("status", "aberto").order("data_fatal", { ascending: true })
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    procIds.length
+      ? supabase.from("audiencias").select("id, tipo, nome, data_hora, modalidade").in("processo_id", procIds).eq("status", "designada").order("data_hora", { ascending: true })
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    supabase.from("contratos").select("id, objeto, status, contratante, valor_total").eq("cliente_id", id).order("criado_em", { ascending: false }),
+  ]);
+
+  const prazos: ClientePrazoMini[] = (prz.data ?? []).map((r) => ({
+    id: r.id as string, ato: r.ato as string, data_fatal: r.data_fatal as string,
+    data_interna: (r.data_interna as string | null) ?? null, validado: Boolean(r.validado), dias: diasAte(r.data_fatal as string),
+  }));
+  const prazos_vencidos = prazos.filter((p) => p.dias < 0).length;
+
+  const audiencias: ClienteAudMini[] = (aud.data ?? []).map((r) => ({
+    id: r.id as string, tipo: r.tipo as string, nome: (r.nome as string | null) ?? null,
+    data_hora: r.data_hora as string, modalidade: (r.modalidade as string | null) ?? null,
+  }));
+
+  // Contratos + saldo em aberto/próxima parcela (pagamentos a_vencer/atrasado).
+  const ctrRows = (ctr.data ?? []) as Record<string, unknown>[];
+  const ctrIds = ctrRows.map((r) => r.id as string);
+  const pagPorContrato = new Map<string, { aberto: number; prox: string | null }>();
+  if (ctrIds.length) {
+    const { data: pags } = await supabase
+      .from("pagamentos").select("contrato_id, valor, vencimento, status").in("contrato_id", ctrIds).in("status", ["a_vencer", "atrasado"]);
+    for (const pg of pags ?? []) {
+      const k = pg.contrato_id as string;
+      const cur = pagPorContrato.get(k) ?? { aberto: 0, prox: null };
+      cur.aberto += Number(pg.valor ?? 0);
+      const v = pg.vencimento as string;
+      if (v && (cur.prox == null || v < cur.prox)) cur.prox = v;
+      pagPorContrato.set(k, cur);
+    }
+  }
+  const contratos: ClienteContratoMini[] = ctrRows.map((r) => {
+    const pg = pagPorContrato.get(r.id as string);
+    return {
+      id: r.id as string, objeto: (r.objeto as string | null) ?? null, status: r.status as string,
+      contratante: (r.contratante as string | null) ?? null, valor_total: r.valor_total == null ? null : Number(r.valor_total),
+      valor_aberto: pg?.aberto ?? 0, prox_venc: pg?.prox ?? null,
+    };
+  });
+
+  const { data: estData } = await supabase.from("estudos_caso").select("id, titulo, tipo, status").eq("cliente_id", id).order("criado_em", { ascending: false });
+  const estudos: ClienteEstudoMini[] = (estData ?? []).map((r) => ({
+    id: r.id as string, titulo: r.titulo as string, tipo: (r.tipo as string | null) ?? null, status: (r.status as string | null) ?? null,
+  }));
+
+  const execRow = exe.data as Record<string, unknown> | null;
+  const exec: ClienteExec | null = execRow
+    ? {
+        regime_atual: (execRow.regime_atual as string | null) ?? null,
+        pena_total_texto: (execRow.pena_total_texto as string | null) ?? null,
+        dias_para_progressao: execRow.dias_para_progressao == null ? null : Number(execRow.dias_para_progressao),
+        dias_para_livramento: execRow.dias_para_livramento == null ? null : Number(execRow.dias_para_livramento),
+        data_atestado: (execRow.data_atestado as string | null) ?? null,
+      }
+    : null;
+
+  return {
+    id: c.id as string, nome: c.nome as string, alcunha: (c.alcunha as string | null) ?? null,
+    cpf: (c.cpf as string | null) ?? null, rg: (c.rg as string | null) ?? null,
+    data_nascimento: (c.data_nascimento as string | null) ?? null, nome_mae: (c.nome_mae as string | null) ?? null,
+    telefone: (c.telefone as string | null) ?? null, email: (c.email as string | null) ?? null,
+    endereco: (c.endereco as string | null) ?? null, cidade: (c.cidade as string | null) ?? null, uf: (c.uf as string | null) ?? null,
+    situacao_prisional: (c.situacao_prisional as string | null) ?? null, unidade_prisional: (c.unidade_prisional as string | null) ?? null,
+    contato_familia: (c.contato_familia as string | null) ?? null, observacoes: (c.observacoes as string | null) ?? null,
+    nome_normalizado: (c.nome_normalizado as string | null) ?? null,
+    cadastro_automatico: Boolean(c.cadastro_automatico), cadastrado_por: (c.cadastrado_por as string | null) ?? null,
+    favorito: Boolean(c.favorito), ativo: Boolean(c.ativo), criado_em: (c.criado_em as string | null) ?? null,
+    processos_ativos: Number(s.processos_ativos ?? 0), prazos_abertos: Number(s.prazos_abertos ?? 0),
+    tarefas_pendentes: Number(s.tarefas_pendentes ?? 0), audiencias_futuras: Number(s.audiencias_futuras ?? 0),
+    prazos_vencidos, responsavel, exec, processos, prazos, contratos, estudos, audiencias,
+  };
+}
+
 /** Um cliente pelo id (inclusive inativo), na mesma forma de `getClientes`. */
 export async function getClientePorId(id: string): Promise<Cliente | null> {
   const supabase = await createClient();

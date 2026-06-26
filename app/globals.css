@@ -2231,3 +2231,78 @@ a.tk-title:hover{text-decoration:underline}
 .przp-note .accent{color:var(--accent-strong)}
 .przp-empty-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;background:var(--surface-2);border:1px dashed var(--line);border-radius:12px;font-size:12.5px;color:var(--muted-2)}
 .przp-orfa-aviso{font-size:12px;color:var(--amber);font-weight:600;align-self:center}
+
+/* ════════════════ DETALHE DE CLIENTE · master-detail (reusa o shell .audp) ══ */
+/* busca + lista lateral */
+.cli-busca{width:100%;margin-top:11px;font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 11px;color:var(--text)}
+.cli-busca:focus{outline:none;border-color:var(--accent);box-shadow:var(--focus)}
+.cli-mcard{position:relative;display:block;background:transparent;border:1px solid transparent;border-radius:9px;padding:9px 11px;text-decoration:none;color:inherit;transition:background .12s,border-color .12s}
+.cli-mcard:hover{background:var(--surface)}
+.cli-mcard.on{background:var(--surface);border-color:var(--accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent)}
+.cli-mnome{font-size:12.5px;font-weight:700;color:var(--name);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cli-mmeta{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);margin-top:3px}
+.cli-dot{width:7px;height:7px;border-radius:50%;flex:none}
+.cli-dot.green{background:var(--green)}.cli-dot.amber{background:var(--amber)}.cli-dot.red{background:var(--red)}
+.cli-mcpf{font-size:10px;color:var(--muted-2);margin-top:2px}
+
+/* abas no topo do detalhe */
+.cli-tabs{display:flex;gap:2px;margin-left:18px;flex-wrap:wrap}
+.cli-tab{font-size:12.5px;font-weight:600;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;padding:4px 10px;cursor:pointer}
+.cli-tab:hover{color:var(--text)}
+.cli-tab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
+
+/* cabeçalho do perfil */
+.cli-head-actions{flex:none;display:flex;gap:9px;align-items:flex-start;flex-wrap:wrap}
+.cli-sep{color:var(--muted);font-size:12.5px}
+.audp-cliline .mono{font-size:12.5px;color:var(--muted)}
+
+/* KPIs consolidado */
+.cli-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:760px){.cli-kpis{grid-template-columns:repeat(2,1fr)}}
+.cli-kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.cli-kpi .n{font-family:var(--serif);font-size:30px;line-height:1;color:var(--ink)}
+.cli-kpi .n.red{color:var(--red)}
+.cli-kpi .l{font-size:11px;color:var(--muted);margin-top:7px}
+.cli-kpi .l .red{color:var(--red);font-weight:600}
+
+.cli-sech-sub{font-family:var(--mono);font-size:10.5px;color:var(--muted-2);letter-spacing:normal;text-transform:none;font-weight:500;margin-left:2px}
+
+/* observações */
+.cli-obs{margin-top:15px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+.cli-obs .k{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.cli-obs p{margin:5px 0 0;font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap}
+
+/* identidade IA */
+.cli-ia-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px 18px;margin-top:12px}
+@media(max-width:680px){.cli-ia-grid{grid-template-columns:1fr}}
+.cli-ia-grid .fld .k{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.cli-ia-grid .fld .v{font-size:13.5px;margin-top:3px;color:var(--text)}
+
+/* execução resumo */
+.cli-exec{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:12px;padding:14px 16px}
+.cli-exec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 18px}
+@media(max-width:760px){.cli-exec-grid{grid-template-columns:repeat(2,1fr)}}
+.cli-exec-grid .fld .k{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.cli-exec-grid .fld .v{font-size:14px;margin-top:3px;color:var(--text)}
+.cli-exec-foot{font-size:11px;color:var(--muted);margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft)}
+.cli-exec-full{margin-top:8px}
+
+/* financeiro */
+.cli-fin-valor{flex:none;text-align:right}
+.cli-fin-valor .v{font-size:13px;font-weight:700;color:var(--amber)}
+.cli-fin-valor .s{font-size:10.5px;color:var(--muted);font-family:var(--mono)}
+
+/* prazos abertos (card de urgência) */
+.cli-prazo{position:relative;display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:11px;padding:11px 14px}
+.cli-prazo.crit,.cli-prazo.venc{border-left-color:var(--red)}
+.cli-prazo .mid{flex:1;min-width:0}
+.cli-prazo .mid .t{font-weight:700;color:var(--name);font-size:13px}
+.cli-prazo .mid .s{font-size:11px;color:var(--muted);margin-top:1px}
+.cli-prazo-dias{flex:none;text-align:right;line-height:1.1}
+.cli-prazo-dias .d{font-family:var(--serif);font-size:20px}
+.cli-prazo-dias .f{font-size:10px;font-family:var(--mono);margin-top:2px}
+.cli-prazo-dias.red{color:var(--red)}.cli-prazo-dias.amber{color:var(--amber)}
+
+.cli-aud-when{flex:none;font-size:12px;color:var(--muted)}
+.cli-vertodos{background:transparent;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;text-align:left;padding:4px 2px}
+.cli-vertodos:hover{text-decoration:underline}
