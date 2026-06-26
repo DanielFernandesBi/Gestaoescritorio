@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/AppShell";
-import { DrawerProvider } from "@/components/Drawer";
 import { getBadges, getUserEmail, iniciaisDoEmail } from "@/lib/queries";
 
 // Sugestão 53 (adendo 22/06): o badge da sidebar vive no layout. Sem isto o layout
@@ -19,11 +18,11 @@ export default async function AppLayout({
   const [badges, email] = await Promise.all([getBadges(), getUserEmail()]);
 
   return (
-    <DrawerProvider>
+    <>
       <AppShell badges={badges} iniciais={iniciaisDoEmail(email)} rail={rail}>
         {children}
       </AppShell>
       {modal}
-    </DrawerProvider>
+    </>
   );
 }
