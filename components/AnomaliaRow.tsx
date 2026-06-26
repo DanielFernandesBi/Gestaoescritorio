@@ -34,7 +34,6 @@ export function AnomaliaRow({ a, critico }: { a: Anomalia; critico?: boolean }) 
 
       {aberto && (
         <div className="anom-painel">
-          <div className="anom-detalhe">{a.detalhe}</div>
           <div className="anom-apurar">
             <Link className="anom-link" href="/auditoria">
               <span className="t">Abrir auditoria</span>
