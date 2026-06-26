@@ -1699,6 +1699,9 @@ export type ClienteFull = {
   situacao_prisional: string | null; unidade_prisional: string | null; contato_familia: string | null;
   observacoes: string | null; nome_normalizado: string | null;
   cadastro_automatico: boolean; cadastrado_por: string | null; favorito: boolean; ativo: boolean; criado_em: string | null;
+  // mesclagem (Sugestão 28): quando ativo=false por ter sido unificado, o cadastro
+  // atual (canônico) é apontado pela nota em observacoes. Resolvido aqui p/ o frontend.
+  mescladoEm: string | null; canonicoId: string | null; canonicoNome: string | null;
   // consolidado
   processos_ativos: number; prazos_abertos: number; tarefas_pendentes: number; audiencias_futuras: number;
   prazos_vencidos: number; responsavel: string | null;
@@ -1722,6 +1725,19 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
   const c = base.data as Record<string, unknown> | null;
   if (!c) return null;
   const s = (sit.data ?? {}) as Record<string, unknown>;
+
+  // Cadastro obsoleto por mesclagem: ativo=false + nota "[mesclado em DD/MM/AAAA no cliente <uuid>]".
+  // Extrai o ponteiro p/ o cadastro atual e resolve o nome (só para registros desativados).
+  let mescladoEm: string | null = null, canonicoId: string | null = null, canonicoNome: string | null = null;
+  if (c.ativo === false) {
+    const m = String(c.observacoes ?? "").match(/\[mesclado em (\d{2}\/\d{2}\/\d{4}) no cliente ([0-9a-fA-F-]{36})\]/);
+    if (m) {
+      mescladoEm = m[1];
+      canonicoId = m[2];
+      const { data: can } = await supabase.from("clientes").select("nome").eq("id", canonicoId).maybeSingle();
+      canonicoNome = (can?.nome as string | null) ?? null;
+    }
+  }
 
   type PV = { id: string; numero_cnj: string | null; numero_registro_tribunal: string | null; tribunal: string | null; vara_comarca: string | null; area: string | null; classe: string | null; instancia: string | null; status: string; segredo_justica: boolean | null; responsavel: string | null };
   const processos: ClienteProcMini[] = (vinc.data ?? [])
@@ -1818,6 +1834,7 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
     nome_normalizado: (c.nome_normalizado as string | null) ?? null,
     cadastro_automatico: Boolean(c.cadastro_automatico), cadastrado_por: (c.cadastrado_por as string | null) ?? null,
     favorito: Boolean(c.favorito), ativo: Boolean(c.ativo), criado_em: (c.criado_em as string | null) ?? null,
+    mescladoEm, canonicoId, canonicoNome,
     processos_ativos: Number(s.processos_ativos ?? 0), prazos_abertos: Number(s.prazos_abertos ?? 0),
     tarefas_pendentes: Number(s.tarefas_pendentes ?? 0), audiencias_futuras: Number(s.audiencias_futuras ?? 0),
     prazos_vencidos, responsavel, exec, processos, prazos, contratos, estudos, audiencias,

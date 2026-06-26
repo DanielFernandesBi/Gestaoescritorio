@@ -2196,6 +2196,16 @@ a.tk-title:hover{text-decoration:underline}
 /* assistente como faixa inferior (mesma da gaveta) */
 .audp-assist{flex:none;border-top:1px solid var(--line-soft);background:var(--surface)}
 
+/* ── cadastro obsoleto (unificado/mesclado) — sinalização explícita ── */
+.pz-tag.obsoleto{background:var(--muted-2);color:#fff;letter-spacing:.02em}
+.cli-obsoleto{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding:12px 15px;border:1px solid color-mix(in srgb,var(--amber) 42%,transparent);background:var(--amber-soft);border-radius:12px}
+.cli-obsoleto-ico{font-size:18px;color:var(--amber);line-height:1}
+.cli-obsoleto-txt{flex:1;min-width:220px;font-size:12.5px;line-height:1.5;color:var(--text)}
+.cli-obsoleto-btn{flex:none}
+/* corpo do registro obsoleto fica mais apagado; o aviso permanece vívido */
+.audp-obsoleto .nome-cliente{color:var(--muted-2)}
+.audp-obsoleto .audp-title-l .audp-cliline,.audp-obsoleto .cli-kpis,.audp-obsoleto .audp-dados{opacity:.7}
+
 /* título */
 .audp-title-row{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
 .audp-title-l{flex:1;min-width:260px}
