@@ -47,11 +47,17 @@ const motivo = (p: string | null | undefined) =>
 export function AndamentosTimeline({
   movimentacoes,
   mapa = null,
+  filtro,
 }: {
   movimentacoes: Movimentacao[];
   mapa?: MapaProvidencia | null;
+  filtro?: string;
 }) {
   if (!movimentacoes.length) return <div className="empty">Nenhuma movimentação neste filtro.</div>;
+
+  // Continuidade do filtro na navegação para o detalhe (barra rápida).
+  const q = filtro === "escalados" ? "?f=escalados" : "";
+  const hrefDet = (id: string) => `${linkPara("andamento", id)}${q}`;
 
   return (
     <div className="and-list">
@@ -71,7 +77,7 @@ export function AndamentosTimeline({
               </div>
 
               <h3 className="and-h">
-                <Link className="and-h-link" href={linkPara("andamento", m.id)}>{head}</Link>
+                <Link className="and-h-link" href={hrefDet(m.id)}>{head}</Link>
                 {res && <span className={`and-kw ${res.cls}`}>{res.kw}</span>}
               </h3>
 
@@ -97,7 +103,7 @@ export function AndamentosTimeline({
                   {m.escalado && <Link className="btn sm primary" href={m.tarefa_id ? linkPara("tarefa", m.tarefa_id) : "/tarefas"}>Ver conferência</Link>}
                   <CriarPecaPendente tipoOrigem="andamento" origemId={m.id} texto={m.descricao} mapa={mapa} />
                   {m.processo_id && <Link className="btn sm" href={linkPara("processo", m.processo_id)}>Abrir processo</Link>}
-                  <Link className="btn sm ghost" href={linkPara("andamento", m.id)}>Abrir</Link>
+                  <Link className="btn sm ghost" href={hrefDet(m.id)}>Abrir</Link>
                 </div>
               </div>
             </div>

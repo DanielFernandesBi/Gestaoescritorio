@@ -2414,3 +2414,19 @@ a.tk-title:hover{text-decoration:underline}
 /* headline da timeline como link (herda o estilo do heading) */
 .and-h-link{color:inherit;text-decoration:none}
 .and-h-link:hover{color:var(--accent)}
+
+/* ════════════════ DETALHE DE CONTRATO (reusa o shell .audp) ═════════════════ */
+.ctr-contratante{font-size:12.5px;color:var(--muted);font-weight:400}
+/* tabela de parcelas */
+.ctr-table{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.ctr-tr{display:grid;grid-template-columns:40px 1.1fr 1fr .9fr .9fr auto;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid var(--line-soft)}
+.ctr-tr:first-child{border-top:none}
+.ctr-th{background:var(--surface-2)}
+.ctr-th>div{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.ctr-tr .mono{font-size:12.5px;color:var(--text)}
+.ctr-tr .mono.b{font-weight:700;color:var(--ink)}
+.ctr-tr.corrente{background:var(--amber-soft)}
+.ctr-atraso{color:var(--red);font-size:11px}
+.ctr-acao{display:flex;justify-content:flex-end}
+@media(max-width:760px){.ctr-tr{grid-template-columns:30px 1fr 1fr;gap:8px}.ctr-th{display:none}.ctr-acao{grid-column:1 / -1;justify-content:flex-start}}
+.ctr-prox-sub{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5}

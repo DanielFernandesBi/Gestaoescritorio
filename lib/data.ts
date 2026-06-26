@@ -1838,6 +1838,7 @@ export type Contrato = {
   forma_pagamento: string | null;
   status: string;
   data_contrato: string | null;
+  processo_id: string | null;
   processo_cnj: string | null;
   observacoes: string | null;
   total_pago: number;
@@ -1848,7 +1849,7 @@ export type Contrato = {
 };
 
 const CONTRATO_SELECT =
-  "id, cliente_id, objeto, contratante, valor_total, forma_pagamento, status, data_contrato, observacoes, clientes(nome), processos(numero_cnj), pagamentos(id, numero_parcela, valor, valor_pago, vencimento, pago_em, status)";
+  "id, cliente_id, objeto, contratante, valor_total, forma_pagamento, status, data_contrato, observacoes, clientes(nome), processo_id, processos(numero_cnj), pagamentos(id, numero_parcela, valor, valor_pago, vencimento, pago_em, status)";
 
 function mapContrato(c: Record<string, unknown>): Contrato {
   {
@@ -1888,6 +1889,7 @@ function mapContrato(c: Record<string, unknown>): Contrato {
       forma_pagamento: (c.forma_pagamento as string | null) ?? null,
       status: c.status as string,
       data_contrato: (c.data_contrato as string | null) ?? null,
+      processo_id: (c.processo_id as string | null) ?? null,
       processo_cnj: proc?.numero_cnj ?? null,
       observacoes: (c.observacoes as string | null) ?? null,
       total_pago,

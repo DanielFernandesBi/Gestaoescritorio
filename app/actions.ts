@@ -2016,7 +2016,7 @@ export async function criarAnotacao(
       autor: email,
     });
     if (error) throw error;
-    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes", andamento: "/andamentos" };
+    const rota: Record<string, string> = { audiencia: "/audiencias", prazo: "/prazos", cliente: "/clientes", estudo: "/estudos", intimacao: "/intimacoes", andamento: "/andamentos", contrato: "/contratos" };
     if (rota[entidadeTipo]) revalidatePath(`${rota[entidadeTipo]}/${entidadeId}`);
     return { ok: true, message: "Anotação salva." };
   } catch (e) {
@@ -2172,6 +2172,28 @@ export async function atualizarContrato(id: string, fd: FormData): Promise<Resul
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Contrato atualizado." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Desfecho de status do contrato (rescindir / quitar / inadimplente) — troca de
+ * status, nunca DELETE. Motivo opcional vai para observações. */
+export async function mudarStatusContrato(id: string, status: string, motivo?: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!(CONTRATO_STATUS as readonly string[]).includes(status)) return { ok: false, message: "Status inválido." };
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = { status };
+    if (motivo?.trim()) {
+      const rotulo = status === "rescindido" ? "Rescindido" : status === "quitado" ? "Quitado" : "Atualizado";
+      patch.observacoes = `${rotulo}: ${motivo.trim()}`;
+    }
+    const { error } = await supabase.from("contratos").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidarTudo();
+    revalidatePath(`/contratos/${id}`);
+    return { ok: true, message: `Contrato: status ${humano(status)}.` };
   } catch (e) {
     return falha(e);
   }
