@@ -2896,3 +2896,178 @@ export async function inativarDocumento(id: string): Promise<Resultado> {
     return falha(e);
   }
 }
+
+/* ==================== FUNIL DE NOVOS NEGÓCIOS (Sug. 59/68) ====================
+ * Pré-contrato. Captação é ATO HUMANO (chat/frontend, RLS authenticated) — o
+ * Cowork nunca escreve aqui. Nunca DELETE (correção = recusado/perdido). */
+
+const FUNIL_ESTAGIOS = ["tratativa", "estudo_preliminar", "proposta", "negociacao", "fechado", "recusado", "perdido"];
+
+export async function criarOportunidade(fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const titulo = String(fd.get("titulo") || "").trim();
+    const contato_nome = String(fd.get("contato_nome") || "").trim();
+    if (!titulo) return { ok: false, message: "Informe um título." };
+    if (!contato_nome) return { ok: false, message: "Informe o nome do contato." };
+    const valor = valorNumerico(fd.get("valor_proposto"));
+    const { error } = await supabase.from("oportunidades").insert({
+      titulo,
+      contato_nome,
+      contato_telefone: String(fd.get("contato_telefone") || "").trim() || null,
+      contato_email: String(fd.get("contato_email") || "").trim() || null,
+      origem_lead: String(fd.get("origem_lead") || "").trim() || null,
+      area: String(fd.get("area") || "").trim() || null,
+      resumo: String(fd.get("resumo") || "").trim() || null,
+      estudo_preliminar: String(fd.get("estudo_preliminar") || "").trim() || null,
+      estagio: "tratativa",
+      valor_proposto: Number.isFinite(valor) && valor > 0 ? valor : null,
+      forma_pagamento: String(fd.get("forma_pagamento") || "").trim() || null,
+      probabilidade: String(fd.get("probabilidade") || "").trim() || null,
+      responsavel: String(fd.get("responsavel") || "Daniel").trim() || "Daniel",
+      segredo_justica: fd.get("segredo_justica") === "on",
+      cadastrado_por: "chat",
+      cadastro_automatico: false,
+    });
+    if (error) throw error;
+    revalidatePath("/negocios");
+    return { ok: true, message: "Oportunidade criada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export async function atualizarOportunidade(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const titulo = String(fd.get("titulo") || "").trim();
+    const contato_nome = String(fd.get("contato_nome") || "").trim();
+    if (!titulo) return { ok: false, message: "Informe um título." };
+    if (!contato_nome) return { ok: false, message: "Informe o nome do contato." };
+    const valor = valorNumerico(fd.get("valor_proposto"));
+    const patch: Record<string, unknown> = {
+      titulo,
+      contato_nome,
+      contato_telefone: String(fd.get("contato_telefone") || "").trim() || null,
+      contato_email: String(fd.get("contato_email") || "").trim() || null,
+      origem_lead: String(fd.get("origem_lead") || "").trim() || null,
+      area: String(fd.get("area") || "").trim() || null,
+      resumo: String(fd.get("resumo") || "").trim() || null,
+      estudo_preliminar: String(fd.get("estudo_preliminar") || "").trim() || null,
+      valor_proposto: Number.isFinite(valor) && valor > 0 ? valor : null,
+      forma_pagamento: String(fd.get("forma_pagamento") || "").trim() || null,
+      probabilidade: String(fd.get("probabilidade") || "").trim() || null,
+      responsavel: String(fd.get("responsavel") || "Daniel").trim() || "Daniel",
+      segredo_justica: fd.get("segredo_justica") === "on",
+    };
+    const { error } = await supabase.from("oportunidades").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidatePath("/negocios");
+    return { ok: true, message: "Oportunidade atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Move a oportunidade de estágio. Recusado/perdido exigem motivo (gate de doutrina). */
+export async function moverOportunidade(id: string, estagio: string, motivo?: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!FUNIL_ESTAGIOS.includes(estagio)) return { ok: false, message: "Estágio inválido." };
+    const encerra = estagio === "recusado" || estagio === "perdido";
+    if (encerra && !motivo?.trim()) return { ok: false, message: "Informe o motivo do encerramento." };
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = { estagio };
+    if (encerra) { patch.motivo_recusa = motivo!.trim(); patch.data_decisao = hoje(); }
+    if (estagio === "proposta") patch.data_proposta = hoje();
+    if (estagio === "fechado") patch.data_decisao = hoje();
+    const { error } = await supabase.from("oportunidades").update(patch).eq("id", id);
+    if (error) throw error;
+    revalidatePath("/negocios");
+    return { ok: true, message: `Oportunidade movida para ${humano(estagio)}.` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Conversão (estágio fechado → cliente): dedup por clientes.nome_normalizado
+ * (vincula em vez de duplicar), cria contrato + parcelas pelo fluxo financeiro e
+ * grava de volta cliente_id/contrato_id na oportunidade (origem rastreável).
+ */
+export async function converterOportunidade(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { data: op } = await supabase.from("oportunidades").select("*").eq("id", id).maybeSingle();
+    if (!op) return { ok: false, message: "Oportunidade não encontrada." };
+
+    // 1) cliente — usa o já vinculado; senão dedup por nome normalizado; senão cria.
+    let cliente_id = (op.cliente_id as string | null) ?? null;
+    if (!cliente_id) {
+      const nome = (op.contato_nome as string).trim();
+      const nn = nome.normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "").toUpperCase().replace(/\s+/g, " ");
+      const { data: existente } = await supabase
+        .from("clientes").select("id").eq("ativo", true).eq("nome_normalizado", nn).limit(1).maybeSingle();
+      if (existente?.id) {
+        cliente_id = existente.id as string;
+      } else {
+        const { data: novo, error: e1 } = await supabase.from("clientes").insert({
+          nome,
+          telefone: (op.contato_telefone as string | null) ?? null,
+          email: (op.contato_email as string | null) ?? null,
+          situacao_prisional: String(fd.get("situacao_prisional") || "solto"),
+          ativo: true,
+          cadastro_automatico: false,
+          cadastrado_por: "chat",
+          observacoes: `Origem: funil de novos negócios (${op.titulo}).`,
+        }).select("id").single();
+        if (e1) throw e1;
+        cliente_id = novo.id as string;
+      }
+    }
+
+    // 2) contrato
+    const valor_total = valorNumerico(fd.get("valor_total")) || Number(op.valor_proposto ?? 0);
+    if (!Number.isFinite(valor_total) || valor_total <= 0) return { ok: false, message: "Valor total do contrato inválido." };
+    const { data: ctr, error: e2 } = await supabase.from("contratos").insert({
+      cliente_id,
+      objeto: String(fd.get("objeto") || "").trim() || (op.titulo as string),
+      valor_total,
+      forma_pagamento: String(fd.get("forma_pagamento") || "").trim() || (op.forma_pagamento as string | null) || null,
+      data_contrato: hoje(),
+      status: "vigente",
+      observacoes: `Convertido do funil de novos negócios.`,
+    }).select("id").single();
+    if (e2) throw e2;
+    const contrato_id = ctr.id as string;
+
+    // 3) parcelas — n parcelas mensais a partir do 1º vencimento (valor dividido).
+    const n = Math.max(1, Math.min(60, Number(String(fd.get("parcelas") || "1")) || 1));
+    const venc0 = String(fd.get("primeiro_vencimento") || "") || hoje();
+    const base = Math.floor((valor_total / n) * 100) / 100;
+    const linhas = Array.from({ length: n }, (_, i) => {
+      const d = new Date(venc0 + "T12:00:00Z");
+      d.setUTCMonth(d.getUTCMonth() + i);
+      const valor = i === n - 1 ? Math.round((valor_total - base * (n - 1)) * 100) / 100 : base;
+      return { contrato_id, numero_parcela: i + 1, valor, vencimento: d.toISOString().slice(0, 10), status: "a_vencer" };
+    });
+    const { error: e3 } = await supabase.from("pagamentos").insert(linhas);
+    if (e3) throw e3;
+
+    // 4) fecha a oportunidade com a origem rastreável
+    const { error: e4 } = await supabase.from("oportunidades")
+      .update({ estagio: "fechado", cliente_id, contrato_id, data_decisao: hoje() })
+      .eq("id", id);
+    if (e4) throw e4;
+
+    revalidatePath("/negocios");
+    revalidatePath("/clientes");
+    revalidatePath("/financeiro");
+    return { ok: true, message: `Convertido: cliente + contrato (${n} parcela${n === 1 ? "" : "s"}) criados.` };
+  } catch (e) {
+    return falha(e);
+  }
+}

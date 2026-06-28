@@ -26,6 +26,7 @@ const PATHS: Record<string, string> = {
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
   file: '<path d="M4 4h11l5 5v11H4z"/><path d="M8 13h8M8 17h5"/>',
+  briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
 };
 
 export type IconName = keyof typeof PATHS;

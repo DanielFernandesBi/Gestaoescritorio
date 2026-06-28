@@ -4201,3 +4201,73 @@ export async function getCompromissoPorId(id: string): Promise<Compromisso | nul
     tarefa_id: (r.tarefa_id as string | null) ?? null,
   };
 }
+
+/* ===================== Funil de novos negócios (Sug. 59/68) =====================
+ * Pré-contrato (kanban de oportunidades). Captação é ato humano (chat/frontend);
+ * a triagem em massa não escreve aqui. Lê a view vw_funil_negocios. */
+export type Oportunidade = {
+  id: string;
+  titulo: string;
+  contato_nome: string;
+  contato_telefone: string | null;
+  contato_email: string | null;
+  origem_lead: string | null;
+  area: string | null;
+  resumo: string | null;
+  estudo_preliminar: string | null;
+  estagio: string;
+  valor_proposto: number | null;
+  forma_pagamento: string | null;
+  probabilidade: string | null;
+  responsavel: string | null;
+  motivo_recusa: string | null;
+  data_contato: string | null;
+  data_proposta: string | null;
+  data_decisao: string | null;
+  cliente_id: string | null;
+  contrato_id: string | null;
+  drive_file_id: string | null;
+  segredo: boolean;
+  cadastrado_por: string | null;
+  criada_em: string | null;
+  atualizado_em: string | null;
+  ganho: boolean;
+  encerrado: boolean;
+};
+
+export async function getFunilNegocios(): Promise<Oportunidade[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_funil_negocios")
+    .select("*")
+    .order("atualizado_em", { ascending: false });
+  return ((data ?? []) as Record<string, unknown>[]).map((r): Oportunidade => ({
+    id: r.id as string,
+    titulo: r.titulo as string,
+    contato_nome: r.contato_nome as string,
+    contato_telefone: (r.contato_telefone as string | null) ?? null,
+    contato_email: (r.contato_email as string | null) ?? null,
+    origem_lead: (r.origem_lead as string | null) ?? null,
+    area: (r.area as string | null) ?? null,
+    resumo: (r.resumo as string | null) ?? null,
+    estudo_preliminar: (r.estudo_preliminar as string | null) ?? null,
+    estagio: (r.estagio as string) ?? "tratativa",
+    valor_proposto: r.valor_proposto == null ? null : Number(r.valor_proposto),
+    forma_pagamento: (r.forma_pagamento as string | null) ?? null,
+    probabilidade: (r.probabilidade as string | null) ?? null,
+    responsavel: (r.responsavel as string | null) ?? null,
+    motivo_recusa: (r.motivo_recusa as string | null) ?? null,
+    data_contato: (r.data_contato as string | null) ?? null,
+    data_proposta: (r.data_proposta as string | null) ?? null,
+    data_decisao: (r.data_decisao as string | null) ?? null,
+    cliente_id: (r.cliente_id as string | null) ?? null,
+    contrato_id: (r.contrato_id as string | null) ?? null,
+    drive_file_id: (r.drive_file_id as string | null) ?? null,
+    segredo: Boolean(r.segredo_justica),
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    criada_em: (r.criada_em as string | null) ?? null,
+    atualizado_em: (r.atualizado_em as string | null) ?? null,
+    ganho: Boolean(r.ganho),
+    encerrado: Boolean(r.encerrado),
+  }));
+}
