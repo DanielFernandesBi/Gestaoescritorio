@@ -25,8 +25,8 @@ const COLS: { key: string; label: string; dot: string }[] = [
 const MOVE_OPTS = COLS.map((c) => ({ k: c.key, l: c.label }));
 const probTone = (p: string | null) => (p === "alta" ? "tone-green" : p === "media" ? "tone-amber" : "tone-slate");
 
-/* ── campos do formulário (criar/editar) ─────────────────────────────────── */
-function Campos({ o }: { o?: Oportunidade }) {
+/* ── campos do formulário (criar/editar) — reusado no kanban e no drawer ─── */
+export function CamposOportunidade({ o }: { o?: Oportunidade }) {
   return (
     <>
       <div><label>Título</label><input name="titulo" required defaultValue={o?.titulo ?? ""} placeholder="Ex.: Defesa criminal — Fulano" /></div>
@@ -59,13 +59,13 @@ function Campos({ o }: { o?: Oportunidade }) {
 export function NovoNegocio() {
   return (
     <FormModal label={<>+ Nova oportunidade</>} titulo="Nova oportunidade" descricao="Pré-contrato — captação manual. Nasce em ‘tratativa’." acao={criarOportunidade} enviarLabel="Criar">
-      <Campos />
+      <CamposOportunidade />
     </FormModal>
   );
 }
 
 /* ── conversão (estágio fechado) ─────────────────────────────────────────── */
-function ConverterBtn({ o }: { o: Oportunidade }) {
+export function ConverterBtn({ o }: { o: Oportunidade }) {
   return (
     <FormModal
       label="Converter em cliente"
@@ -100,7 +100,7 @@ function Cartao({ o, onDragStart }: { o: Oportunidade; onDragStart: (e: DragEven
     if (r.ok) router.refresh();
   };
   return (
-    <article className={`prd-card ${o.estagio}`} draggable onDragStart={(e) => onDragStart(e, o)}>
+    <article className={`prd-card ${o.estagio}`} draggable onDragStart={(e) => onDragStart(e, o)} onClick={() => router.push(`/negocios/${o.id}`)}>
       <span className={`prd-strip ${COLS.find((c) => c.key === o.estagio)?.dot ?? "slate"}`} />
       <div className="prd-body">
         <div className="prd-tags">
@@ -115,7 +115,7 @@ function Cartao({ o, onDragStart }: { o: Oportunidade; onDragStart: (e: DragEven
           {o.responsavel && <span className="fn-resp">{o.responsavel}</span>}
           {o.origem_lead && <span className="fn-origem">{humano(o.origem_lead)}</span>}
         </div>
-        <div className="fn-foot">
+        <div className="fn-foot" onClick={(e) => e.stopPropagation()}>
           {o.estagio === "fechado" ? (
             o.cliente_id ? (
               <Link className="btn sm abrir" href={linkPara("cliente", o.cliente_id)}>cliente vinculado</Link>
@@ -131,7 +131,7 @@ function Cartao({ o, onDragStart }: { o: Oportunidade; onDragStart: (e: DragEven
             </select>
           )}
           <FormModal label="Editar" titulo="Editar oportunidade" acao={atualizarOportunidade.bind(null, o.id)} enviarLabel="Salvar" variant="default">
-            <Campos o={o} />
+            <CamposOportunidade o={o} />
           </FormModal>
           <Acao label="Recusar" variant="danger" titulo="Recusar oportunidade" confirmarLabel="Recusar"
             resumo={<>Encerrar <b>{o.titulo}</b> como <b>recusada</b>? Informe o motivo (nunca apagamos — vira histórico).</>}

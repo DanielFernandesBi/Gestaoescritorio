@@ -4271,3 +4271,38 @@ export async function getFunilNegocios(): Promise<Oportunidade[]> {
     encerrado: Boolean(r.encerrado),
   }));
 }
+
+export type OportunidadeFull = Oportunidade & { clienteNome: string | null; contratoObjeto: string | null };
+
+export async function getOportunidade(id: string): Promise<OportunidadeFull | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase.from("vw_funil_negocios").select("*").eq("id", id).maybeSingle();
+  if (!r) return null;
+  const o = (await getFunilNegocios()).find((x) => x.id === id);
+  // Mapeia direto (evita refazer o map): reusa o item já normalizado quando achar.
+  const base: Oportunidade = o ?? {
+    id: r.id as string, titulo: r.titulo as string, contato_nome: r.contato_nome as string,
+    contato_telefone: (r.contato_telefone as string | null) ?? null, contato_email: (r.contato_email as string | null) ?? null,
+    origem_lead: (r.origem_lead as string | null) ?? null, area: (r.area as string | null) ?? null,
+    resumo: (r.resumo as string | null) ?? null, estudo_preliminar: (r.estudo_preliminar as string | null) ?? null,
+    estagio: (r.estagio as string) ?? "tratativa", valor_proposto: r.valor_proposto == null ? null : Number(r.valor_proposto),
+    forma_pagamento: (r.forma_pagamento as string | null) ?? null, probabilidade: (r.probabilidade as string | null) ?? null,
+    responsavel: (r.responsavel as string | null) ?? null, motivo_recusa: (r.motivo_recusa as string | null) ?? null,
+    data_contato: (r.data_contato as string | null) ?? null, data_proposta: (r.data_proposta as string | null) ?? null,
+    data_decisao: (r.data_decisao as string | null) ?? null, cliente_id: (r.cliente_id as string | null) ?? null,
+    contrato_id: (r.contrato_id as string | null) ?? null, drive_file_id: (r.drive_file_id as string | null) ?? null,
+    segredo: Boolean(r.segredo_justica), cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    criada_em: (r.criada_em as string | null) ?? null, atualizado_em: (r.atualizado_em as string | null) ?? null,
+    ganho: Boolean(r.ganho), encerrado: Boolean(r.encerrado),
+  };
+  let clienteNome: string | null = null, contratoObjeto: string | null = null;
+  if (base.cliente_id) {
+    const { data: c } = await supabase.from("clientes").select("nome").eq("id", base.cliente_id).maybeSingle();
+    clienteNome = (c?.nome as string | null) ?? null;
+  }
+  if (base.contrato_id) {
+    const { data: ct } = await supabase.from("contratos").select("objeto").eq("id", base.contrato_id).maybeSingle();
+    contratoObjeto = (ct?.objeto as string | null) ?? null;
+  }
+  return { ...base, clienteNome, contratoObjeto };
+}
