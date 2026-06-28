@@ -2785,6 +2785,8 @@ export type PecaFull = {
   gate_resultado: string | null;
   gate_pendencia: string | null;
   gate_analisado_em: string | null;
+  reflexo_execucao: boolean;
+  reflexo_execucao_tipo: string | null;
   clienteRefs: ParteRefLite[];
   data_fatal: string | null;
   data_interna: string | null;
@@ -2800,7 +2802,7 @@ export async function getPecaFull(id: string): Promise<PecaFull | null> {
   const supabase = await createClient();
   const { data: r } = await supabase
     .from("pecas")
-    .select("id, titulo, tipo, subtipo, status, prioridade, responsavel, cliente_id, processo_id, prazo_id, intimacao_id, origem_andamento_id, andamento_id, tarefa_id, drive_file_id, validado, cadastro_automatico, cadastrado_por, descricao, observacoes, data_alvo, protocolada_em, criado_em, gate_resultado, gate_pendencia, gate_analisado_em, cliente:clientes(nome), processos(numero_cnj, numero_registro_tribunal, tribunal, segredo_justica, cliente_processo(papel, clientes(id, nome)))")
+    .select("id, titulo, tipo, subtipo, status, prioridade, responsavel, cliente_id, processo_id, prazo_id, intimacao_id, origem_andamento_id, andamento_id, tarefa_id, drive_file_id, validado, cadastro_automatico, cadastrado_por, descricao, observacoes, data_alvo, protocolada_em, criado_em, gate_resultado, gate_pendencia, gate_analisado_em, reflexo_execucao, reflexo_execucao_tipo, cliente:clientes(nome), processos(numero_cnj, numero_registro_tribunal, tribunal, segredo_justica, cliente_processo(papel, clientes(id, nome)))")
     .eq("id", id)
     .maybeSingle();
   if (!r) return null;
@@ -2864,6 +2866,8 @@ export async function getPecaFull(id: string): Promise<PecaFull | null> {
     gate_resultado: (r.gate_resultado as string | null) ?? null,
     gate_pendencia: (r.gate_pendencia as string | null) ?? null,
     gate_analisado_em: (r.gate_analisado_em as string | null) ?? null,
+    reflexo_execucao: Boolean(r.reflexo_execucao),
+    reflexo_execucao_tipo: (r.reflexo_execucao_tipo as string | null) ?? null,
     clienteRefs,
     data_fatal,
     data_interna,
@@ -3536,6 +3540,26 @@ export type ExecObjetivo = {
   instrumento_instancia: string | null;
 };
 
+/* Sug. 57 — cenário projetado de execução (reflexo de peça nos marcos). */
+export type ExecCenario = {
+  id: string;
+  titulo: string | null;
+  status: string;
+  metodo: string | null;
+  observacoes: string | null;
+  peca_id: string | null;
+  estudo_id: string | null;
+  pena_total_baseline_dias: number | null;
+  pena_total_projetada_dias: number | null;
+  data_progressao_baseline: string | null;
+  data_progressao_projetada: string | null;
+  data_livramento_baseline: string | null;
+  data_livramento_projetada: string | null;
+  premissas: { condenacao?: string; motivo?: string; delta_dias?: number; nova_data_base?: string }[];
+  cadastrado_por: string | null;
+  criado_em: string | null;
+};
+
 export type ExecucaoCliente = {
   temDados: boolean;
   situacao: ExecSituacao | null;
@@ -3543,11 +3567,12 @@ export type ExecucaoCliente = {
   condenacoes: ExecCondenacao[];
   estrategia: ExecEstrategia[];
   objetivos: ExecObjetivo[];
+  cenarios: ExecCenario[];
 };
 
 export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCliente> {
   const supabase = await createClient();
-  const [sit, atest, cond, estr, obj] = await Promise.all([
+  const [sit, atest, cond, estr, obj, cen] = await Promise.all([
     supabase.from("vw_situacao_executoria_atual").select("*").eq("cliente_id", cliente_id).maybeSingle(),
     supabase
       .from("situacao_executoria")
@@ -3558,6 +3583,8 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
     supabase.from("vw_condenacoes_cliente").select("*").eq("cliente_id", cliente_id),
     supabase.from("vw_estrategia_cliente").select("*").eq("cliente_id", cliente_id),
     supabase.from("vw_objetivos_instrumento").select("*").eq("cliente_id", cliente_id),
+    // Sug. 57 — cenários projetados (reflexo de peça nos marcos), mais recentes primeiro.
+    supabase.from("execucao_cenarios").select("*").eq("cliente_id", cliente_id).order("criado_em", { ascending: false }),
   ]);
 
   let segredo = false;
@@ -3614,14 +3641,33 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
   const condenacoes = (cond.data ?? []) as unknown as ExecCondenacao[];
   const estrategia = (estr.data ?? []) as unknown as ExecEstrategia[];
   const objetivos = (obj.data ?? []) as unknown as ExecObjetivo[];
+  const cenarios: ExecCenario[] = ((cen.data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    titulo: (r.titulo as string | null) ?? null,
+    status: (r.status as string) ?? "projetado",
+    metodo: (r.metodo as string | null) ?? null,
+    observacoes: (r.observacoes as string | null) ?? null,
+    peca_id: (r.peca_id as string | null) ?? null,
+    estudo_id: (r.estudo_id as string | null) ?? null,
+    pena_total_baseline_dias: r.pena_total_baseline_dias == null ? null : Number(r.pena_total_baseline_dias),
+    pena_total_projetada_dias: r.pena_total_projetada_dias == null ? null : Number(r.pena_total_projetada_dias),
+    data_progressao_baseline: (r.data_progressao_baseline as string | null) ?? null,
+    data_progressao_projetada: (r.data_progressao_projetada as string | null) ?? null,
+    data_livramento_baseline: (r.data_livramento_baseline as string | null) ?? null,
+    data_livramento_projetada: (r.data_livramento_projetada as string | null) ?? null,
+    premissas: Array.isArray(r.premissas) ? (r.premissas as ExecCenario["premissas"]) : [],
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    criado_em: (r.criado_em as string | null) ?? null,
+  }));
 
   return {
-    temDados: Boolean(situacao) || atestados.length > 0 || condenacoes.length > 0 || estrategia.length > 0 || objetivos.length > 0,
+    temDados: Boolean(situacao) || atestados.length > 0 || condenacoes.length > 0 || estrategia.length > 0 || objetivos.length > 0 || cenarios.length > 0,
     situacao,
     atestados,
     condenacoes,
     estrategia,
     objetivos,
+    cenarios,
   };
 }
 

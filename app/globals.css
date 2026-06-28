@@ -1199,6 +1199,32 @@ a.op-row:hover{background:var(--surface-2)}
 .xp-tag.sit::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .xp-note{font-size:11px;color:var(--muted-2);line-height:1.5;margin-top:4px}
 
+/* Sug. 57 — cenários projetados (reflexo de peça nos marcos) */
+.xc-card{position:relative;display:flex;gap:0;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.xc-card .bar{flex:none;width:4px;background:var(--muted-2)}
+.xc-card.t-blue .bar{background:var(--blue)}.xc-card.t-green .bar{background:var(--green)}.xc-card.t-amber .bar{background:var(--amber)}.xc-card.t-red .bar{background:var(--red)}.xc-card.t-gray .bar{background:var(--muted-2)}
+.xc-body{flex:1;min-width:0;padding:11px 14px}
+.xc-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.xc-head .ti{font-size:13px;font-weight:700;color:var(--name)}
+.xc-aprox{margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--amber);background:var(--amber-soft);border-radius:5px;padding:2px 8px;white-space:nowrap}
+.xc-linha{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;margin-top:8px}
+.xc-linha .k{min-width:88px;color:var(--muted);font-weight:600}
+.xc-linha .base{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted-2)}
+.xc-linha .arr{color:var(--muted-2)}
+.xc-linha .proj{font-weight:700;color:var(--text)}
+.xc-linha .proj.up{color:var(--green)}.xc-linha .proj.down{color:var(--red)}
+.xc-linha .dlt{font-size:10.5px;font-weight:700;border-radius:5px;padding:1px 7px}
+.xc-linha .dlt.up{color:var(--green);background:var(--green-soft)}
+.xc-linha .dlt.down{color:var(--red);background:var(--red-soft)}
+.xc-prem{margin:9px 0 0;padding-left:16px;font-size:11.5px;color:var(--text);line-height:1.5}
+.xc-obs{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:8px}
+.xc-foot{display:flex;gap:12px;flex-wrap:wrap;margin-top:9px;font-size:11px}
+.xc-foot .met{color:var(--muted-2);font-family:var(--mono)}
+.xc-foot .lk{color:var(--accent-strong);font-weight:600;text-decoration:none}
+.xc-foot .lk:hover{text-decoration:underline}
+.pz-tag.reflexo{background:var(--amber-soft);color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 32%,transparent)}
+.pk-reflexo{margin-top:9px;font-size:12px;color:var(--text);background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 28%,transparent);border-radius:9px;padding:8px 12px}
+
 /* Objetivos × resultados — barra lateral por status */
 .xp-obj{display:flex;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:9px}
 .xp-obj .bar{flex:none;width:4px;border-radius:4px;background:var(--brass);align-self:stretch}
