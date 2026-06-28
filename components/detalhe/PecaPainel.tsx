@@ -235,6 +235,7 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
                   <span className="pz-tag cat-slate">{humano(p.tipo)}{p.subtipo ? ` · ${humano(p.subtipo)}` : ""}</span>
                   {p.cadastro_automatico && !p.validado && <span className="pz-tag cowork"><Spark s={9} />minuta IA · revisar</span>}
                   {p.validado && <span className="pz-tag val"><Check s={9} c="var(--green)" />validada</span>}
+                  {p.reflexo_execucao && <span className="pz-tag reflexo">⚖ reflexo na execução{p.reflexo_execucao_tipo ? ` · ${humano(p.reflexo_execucao_tipo)}` : ""}</span>}
                 </div>
                 <h2 className="audp-h2">{p.titulo}</h2>
                 <div className="audp-cliline">
@@ -244,6 +245,12 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
                   {(p.numero_cnj || p.numero_registro) && <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} id={p.processo_id} />}
                   {p.tribunal && <span className="pk-trib">{p.tribunal}</span>}
                 </div>
+                {p.reflexo_execucao && p.cliente_id && (
+                  <div className="pk-reflexo">
+                    ⚖ Esta peça reflete na execução penal{p.reflexo_execucao_tipo ? ` (${humano(p.reflexo_execucao_tipo)})` : ""}.{" "}
+                    <Link className="proc-link" href={linkPara("cliente", p.cliente_id)}>Ver cenário projetado na execução do cliente →</Link>
+                  </div>
+                )}
               </div>
               {p.dias_restantes != null && (
                 <div className={`przp-datecard tone-${tone}`}>

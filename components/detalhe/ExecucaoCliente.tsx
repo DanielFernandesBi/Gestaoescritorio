@@ -3,7 +3,73 @@
 import Link from "next/link";
 import { AtestadoForm } from "@/components/detalhe/AtestadoForm";
 import { fmtDate, fmtNum, humano } from "@/lib/format";
-import type { ExecucaoCliente as TExec, ExecObjetivo, ExecAtestado } from "@/lib/data";
+import { linkPara } from "@/lib/links";
+import type { ExecucaoCliente as TExec, ExecObjetivo, ExecAtestado, ExecCenario } from "@/lib/data";
+
+// Tom do status do cenário projetado (Sug. 57).
+const cenTone = (s: string): "blue" | "amber" | "green" | "red" | "gray" =>
+  s === "confirmado" ? "green" : s === "frustrado" ? "red" : s === "parcial" ? "amber" : s === "superado" ? "gray" : "blue";
+
+// Delta em dias entre baseline e projetada (negativo = antecipa).
+function deltaDias(baseline: string | null, projetada: string | null): number | null {
+  if (!baseline || !projetada) return null;
+  return Math.round((new Date(projetada + "T12:00:00Z").getTime() - new Date(baseline + "T12:00:00Z").getTime()) / 86_400_000);
+}
+function deltaTxt(d: number | null): string {
+  if (d == null || d === 0) return "";
+  const abs = Math.abs(d);
+  return d < 0 ? `antecipa ${abs}d` : `adia ${abs}d`;
+}
+
+// Uma linha "marco: baseline → projetada (delta)".
+function CenLinha({ rotulo, baseline, projetada }: { rotulo: string; baseline: string | null; projetada: string | null }) {
+  const d = deltaDias(baseline, projetada);
+  if (!baseline && !projetada) return null;
+  return (
+    <div className="xc-linha">
+      <span className="k">{rotulo}</span>
+      <span className="base">{baseline ? fmtDate(baseline) : "—"}</span>
+      <span className="arr">→</span>
+      <span className={`proj${d != null && d < 0 ? " up" : d != null && d > 0 ? " down" : ""}`}>{projetada ? fmtDate(projetada) : "—"}</span>
+      {d != null && d !== 0 && <span className={`dlt ${d < 0 ? "up" : "down"}`}>{deltaTxt(d)}</span>}
+    </div>
+  );
+}
+
+function CenarioCard({ c }: { c: ExecCenario }) {
+  const tone = cenTone(c.status);
+  return (
+    <div className={`xc-card t-${tone}`}>
+      <span className="bar" />
+      <div className="xc-body">
+        <div className="xc-head">
+          <span className="ti">{c.titulo || "Cenário projetado"}</span>
+          <span className={`xp-st ${tone}`}>{humano(c.status)}</span>
+          <span className="xc-aprox">APROXIMAÇÃO — confirmar no SEEU</span>
+        </div>
+        <CenLinha rotulo="Progressão" baseline={c.data_progressao_baseline} projetada={c.data_progressao_projetada} />
+        <CenLinha rotulo="Livramento" baseline={c.data_livramento_baseline} projetada={c.data_livramento_projetada} />
+        {c.premissas.length > 0 && (
+          <ul className="xc-prem">
+            {c.premissas.map((p, i) => (
+              <li key={i}>
+                {[p.condenacao, p.motivo].filter(Boolean).join(" · ") || "premissa"}
+                {p.delta_dias != null && <> · <b>{p.delta_dias > 0 ? "+" : ""}{p.delta_dias}d</b></>}
+                {p.nova_data_base && <> · nova data-base {fmtDate(p.nova_data_base)}</>}
+              </li>
+            ))}
+          </ul>
+        )}
+        {c.observacoes && <div className="xc-obs">{c.observacoes}</div>}
+        <div className="xc-foot">
+          {c.metodo && <span className="met">{c.metodo}</span>}
+          {c.peca_id && <Link className="lk" href={linkPara("peca", c.peca_id)}>peça que originou ↗</Link>}
+          {c.estudo_id && <Link className="lk" href={linkPara("estudo", c.estudo_id)}>estudo ↗</Link>}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const REGIME_LBL: Record<string, string> = {
   fechado: "Regime fechado",
@@ -165,6 +231,23 @@ export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExe
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* cenários projetados (Sug. 57) — reflexo de peças nos marcos */}
+      {exec.cenarios.length > 0 && (
+        <div className="xp-sec">
+          <div className="xp-sec-h">
+            <span className="t">
+              Cenários projetados · reflexo de peças
+              <span className="n">{exec.cenarios.length} cenário{exec.cenarios.length === 1 ? "" : "s"} · baseline factual intacto</span>
+            </span>
+          </div>
+          {exec.cenarios.map((c) => <CenarioCard key={c.id} c={c} />)}
+          <div className="xp-note">
+            Projeções calculadas a partir de peças (revisão criminal, agravo em execução, comutação, unificação). São <b>aproximações</b> —
+            o marco oficial só muda com atestado novo no SEEU. A situação executória acima permanece o fato.
+          </div>
         </div>
       )}
 
