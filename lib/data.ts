@@ -3807,9 +3807,43 @@ export async function getProcessosReconciliacao(): Promise<ProcessoReconciliacao
   }));
 }
 
+/**
+ * Sug. 54 — fila REAL de merge de processos: stub só-registro INERTE pareado a um
+ * processo CNJ posterior do mesmo cliente/tribunal/área. Distinto do legado
+ * só-registro (vw_reconciliacao_registro), que é backlog estático.
+ */
+export type ProcessoPossivelDuplicata = {
+  registro_id: string;
+  numero_registro_tribunal: string | null;
+  cnj_id: string;
+  numero_cnj: string | null;
+  cliente_id: string | null;
+  cliente: string | null;
+  tribunal: string | null;
+  area: string | null;
+  segredo: boolean;
+};
+
+export async function getProcessosPossiveisDuplicatas(): Promise<ProcessoPossivelDuplicata[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("vw_possiveis_duplicatas_registro").select("*");
+  return (data ?? []).map((r): ProcessoPossivelDuplicata => ({
+    registro_id: r.proc_registro_id as string,
+    numero_registro_tribunal: (r.numero_registro_tribunal as string) ?? null,
+    cnj_id: r.proc_cnj_id as string,
+    numero_cnj: (r.numero_cnj as string) ?? null,
+    cliente_id: (r.cliente_id as string) ?? null,
+    cliente: (r.cliente as string) ?? null,
+    tribunal: (r.tribunal as string) ?? null,
+    area: (r.area as string) ?? null,
+    segredo: Boolean(r.segredo_justica),
+  }));
+}
+
 /** Contadores do topo do painel de duplicados. */
 export type DuplicadosContadores = {
-  processos_revisar: number;
+  possiveis_revisar: number; // Sug. 54 — fila real (vw_possiveis_duplicatas_registro)
+  legado_pendente: number;   // Sug. 54 — legado só-registro (vw_reconciliacao_registro)
   clientes_revisar: number;
   mesclados_30d: number;
   vinculos_religados: number;
@@ -3817,9 +3851,13 @@ export type DuplicadosContadores = {
 
 export async function getDuplicadosContadores(): Promise<DuplicadosContadores> {
   const supabase = await createClient();
-  const { data } = await supabase.from("vw_duplicados_contadores").select("*").single();
+  const [{ data }, possiveis] = await Promise.all([
+    supabase.from("vw_duplicados_contadores").select("*").single(),
+    supabase.from("vw_possiveis_duplicatas_registro").select("*", { count: "exact", head: true }),
+  ]);
   return {
-    processos_revisar: Number(data?.processos_revisar ?? 0),
+    possiveis_revisar: Number(possiveis.count ?? 0),
+    legado_pendente: Number(data?.processos_revisar ?? 0),
     clientes_revisar: Number(data?.clientes_revisar ?? 0),
     mesclados_30d: Number(data?.mesclados_30d ?? 0),
     vinculos_religados: Number(data?.vinculos_religados ?? 0),

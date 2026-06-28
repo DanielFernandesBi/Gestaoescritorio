@@ -29,7 +29,10 @@ export async function getBadges(): Promise<Badges> {
     supabase.from("clientes").select("*", { count: "exact", head: true }).eq("ativo", true),
     supabase.from("vw_processos_movimentacao").select("*", { count: "exact", head: true }).gte("dias_parado", 30),
     supabase.from("vw_clientes_duplicados").select("*", { count: "exact", head: true }),
-    supabase.from("vw_reconciliacao_registro").select("*", { count: "exact", head: true }),
+    // Sug. 54: o badge reflete a FILA REAL de merge (stub inerte × CNJ posterior do
+    // mesmo cliente), não o legado só-registro (vw_reconciliacao_registro = backlog
+    // estático, reconciliação preguiçosa pelo DJEN — não é alarme diário).
+    supabase.from("vw_possiveis_duplicatas_registro").select("*", { count: "exact", head: true }),
     supabase.from("vw_pecas_pendentes").select("*", { count: "exact", head: true }),
   ]);
 

@@ -1352,6 +1352,8 @@ a.op-row:hover{background:var(--surface-2)}
 
 /* estado vazio (clientes) */
 .dup-empty{padding:26px;text-align:center;color:var(--muted-2);font-size:13px;background:var(--surface);border:1px solid var(--line-soft);border-radius:16px}
+.dup-legado-note{font-size:12px;line-height:1.55;color:var(--muted);background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;padding:11px 14px}
+.dup-legado-note b{color:var(--text)}
 
 /* tombstones resolvidos */
 .dup-resolved-h{padding:14px 20px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:10px;flex-wrap:wrap}

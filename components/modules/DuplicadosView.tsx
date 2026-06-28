@@ -9,6 +9,7 @@ import type { Resultado } from "@/app/actions";
 import type {
   ClienteDuplicadoCluster,
   ProcessoReconciliacao,
+  ProcessoPossivelDuplicata,
   DuplicadosContadores,
   TombstoneResolvido,
 } from "@/lib/data";
@@ -112,7 +113,7 @@ function ProcessoCard({
   return (
     <article className="dup-card ai">
       <div className="dup-card-h">
-        <span className="dup-badge"><Spark />candidato a duplicata</span>
+        <span className="dup-badge soft"><Spark c="var(--accent)" />registro sem CNJ · legado</span>
         <span className="dup-scn">CNJ ↔ registro do tribunal{proc.tribunal ? ` (${proc.tribunal})` : ""}</span>
         <span className="dup-warn"><Alert />conferir antes de mesclar</span>
       </div>
@@ -177,6 +178,72 @@ function ProcessoCard({
         )}
         <button type="button" className="btn sm" onClick={() => setOculto(true)}>Não é duplicado</button>
         <button type="button" className="btn sm primary" onClick={confirmar} disabled={pend || !escolha || Boolean(res?.ok)}>
+          <Merge s={13} c="#fff" tail={false} />{pend ? "Mesclando…" : "Mesclar · manter CNJ"}
+        </button>
+      </div>
+      {res && <div className={`dup-msg ${res.ok ? "ok" : "err"}`}>{res.message}</div>}
+    </article>
+  );
+}
+
+/* ── Sug. 54 · card da FILA REAL: stub só-registro × processo CNJ do mesmo
+ * cliente (par já conhecido pela view; canônico = o que tem CNJ) ─────────── */
+function PossivelCard({ p }: { p: ProcessoPossivelDuplicata }) {
+  const router = useRouter();
+  const [pend, setPend] = useState(false);
+  const [res, setRes] = useState<Resultado | null>(null);
+  const [oculto, setOculto] = useState(false);
+
+  async function confirmar() {
+    setPend(true);
+    const r = await mesclarProcesso(p.cnj_id, p.registro_id);
+    setPend(false);
+    setRes(r);
+    if (r.ok) router.refresh();
+  }
+
+  if (oculto) {
+    return (
+      <div className="dup-dismissed">
+        Marcado como <b>não duplicado</b> nesta sessão · <span className="mono">{p.numero_registro_tribunal ?? "sem nº"}</span>
+        <button type="button" onClick={() => setOculto(false)}>desfazer</button>
+      </div>
+    );
+  }
+
+  return (
+    <article className="dup-card ai">
+      <div className="dup-card-h">
+        <span className="dup-badge"><Spark />possível duplicata · revisar</span>
+        <span className="dup-scn">mesmo cliente{p.tribunal ? ` · ${p.tribunal}` : ""}{p.area ? ` · ${humano(p.area)}` : ""}</span>
+        <span className="dup-warn"><Alert />conferir antes de mesclar</span>
+      </div>
+
+      <div className="dup-split">
+        <div className="dup-side">
+          <div className="dup-tag keep"><Check />manter · canônico (com CNJ)</div>
+          <div className="dup-person"><Person /><b>{p.segredo ? "Processo sigiloso" : (p.numero_cnj ?? "processo com CNJ")}</b></div>
+          <div className="dup-id mono">{p.numero_cnj ?? "—"}</div>
+          <div className="dup-sub">{p.cliente ?? "—"}</div>
+        </div>
+
+        <div className="dup-merge"><span className="ring"><Merge /></span><span className="lbl">religar</span></div>
+
+        <div className="dup-side tomb">
+          <div className="dup-tag tomb"><Minus />vira tombstone (sem CNJ)</div>
+          <div className="dup-person"><Person /><b>{p.numero_registro_tribunal ?? "registro sem nº"}</b>{p.segredo && <SegredoTag on />}</div>
+          <div className="dup-id mono">reg. {p.numero_registro_tribunal ?? "—"}</div>
+          <div className="dup-sub">{[p.tribunal, p.area ? humano(p.area) : null].filter(Boolean).join(" · ") || "—"}</div>
+        </div>
+      </div>
+
+      <div className="dup-foot">
+        <span className="note">
+          O mesmo cliente tem um processo <b>só-registro</b> e outro <b>com CNJ</b> na mesma área/tribunal — forte candidato à mesma ação.{" "}
+          <span className="warn-txt">Confirme que é o mesmo processo antes de mesclar.</span>
+        </span>
+        <button type="button" className="btn sm" onClick={() => setOculto(true)}>Não é duplicado</button>
+        <button type="button" className="btn sm primary" onClick={confirmar} disabled={pend || Boolean(res?.ok)}>
           <Merge s={13} c="#fff" tail={false} />{pend ? "Mesclando…" : "Mesclar · manter CNJ"}
         </button>
       </div>
@@ -294,16 +361,19 @@ const LOTE = 6;
 export function DuplicadosView({
   contadores,
   clusters,
+  possiveis,
   processos,
   tombstones,
 }: {
   contadores: DuplicadosContadores;
   clusters: ClienteDuplicadoCluster[];
+  possiveis: ProcessoPossivelDuplicata[];
   processos: ProcessoReconciliacao[];
   tombstones: TombstoneResolvido[];
 }) {
   const router = useRouter();
   const [verTodos, setVerTodos] = useState(false);
+  const [verLegado, setVerLegado] = useState(false);
   const listaRef = useRef<ProcLite[] | null>(null);
 
   // /api/processos-lite é buscada uma única vez e compartilhada por todos os cards.
@@ -334,26 +404,21 @@ export function DuplicadosView({
 
       {/* contadores */}
       <div className="dup-counters">
-        <div className="dup-counter accent"><div className="big">{contadores.processos_revisar}</div><div className="lbl">processos · a revisar</div></div>
+        <div className="dup-counter accent"><div className="big">{contadores.possiveis_revisar}</div><div className="lbl">possível duplicata · revisar</div></div>
         <div className="dup-counter"><div className="big">{contadores.clientes_revisar}</div><div className="lbl">clientes · a revisar</div></div>
+        <div className="dup-counter"><div className="big">{contadores.legado_pendente}</div><div className="lbl">CNJ pendente · legado</div></div>
         <div className="dup-counter"><div className="big green">{contadores.mesclados_30d}</div><div className="lbl">mesclados · 30d</div></div>
-        <div className="dup-counter"><div className="big">{contadores.vinculos_religados}</div><div className="lbl">vínculos religados</div></div>
       </div>
 
-      {/* processos sem CNJ */}
-      {processos.length > 0 && (
-        <>
-          <div className="dup-seclabel">
-            <span className="t">Processos · registro do tribunal sem CNJ</span>
-            <code>numero_cnj IS NULL</code>
-          </div>
-          {visiveis.map((p) => <ProcessoCard key={p.id} proc={p} carregarLista={carregarLista} />)}
-          {processos.length > LOTE && !verTodos && (
-            <button type="button" className="dup-vertodos" onClick={() => setVerTodos(true)}>
-              Ver todos os {processos.length} registros sem CNJ
-            </button>
-          )}
-        </>
+      {/* Sug. 54 — FILA REAL de merge (stub só-registro × CNJ do mesmo cliente) */}
+      <div className="dup-seclabel">
+        <span className="t">Possível duplicata · revisar</span>
+        <code>vw_possiveis_duplicatas_registro</code>
+      </div>
+      {possiveis.length > 0 ? (
+        possiveis.map((p) => <PossivelCard key={p.registro_id} p={p} />)
+      ) : (
+        <div className="dup-empty">Nenhuma duplicata real a revisar — nenhum stub só-registro pareia com um processo CNJ do mesmo cliente. 🎉</div>
       )}
 
       {/* clientes */}
@@ -365,6 +430,35 @@ export function DuplicadosView({
         clusters.map((c) => <ClienteCard key={c.nome_normalizado} cluster={c} />)
       ) : (
         <div className="dup-empty">Nenhum cliente duplicado por nome normalizado. 🎉</div>
+      )}
+
+      {/* Sug. 54 — LEGADO só-registro: backlog estático, não alarme diário */}
+      {processos.length > 0 && (
+        <>
+          <div className="dup-seclabel">
+            <span className="t">Legado · CNJ pendente (a reconciliar)</span>
+            <code>numero_cnj IS NULL · stubs inertes</code>
+          </div>
+          <div className="dup-legado-note">
+            <b>{processos.length}</b> processos STJ/STF antigos só com registro do tribunal (migração de planilha), sem CNJ — em sua maioria
+            inertes. <b>Não é alarme:</b> a reconciliação é preguiçosa — quando o caso se movimenta, o DJEN traz o CNJ e o stub é
+            mesclado no canônico (tombstone). Abra abaixo só se já souber o CNJ correspondente.
+          </div>
+          {!verLegado ? (
+            <button type="button" className="dup-vertodos" onClick={() => setVerLegado(true)}>
+              Revisar legado manualmente ({processos.length})
+            </button>
+          ) : (
+            <>
+              {visiveis.map((p) => <ProcessoCard key={p.id} proc={p} carregarLista={carregarLista} />)}
+              {processos.length > LOTE && !verTodos && (
+                <button type="button" className="dup-vertodos" onClick={() => setVerTodos(true)}>
+                  Ver todos os {processos.length} registros sem CNJ
+                </button>
+              )}
+            </>
+          )}
+        </>
       )}
 
       {/* tombstones resolvidos */}
