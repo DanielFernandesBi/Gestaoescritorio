@@ -54,6 +54,7 @@ export const NAV: NavGroup[] = [
   {
     grp: "Gestão",
     items: [
+      { id: "negocios", label: "Novos negócios", ico: "briefcase", href: "/negocios" },
       { id: "financeiro", label: "Financeiro", ico: "wallet", href: "/financeiro" },
       { id: "auditoria", label: "Auditoria", ico: "shield", href: "/auditoria" },
       { id: "duplicados", label: "Duplicados", ico: "users", href: "/duplicados", badgeKey: "duplicados", kind: "warn" },

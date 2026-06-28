@@ -86,6 +86,11 @@ export const ESTUDO_STATUS = ["em_elaboracao", "concluido", "aplicado", "superad
 export const ESTUDO_TIPO = ["geral", "execucao_global", "recurso", "defesa", "revisional"] as const;
 export const OBJETIVO_STATUS = ["planejado", "em_curso", "atingido", "frustrado", "prejudicado"] as const;
 
+/* Funil de novos negócios (Sug. 59/68) — pré-contrato. */
+export const OPORTUNIDADE_ESTAGIO = ["tratativa", "estudo_preliminar", "proposta", "negociacao", "fechado", "recusado", "perdido"] as const;
+export const ORIGEM_LEAD = ["indicacao", "site", "instagram", "telefone", "outro"] as const;
+export const PROBABILIDADE = ["baixa", "media", "alta"] as const;
+
 /** Rótulos amigáveis para alguns valores. */
 export const ROTULO: Record<string, string> = {
   providencia_tomada: "Providência tomada",
