@@ -11,6 +11,7 @@ export function FavoritoStar({ id, favorito }: { id: string; favorito: boolean }
   const [pend, setPend] = useState(false);
 
   async function toggle(e: React.MouseEvent) {
+    e.preventDefault();
     e.stopPropagation();
     if (pend) return;
     const novo = !on;

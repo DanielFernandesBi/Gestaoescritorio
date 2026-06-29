@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ProcRef, SegredoTag } from "@/components/ui";
 import { ClienteMaster, mascararCpf, sitTone } from "@/components/detalhe/ClienteMaster";
+import { FavoritoStar } from "@/components/FavoritoStar";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
@@ -335,9 +336,11 @@ export function ClientePainel({
                   {!obsoleto && p.unificouEm && <span className="pz-tag unificado">⛓ unificado</span>}
                   <span className={`pz-tag ${sitTone(p.situacao_prisional) === "green" ? "val" : sitTone(p.situacao_prisional) === "red" ? "preso" : "tang"}`}>{humano(p.situacao_prisional)}</span>
                   {p.exec && <span className="pz-tag cat-neutral">execução penal ativa</span>}
-                  {p.favorito && <span className="pz-tag cowork">★ favorito</span>}
                 </div>
-                <h2 className="audp-h2 nome-cliente">{p.nome}</h2>
+                <div className="cli-nome-line">
+                  <FavoritoStar id={p.id} favorito={p.favorito} />
+                  <h2 className="audp-h2 nome-cliente">{p.nome}</h2>
+                </div>
                 <div className="audp-cliline">
                   <span className="mono">CPF {mascararCpf(p.cpf)}</span>
                   {idade != null && <span className="cli-sep">· {idade} anos</span>}
