@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ProcRef } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
@@ -175,7 +176,7 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
 
   const VincularCliente = ({ label = "Vincular cliente", variant = "primary" as "primary" | "default" }) => (
     <FormModal label={label} titulo="Vincular cliente ao processo" descricao="A IA tenta casar por nome normalizado + CPF; na dúvida, abre tarefa de conferência em vez de criar às cegas." acao={vincularClienteProcesso.bind(null, p.id)} enviarLabel="Vincular" variant={variant}>
-      <div><label>Cliente</label><select name="cliente_id" required defaultValue=""><option value="" disabled>Selecione…</option>{clis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+      <div><label>Cliente</label><BuscaSelect name="cliente_id" options={clis.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente…" /></div>
       <div><label>Papel</label><select name="papel" defaultValue="reu">{PAPEL.map((x) => <option key={x} value={x}>{humano(x)}</option>)}</select></div>
     </FormModal>
   );

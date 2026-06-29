@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { Icon } from "@/components/Icon";
 import { criarAudiencia } from "@/app/actions";
 import { AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE, RESPONSAVEIS } from "@/lib/enums";
@@ -30,10 +31,7 @@ export function CadastrarAudiencia() {
     >
       <div>
         <label>Processo</label>
-        <select name="processo_id" required defaultValue="">
-          <option value="" disabled>Selecione…</option>
-          {procs.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
+        <BuscaSelect name="processo_id" options={procs} placeholder="Buscar por CNJ, registro ou cliente…" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div><label>Tipo</label><select name="tipo" required defaultValue="instrucao">{AUDIENCIA_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>

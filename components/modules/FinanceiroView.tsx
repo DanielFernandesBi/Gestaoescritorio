@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { Icon } from "@/components/Icon";
 import { marcarPago, criarContrato, criarDespesa, marcarDespesaReembolsada } from "@/app/actions";
 import { DESPESA_CATEGORIA } from "@/lib/enums";
@@ -172,10 +173,7 @@ export function FinanceiroView({
           </FormModal>
           <FormModal label={<><Icon name="folder" size={15} /> Novo contrato</>} titulo="Novo contrato" acao={criarContrato} enviarLabel="Criar">
             <div><label>Cliente</label>
-              <select name="cliente_id" required defaultValue="">
-                <option value="" disabled>Selecione…</option>
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
+              <BuscaSelect name="cliente_id" options={clientes.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente…" />
             </div>
             <div><label>Objeto da contratação</label><textarea name="objeto" required placeholder="Ex.: Defesa criminal; execução penal — progressão…" /></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

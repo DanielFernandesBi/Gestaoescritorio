@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { Icon } from "@/components/Icon";
 import { criarPrazo } from "@/app/actions";
 import { TIPO_CONTAGEM, RESPONSAVEIS } from "@/lib/enums";
@@ -28,10 +29,7 @@ export function CadastrarPrazo() {
     >
       <div>
         <label>Processo</label>
-        <select name="processo_id" required defaultValue="">
-          <option value="" disabled>Selecione…</option>
-          {procs.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
+        <BuscaSelect name="processo_id" options={procs} placeholder="Buscar por CNJ, registro ou cliente…" />
       </div>
       <div><label>Ato</label><input name="ato" required placeholder="Ex.: Razões de apelação (CPP art. 600)" /></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

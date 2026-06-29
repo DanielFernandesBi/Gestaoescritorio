@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { PAPEL, PROCESSO_INSTANCIA, PROCESSO_AREA } from "@/lib/enums";
 import { humano } from "@/lib/format";
 import type { Resultado } from "@/app/actions";
@@ -48,10 +49,7 @@ export function PromoverProcessoForm({
       <h4 style={subH}>1 · Processo</h4>
       <div>
         <label>Processo já existente</label>
-        <select name="processo_id" defaultValue="">
-          <option value="">— cadastrar novo abaixo —</option>
-          {procs.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-        </select>
+        <BuscaSelect name="processo_id" options={procs} placeholder="Buscar por CNJ, registro ou cliente… (ou cadastre novo abaixo)" />
       </div>
       <p className="sub" style={{ margin: "2px 0 6px" }}>
         Se selecionar um existente, os campos abaixo são ignorados (mas um CNJ informado completa um registro que ainda não tinha CNJ).
@@ -78,10 +76,7 @@ export function PromoverProcessoForm({
       <div style={grid2}>
         <div>
           <label>Cliente existente</label>
-          <select name="cliente_id" defaultValue="">
-            <option value="">— nenhum / novo abaixo —</option>
-            {clis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
+          <BuscaSelect name="cliente_id" options={clis.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente…" />
         </div>
         <div><label>Papel</label><select name="papel" defaultValue="reu">{PAPEL.map((p) => <option key={p} value={p}>{humano(p)}</option>)}</select></div>
       </div>
