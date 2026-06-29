@@ -1,34 +1,53 @@
-import { getAcervoProcessos, getProcessos } from "@/lib/data";
+import { getAcervoProcessos, getProcessos, getProcessosPorStatus } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { ProcessosList } from "@/components/modules/ProcessosList";
 import { ProcessoMaster } from "@/components/detalhe/ProcessoPainel";
 import { ListaRaiz } from "@/components/ListaRaiz";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
+import Link from "next/link";
 import { criarProcesso } from "@/app/actions";
 import { getClientes } from "@/lib/data";
-import { PROCESSO_INSTANCIA, PROCESSO_AREA, RESPONSAVEIS, PAPEL } from "@/lib/enums";
+import { PROCESSO_INSTANCIA, PROCESSO_AREA, PROCESSO_STATUS, RESPONSAVEIS, PAPEL } from "@/lib/enums";
+import { humano, fmtNum } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProcessosPage() {
+export default async function ProcessosPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const sp = await searchParams;
+  const ALLOWED = [...PROCESSO_STATUS, "todos"];
+  const status = sp.status && ALLOWED.includes(sp.status) ? sp.status : "ativo";
+  const escopo = status === "todos";
+
   const supabase = await createClient();
-  const [{ processos, tombstones }, ativos, semCnj, sigilosos, parados, clientes, indice] = await Promise.all([
-    getAcervoProcessos(150),
-    supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
-    supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo").is("numero_cnj", null),
-    supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo").eq("segredo_justica", true),
+  let qSemCnj = supabase.from("processos").select("*", { count: "exact", head: true }).is("numero_cnj", null);
+  let qSig = supabase.from("processos").select("*", { count: "exact", head: true }).eq("segredo_justica", true);
+  if (!escopo) { qSemCnj = qSemCnj.eq("status", status); qSig = qSig.eq("status", status); }
+
+  const [{ processos, tombstones }, porStatus, semCnj, sigilosos, parados, clientes, indice] = await Promise.all([
+    getAcervoProcessos(600, status),
+    getProcessosPorStatus(),
+    qSemCnj,
+    qSig,
     supabase.from("vw_processos_movimentacao").select("*", { count: "exact", head: true }).gte("dias_parado", 30),
     getClientes(),
     getProcessos(),
   ]);
 
+  const total = Object.values(porStatus).reduce((a, b) => a + b, 0);
+  const statusTotal = escopo ? total : (porStatus[status] ?? 0);
   const stats = {
-    ativos: ativos.count ?? 0,
+    ativos: statusTotal,
     parados: parados.count ?? 0,
     sigilosos: sigilosos.count ?? 0,
     semcnj: semCnj.count ?? 0,
   };
+
+  // Chips de status (só os que existem) + "Todos".
+  const statusChips = [
+    ...PROCESSO_STATUS.filter((s) => (porStatus[s] ?? 0) > 0).map((s) => ({ id: s, label: humano(s), n: porStatus[s] })),
+    { id: "todos", label: "Todos", n: total },
+  ];
 
   return (
     <ListaRaiz indice={<ProcessoMaster lista={indice} />}>
@@ -72,7 +91,15 @@ export default async function ProcessosPage() {
           </label>
         </FormModal>
       </div>
-      <ProcessosList processos={processos} tombstones={tombstones} stats={stats} />
+      <div className="proc-statusfiltro">
+        <span className="proc-statusfiltro-l">Status</span>
+        {statusChips.map((c) => (
+          <Link key={c.id} className={`audp-chip ink${c.id === status ? " on" : ""}`} href={`/processos${c.id === "ativo" ? "" : `?status=${c.id}`}`}>
+            {c.label} <b>{fmtNum(c.n)}</b>
+          </Link>
+        ))}
+      </div>
+      <ProcessosList processos={processos} tombstones={tombstones} stats={stats} statusAtual={status} />
     </ListaRaiz>
   );
 }
