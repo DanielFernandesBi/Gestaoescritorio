@@ -1395,7 +1395,7 @@ export async function getProcessoPorId(id: string): Promise<Processo | null> {
 export type ProcPrazoMini = { id: string; ato: string; data_fatal: string; data_interna: string | null; dias: number; validado: boolean; status: string };
 export type ProcAudMini = { id: string; tipo: string; nome: string | null; data_hora: string; modalidade: string | null; status: string; validado: boolean };
 export type ProcIntimMini = { id: string; resumo: string | null; origem: string | null; status: string; data_publicacao: string | null; providencia: string | null };
-export type ProcAndMini = { id: string; data: string; tipo: string; descricao: string };
+export type ProcAndMini = { id: string; data: string; tipo: string; descricao: string; origem: string | null };
 export type ProcPecaMini = { id: string; titulo: string; tipo: string; subtipo: string | null; status: string };
 export type ProcEstudoMini = { id: string; titulo: string; status: string; tipo: string | null };
 export type ProcContratoMini = { id: string; objeto: string | null; status: string; valor_total: number | null };
@@ -1441,7 +1441,7 @@ export async function getProcessoFull(id: string): Promise<ProcessoFull | null> 
     supabase.from("prazos").select("id, ato, data_fatal, data_interna, validado, status").eq("processo_id", id).eq("status", "aberto").order("data_fatal", { ascending: true }),
     supabase.from("audiencias").select("id, tipo, nome, data_hora, modalidade, status, validado").eq("processo_id", id).order("data_hora", { ascending: true }),
     supabase.from("intimacoes").select("id, resumo, origem, status, data_publicacao, providencia").eq("processo_id", id).order("data_publicacao", { ascending: false, nullsFirst: false }).limit(20),
-    supabase.from("andamentos").select("id, data, tipo, descricao").eq("processo_id", id).order("data", { ascending: false }).limit(25),
+    supabase.from("andamentos").select("id, data, tipo, descricao, origem").eq("processo_id", id).order("data", { ascending: false }).limit(25),
     supabase.from("pecas").select("id, titulo, tipo, subtipo, status").eq("processo_id", id).order("criado_em", { ascending: false }),
     supabase.from("estudo_processo").select("estudo_id, estudos_caso(id, titulo, status, tipo)").eq("processo_id", id),
     supabase.from("contratos").select("id, objeto, status, valor_total").eq("processo_id", id).order("criado_em", { ascending: false }),
@@ -1483,7 +1483,7 @@ export async function getProcessoFull(id: string): Promise<ProcessoFull | null> 
     prazos: (prz.data ?? []).map((p) => ({ id: p.id as string, ato: p.ato as string, data_fatal: p.data_fatal as string, data_interna: (p.data_interna as string | null) ?? null, dias: diasAte(p.data_fatal as string), validado: Boolean(p.validado), status: p.status as string })),
     audiencias: (aud.data ?? []).map((a) => ({ id: a.id as string, tipo: a.tipo as string, nome: (a.nome as string | null) ?? null, data_hora: a.data_hora as string, modalidade: (a.modalidade as string | null) ?? null, status: a.status as string, validado: Boolean(a.validado) })),
     intimacoes: (intim.data ?? []).map((i) => ({ id: i.id as string, resumo: (i.resumo as string | null) ?? null, origem: (i.origem as string | null) ?? null, status: i.status as string, data_publicacao: (i.data_publicacao as string | null) ?? null, providencia: (i.providencia as string | null) ?? null })),
-    andamentos: (ands.data ?? []).map((a) => ({ id: a.id as string, data: a.data as string, tipo: a.tipo as string, descricao: a.descricao as string })),
+    andamentos: (ands.data ?? []).map((a) => ({ id: a.id as string, data: a.data as string, tipo: a.tipo as string, descricao: a.descricao as string, origem: (a.origem as string | null) ?? null })),
     pecas: (pcs.data ?? []).map((p) => ({ id: p.id as string, titulo: p.titulo as string, tipo: p.tipo as string, subtipo: (p.subtipo as string | null) ?? null, status: p.status as string })),
     estudos,
     contratos: (ctr.data ?? []).map((c) => ({ id: c.id as string, objeto: (c.objeto as string | null) ?? null, status: c.status as string, valor_total: c.valor_total == null ? null : Number(c.valor_total) })),

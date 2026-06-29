@@ -119,7 +119,7 @@ function EditarAndamento({ a }: { a: AndamentoFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "recentes" }: { a: AndamentoFull; lista: Movimentacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; filtroInicial?: "recentes" | "escalados" }) {
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(anotacoes.length > 0);
   const idc = idCurto(a.codigo_movimentacao);
 
   return (
@@ -155,6 +155,27 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
                 {idc ? `${idc} · ` : ""}{ddmm(a.data)}{a.vara_comarca ? ` · ${a.vara_comarca}` : a.tribunal ? ` · ${a.tribunal}` : ""}
               </span>
             </div>
+
+            {/* PROCESSO — referência clara e clicável (abre o histórico de movimentações) */}
+            {a.processo_id ? (
+              <Link className="and-procref" href={linkPara("processo", a.processo_id)}>
+                <div className="and-procref-l">
+                  <span className="and-procref-k">Processo</span>
+                  <span className="and-procref-num mono">{a.numero_cnj ?? (a.numero_registro ? `reg ${a.numero_registro}` : "sem CNJ")}</span>
+                  {([a.classe ? humano(a.classe) : a.area ? humano(a.area) : null, a.vara_comarca ?? a.tribunal].filter(Boolean).join(" · ")) && (
+                    <span className="and-procref-meta">{[a.classe ? humano(a.classe) : a.area ? humano(a.area) : null, a.vara_comarca ?? a.tribunal].filter(Boolean).join(" · ")}</span>
+                  )}
+                </div>
+                <span className="and-procref-cta">ver histórico de movimentações →</span>
+              </Link>
+            ) : (
+              <div className="and-procref orfao">
+                <div className="and-procref-l">
+                  <span className="and-procref-k">Processo</span>
+                  <span className="and-procref-meta">Andamento órfão — sem processo vinculado. Vai à triagem; nunca se perde.</span>
+                </div>
+              </div>
+            )}
 
             {/* BLOCO 1 · regra de dedup */}
             <div className="and-dedup">

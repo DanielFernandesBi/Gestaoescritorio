@@ -162,7 +162,7 @@ function NovoPrazo({ p }: { p: ProcessoFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista: Processo[]; anotacoes: Anotacao[] }) {
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(anotacoes.length > 0);
   const [clis, setClis] = useState<{ id: string; nome: string }[]>([]);
 
   useEffect(() => {
@@ -327,11 +327,19 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
               </Sec>
             )}
 
-            {/* BLOCO 11 · ANDAMENTOS */}
-            <Sec titulo="Andamentos" extra={<span className="audp-count">{p.andamentos.length}</span>}>
+            {/* BLOCO 11 · ANDAMENTOS — movimentações com o teor inline (leitura rápida) */}
+            <Sec titulo="Andamentos" sub="movimentações do processo" extra={<span className="audp-count">{p.andamentos.length}</span>}>
               {p.andamentos.length === 0 ? <div className="audp-empty">Sem andamentos.</div> : (
-                <div className="przp-stack">{p.andamentos.map((a) => (
-                  <Item key={a.id} tag={humano(a.tipo)} tagTone="cat-neutral" titulo={curto(a.descricao)} sub={<span className="mono">{ddmm(a.data)}</span>} href={linkPara("andamento", a.id)} />
+                <div className="proc-mov-stack">{p.andamentos.map((a) => (
+                  <div className="proc-mov" key={a.id}>
+                    <div className="proc-mov-h">
+                      <span className="pz-tag cat-neutral">{humano(a.tipo)}</span>
+                      <span className="proc-mov-nome">{curto(a.descricao)}</span>
+                      <span className="proc-mov-data mono">{ddmm(a.data)}{a.origem ? ` · ${a.origem.toLowerCase()}` : ""}</span>
+                      <Link className="btn sm abrir" href={linkPara("andamento", a.id)}>Abrir</Link>
+                    </div>
+                    <p className="proc-mov-teor">{a.descricao}</p>
+                  </div>
                 ))}</div>
               )}
             </Sec>
