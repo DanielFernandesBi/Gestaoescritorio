@@ -1102,6 +1102,12 @@ a.op-row:hover{background:var(--surface-2)}
 .star{background:none;border:none;cursor:pointer;font-size:17px;line-height:1;color:var(--muted-2);padding:2px 4px;border-radius:6px;transition:.12s}
 .star:hover{color:var(--brass);background:var(--brass-soft)}
 .star.on{color:var(--brass)}
+/* estrela de favorito ao lado do nome do cliente (detalhe + índice) */
+.cli-nome-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cli-nome-line .star{font-size:24px;padding:0 2px}
+.cli-mnome-row{display:flex;align-items:flex-start;gap:6px}
+.cli-mnome-row .cli-mnome{flex:1;min-width:0}
+.cli-mnome-row .star{font-size:14px;padding:0 2px;flex:none}
 
 /* Execução penal (aba na ficha do cliente) */
 .exec-destaque{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}

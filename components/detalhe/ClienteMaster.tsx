@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { FavoritoStar } from "@/components/FavoritoStar";
 import { humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { Cliente } from "@/lib/data";
@@ -26,9 +27,12 @@ const ehPreso = (c: Cliente) => /preso|foragido/.test(c.situacao_prisional ?? ""
 function MasterCard({ c, ativo }: { c: Cliente; ativo: boolean }) {
   return (
     <Link className={`cli-mcard${ativo ? " on" : ""}`} href={linkPara("cliente", c.id)}>
-      <div className="cli-mnome">
-        {c.nome}
-        {c.unificado && <span className="cli-unif-tag" title="Cadastro unificado — absorveu duplicado(s)">⛓ unificado</span>}
+      <div className="cli-mnome-row">
+        <div className="cli-mnome">
+          {c.nome}
+          {c.unificado && <span className="cli-unif-tag" title="Cadastro unificado — absorveu duplicado(s)">⛓ unificado</span>}
+        </div>
+        <FavoritoStar id={c.id} favorito={c.favorito} />
       </div>
       <div className="cli-mmeta">
         <span className={`cli-dot ${sitTone(c.situacao_prisional)}`} />
