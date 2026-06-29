@@ -4,6 +4,7 @@ import { ProcessosList } from "@/components/modules/ProcessosList";
 import { ProcessoMaster } from "@/components/detalhe/ProcessoPainel";
 import { ListaRaiz } from "@/components/ListaRaiz";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { criarProcesso } from "@/app/actions";
@@ -78,10 +79,7 @@ export default async function ProcessosPage({ searchParams }: { searchParams: Pr
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
             <div><label>Cliente (vincular existente)</label>
-              <select name="cliente_id" defaultValue="">
-                <option value="">— sem vínculo —</option>
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
+              <BuscaSelect name="cliente_id" options={clientes.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente… (opcional)" />
             </div>
             <div><label>Papel</label><select name="papel" defaultValue="reu">{PAPEL.map((p) => <option key={p} value={p}>{p}</option>)}</select></div>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { promoverPrazoOrfao } from "@/app/actions";
 import { PAPEL, PROCESSO_INSTANCIA, PROCESSO_AREA } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
@@ -46,10 +47,7 @@ export function PromoverOrfao({
       <h4 style={{ margin: "6px 0 2px", fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--brass)" }}>1 · Processo</h4>
       <div>
         <label>Processo já existente</label>
-        <select name="processo_id" defaultValue="">
-          <option value="">— cadastrar novo abaixo —</option>
-          {procs.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-        </select>
+        <BuscaSelect name="processo_id" options={procs} placeholder="Buscar por CNJ, registro ou cliente… (ou cadastre novo abaixo)" />
       </div>
       <p className="sub" style={{ margin: "2px 0 6px" }}>Se selecionar um existente, os campos abaixo são ignorados (mas um CNJ informado completa um registro que ainda não tinha CNJ).</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -73,10 +71,7 @@ export function PromoverOrfao({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
           <label>Cliente existente</label>
-          <select name="cliente_id" defaultValue="">
-            <option value="">— nenhum / novo abaixo —</option>
-            {clis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
+          <BuscaSelect name="cliente_id" options={clis.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente…" />
         </div>
         <div><label>Papel</label><select name="papel" defaultValue="reu">{PAPEL.map((p2) => <option key={p2} value={p2}>{humano(p2)}</option>)}</select></div>
       </div>

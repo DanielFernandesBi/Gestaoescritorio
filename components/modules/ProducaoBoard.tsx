@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { linkPara } from "@/lib/links";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import {
   criarPeca,
   moverPeca,
@@ -176,17 +177,11 @@ export function NovaPeca() {
       <div style={grid2}>
         <div>
           <label>Cliente</label>
-          <select name="cliente_id" defaultValue="">
-            <option value="">— nenhum —</option>
-            {clis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
+          <BuscaSelect name="cliente_id" options={clis.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente… (opcional)" />
         </div>
         <div>
           <label>Processo</label>
-          <select name="processo_id" defaultValue="">
-            <option value="">— nenhum (inicial de caso novo) —</option>
-            {procs.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-          </select>
+          <BuscaSelect name="processo_id" options={procs.map((x) => ({ id: x.id, label: x.label }))} placeholder="Buscar processo… (opcional)" />
         </div>
       </div>
       <div>

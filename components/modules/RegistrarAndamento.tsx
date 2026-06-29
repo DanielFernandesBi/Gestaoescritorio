@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { Icon } from "@/components/Icon";
 import { criarAndamento } from "@/app/actions";
 import { ANDAMENTO_TIPO } from "@/lib/enums";
@@ -28,10 +29,7 @@ export function RegistrarAndamento() {
     >
       <div>
         <label>Processo</label>
-        <select name="processo_id" required defaultValue="">
-          <option value="">— selecione —</option>
-          {procs.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
+        <BuscaSelect name="processo_id" options={procs} placeholder="Buscar por CNJ, registro ou cliente…" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div><label>Tipo</label><select name="tipo" defaultValue="movimentacao_tribunal">{ANDAMENTO_TIPO.map((t) => <option key={t} value={t}>{humano(t)}</option>)}</select></div>

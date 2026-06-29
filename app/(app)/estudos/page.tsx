@@ -1,6 +1,7 @@
 import { getEstudos, getClientes } from "@/lib/data";
 import { EstudosList } from "@/components/modules/EstudosList";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import { Icon } from "@/components/Icon";
 import { criarEstudo } from "@/app/actions";
 import { ESTUDO_TIPO } from "@/lib/enums";
@@ -30,10 +31,7 @@ export default async function EstudosPage({
           <div><label>Título</label><input name="titulo" required placeholder="Ex.: Execução penal — estratégia global" /></div>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
             <div><label>Cliente</label>
-              <select name="cliente_id" defaultValue="">
-                <option value="">— sem vínculo —</option>
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
+              <BuscaSelect name="cliente_id" options={clientes.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente… (opcional)" />
             </div>
             <div><label>Tipo</label><select name="tipo" defaultValue="execucao_global">{ESTUDO_TIPO.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
           </div>

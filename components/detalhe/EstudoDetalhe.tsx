@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Pill } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
+import { BuscaSelect } from "@/components/BuscaSelect";
 import {
   atualizarEstudo, vincularProcessoEstudo, criarObjetivo, atualizarObjetivo,
 } from "@/app/actions";
@@ -16,15 +17,10 @@ const objTone = (s: string) =>
   s === "atingido" ? "green" : s === "em_curso" ? "blue" : s === "frustrado" ? "red" : s === "prejudicado" ? "gray" : "amber";
 const priTone = (p: string | null) => (p === "urgente" ? "red" : p === "alta" ? "amber" : "gray");
 
-function ProcSelect({ name, processos, defaultValue = "", placeholder = "— nenhum —", required = false }: {
+function ProcSelect({ name, processos, defaultValue = "", placeholder = "Buscar processo…" }: {
   name: string; processos: ProcLite[]; defaultValue?: string; placeholder?: string; required?: boolean;
 }) {
-  return (
-    <select name={name} defaultValue={defaultValue} required={required}>
-      <option value="">{placeholder}</option>
-      {processos.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-    </select>
-  );
+  return <BuscaSelect name={name} options={processos} defaultValue={defaultValue} placeholder={placeholder} />;
 }
 
 export function EstudoDetalhe({ estudoId }: { estudoId: string }) {
