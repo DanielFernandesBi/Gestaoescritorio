@@ -2194,6 +2194,12 @@ a.tk-title:hover{text-decoration:underline}
 .audp-master-h{flex:none;padding:18px 18px 12px}
 .audp-master-h h1{font-family:var(--serif);font-size:26px;font-weight:600;line-height:1;color:var(--ink);margin:0}
 .audp-filtros{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+/* filtro de status dos processos (chips de navegação por status) */
+.proc-statusfiltro{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.proc-statusfiltro-l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-right:2px}
+.proc-statusfiltro .audp-chip{text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.proc-statusfiltro .audp-chip b{font-family:var(--mono);font-weight:700}
+.proc-statusfiltro .audp-chip:not(.on) b{color:var(--muted-2)}
 .audp-chip{padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;background:var(--surface);color:var(--muted);border-color:var(--line)}
 .audp-chip.ink.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .audp-chip.tang.on{background:var(--tang);color:#fff;border-color:var(--tang)}

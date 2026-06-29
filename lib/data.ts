@@ -1226,17 +1226,29 @@ export type ProcAcervo = Processo & {
 };
 export type Tombstone = { id: string; identificador: string; merged_into: string };
 
-export async function getAcervoProcessos(limit = 120): Promise<{ processos: ProcAcervo[]; tombstones: Tombstone[] }> {
+/** Contagem de processos por status (chips do filtro). */
+export async function getProcessosPorStatus(): Promise<Record<string, number>> {
   const supabase = await createClient();
+  const { data } = await supabase.from("processos").select("status");
+  const m: Record<string, number> = {};
+  for (const r of data ?? []) {
+    const s = (r.status as string) ?? "—";
+    m[s] = (m[s] ?? 0) + 1;
+  }
+  return m;
+}
+
+export async function getAcervoProcessos(limit = 120, status = "ativo"): Promise<{ processos: ProcAcervo[]; tombstones: Tombstone[] }> {
+  const supabase = await createClient();
+  // Filtro de status no servidor (todo processo tem status; "todos" remove o filtro).
+  let q = supabase
+    .from("processos")
+    .select(
+      "id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, assunto, fase, status, responsavel, segredo_justica, cadastro_automatico, processo_origem, cliente_processo(papel,clientes(nome,situacao_prisional))",
+    );
+  if (status !== "todos") q = q.eq("status", status);
   const [{ data: rows }, { data: tomb }] = await Promise.all([
-    supabase
-      .from("processos")
-      .select(
-        "id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, assunto, fase, status, responsavel, segredo_justica, cadastro_automatico, processo_origem, cliente_processo(papel,clientes(nome,situacao_prisional))",
-      )
-      .eq("status", "ativo")
-      .order("criado_em", { ascending: false })
-      .limit(limit),
+    q.order("criado_em", { ascending: false }).limit(limit),
     supabase
       .from("processos")
       .select("id, numero_cnj, numero_registro_tribunal, merged_into")

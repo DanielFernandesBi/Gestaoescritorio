@@ -117,10 +117,12 @@ export function ProcessosList({
   processos,
   tombstones,
   stats,
+  statusAtual = "ativo",
 }: {
   processos: ProcAcervo[];
   tombstones: Tombstone[];
   stats: { ativos: number; parados: number; sigilosos: number; semcnj: number };
+  statusAtual?: string;
 }) {
   const [aba, setAba] = useState("todos");
   const [visiveis, setVisiveis] = useState(PASSO);
@@ -141,8 +143,9 @@ export function ProcessosList({
   );
   const mostradas = filtradas.slice(0, visiveis);
 
+  const statusLabel = statusAtual === "todos" ? "Todos · acervo" : `${humano(statusAtual)} · status atual`;
   const cards = [
-    { id: "todos", n: stats.ativos, label: "Ativos · acervo vivo" },
+    { id: "todos", n: stats.ativos, label: statusLabel },
     { id: "parados", n: stats.parados, label: "Parados ≥30d · radar" },
     { id: "sigilosos", n: stats.sigilosos, label: "Sigilosos · segredo" },
     { id: "semcnj", n: stats.semcnj, label: "Sem CNJ · só registro" },
