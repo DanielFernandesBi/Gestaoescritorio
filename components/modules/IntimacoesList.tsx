@@ -13,7 +13,12 @@ import type { Intimacao } from "@/lib/data";
 const PASSO = 50;
 
 const tone = (s: string) =>
-  s === "pendente" ? "amber" : s === "providencia_tomada" ? "green" : s === "em_analise" ? "blue" : "gray";
+  s === "pendente" ? "amber"
+    : s === "providencia_tomada" ? "green"
+      : s === "em_analise" ? "blue"
+        : s === "sem_providencia" ? "brass"
+          : s === "arquivada" ? "violet"
+            : "gray";
 
 // Sugestão 53 — DOIS eixos: LEITURA (default "Para revisar" = revisado_em null) e
 // FLUXO ("Na caixa" = na_caixa derivado dos fatos). Depois, os filtros por status.
@@ -23,6 +28,9 @@ const STATUS = [
   { id: "todas", label: "Todas" },
   { id: "pendentes", label: "Pendentes" },
   { id: "em_analise", label: "Em análise" },
+  { id: "sem_providencia", label: "Sem providência" },
+  { id: "providencia_tomada", label: "Providência tomada" },
+  { id: "arquivada", label: "Arquivadas" },
   { id: "orfas", label: "Órfãs" },
 ];
 const ORIGENS = [
@@ -64,8 +72,11 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
             : st === "na_caixa" ? Boolean(i.na_caixa)
               : st === "pendentes" ? i.status === "pendente"
                 : st === "em_analise" ? i.status === "em_analise"
-                  : st === "orfas" ? i.orfa
-                    : true;
+                  : st === "sem_providencia" ? i.status === "sem_providencia"
+                    : st === "providencia_tomada" ? i.status === "providencia_tomada"
+                      : st === "arquivada" ? i.status === "arquivada"
+                        : st === "orfas" ? i.orfa
+                          : true;
         const okOrig = orig === "todas" ? true : i.origem === orig;
         return okSt && okOrig;
       }),
@@ -77,13 +88,17 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
   const nCaixa = intimacoes.filter((i) => i.na_caixa).length;
   const nPend = intimacoes.filter((i) => i.status === "pendente").length;
   const nAnalise = intimacoes.filter((i) => i.status === "em_analise").length;
+  const nSemProv = intimacoes.filter((i) => i.status === "sem_providencia").length;
+  const nProvTomada = intimacoes.filter((i) => i.status === "providencia_tomada").length;
+  const nArquivada = intimacoes.filter((i) => i.status === "arquivada").length;
   const nOrfas = intimacoes.filter((i) => i.orfa).length;
 
   const irPara = (id: string) => { setSt(id); setVisiveis(PASSO); };
 
   const contaDe: Record<string, number> = {
     para_revisar: nRevisar, na_caixa: nCaixa, todas: intimacoes.length,
-    pendentes: nPend, em_analise: nAnalise, orfas: nOrfas,
+    pendentes: nPend, em_analise: nAnalise, sem_providencia: nSemProv,
+    providencia_tomada: nProvTomada, arquivada: nArquivada, orfas: nOrfas,
   };
   const opcoesStatus = STATUS.map((o) => ({ ...o, label: `${o.label} (${contaDe[o.id] ?? 0})` }));
 
