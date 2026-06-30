@@ -1187,7 +1187,7 @@ a.op-row:hover{background:var(--surface-2)}
 /* Condenação — uma por card, célula rotulada + etiquetas coloridas */
 .xp-cond{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:9px}
 .xp-cond-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.xp-cond .crime{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--name);line-height:1.2}
+.xp-cond .crime{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--name);line-height:1.2}
 .xp-cond .org{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
 .xp-cond .org a{color:var(--accent);text-decoration:none} .xp-cond .org a:hover{text-decoration:underline}
 .xp-cond .org .nolink{color:var(--amber)}
