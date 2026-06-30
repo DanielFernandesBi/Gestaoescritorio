@@ -18,7 +18,7 @@ import {
 } from "@/lib/enums";
 import { humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
-import type { Processo, ProcessoFull, Anotacao } from "@/lib/data";
+import type { Processo, ProcessoFull, ProcAndMini, Anotacao } from "@/lib/data";
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
 const Spark = ({ s = 13 }: { s?: number }) => (
@@ -57,6 +57,34 @@ function Item({ tag, tagTone = "cat-slate", titulo, sub, href, dias }: { tag: st
       {dias != null && <span className={`proc-dias ${dias < 0 ? "red" : dias <= 2 ? "red" : dias <= 5 ? "amber" : "tang"}`}>{dias < 0 ? `−${Math.abs(dias)}d` : `${dias}d`}</span>}
       <Link className="btn sm abrir" href={href}>Abrir</Link>
     </div>
+  );
+}
+
+/* ── movimentações (andamentos) — teor inline + expandir mais antigos ──────── */
+const MOV_INICIAL = 8;
+function Movimentacoes({ andamentos }: { andamentos: ProcAndMini[] }) {
+  const [tudo, setTudo] = useState(false);
+  const visiveis = tudo ? andamentos : andamentos.slice(0, MOV_INICIAL);
+  const ocultos = andamentos.length - visiveis.length;
+  return (
+    <>
+      <div className="proc-mov-stack">{visiveis.map((a) => (
+        <div className="proc-mov" key={a.id}>
+          <div className="proc-mov-h">
+            <span className="pz-tag cat-neutral">{humano(a.tipo)}</span>
+            <span className="proc-mov-nome">{curto(a.descricao)}</span>
+            <span className="proc-mov-data mono">{ddmm(a.data)}{a.origem ? ` · ${a.origem.toLowerCase()}` : ""}</span>
+            <Link className="btn sm abrir" href={linkPara("andamento", a.id)}>Abrir</Link>
+          </div>
+          <p className="proc-mov-teor">{a.descricao}</p>
+        </div>
+      ))}</div>
+      {andamentos.length > MOV_INICIAL && (
+        <button type="button" className="audp-vermais" onClick={() => setTudo((v) => !v)}>
+          {tudo ? "▲ Mostrar menos" : `▼ Mostrar ${ocultos} andamento${ocultos === 1 ? "" : "s"} mais antigo${ocultos === 1 ? "" : "s"}`}
+        </button>
+      )}
+    </>
   );
 }
 
@@ -330,17 +358,7 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
             {/* BLOCO 11 · ANDAMENTOS — movimentações com o teor inline (leitura rápida) */}
             <Sec titulo="Andamentos" sub="movimentações do processo" extra={<span className="audp-count">{p.andamentos.length}</span>}>
               {p.andamentos.length === 0 ? <div className="audp-empty">Sem andamentos.</div> : (
-                <div className="proc-mov-stack">{p.andamentos.map((a) => (
-                  <div className="proc-mov" key={a.id}>
-                    <div className="proc-mov-h">
-                      <span className="pz-tag cat-neutral">{humano(a.tipo)}</span>
-                      <span className="proc-mov-nome">{curto(a.descricao)}</span>
-                      <span className="proc-mov-data mono">{ddmm(a.data)}{a.origem ? ` · ${a.origem.toLowerCase()}` : ""}</span>
-                      <Link className="btn sm abrir" href={linkPara("andamento", a.id)}>Abrir</Link>
-                    </div>
-                    <p className="proc-mov-teor">{a.descricao}</p>
-                  </div>
-                ))}</div>
+                <Movimentacoes andamentos={p.andamentos} />
               )}
             </Sec>
 
