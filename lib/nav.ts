@@ -47,6 +47,7 @@ export const NAV: NavGroup[] = [
       { id: "varredura", label: "Varredura", ico: "shield", href: "/varredura" },
       { id: "intimacoes", label: "Intimações", ico: "inbox", href: "/intimacoes", badgeKey: "intimacoes" },
       { id: "andamentos", label: "Andamentos", ico: "activity", href: "/andamentos" },
+      { id: "inercia", label: "Inércia · silêncio", ico: "clock", href: "/inercia", badgeKey: "inercia", kind: "warn" },
       { id: "triagem", label: "Triagem · órfãos", ico: "list", href: "/triagem" },
       { id: "alertas", label: "Alertas", ico: "bell", href: "/alertas", badgeKey: "alertas", kind: "alert" },
     ],

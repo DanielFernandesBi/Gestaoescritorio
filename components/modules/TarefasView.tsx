@@ -37,6 +37,11 @@ const X = () => (
 const PRI = new Set(["urgente", "alta", "media", "baixa"]);
 const priKey = (p: string | null) => (p && PRI.has(p) ? p : "media");
 const ehConferencia = (t: TarefaCard) => Boolean(t.cadastro_automatico) && t.cadastrado_por === "cowork" && t.andamento_id != null;
+// Sug. 62 — sentinela de inércia: tarefa automática do Cowork SEM andamento de
+// origem, etiquetada por motivo_auto (vigia ausência de movimento, não presença).
+const ehSentinela = (t: TarefaCard) => Boolean(t.cadastro_automatico) && t.cadastrado_por === "cowork" && t.motivo_auto === "inercia";
+// Conferência automática do Cowork (escalonamento de andamento OU sentinela).
+const ehAutoCowork = (t: TarefaCard) => ehConferencia(t) || ehSentinela(t);
 // Significado do nível de escalonamento (mesma doutrina da /andamentos e do trilho).
 const motivo = (p: string | null) =>
   p === "urgente" ? "liberdade ou patrimônio (prisão, bloqueio, regressão)."
@@ -94,16 +99,18 @@ function AcaoBtn({ run, children, className = "tk-fbtn" }: { run: () => Promise<
 /* ── card PENDENTE (mostra como entrou: prioridade + escalonamento) ──────── */
 function PendenteCard({ t, mapa }: { t: TarefaCard; mapa: MapaProvidencia | null }) {
   const conf = ehConferencia(t);
+  const sent = ehSentinela(t);
   const pk = priKey(t.prioridade);
   return (
-    <article className={`tk-card p-${pk}${conf ? " conf" : ""}`}>
+    <article className={`tk-card p-${pk}${conf ? " conf" : ""}${sent ? " sent" : ""}`}>
       <span className="tk-bar" />
       <div className="tk-in">
         <div className="tk-body">
           <div className="tk-tags">
             <span className={`tk-pri ${pk}`}>{humano(t.prioridade)}</span>
             {conf && <span className="tk-conf"><Spark c="#fff" />conferência · IA</span>}
-            {!conf && t.responsavel === "Ambos" && <span className="tk-dist">a distribuir · Ambos</span>}
+            {sent && <span className="tk-conf sentinela"><Spark c="#fff" />silêncio · IA</span>}
+            {!conf && !sent && t.responsavel === "Ambos" && <span className="tk-dist">a distribuir · Ambos</span>}
             {t.segredo && <span className="pz-tag segredo">🔒 segredo</span>}
           </div>
           <Link className="tk-title" href={linkPara("tarefa", t.id)} title={t.titulo}>{tituloLimpo(t)}</Link>
@@ -114,10 +121,19 @@ function PendenteCard({ t, mapa }: { t: TarefaCard; mapa: MapaProvidencia | null
               <div><b>Escalado para conferência · {(t.prioridade ?? "alta").toUpperCase()}</b> — {motivo(t.prioridade)}</div>
             </div>
           )}
+          {sent && (
+            <div className="and-banner sentinela">
+              <span className="and-banner-ico">🕒</span>
+              <div><b>Sentinela de inércia · {(t.prioridade ?? "media").toUpperCase()}</b> — silêncio anômalo: peticionar andamento ou avaliar status.</div>
+            </div>
+          )}
           {t.cliente && <div className="tk-cli"><Person /><b>{t.cliente}</b></div>}
           {procNum(t) && <div className="tk-num mono">{procNum(t)}</div>}
           {conf && t.andamento_id && (
             <Link className="tk-link" href="/andamentos">ver movimentação de origem <Arrow /></Link>
+          )}
+          {sent && (
+            <Link className="tk-link" href="/inercia">ver no radar de inércia <Arrow /></Link>
           )}
         </div>
         <div className="tk-foot">
@@ -129,7 +145,7 @@ function PendenteCard({ t, mapa }: { t: TarefaCard; mapa: MapaProvidencia | null
             : <AcaoBtn run={() => moverTarefa(t.id, "em_andamento")}>Em andamento</AcaoBtn>}
           <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>
           <AcaoBtn run={() => moverTarefa(t.id, "cancelada")} className="tk-fbtn cancelar"><X />Cancelar</AcaoBtn>
-          {conf && (
+          {(conf || sent) && (
             <CriarPecaPendente
               tipoOrigem="tarefa"
               origemId={t.id}
@@ -176,12 +192,14 @@ function AndamentoCard({ t }: { t: TarefaCard }) {
 /* ── card CONCLUÍDA (minimalista) ───────────────────────────────────────── */
 function ConcluidaCard({ t }: { t: TarefaCard }) {
   const conf = ehConferencia(t);
+  const sent = ehSentinela(t);
   return (
     <article className="tk-card done">
       <div className="tk-body">
         <div className="tk-tags">
           <span className="tk-done"><Check />concluída</span>
           {conf && <span className="tk-conf soft"><Spark />era conferência</span>}
+          {sent && <span className="tk-conf soft"><Spark />era inércia</span>}
         </div>
         <Link className="tk-title sm" href={linkPara("tarefa", t.id)} title={t.titulo}>{tituloLimpo(t)}</Link>
         {t.cliente && <div className="tk-cli done"><b>{t.cliente}</b></div>}
@@ -213,7 +231,7 @@ export function TarefasView({
   // contadores (sobre o conjunto bruto)
   const abertas = tarefas.filter((t) => t.status !== "concluida" && t.status !== "cancelada");
   const cPend = tarefas.filter((t) => t.status === "pendente").length;
-  const cConf = tarefas.filter(ehConferencia).length;
+  const cConf = tarefas.filter(ehAutoCowork).length;
   const cUrgente = abertas.filter((t) => t.prioridade === "urgente").length;
   const cDistribuir = abertas.filter((t) => t.responsavel === "Ambos").length;
 
@@ -222,7 +240,7 @@ export function TarefasView({
       atr === "minhas" ? socio != null && t.responsavel === socio
         : atr === "socio" ? outro != null && t.responsavel === outro
           : atr === "distribuir" ? t.responsavel === "Ambos"
-            : atr === "conferencias" ? ehConferencia(t)
+            : atr === "conferencias" ? ehAutoCowork(t)
               : true;
     const okPri = pri === "todas" ? true : t.prioridade === pri;
     return okAtr && okPri;

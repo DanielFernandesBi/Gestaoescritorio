@@ -18,6 +18,7 @@ export async function getBadges(): Promise<Badges> {
     dupClientes,
     dupProcessos,
     pecas,
+    inercia,
   ] = await Promise.all([
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
@@ -34,6 +35,9 @@ export async function getBadges(): Promise<Badges> {
     // estático, reconciliação preguiçosa pelo DJEN — não é alarme diário).
     supabase.from("vw_possiveis_duplicatas_registro").select("*", { count: "exact", head: true }),
     supabase.from("vw_pecas_pendentes").select("*", { count: "exact", head: true }),
+    // Sug. 62 — Sentinela de Inércia: processos ativos COM VIDA em silêncio além do
+    // limiar da área/instância. A view já aplica carve-out (stub fica de fora) e carência.
+    supabase.from("vw_processos_inercia").select("*", { count: "exact", head: true }),
   ]);
 
   return {
@@ -47,6 +51,7 @@ export async function getBadges(): Promise<Badges> {
     alertas: alertas.count ?? 0,
     duplicados: (dupClientes.count ?? 0) + (dupProcessos.count ?? 0),
     pecas: pecas.count ?? 0,
+    inercia: inercia.count ?? 0,
   };
 }
 
@@ -467,6 +472,9 @@ export type ConferenciaEscalada = {
   numero_cnj: string | null;
   cliente: string | null;
   segredo: boolean;
+  // Sug. 62 — distingue a sentinela de inércia (motivo_auto='inercia') do
+  // escalonamento de andamento; null/'' = conferência de movimentação (Sug. 30).
+  motivo_auto: string | null;
 };
 
 const PRIO_ORDEM: Record<string, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
@@ -475,7 +483,7 @@ export async function getConferenciasEscaladas(limit = 6): Promise<ConferenciaEs
   const supabase = await createClient();
   const { data } = await supabase
     .from("tarefas")
-    .select("id, titulo, prioridade, data_limite, processos(numero_cnj,segredo_justica), clientes(nome)")
+    .select("id, titulo, prioridade, data_limite, motivo_auto, processos(numero_cnj,segredo_justica), clientes(nome)")
     .eq("cadastro_automatico", true)
     .eq("cadastrado_por", "cowork")
     .in("status", ["pendente", "em_andamento"])
@@ -492,6 +500,7 @@ export async function getConferenciasEscaladas(limit = 6): Promise<ConferenciaEs
       numero_cnj: p?.numero_cnj ?? null,
       cliente: c?.nome ?? null,
       segredo: Boolean(p?.segredo_justica),
+      motivo_auto: (r.motivo_auto as string | null) ?? null,
     };
   });
 
@@ -614,4 +623,95 @@ export async function getBriefingAtual(): Promise<Briefing | null> {
         ref: o?.ref && typeof o.ref === "object" ? { tipo: (o.ref.tipo ?? null) as OndeFocarRef["tipo"], id: o.ref.id ?? null } : null,
       })),
   };
+}
+
+/* ===== Sentinela de Inércia (Sugestão 62) — radar do silêncio anômalo =====
+ * Lê vw_processos_inercia: processos ATIVOS COM VIDA (≥1 andamento/intimação) cujo
+ * silêncio (relógio sobre o ÚLTIMO MOVIMENTO REAL, nunca criado_em) ultrapassou o
+ * limiar de mapa_cadencia_inercia para a área/instância. A view JÁ aplica o
+ * carve-out (stub sem vida fica de fora — é legado/Sug.54) e a carência; aqui não
+ * recalculamos nada — só enriquecemos com cliente vinculado + sinal de réu preso
+ * (que, junto com execução penal, define a prioridade igual ao passo Cowork) e
+ * ordenamos como o briefing: execução/preso no topo, depois dias_silencio desc. */
+
+export type ProcessoInercia = {
+  id: string;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  area: string | null;
+  instancia: string | null;
+  fase: string | null;
+  responsavel: string | null;
+  segredo: boolean;
+  ultima_atividade: string | null;
+  dias_silencio: number;
+  limiar_dias: number;
+  excedente: number; // dias além do limiar
+  clientes: string | null; // mascarado quando segredo de justiça
+  preso: boolean; // algum cliente em situação prisional restritiva
+  execucao: boolean; // area === execucao_penal
+  prioridade: "alta" | "media"; // espelha a regra do passo Cowork
+};
+
+// Mesma doutrina do passo Cowork: prioridade alta quando execução penal OU réu preso.
+const PRESO_INERCIA = new Set(["preso_provisorio", "preso_definitivo", "regime_semiaberto"]);
+
+export async function getProcessosInercia(limit = 200): Promise<ProcessoInercia[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_processos_inercia")
+    .select("id, numero_cnj, numero_registro_tribunal, area, instancia, fase, responsavel, segredo_justica, ultima_atividade, dias_silencio, limiar_dias")
+    .order("dias_silencio", { ascending: false })
+    .limit(limit);
+  const rows = (data ?? []) as Record<string, unknown>[];
+  if (!rows.length) return [];
+
+  // Clientes vinculados (nome + situação prisional) para rótulo e prioridade.
+  const ids = rows.map((r) => r.id as string);
+  const { data: cps } = await supabase
+    .from("cliente_processo")
+    .select("processo_id, clientes(nome, situacao_prisional)")
+    .in("processo_id", ids);
+  const porProc = new Map<string, { nomes: string[]; preso: boolean }>();
+  for (const cp of (cps ?? []) as Record<string, unknown>[]) {
+    const pid = cp.processo_id as string;
+    const cl = cp.clientes as unknown as { nome: string | null; situacao_prisional: string | null } | null;
+    const e = porProc.get(pid) ?? { nomes: [], preso: false };
+    if (cl?.nome) e.nomes.push(cl.nome);
+    if (cl?.situacao_prisional && PRESO_INERCIA.has(cl.situacao_prisional)) e.preso = true;
+    porProc.set(pid, e);
+  }
+
+  const out = rows.map((r): ProcessoInercia => {
+    const segredo = Boolean(r.segredo_justica);
+    const info = porProc.get(r.id as string) ?? { nomes: [], preso: false };
+    const execucao = r.area === "execucao_penal";
+    const dias = Number(r.dias_silencio ?? 0);
+    const limiar = Number(r.limiar_dias ?? 0);
+    return {
+      id: r.id as string,
+      numero_cnj: (r.numero_cnj as string | null) ?? null,
+      numero_registro: (r.numero_registro_tribunal as string | null) ?? null,
+      area: (r.area as string | null) ?? null,
+      instancia: (r.instancia as string | null) ?? null,
+      fase: (r.fase as string | null) ?? null,
+      responsavel: (r.responsavel as string | null) ?? null,
+      segredo,
+      ultima_atividade: (r.ultima_atividade as string | null) ?? null,
+      dias_silencio: dias,
+      limiar_dias: limiar,
+      excedente: dias - limiar,
+      clientes: segredo ? "Cliente sigiloso" : info.nomes.join(", ") || null,
+      preso: info.preso,
+      execucao,
+      prioridade: execucao || info.preso ? "alta" : "media",
+    };
+  });
+
+  out.sort(
+    (a, b) =>
+      Number(b.prioridade === "alta") - Number(a.prioridade === "alta") ||
+      b.dias_silencio - a.dias_silencio,
+  );
+  return out;
 }

@@ -1,0 +1,150 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Icon } from "@/components/Icon";
+import { Pill } from "@/components/ui";
+import { linkPara } from "@/lib/links";
+import { fmtDate, fmtNum, humano } from "@/lib/format";
+import type { ProcessoInercia } from "@/lib/queries";
+
+const procNum = (p: ProcessoInercia) => p.numero_cnj ?? (p.numero_registro ? `reg ${p.numero_registro}` : "sem nº");
+
+/* Um processo em silêncio anômalo — relógio sobre o último movimento real. */
+function InerciaCard({ p }: { p: ProcessoInercia }) {
+  const alta = p.prioridade === "alta";
+  return (
+    <article className={`inc-card pri-${p.prioridade}`}>
+      <span className="inc-bar" />
+      <div className="inc-body">
+        <div className="inc-top">
+          <div className="inc-id">
+            <Link className="inc-num mono" href={linkPara("processo", p.id)}>{procNum(p)} ↗</Link>
+            <div className="inc-ctx">
+              {[p.area ? humano(p.area) : null, p.instancia ? p.instancia.toUpperCase() : null, p.fase ? humano(p.fase) : null]
+                .filter(Boolean)
+                .join(" · ") || "—"}
+              {p.responsavel ? ` · ${p.responsavel}` : ""}
+            </div>
+          </div>
+          <Pill tone={alta ? "amber" : "gray"} dot={false}>{alta ? "ALTA" : "MÉDIA"}</Pill>
+        </div>
+
+        <div className="inc-cli">
+          {p.clientes ? <><Icon name="users" size={12} /> {p.clientes}</> : <span className="muted">sem cliente vinculado</span>}
+        </div>
+
+        <div className="inc-flags">
+          {p.execucao && <span className="inc-tag exec">execução penal</span>}
+          {p.preso && <span className="inc-tag preso">réu preso</span>}
+          {p.segredo && <span className="inc-tag segredo">🔒 segredo</span>}
+        </div>
+
+        <div className="inc-metrics">
+          <div className="inc-metric big">
+            <b>{fmtNum(p.dias_silencio)}</b>
+            <span>dias em silêncio</span>
+          </div>
+          <div className="inc-metric">
+            <b>{fmtNum(p.limiar_dias)}d</b>
+            <span>limiar da cadência</span>
+          </div>
+          <div className="inc-metric">
+            <b className="over">+{fmtNum(Math.max(0, p.excedente))}d</b>
+            <span>além do limiar</span>
+          </div>
+          <div className="inc-metric">
+            <b className="date">{p.ultima_atividade ? fmtDate(p.ultima_atividade) : "—"}</b>
+            <span>último movimento</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export function InerciaView({ processos }: { processos: ProcessoInercia[] }) {
+  const [f, setF] = useState<"todos" | "alta" | "execucao">("todos");
+
+  const nAlta = processos.filter((p) => p.prioridade === "alta").length;
+  const nExec = processos.filter((p) => p.execucao).length;
+  const maxDias = processos.reduce((m, p) => Math.max(m, p.dias_silencio), 0);
+
+  const filtrados = processos.filter((p) =>
+    f === "alta" ? p.prioridade === "alta" : f === "execucao" ? p.execucao : true,
+  );
+
+  const chips = [
+    { id: "todos" as const, label: `Todos (${processos.length})` },
+    { id: "alta" as const, label: `Alta · execução/preso (${nAlta})` },
+    { id: "execucao" as const, label: `Execução penal (${nExec})` },
+  ];
+
+  return (
+    <div className="inercia-page">
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">Automação · sentinela de ausência</div>
+          <h1>Inércia · silêncio anômalo</h1>
+          <p>
+            Todo o pipeline (DJEN/push/Radar) reage à <b>presença</b> de movimento; esta é a única peça que vigia a{" "}
+            <b>ausência</b>. Processos <b>ativos com vida</b> cujo silêncio — contado sobre o <b>último movimento real</b>,
+            nunca sobre o cadastro — passou do limiar da área/instância. Stub sem vida não entra (é legado da{" "}
+            <Link className="link" href="/duplicados">reconciliação de CNJ</Link>).
+          </p>
+        </div>
+        <div className="inc-cta" title="Limiar por área/instância vem de config_sistema/mapa_cadencia_inercia, editável pelo Daniel">
+          <Icon name="clock" size={14} /> Cadência: HC STJ/STF 45d · STJ/STF 60d · execução 180d · 2º grau 120d · default 90d
+        </div>
+      </div>
+
+      <div className="inc-counters">
+        <div className="inc-counter accent"><div className="big">{fmtNum(processos.length)}</div><div className="lbl">em silêncio</div></div>
+        <div className="inc-counter red"><div className="big">{fmtNum(nAlta)}</div><div className="lbl">alta · execução/preso</div></div>
+        <div className="inc-counter"><div className="big">{fmtNum(nExec)}</div><div className="lbl">execução penal</div></div>
+        <div className="inc-counter"><div className="big">{maxDias ? fmtNum(maxDias) : "—"}</div><div className="lbl">maior silêncio (dias)</div></div>
+      </div>
+
+      <div className="inc-note">
+        <span className="ico"><Icon name="shield" size={14} /></span>
+        <div>
+          No encerramento da varredura, o Cowork abre <b>uma tarefa de conferência</b> por processo daqui
+          (motivo <code>inércia</code>, prioridade alta em execução/réu preso) — sem nunca duplicar.
+          Elas aparecem em <Link className="link" href="/tarefas">Tarefas</Link> e nas conferências escaladas do{" "}
+          <Link className="link" href="/painel">ritual matinal</Link>. Conferida a tarefa, o processo pode voltar a
+          alarmar se o silêncio recomeçar.
+        </div>
+      </div>
+
+      {processos.length > 0 && (
+        <div className="inc-filters">
+          {chips.map((c) => (
+            <button key={c.id} type="button" className={`tk-chip${f === c.id ? " on" : ""}`} onClick={() => setF(c.id)}>
+              {c.label}
+            </button>
+          ))}
+          <span className="tk-filter-count mono">{filtrados.length} no filtro</span>
+        </div>
+      )}
+
+      {processos.length === 0 ? (
+        <div className="inc-empty">
+          <div className="inc-empty-ico"><Icon name="clock" size={26} /></div>
+          <h3>Nenhum processo em silêncio anômalo hoje. 🎉</h3>
+          <p>
+            Nenhum processo <b>com vida</b> ultrapassou o limiar da sua área/instância. É o esperado enquanto a base
+            ainda acumula histórico: a sentinela <b>instala-se antes de precisar</b> e seu valor se compõe à medida
+            que os movimentos se acumulam. Stubs sem nenhum movimento ficam de fora por desenho — são{" "}
+            <Link className="link" href="/duplicados">legado a reconciliar</Link>, não inércia.
+          </p>
+        </div>
+      ) : filtrados.length === 0 ? (
+        <div className="inc-empty sm">Nenhum processo neste filtro.</div>
+      ) : (
+        <div className="inc-list">
+          {filtrados.map((p) => <InerciaCard key={p.id} p={p} />)}
+        </div>
+      )}
+    </div>
+  );
+}

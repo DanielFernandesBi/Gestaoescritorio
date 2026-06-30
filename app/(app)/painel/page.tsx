@@ -497,7 +497,7 @@ export default async function PainelPage() {
           {conferencias.length ? (
             <VerMais max={5}>
               {conferencias.map((c) => {
-                const motivo = c.prioridade === "urgente" ? "afeta liberdade/patrimônio" : c.prioridade === "alta" ? "decisão de mérito" : "conferência";
+                const motivo = c.motivo_auto === "inercia" ? "silêncio anômalo" : c.prioridade === "urgente" ? "afeta liberdade/patrimônio" : c.prioridade === "alta" ? "decisão de mérito" : "conferência";
                 return (
                   <Link className="deadline" key={c.id} href={linkPara("tarefa", c.id)}>
                     <div className="dl-main">

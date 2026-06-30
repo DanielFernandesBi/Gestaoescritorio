@@ -2725,6 +2725,9 @@ export type Tarefa = {
   cadastro_automatico?: boolean;
   cadastrado_por?: string | null;
   andamento_id?: string | null;
+  // Sugestão 62 — etiqueta do motivo da tarefa automática SEM andamento
+  // (ex.: 'inercia'). Distingue a sentinela do escalonamento por movimentação.
+  motivo_auto?: string | null;
   // Preenchidos no detalhe (getTarefaPorId), via processo vinculado:
   numero_cnj?: string | null;
   segredo?: boolean;
@@ -2734,7 +2737,7 @@ export async function getTarefas(): Promise<Tarefa[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tarefas")
-    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, motivo_auto")
     .order("data_limite", { ascending: true, nullsFirst: false })
     .limit(300);
   return (data ?? []) as Tarefa[];
@@ -2744,7 +2747,7 @@ export async function getTarefaPorId(id: string): Promise<Tarefa | null> {
   const supabase = await createClient();
   const { data: r } = await supabase
     .from("tarefas")
-    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, processos(numero_cnj,segredo_justica)")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, motivo_auto, processos(numero_cnj,segredo_justica)")
     .eq("id", id)
     .maybeSingle();
   if (!r) return null;
@@ -2762,6 +2765,7 @@ export async function getTarefaPorId(id: string): Promise<Tarefa | null> {
     cadastro_automatico: Boolean(r.cadastro_automatico),
     cadastrado_por: (r.cadastrado_por as string | null) ?? null,
     andamento_id: (r.andamento_id as string | null) ?? null,
+    motivo_auto: (r.motivo_auto as string | null) ?? null,
     numero_cnj: p?.numero_cnj ?? null,
     segredo: Boolean(p?.segredo_justica),
   };
@@ -2783,7 +2787,7 @@ export async function getTarefasPainel(): Promise<TarefaCard[]> {
   const { data } = await supabase
     .from("tarefas")
     .select(
-      "id, titulo, descricao, status, prioridade, responsavel, data_limite, concluida_em, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome))), clientes(nome)",
+      "id, titulo, descricao, status, prioridade, responsavel, data_limite, concluida_em, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, motivo_auto, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome))), clientes(nome)",
     )
     .order("data_limite", { ascending: true, nullsFirst: false })
     .limit(300);
@@ -2804,6 +2808,7 @@ export async function getTarefasPainel(): Promise<TarefaCard[]> {
       cadastro_automatico: Boolean(r.cadastro_automatico),
       cadastrado_por: (r.cadastrado_por as string | null) ?? null,
       andamento_id: (r.andamento_id as string | null) ?? null,
+      motivo_auto: (r.motivo_auto as string | null) ?? null,
       numero_cnj: p?.numero_cnj ?? null,
       numero_registro: p?.numero_registro_tribunal ?? null,
       segredo: Boolean(p?.segredo_justica),
@@ -2844,7 +2849,7 @@ export async function getTarefaFull(id: string): Promise<TarefaFull | null> {
   const supabase = await createClient();
   const { data: r } = await supabase
     .from("tarefas")
-    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, criado_em, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,area,segredo_justica,cliente_processo(papel,clientes(id,nome))), clientes(id,nome)")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, criado_em, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, motivo_auto, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,area,segredo_justica,cliente_processo(papel,clientes(id,nome))), clientes(id,nome)")
     .eq("id", id)
     .maybeSingle();
   if (!r) return null;
@@ -2888,6 +2893,7 @@ export async function getTarefaFull(id: string): Promise<TarefaFull | null> {
     cadastro_automatico: Boolean(r.cadastro_automatico),
     cadastrado_por: (r.cadastrado_por as string | null) ?? null,
     andamento_id: andId,
+    motivo_auto: (r.motivo_auto as string | null) ?? null,
     numero_cnj: p?.numero_cnj ?? null,
     segredo: Boolean(p?.segredo_justica),
     criado_em: (r.criado_em as string | null) ?? null,

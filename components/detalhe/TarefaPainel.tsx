@@ -127,6 +127,8 @@ export function TarefaPainel({ t, lista, anotacoes, mapa = null, socio = null }:
   const [verNotas, setVerNotas] = useState(anotacoes.length > 0);
   const outro = socio ? oUtroSocio(socio) : null;
   const conferencia = Boolean(t.cadastro_automatico) && t.cadastrado_por === "cowork";
+  // Sug. 62 — distingue a sentinela de inércia da conferência de escalonamento.
+  const sentinela = conferencia && t.motivo_auto === "inercia";
 
   return (
     <div className="audp">
@@ -143,7 +145,8 @@ export function TarefaPainel({ t, lista, anotacoes, mapa = null, socio = null }:
             <div className="audp-tags">
               <span className={`pz-tag ${prioTone(t.prioridade)}`}>{humano(t.prioridade) || "média"}</span>
               <span className={`pz-tag ${statusTone(t.status)}`}>{humano(t.status)}</span>
-              {conferencia && <span className="pz-tag cowork"><Spark s={9} />conferência da triagem</span>}
+              {conferencia && !sentinela && <span className="pz-tag cowork"><Spark s={9} />conferência da triagem</span>}
+              {sentinela && <span className="pz-tag cowork"><Spark s={9} />sentinela de inércia</span>}
               {t.segredo && <span className="pz-tag segredo">🔒 segredo de justiça</span>}
             </div>
             <h2 className="audp-h2">{t.titulo}</h2>
@@ -173,8 +176,14 @@ export function TarefaPainel({ t, lista, anotacoes, mapa = null, socio = null }:
 
             {/* ORIGEM · movimentação que escalou */}
             <div className="audp-ia" style={{ marginTop: 18 }}>
-              <div className="audp-ia-h"><Spark /><span>Origem · mapa_andamento_tarefa</span></div>
-              {t.origem ? (
+              <div className="audp-ia-h"><Spark /><span>Origem · {sentinela ? "sentinela de inércia" : "mapa_andamento_tarefa"}</span></div>
+              {sentinela ? (
+                <div className="and-semescal">
+                  Aberta pela <b>Sentinela de Inércia</b>: o processo ficou em silêncio além do limiar da sua área/instância
+                  (sem andamento nem intimação). Não nasce de uma movimentação, e sim da <b>ausência</b> dela.{" "}
+                  <Link className="proc-link" href="/inercia">ver no radar de inércia →</Link>
+                </div>
+              ) : t.origem ? (
                 <>
                   <div className="int-teor" style={{ marginTop: 4 }}>
                     <p>“{t.origem.descricao || "Movimentação de origem"}”</p>
