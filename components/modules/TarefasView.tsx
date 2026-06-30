@@ -29,6 +29,9 @@ const Check = ({ c = "var(--green)" }: { c?: string }) => (
 const Arrow = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 );
+const X = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+);
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 const PRI = new Set(["urgente", "alta", "media", "baixa"]);
@@ -124,6 +127,8 @@ function PendenteCard({ t, mapa }: { t: TarefaCard; mapa: MapaProvidencia | null
                 <AcaoBtn run={() => reatribuirTarefa(t.id)} className="tk-fbtn sec">Reatribuir</AcaoBtn>
               </>
             : <AcaoBtn run={() => moverTarefa(t.id, "em_andamento")}>Em andamento</AcaoBtn>}
+          <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>
+          <AcaoBtn run={() => moverTarefa(t.id, "cancelada")} className="tk-fbtn cancelar"><X />Cancelar</AcaoBtn>
           {conf && (
             <CriarPecaPendente
               tipoOrigem="tarefa"
@@ -161,6 +166,7 @@ function AndamentoCard({ t }: { t: TarefaCard }) {
         <div className="tk-foot">
           <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>
           <AcaoBtn run={() => moverTarefa(t.id, "pendente")} className="tk-fbtn sec">Voltar</AcaoBtn>
+          <AcaoBtn run={() => moverTarefa(t.id, "cancelada")} className="tk-fbtn cancelar"><X />Cancelar</AcaoBtn>
         </div>
       </div>
     </article>
