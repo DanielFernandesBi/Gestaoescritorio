@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { diasAte } from "@/lib/format";
+import { diasAte, hojeSP } from "@/lib/format";
 import type { Badges } from "@/lib/nav";
 
 /** Badges da navegação — contagens ao vivo do banco. */
@@ -174,7 +174,7 @@ export type PainelData = {
 
 export async function getPainelData(): Promise<PainelData> {
   const supabase = await createClient();
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeSP();
 
   const [
     prazosAbertos,

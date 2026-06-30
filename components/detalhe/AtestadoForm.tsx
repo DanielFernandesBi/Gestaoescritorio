@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { criarAtestado, type AtestadoInput, type CondenacaoInput, type Resultado } from "@/app/actions";
 import { REGIME_EXEC, REGIME_IMPOSTO, CONDENACAO_SITUACAO } from "@/lib/enums";
-import { fmtDate, humano } from "@/lib/format";
+import { fmtDate, humano, hojeSP } from "@/lib/format";
 
 /* Atestado de pena (SEEU): cabeçalho + N condenações, em regime chat
    (preencher → resumo → confirmar). Somente leitura/escrita pela sessão (RLS). */
@@ -18,7 +18,7 @@ const condVazia = (): CondenacaoInput => ({
 
 const cabecalhoVazio = (cliente_id: string): AtestadoInput => ({
   cliente_id,
-  data_atestado: new Date().toISOString().slice(0, 10),
+  data_atestado: hojeSP(),
   fonte: "seeu", regime_atual: "fechado",
   pena_total_texto: "", pena_total_dias: "", pena_cumprida_texto: "", pena_cumprida_dias: "",
   pena_remanescente_texto: "", dias_remidos: "", dias_perdidos: "", total_interrupcoes_texto: "",

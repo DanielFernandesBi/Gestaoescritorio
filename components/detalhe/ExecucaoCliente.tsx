@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AtestadoForm } from "@/components/detalhe/AtestadoForm";
-import { fmtDate, fmtNum, humano } from "@/lib/format";
+import { fmtDate, fmtNum, humano, hojeSP } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { ExecucaoCliente as TExec, ExecObjetivo, ExecAtestado, ExecCenario } from "@/lib/data";
 
@@ -323,7 +323,7 @@ export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExe
             <Link className="act" href={`/estudos?cliente=${clienteId}`}>Abrir estudo de caso</Link>
           </div>
           {exec.objetivos.map((o) => {
-            const vencido = Boolean(o.data_alvo && o.data_alvo.slice(0, 10) < new Date().toISOString().slice(0, 10) && o.status !== "atingido" && o.status !== "frustrado");
+            const vencido = Boolean(o.data_alvo && o.data_alvo.slice(0, 10) < hojeSP() && o.status !== "atingido" && o.status !== "frustrado");
             const tone = objTone(o, vencido);
             return (
               <div className={`xp-obj t-${tone}`} key={o.objetivo_id}>

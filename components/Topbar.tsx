@@ -18,6 +18,7 @@ export function Topbar({
       weekday: "long",
       day: "2-digit",
       month: "long",
+      timeZone: "America/Sao_Paulo",
     })
     .replace(/^\w/, (c) => c.toUpperCase());
 
