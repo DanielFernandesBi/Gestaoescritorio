@@ -1888,6 +1888,220 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
   };
 }
 
+/* Ficha do cliente — superfícies do ciclo intimação → prazo → peça → andamento,
+ * recortadas por cliente. Tudo leitura sobre views/tabelas existentes. Os processos
+ * do cliente saem de cliente_processo (padrão canônico); órfãos ficam de fora. */
+
+export type FichaProcMeta = { id: string; numero_cnj: string | null; numero_registro: string | null; segredo: boolean; label: string };
+export type FichaIntimacao = {
+  id: string; status: string; criado_em: string | null; processo_id: string | null;
+  revisado_em: string | null; revisado_por: string | null;
+  classe: string | null; area: string | null; tribunal: string | null; orgao: string | null;
+  numero_cnj: string | null; numero_registro: string | null; segredo: boolean;
+  tem_prazo: boolean; tem_peca: boolean; tem_providencia: boolean; na_caixa: boolean;
+  resumo: string | null; teor: string | null;
+};
+export type FichaAndamento = {
+  id: string; data: string | null; tipo: string; descricao: string | null;
+  autor: string | null; origem: string | null; cadastro_automatico: boolean; cadastrado_por: string | null;
+  processo_id: string | null; numero_cnj: string | null; numero_registro: string | null; segredo: boolean;
+};
+export type FichaAudiencia = {
+  id: string; tipo: string; nome: string | null; data_hora: string | null; data_fim: string | null;
+  modalidade: string | null; local_link: string | null; status: string; validado: boolean;
+  processo_id: string | null; numero_cnj: string | null; numero_registro: string | null; segredo: boolean;
+};
+export type FichaPendente = { tipo: string; id: string; numero_cnj: string | null; descricao: string | null; data_relevante: string | null; cadastrado_por: string | null; criado_em: string | null };
+export type FichaTarefa = {
+  id: string; titulo: string; descricao: string | null; status: string; prioridade: string | null;
+  responsavel: string | null; data_limite: string | null; concluida_em: string | null;
+  cadastro_automatico: boolean; cadastrado_por: string | null; andamento_id: string | null; processo_id: string | null;
+};
+export type FichaPeca = {
+  id: string; titulo: string; tipo: string; subtipo: string | null; status: string; prioridade: string | null;
+  responsavel: string | null; processo_id: string | null; numero_cnj: string | null; numero_registro: string | null; segredo: boolean;
+  prazo_id: string | null; data_fatal: string | null; data_interna: string | null; prazo_validado: boolean | null;
+  dias_restantes: number | null; intimacao_id: string | null; drive_file_id: string | null;
+  cadastro_automatico: boolean; validado: boolean; descricao: string | null;
+};
+export type FichaCenario = {
+  id: string; titulo: string | null; premissas: string | null; metodo: string | null; status: string | null;
+  observacoes: string | null; peca_id: string | null;
+  pena_total_baseline_dias: number | null; pena_total_projetada_dias: number | null;
+  data_progressao_baseline: string | null; data_progressao_projetada: string | null;
+  data_livramento_baseline: string | null; data_livramento_projetada: string | null;
+};
+export type FichaDespesa = { id: string; descricao: string | null; categoria: string | null; valor: number; data: string | null; reembolsavel: boolean; reembolsada: boolean; processo_id: string | null };
+export type FichaOrigem = { origem_lead: string | null; valor_proposto: number | null; data_decisao: string | null; estagio: string | null; titulo: string | null };
+
+export type ClienteFicha = {
+  procMeta: FichaProcMeta[];
+  intimacoes: FichaIntimacao[];
+  andamentos: FichaAndamento[];
+  audiencias: FichaAudiencia[];
+  pendentesValidacao: FichaPendente[];
+  tarefas: FichaTarefa[];
+  pecas: FichaPeca[];
+  cenarios: FichaCenario[];
+  despesas: FichaDespesa[];
+  origem: FichaOrigem | null;
+};
+
+export async function getClienteFicha(id: string): Promise<ClienteFicha> {
+  const supabase = await createClient();
+
+  // Processos do cliente (padrão canônico via cliente_processo) + metadados p/ rótulos.
+  const { data: vinc } = await supabase
+    .from("cliente_processo")
+    .select("processos(id, numero_cnj, numero_registro_tribunal, segredo_justica, classe, area, tribunal)")
+    .eq("cliente_id", id);
+  type PM = { id: string; numero_cnj: string | null; numero_registro_tribunal: string | null; segredo_justica: boolean | null; classe: string | null; area: string | null; tribunal: string | null };
+  const procMap = new Map<string, FichaProcMeta>();
+  for (const v of vinc ?? []) {
+    const p = v.processos as unknown as PM | null;
+    if (!p?.id || procMap.has(p.id)) continue;
+    procMap.set(p.id, {
+      id: p.id, numero_cnj: p.numero_cnj, numero_registro: p.numero_registro_tribunal,
+      segredo: Boolean(p.segredo_justica),
+      label: p.numero_cnj || (p.numero_registro_tribunal ? `reg ${p.numero_registro_tribunal}` : (p.classe ? humano(p.classe) : (p.area ? humano(p.area) : "Processo"))),
+    });
+  }
+  const procIds = [...procMap.keys()];
+  const cnjs = [...procMap.values()].map((p) => p.numero_cnj).filter(Boolean) as string[];
+  const meta = (pid: string | null) => (pid ? procMap.get(pid) : undefined);
+
+  const vazio: ClienteFicha = { procMeta: [...procMap.values()], intimacoes: [], andamentos: [], audiencias: [], pendentesValidacao: [], tarefas: [], pecas: [], cenarios: [], despesas: [], origem: null };
+  if (!procIds.length) {
+    // Sem processos: ainda há tarefas/cenários/despesas/origem ligados direto ao cliente.
+    const [tar, cen, desp, opp] = await Promise.all([
+      supabase.from("tarefas").select("id, titulo, descricao, status, prioridade, responsavel, data_limite, concluida_em, cadastro_automatico, cadastrado_por, andamento_id, processo_id").eq("cliente_id", id),
+      supabase.from("execucao_cenarios").select("id, titulo, premissas, metodo, status, observacoes, peca_id, pena_total_baseline_dias, pena_total_projetada_dias, data_progressao_baseline, data_progressao_projetada, data_livramento_baseline, data_livramento_projetada").eq("cliente_id", id),
+      supabase.from("despesas").select("id, descricao, categoria, valor, data, reembolsavel, reembolsada, processo_id").eq("cliente_id", id),
+      supabase.from("oportunidades").select("origem_lead, valor_proposto, data_decisao, estagio, titulo").eq("cliente_id", id).order("data_decisao", { ascending: false, nullsFirst: false }).limit(1),
+    ]);
+    vazio.tarefas = mapTarefas(tar.data);
+    vazio.cenarios = mapCenarios(cen.data);
+    vazio.despesas = mapDespesas(desp.data);
+    vazio.origem = mapOrigem(opp.data?.[0]);
+    return vazio;
+  }
+
+  const inProcs = `(${procIds.join(",")})`;
+  const [intim, ands, auds, pend, tar, pec, cen, desp, opp] = await Promise.all([
+    supabase.from("vw_intimacoes_contexto").select("intimacao_id, status, criado_em, processo_id, revisado_em, revisado_por, classe, area, tribunal, orgao, numero_cnj, numero_registro_tribunal, segredo_justica, tem_prazo, tem_peca, tem_providencia, na_caixa").in("processo_id", procIds).order("criado_em", { ascending: false }),
+    supabase.from("andamentos").select("id, data, tipo, descricao, autor, origem, codigo_movimentacao, cadastro_automatico, cadastrado_por, processo_id").in("processo_id", procIds).order("data", { ascending: false }).limit(300),
+    supabase.from("audiencias").select("id, tipo, nome, data_hora, data_fim, modalidade, local_link, status, validado, processo_id").in("processo_id", procIds).order("data_hora", { ascending: false }),
+    cnjs.length ? supabase.from("vw_pendentes_validacao").select("tipo, id, numero_cnj, descricao, data_relevante, cadastrado_por, criado_em").in("numero_cnj", cnjs) : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    supabase.from("tarefas").select("id, titulo, descricao, status, prioridade, responsavel, data_limite, concluida_em, cadastro_automatico, cadastrado_por, andamento_id, processo_id").or(`cliente_id.eq.${id},processo_id.in.${inProcs}`),
+    supabase.from("vw_pecas_pendentes").select("id, titulo, tipo, subtipo, status, prioridade, responsavel, processo_id, numero_cnj, numero_registro_tribunal, segredo_justica, prazo_id, data_fatal, data_interna, prazo_validado, dias_restantes, intimacao_id, drive_file_id, cadastro_automatico, validado, descricao").eq("cliente_id", id),
+    supabase.from("execucao_cenarios").select("id, titulo, premissas, metodo, status, observacoes, peca_id, pena_total_baseline_dias, pena_total_projetada_dias, data_progressao_baseline, data_progressao_projetada, data_livramento_baseline, data_livramento_projetada").eq("cliente_id", id),
+    supabase.from("despesas").select("id, descricao, categoria, valor, data, reembolsavel, reembolsada, processo_id").or(`cliente_id.eq.${id},processo_id.in.${inProcs}`),
+    supabase.from("oportunidades").select("origem_lead, valor_proposto, data_decisao, estagio, titulo").eq("cliente_id", id).order("data_decisao", { ascending: false, nullsFirst: false }).limit(1),
+  ]);
+
+  // Teor (e resumo) das intimações — só para o detalhe; sigilo nunca exibe teor.
+  const intimIds = (intim.data ?? []).map((r) => r.intimacao_id as string);
+  const teorPorId = new Map<string, { resumo: string | null; teor: string | null }>();
+  if (intimIds.length) {
+    const { data: it } = await supabase.from("intimacoes").select("id, resumo, teor").in("id", intimIds);
+    for (const r of it ?? []) teorPorId.set(r.id as string, { resumo: (r.resumo as string | null) ?? null, teor: (r.teor as string | null) ?? null });
+  }
+
+  const intimacoes: FichaIntimacao[] = (intim.data ?? []).map((r) => {
+    const t = teorPorId.get(r.intimacao_id as string);
+    return {
+      id: r.intimacao_id as string, status: r.status as string, criado_em: (r.criado_em as string | null) ?? null,
+      processo_id: (r.processo_id as string | null) ?? null, revisado_em: (r.revisado_em as string | null) ?? null, revisado_por: (r.revisado_por as string | null) ?? null,
+      classe: (r.classe as string | null) ?? null, area: (r.area as string | null) ?? null, tribunal: (r.tribunal as string | null) ?? null, orgao: (r.orgao as string | null) ?? null,
+      numero_cnj: (r.numero_cnj as string | null) ?? null, numero_registro: (r.numero_registro_tribunal as string | null) ?? null, segredo: Boolean(r.segredo_justica),
+      tem_prazo: Boolean(r.tem_prazo), tem_peca: Boolean(r.tem_peca), tem_providencia: Boolean(r.tem_providencia), na_caixa: Boolean(r.na_caixa),
+      resumo: t?.resumo ?? null, teor: t?.teor ?? null,
+    };
+  });
+
+  const andamentos: FichaAndamento[] = (ands.data ?? []).map((r) => {
+    const m = meta(r.processo_id as string | null);
+    return {
+      id: r.id as string, data: (r.data as string | null) ?? null, tipo: r.tipo as string, descricao: (r.descricao as string | null) ?? null,
+      autor: (r.autor as string | null) ?? null, origem: (r.origem as string | null) ?? null,
+      cadastro_automatico: Boolean(r.cadastro_automatico), cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+      processo_id: (r.processo_id as string | null) ?? null, numero_cnj: m?.numero_cnj ?? null, numero_registro: m?.numero_registro ?? null, segredo: m?.segredo ?? false,
+    };
+  });
+
+  const audiencias: FichaAudiencia[] = (auds.data ?? []).map((r) => {
+    const m = meta(r.processo_id as string | null);
+    return {
+      id: r.id as string, tipo: r.tipo as string, nome: (r.nome as string | null) ?? null,
+      data_hora: (r.data_hora as string | null) ?? null, data_fim: (r.data_fim as string | null) ?? null,
+      modalidade: (r.modalidade as string | null) ?? null, local_link: (r.local_link as string | null) ?? null,
+      status: r.status as string, validado: Boolean(r.validado),
+      processo_id: (r.processo_id as string | null) ?? null, numero_cnj: m?.numero_cnj ?? null, numero_registro: m?.numero_registro ?? null, segredo: m?.segredo ?? false,
+    };
+  });
+
+  const pendentesValidacao: FichaPendente[] = (pend.data ?? []).map((r) => ({
+    tipo: r.tipo as string, id: r.id as string, numero_cnj: (r.numero_cnj as string | null) ?? null,
+    descricao: (r.descricao as string | null) ?? null, data_relevante: (r.data_relevante as string | null) ?? null,
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null, criado_em: (r.criado_em as string | null) ?? null,
+  }));
+
+  const pecas: FichaPeca[] = (pec.data ?? []).map((r) => ({
+    id: r.id as string, titulo: r.titulo as string, tipo: r.tipo as string, subtipo: (r.subtipo as string | null) ?? null,
+    status: r.status as string, prioridade: (r.prioridade as string | null) ?? null, responsavel: (r.responsavel as string | null) ?? null,
+    processo_id: (r.processo_id as string | null) ?? null, numero_cnj: (r.numero_cnj as string | null) ?? null, numero_registro: (r.numero_registro_tribunal as string | null) ?? null, segredo: Boolean(r.segredo_justica),
+    prazo_id: (r.prazo_id as string | null) ?? null, data_fatal: (r.data_fatal as string | null) ?? null, data_interna: (r.data_interna as string | null) ?? null,
+    prazo_validado: r.prazo_validado == null ? null : Boolean(r.prazo_validado), dias_restantes: r.dias_restantes == null ? null : Number(r.dias_restantes),
+    intimacao_id: (r.intimacao_id as string | null) ?? null, drive_file_id: (r.drive_file_id as string | null) ?? null,
+    cadastro_automatico: Boolean(r.cadastro_automatico), validado: Boolean(r.validado), descricao: (r.descricao as string | null) ?? null,
+  }));
+
+  return {
+    procMeta: [...procMap.values()],
+    intimacoes, andamentos, audiencias, pendentesValidacao,
+    tarefas: mapTarefas(tar.data),
+    pecas,
+    cenarios: mapCenarios(cen.data),
+    despesas: mapDespesas(desp.data),
+    origem: mapOrigem(opp.data?.[0]),
+  };
+}
+
+function mapTarefas(rows: Record<string, unknown>[] | null): FichaTarefa[] {
+  return (rows ?? []).map((r) => ({
+    id: r.id as string, titulo: r.titulo as string, descricao: (r.descricao as string | null) ?? null,
+    status: r.status as string, prioridade: (r.prioridade as string | null) ?? null, responsavel: (r.responsavel as string | null) ?? null,
+    data_limite: (r.data_limite as string | null) ?? null, concluida_em: (r.concluida_em as string | null) ?? null,
+    cadastro_automatico: Boolean(r.cadastro_automatico), cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    andamento_id: (r.andamento_id as string | null) ?? null, processo_id: (r.processo_id as string | null) ?? null,
+  }));
+}
+function mapCenarios(rows: Record<string, unknown>[] | null): FichaCenario[] {
+  return (rows ?? []).map((r) => ({
+    id: r.id as string, titulo: (r.titulo as string | null) ?? null, premissas: (r.premissas as string | null) ?? null,
+    metodo: (r.metodo as string | null) ?? null, status: (r.status as string | null) ?? null, observacoes: (r.observacoes as string | null) ?? null,
+    peca_id: (r.peca_id as string | null) ?? null,
+    pena_total_baseline_dias: r.pena_total_baseline_dias == null ? null : Number(r.pena_total_baseline_dias),
+    pena_total_projetada_dias: r.pena_total_projetada_dias == null ? null : Number(r.pena_total_projetada_dias),
+    data_progressao_baseline: (r.data_progressao_baseline as string | null) ?? null, data_progressao_projetada: (r.data_progressao_projetada as string | null) ?? null,
+    data_livramento_baseline: (r.data_livramento_baseline as string | null) ?? null, data_livramento_projetada: (r.data_livramento_projetada as string | null) ?? null,
+  }));
+}
+function mapDespesas(rows: Record<string, unknown>[] | null): FichaDespesa[] {
+  return (rows ?? []).map((r) => ({
+    id: r.id as string, descricao: (r.descricao as string | null) ?? null, categoria: (r.categoria as string | null) ?? null,
+    valor: Number(r.valor ?? 0), data: (r.data as string | null) ?? null,
+    reembolsavel: Boolean(r.reembolsavel), reembolsada: Boolean(r.reembolsada), processo_id: (r.processo_id as string | null) ?? null,
+  }));
+}
+function mapOrigem(r: Record<string, unknown> | undefined): FichaOrigem | null {
+  if (!r) return null;
+  return {
+    origem_lead: (r.origem_lead as string | null) ?? null, valor_proposto: r.valor_proposto == null ? null : Number(r.valor_proposto),
+    data_decisao: (r.data_decisao as string | null) ?? null, estagio: (r.estagio as string | null) ?? null, titulo: (r.titulo as string | null) ?? null,
+  };
+}
+
 /** Um cliente pelo id (inclusive inativo), na mesma forma de `getClientes`. */
 export async function getClientePorId(id: string): Promise<Cliente | null> {
   const supabase = await createClient();

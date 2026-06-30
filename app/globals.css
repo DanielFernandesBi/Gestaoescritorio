@@ -2588,6 +2588,52 @@ a.and-procref:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line)
 .audp-vermais{margin-top:10px;width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;transition:background .12s,border-color .12s}
 .audp-vermais:hover{background:var(--surface);border-color:color-mix(in srgb,var(--accent) 34%,var(--line))}
 
+/* ════════════════ FICHA DO CLIENTE — superfícies do ciclo ═══════════════════ */
+/* selo de origem (lead) no cabeçalho */
+.cli-fi-origem{font-size:11.5px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line-soft);border-radius:6px;padding:1px 8px}
+/* intimações — cards */
+.cli-fi-stack{display:flex;flex-direction:column;gap:9px}
+.cli-fi-card{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+.cli-fi-card.na-caixa{border-color:color-mix(in srgb,var(--tang) 45%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--tang) 16%,transparent)}
+.cli-fi-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cli-fi-data{font-size:11.5px;color:var(--muted)}
+.cli-fi-flag{font-size:10.5px;font-weight:700;color:var(--tang)}
+.cli-fi-flag.lida{color:var(--muted-2);font-weight:600}
+.cli-fi-nome{font-size:13px;font-weight:700;color:var(--name);margin-top:6px;line-height:1.35}
+.cli-fi-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.cli-fi-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;flex-wrap:wrap}
+.cli-fi-acoes{display:flex;gap:7px;flex:none}
+.cli-fi-proc{font-size:12px;color:var(--text);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* filtros (select) das abas */
+.cli-fi-filtros{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+.cli-fi-filtros select{font-size:12px;padding:6px 9px}
+.cli-fi-count{font-size:11px;color:var(--muted-2)}
+/* timeline de movimentações */
+.cli-tl{display:flex;flex-direction:column;position:relative;padding-left:18px}
+.cli-tl::before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.cli-tl-item{position:relative;padding:0 0 14px}
+.cli-tl-dot{position:absolute;left:-18px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--surface)}
+.cli-tl-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cli-tl-origem{font-size:10.5px;color:var(--muted-2)}
+.cli-tl-desc{margin:6px 0 0;font-size:12.5px;line-height:1.6;color:var(--text)}
+.cli-tl-foot{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px;font-size:12px}
+/* avisos e totais */
+.cli-fi-aviso{margin-top:9px;font-size:11px;color:var(--muted);line-height:1.5}
+.cli-fi-tot{font-size:12px;font-weight:700;color:var(--accent)}
+.cli-fi-pend{border-color:color-mix(in srgb,var(--tang) 40%,var(--line))}
+.cli-fi-toggle{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);font-weight:500;cursor:pointer}
+.cli-fi-link{background:none;border:none;color:var(--accent);font-size:inherit;font-weight:600;cursor:pointer;padding:0}
+.cli-fi-link:hover{text-decoration:underline}
+/* cenários (baseline × projetado) */
+.cli-cen{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.cli-cen-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.cli-cen-t{font-size:13px;color:var(--name);flex:1;min-width:120px}
+.cli-cen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:11px}
+.cli-cen-col .k{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.cli-cen-col .b{font-size:12px;color:var(--muted);margin-top:3px}
+.cli-cen-col .p{font-size:12.5px;color:var(--text);font-weight:600;margin-top:1px}
+.cli-cen-obs{margin-top:10px;font-size:12px;color:var(--text);line-height:1.55}
+
 /* ════════════════ DETALHE DE CONTRATO (reusa o shell .audp) ═════════════════ */
 .ctr-contratante{font-size:12.5px;color:var(--muted);font-weight:400}
 /* tabela de parcelas */
