@@ -9,8 +9,8 @@ import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { MarcarLido } from "@/components/MarcarLido";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm";
-import { atualizarIntimacao, atualizarIntimacaoCampos, criarPrazo, promoverOrfa } from "@/app/actions";
-import { PROCESSO_INSTANCIA, PROCESSO_AREA, RESPONSAVEIS, TIPO_CONTAGEM } from "@/lib/enums";
+import { atualizarIntimacao, atualizarIntimacaoCampos, criarPrazo, criarTarefa, promoverOrfa } from "@/app/actions";
+import { PROCESSO_INSTANCIA, PROCESSO_AREA, RESPONSAVEIS, TIPO_CONTAGEM, PRIORIDADES } from "@/lib/enums";
 import { sugerirPeca, type MapaProvidencia } from "@/lib/pecas";
 import { fmtDate, humano, dividirAto } from "@/lib/format";
 import { linkPara } from "@/lib/links";
@@ -31,6 +31,9 @@ const NoteIco = ({ c = "currentColor" }: { c?: string }) => (
 );
 const Clock = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+);
+const TaskIco = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 11l2 2 4-4" /><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M8 2v4M16 2v4" /></svg>
 );
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
@@ -145,6 +148,25 @@ function EncaminharPrazo({ i, sug, label, variant = "default" }: { i: IntimacaoF
         <div><label>Responsável</label><select name="responsavel" defaultValue="Daniel">{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
       </div>
       <p className="sub" style={{ margin: 0 }}>Prazos penais em dias corridos: confira a ciência ({fmtDate(i.data_ciencia)}) e feriados locais. {i.fundamento ? `Fundamento sugerido: ${i.fundamento}.` : ""}</p>
+    </FormModal>
+  );
+}
+
+/* ── nova tarefa (a partir da intimação) ─────────────────────────────────── */
+function NovaTarefaIntim({ i, label, variant = "default" }: { i: IntimacaoFull; label: ReactNode; variant?: "default" | "primary" }) {
+  const tituloSug = (i.providencia?.trim() || i.resumo?.trim() || "Tarefa da intimação").slice(0, 120);
+  const clienteId = i.clienteRefs[0]?.id ?? "";
+  return (
+    <FormModal label={label} titulo="Nova tarefa" descricao="Cria uma tarefa pendente, já vinculada ao processo/cliente desta intimação." acao={criarTarefa} enviarLabel="Criar tarefa" variant={variant}>
+      <input type="hidden" name="processo_id" defaultValue={i.processo_id ?? ""} />
+      <input type="hidden" name="cliente_id" defaultValue={clienteId} />
+      <div><label>Título</label><input name="titulo" required defaultValue={tituloSug} /></div>
+      <div><label>Descrição</label><textarea name="descricao" defaultValue={i.resumo ?? ""} placeholder="Detalhes da tarefa…" /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div><label>Prioridade</label><select name="prioridade" defaultValue="media">{PRIORIDADES.map((p) => <option key={p} value={p}>{p}</option>)}</select></div>
+        <div><label>Responsável</label><select name="responsavel" defaultValue="Daniel">{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+      </div>
+      <div><label>Data limite (opcional)</label><input type="date" name="data_limite" defaultValue={fatalSugerida(i.data_ciencia, i.prazo_dias ?? null)} /></div>
     </FormModal>
   );
 }
@@ -335,6 +357,7 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFul
         <div className="audp-actionbar">
           {!i.orfa && !i.prazo && <EncaminharPrazo i={i} sug={sug} label={<><Clock /> Encaminhar → prazo</>} variant="primary" />}
           <CriarPecaPendente tipoOrigem="intimacao" origemId={i.id} texto={i.providencia || i.resumo} baseTitulo={i.resumo} mapa={mapa} />
+          <NovaTarefaIntim i={i} label={<><TaskIco /> Nova tarefa</>} />
           {i.orfa
             ? <PromoverProcessoForm titulo="Vincular processo" descricao="Identifica/cadastra o processo e vincula a intimação." acao={promoverOrfa.bind(null, "intimacao", i.id)} procs={procs} clis={clis} enviarLabel="Vincular" />
             : i.processo_id && <Link className="btn default" href={linkPara("processo", i.processo_id)}>Vincular processo</Link>}
