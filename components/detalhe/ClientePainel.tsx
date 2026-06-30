@@ -10,13 +10,17 @@ import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { ExecucaoCliente } from "@/components/detalhe/ExecucaoCliente";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
+import {
+  IntimacoesTab, MovimentacoesTab, PrazosAudienciasTab, TarefasTab, ProducaoTab,
+  CenariosBloco, DespesasBloco, OrigemLeadSelo,
+} from "@/components/detalhe/ClienteFicha";
 import { atualizarCliente, desativarCliente, criarTarefa, criarEstudo } from "@/app/actions";
 import { SITUACAO_PRISIONAL, PRIORIDADES, RESPONSAVEIS, ESTUDO_TIPO } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type {
   ClienteFull, Cliente, Anotacao, ClienteProcMini,
-  ExecucaoCliente as TExec, Documento,
+  ExecucaoCliente as TExec, Documento, ClienteFicha,
 } from "@/lib/data";
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
@@ -134,10 +138,15 @@ function NovaTarefa({ p }: { p: ClienteFull }) {
   );
 }
 
-type Tab = "consolidado" | "processos" | "execucao" | "estudos" | "financeiro" | "documentos" | "notas";
+type Tab = "consolidado" | "processos" | "intimacoes" | "movimentacoes" | "prazos" | "tarefas" | "producao" | "execucao" | "estudos" | "financeiro" | "documentos" | "notas";
 const TABS: { id: Tab; label: string }[] = [
   { id: "consolidado", label: "Consolidado" },
   { id: "processos", label: "Processos" },
+  { id: "intimacoes", label: "Intimações" },
+  { id: "movimentacoes", label: "Movimentações" },
+  { id: "prazos", label: "Prazos & Audiências" },
+  { id: "tarefas", label: "Tarefas" },
+  { id: "producao", label: "Produção" },
   { id: "execucao", label: "Execução" },
   { id: "estudos", label: "Estudo de execução" },
   { id: "financeiro", label: "Financeiro" },
@@ -278,9 +287,9 @@ function FinanceiroBloco({ p }: { p: ClienteFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function ClientePainel({
-  p, lista, anotacoes, exec, documentos,
+  p, lista, anotacoes, exec, documentos, ficha,
 }: {
-  p: ClienteFull; lista: Cliente[]; anotacoes: Anotacao[]; exec: TExec; documentos: Documento[];
+  p: ClienteFull; lista: Cliente[]; anotacoes: Anotacao[]; exec: TExec; documentos: Documento[]; ficha: ClienteFicha;
 }) {
   const [tab, setTab] = useState<Tab>("consolidado");
   const [verNotas, setVerNotas] = useState(false);
@@ -345,6 +354,7 @@ export function ClientePainel({
                   <span className="mono">CPF {mascararCpf(p.cpf)}</span>
                   {idade != null && <span className="cli-sep">· {idade} anos</span>}
                   {desde && <span className="cli-sep">· cliente desde {desde}</span>}
+                  <OrigemLeadSelo origem={ficha.origem} />
                 </div>
               </div>
               <div className="cli-head-actions">
@@ -352,6 +362,13 @@ export function ClientePainel({
                 <button type="button" className="btn default" onClick={abrirNotas}><NoteIco /> Nota datada</button>
               </div>
             </div>
+
+            {/* ABAS DO CICLO intimação → prazo → peça → andamento (recorte do cliente) */}
+            {tab === "intimacoes" && <IntimacoesTab itens={ficha.intimacoes} />}
+            {tab === "movimentacoes" && <MovimentacoesTab itens={ficha.andamentos} procMeta={ficha.procMeta} />}
+            {tab === "prazos" && <PrazosAudienciasTab prazos={p.prazos} audiencias={ficha.audiencias} pendentes={ficha.pendentesValidacao} />}
+            {tab === "tarefas" && <TarefasTab itens={ficha.tarefas} setTab={(t) => setTab(t as Tab)} />}
+            {tab === "producao" && <ProducaoTab itens={ficha.pecas} />}
 
             {/* BLOCO 1 · CONSOLIDADO */}
             {ver("consolidado") && (
@@ -442,6 +459,7 @@ export function ClientePainel({
 
             {/* BLOCO 7 · FINANCEIRO */}
             {(tab === "consolidado" || tab === "financeiro") && <FinanceiroBloco p={p} />}
+            {tab === "financeiro" && <DespesasBloco itens={ficha.despesas} />}
 
             {/* BLOCO 8 · ESTUDO DE EXECUÇÃO */}
             {(tab === "consolidado" || tab === "execucao" || tab === "estudos") && <EstudosBloco p={p} />}
@@ -452,6 +470,9 @@ export function ClientePainel({
                 <ExecucaoCliente exec={exec} clienteId={p.id} situacaoAtual={p.situacao_prisional} />
               </div>
             )}
+
+            {/* REFLEXOS NA EXECUÇÃO (cenários) — dentro de Execução / Estudo */}
+            {(tab === "execucao" || tab === "estudos") && <CenariosBloco itens={ficha.cenarios} />}
 
             {/* DOCUMENTOS (aba) */}
             {tab === "documentos" && (
