@@ -27,7 +27,7 @@ import {
   PECA_TIPO,
   AUDIENCIA_MODALIDADE,
 } from "@/lib/enums";
-import { soDigitos, humano, fmtDate } from "@/lib/format";
+import { soDigitos, humano, fmtDate, hojeSP } from "@/lib/format";
 
 export type Resultado = { ok: boolean; message: string };
 
@@ -36,9 +36,10 @@ function falha(e: unknown): Resultado {
   return { ok: false, message: m };
 }
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10);
+  return hojeSP();
 }
 function agora(): string {
+  // Instante (UTC) — timestamptz guarda o ponto no tempo; o fuso é aplicado na exibição.
   return new Date().toISOString();
 }
 

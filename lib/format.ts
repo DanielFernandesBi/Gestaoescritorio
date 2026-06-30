@@ -20,7 +20,19 @@ export function fmtDate(iso: string | null | undefined): string {
   return `${d}/${m}/${y}`;
 }
 
-/** hh:mm de um timestamptz/data-hora. */
+/** Fuso oficial do escritório — todas as datas/horas do sistema são de São Paulo. */
+export const TZ_SP = "America/Sao_Paulo";
+
+/** Data de hoje (yyyy-mm-dd) no fuso de São Paulo — independe do fuso do servidor
+ * (que roda em UTC). Evita que, das 21h à meia-noite BRT, "hoje" pule para o dia
+ * seguinte. en-CA já formata como yyyy-mm-dd. */
+export function hojeSP(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ_SP, year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+}
+
+/** hh:mm de um timestamptz/data-hora, sempre no fuso de São Paulo. */
 export function fmtTime(iso: string | null | undefined): string {
   if (!iso) return "";
   const dt = new Date(iso);
@@ -28,6 +40,7 @@ export function fmtTime(iso: string | null | undefined): string {
   return dt.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: TZ_SP,
   });
 }
 
@@ -46,13 +59,14 @@ export function ddLabel(dias: number): string {
 
 export const HOJE = new Date();
 
-/** Dias entre hoje (00h local) e a data ISO (yyyy-mm-dd). Negativo = vencido. */
+/** Dias entre hoje (em São Paulo) e a data ISO (yyyy-mm-dd). Negativo = vencido.
+ * Compara só a parte de calendário em UTC nos dois lados — resultado independe do
+ * fuso do servidor. */
 export function diasAte(iso: string | null | undefined): number {
   if (!iso) return 0;
-  const d = new Date(iso.slice(0, 10) + "T00:00:00");
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  return Math.round((d.getTime() - hoje.getTime()) / 86_400_000);
+  const alvo = new Date(iso.slice(0, 10) + "T00:00:00Z").getTime();
+  const base = new Date(hojeSP() + "T00:00:00Z").getTime();
+  return Math.round((alvo - base) / 86_400_000);
 }
 
 /** Capitaliza e troca _ por espaço (ex.: sessao_julgamento → Sessão julgamento). */
