@@ -2599,6 +2599,99 @@ export async function getTarefasPainel(): Promise<TarefaCard[]> {
   });
 }
 
+/* Detalhe completo da tarefa (master-detail, padrão .audp) — consolida a ficha
+ * + a movimentação de origem (andamento que escalou) + processo/cliente + todas
+ * as "viewers" ligadas: peças geradas, compromissos na agenda, e o contexto do
+ * processo (prazos abertos, audiências). Tudo navegável. Só leitura. */
+
+export type TarefaAndamentoOrigem = { id: string; tipo: string; descricao: string; data: string | null };
+export type TarefaVincPeca = { id: string; titulo: string; tipo: string; status: string };
+export type TarefaVincCompromisso = { id: string; titulo: string; data_hora: string | null; status: string };
+export type TarefaProcPrazo = { id: string; ato: string; data_fatal: string; dias: number; validado: boolean };
+export type TarefaProcAud = { id: string; tipo: string; nome: string | null; data_hora: string; status: string };
+
+export type TarefaFull = Tarefa & {
+  criado_em: string | null;
+  numero_registro: string | null;
+  tribunal: string | null;
+  vara_comarca: string | null;
+  classe: string | null;
+  area: string | null;
+  clientes: string | null;
+  partes: ParteRefLite[];
+  origem: TarefaAndamentoOrigem | null;
+  pecas: TarefaVincPeca[];
+  compromissos: TarefaVincCompromisso[];
+  prazos: TarefaProcPrazo[];
+  audiencias: TarefaProcAud[];
+};
+
+export async function getTarefaFull(id: string): Promise<TarefaFull | null> {
+  const supabase = await createClient();
+  const { data: r } = await supabase
+    .from("tarefas")
+    .select("id, titulo, descricao, status, prioridade, responsavel, data_limite, criado_em, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,area,segredo_justica,cliente_processo(papel,clientes(id,nome))), clientes(id,nome)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!r) return null;
+
+  const p = r.processos as unknown as (NestedProcesso & { tribunal?: string | null; vara_comarca?: string | null; classe?: string | null; area?: string | null }) | null;
+  const direto = r.clientes as unknown as { id?: string; nome?: string } | null;
+  const cp = (p?.cliente_processo ?? []) as { papel?: string | null; clientes?: { id?: string; nome?: string } | null }[];
+  const partes: ParteRefLite[] = [];
+  const vistos = new Set<string>();
+  for (const v of cp) {
+    const c = v.clientes;
+    if (c?.id && c.nome && !vistos.has(c.id)) { vistos.add(c.id); partes.push({ id: c.id, nome: c.nome, papel: v.papel ?? null }); }
+  }
+  if (!partes.length && direto?.id && direto.nome) partes.push({ id: direto.id, nome: direto.nome, papel: null });
+
+  const andId = r.andamento_id as string | null;
+  const procId = r.processo_id as string | null;
+  const [and, pcs, comp, prz, aud] = await Promise.all([
+    andId ? supabase.from("andamentos").select("id, tipo, descricao, data").eq("id", andId).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("pecas").select("id, titulo, tipo, status").eq("tarefa_id", id).order("criado_em", { ascending: false }),
+    supabase.from("compromissos").select("id, titulo, data_hora, status").eq("tarefa_id", id).order("data_hora", { ascending: false }),
+    procId ? supabase.from("prazos").select("id, ato, data_fatal, validado").eq("processo_id", procId).eq("status", "aberto").order("data_fatal", { ascending: true }) : Promise.resolve({ data: [] }),
+    procId ? supabase.from("audiencias").select("id, tipo, nome, data_hora, status").eq("processo_id", procId).order("data_hora", { ascending: false }).limit(10) : Promise.resolve({ data: [] }),
+  ]);
+
+  const ar = and.data as Record<string, unknown> | null;
+  const origem: TarefaAndamentoOrigem | null = ar
+    ? { id: ar.id as string, tipo: ar.tipo as string, descricao: (ar.descricao as string | null) ?? "", data: (ar.data as string | null) ?? null }
+    : null;
+
+  return {
+    id: r.id as string,
+    titulo: r.titulo as string,
+    descricao: (r.descricao as string | null) ?? null,
+    status: r.status as string,
+    prioridade: (r.prioridade as string | null) ?? null,
+    responsavel: (r.responsavel as string | null) ?? null,
+    data_limite: (r.data_limite as string | null) ?? null,
+    processo_id: procId,
+    cliente_id: (r.cliente_id as string | null) ?? null,
+    cadastro_automatico: Boolean(r.cadastro_automatico),
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    andamento_id: andId,
+    numero_cnj: p?.numero_cnj ?? null,
+    segredo: Boolean(p?.segredo_justica),
+    criado_em: (r.criado_em as string | null) ?? null,
+    numero_registro: p?.numero_registro_tribunal ?? null,
+    tribunal: p?.tribunal ?? null,
+    vara_comarca: p?.vara_comarca ?? null,
+    classe: p?.classe ?? null,
+    area: p?.area ?? null,
+    clientes: nomesClientes(p?.cliente_processo) || direto?.nome || null,
+    partes,
+    origem,
+    pecas: ((pcs.data ?? []) as Record<string, unknown>[]).map((x) => ({ id: x.id as string, titulo: x.titulo as string, tipo: x.tipo as string, status: x.status as string })),
+    compromissos: ((comp.data ?? []) as Record<string, unknown>[]).map((x) => ({ id: x.id as string, titulo: x.titulo as string, data_hora: (x.data_hora as string | null) ?? null, status: x.status as string })),
+    prazos: ((prz.data ?? []) as Record<string, unknown>[]).map((x) => ({ id: x.id as string, ato: x.ato as string, data_fatal: x.data_fatal as string, dias: diasAte(x.data_fatal as string), validado: Boolean(x.validado) })),
+    audiencias: ((aud.data ?? []) as Record<string, unknown>[]).map((x) => ({ id: x.id as string, tipo: x.tipo as string, nome: (x.nome as string | null) ?? null, data_hora: x.data_hora as string, status: x.status as string })),
+  };
+}
+
 /* Produção de peças (kanban de escrita — Sugestão 20) -------------------- */
 
 export type Peca = {
