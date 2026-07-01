@@ -1704,6 +1704,9 @@ export type ClienteProcMini = {
   // Vínculo processo→processo: aponta para a AÇÃO DE ORIGEM (ex.: AREsp → ação penal
   // que o originou). Self-FK em processos.processo_origem. Null = processo raiz.
   processo_origem: string | null;
+  // Interino (Sug. 76): a numeração da classe (ex.: "AREsp nº 3222041") ainda não
+  // tem coluna própria; o frontend a extrai daqui até existir campo estruturado.
+  observacoes: string | null;
 };
 export type ClientePrazoMini = { id: string; ato: string; data_fatal: string; data_interna: string | null; validado: boolean; dias: number };
 export type ClienteContratoMini = { id: string; objeto: string | null; status: string; contratante: string | null; valor_total: number | null; valor_aberto: number; prox_venc: string | null };
@@ -1747,7 +1750,7 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
     supabase.from("clientes").select("*").eq("id", id).maybeSingle(),
     supabase.from("vw_situacao_cliente").select("*").eq("cliente_id", id).maybeSingle(),
     supabase.from("vw_situacao_executoria_atual").select("regime_atual, pena_total_texto, dias_para_progressao, dias_para_livramento, data_atestado").eq("cliente_id", id).maybeSingle(),
-    supabase.from("cliente_processo").select("papel, processos(id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, area, classe, instancia, status, segredo_justica, responsavel, processo_origem)").eq("cliente_id", id),
+    supabase.from("cliente_processo").select("papel, processos(id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, area, classe, instancia, status, segredo_justica, responsavel, processo_origem, observacoes)").eq("cliente_id", id),
   ]);
 
   const c = base.data as Record<string, unknown> | null;
@@ -1789,7 +1792,7 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
     }
   }
 
-  type PV = { id: string; numero_cnj: string | null; numero_registro_tribunal: string | null; tribunal: string | null; vara_comarca: string | null; area: string | null; classe: string | null; instancia: string | null; status: string; segredo_justica: boolean | null; responsavel: string | null; processo_origem: string | null };
+  type PV = { id: string; numero_cnj: string | null; numero_registro_tribunal: string | null; tribunal: string | null; vara_comarca: string | null; area: string | null; classe: string | null; instancia: string | null; status: string; segredo_justica: boolean | null; responsavel: string | null; processo_origem: string | null; observacoes: string | null };
   const processos: ClienteProcMini[] = (vinc.data ?? [])
     .map((v) => {
       const p = v.processos as unknown as PV | null;
@@ -1799,6 +1802,7 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
         tribunal: p.tribunal, vara_comarca: p.vara_comarca, area: p.area, classe: p.classe,
         instancia: p.instancia, status: p.status, segredo: Boolean(p.segredo_justica), papel: v.papel as string | null,
         processo_origem: (p.processo_origem as string | null) ?? null,
+        observacoes: (p.observacoes as string | null) ?? null,
       } as ClienteProcMini;
     })
     .filter(Boolean) as ClienteProcMini[];

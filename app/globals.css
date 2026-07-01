@@ -2387,6 +2387,8 @@ a.tk-title:hover{text-decoration:underline}
 /* Processo vinculado (recurso/derivado) — recuo + corrente/elo ligando à origem */
 .przp-origem.proc-filho{position:relative;background:color-mix(in srgb,var(--accent) 4%,var(--surface));border-color:color-mix(in srgb,var(--accent) 22%,var(--line))}
 .proc-elo{position:absolute;left:-19px;top:-9px;width:14px;height:calc(50% + 9px);border-left:2px solid color-mix(in srgb,var(--accent) 50%,transparent);border-bottom:2px solid color-mix(in srgb,var(--accent) 50%,transparent);border-bottom-left-radius:9px;pointer-events:none}
+.proc-nclasse{color:var(--accent-strong);font-weight:700;text-decoration:none}
+.proc-nclasse:hover{text-decoration:underline}
 .proc-vinc{font-size:10.5px;color:var(--accent-strong);margin-top:4px;font-weight:600}
 .proc-vinc .mono{font-weight:700}
 .proc-vinc-nota{font-size:10.5px;color:var(--muted);line-height:1.5;padding:4px 2px 0}
