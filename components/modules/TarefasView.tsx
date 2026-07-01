@@ -97,7 +97,7 @@ function AcaoBtn({ run, children, className = "tk-fbtn" }: { run: () => Promise<
 }
 
 /* ── card PENDENTE (mostra como entrou: prioridade + escalonamento) ──────── */
-function PendenteCard({ t, mapa }: { t: TarefaCard; mapa: MapaProvidencia | null }) {
+function PendenteCard({ t, mapa, outro }: { t: TarefaCard; mapa: MapaProvidencia | null; outro: Socio | null }) {
   const conf = ehConferencia(t);
   const sent = ehSentinela(t);
   const pk = priKey(t.prioridade);
@@ -142,7 +142,12 @@ function PendenteCard({ t, mapa }: { t: TarefaCard; mapa: MapaProvidencia | null
                 <AcaoBtn run={() => assumirTarefa(t.id)}>Assumir</AcaoBtn>
                 <AcaoBtn run={() => reatribuirTarefa(t.id)} className="tk-fbtn sec">Reatribuir</AcaoBtn>
               </>
-            : <AcaoBtn run={() => moverTarefa(t.id, "em_andamento")}>Em andamento</AcaoBtn>}
+            : <>
+                {outro && t.responsavel !== outro && (
+                  <AcaoBtn run={() => reatribuirTarefa(t.id)} className="tk-fbtn sec">Atribuir a {outro}</AcaoBtn>
+                )}
+                <AcaoBtn run={() => moverTarefa(t.id, "em_andamento")}>Em andamento</AcaoBtn>
+              </>}
           <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>
           <AcaoBtn run={() => moverTarefa(t.id, "cancelada")} className="tk-fbtn cancelar"><X />Cancelar</AcaoBtn>
           {(conf || sent) && (
@@ -270,7 +275,7 @@ export function TarefasView({
     .sort((a, b) => (b.concluida_em ?? "").localeCompare(a.concluida_em ?? ""));
 
   const cols: { key: string; label: string; dot: string; itens: TarefaCard[]; render: (t: TarefaCard) => ReactNode; extra?: ReactNode }[] = [
-    { key: "pendente", label: "Pendente", dot: "slate", itens: pendentes, render: (t) => <PendenteCard key={t.id} t={t} mapa={mapa} /> },
+    { key: "pendente", label: "Pendente", dot: "slate", itens: pendentes, render: (t) => <PendenteCard key={t.id} t={t} mapa={mapa} outro={outro} /> },
     { key: "andamento", label: "Em andamento", dot: "blue", itens: andamento, render: (t) => <AndamentoCard key={t.id} t={t} /> },
     { key: "concluida", label: "Concluída", dot: "green", itens: concluidas, render: (t) => <ConcluidaCard key={t.id} t={t} />, extra: <span className="tk-col-hint">recentes</span> },
   ];
