@@ -72,6 +72,34 @@ const polo = (p: ClienteProcMini) => p.papel ? humano(p.papel) : "parte";
 const classeObjeto = (p: ClienteProcMini) =>
   [p.classe ? humano(p.classe) : (p.area ? humano(p.area) : "Processo"), p.area && p.classe ? humano(p.area) : null]
     .filter(Boolean).join(" · ");
+const numLabel = (p: ClienteProcMini) => p.numero_cnj ?? (p.numero_registro ? `reg ${p.numero_registro}` : "processo de origem");
+
+/* Aninha os processos vinculados (recurso/derivado) logo abaixo da sua AÇÃO DE
+ * ORIGEM, com profundidade — para o recuo + corrente/elo na tela. O vínculo vem
+ * de processos.processo_origem (self-FK). Processo cuja origem não está entre os
+ * do cliente entra como raiz. Prefixo garante que o pai precede sempre o filho. */
+type ProcNo = { proc: ClienteProcMini; depth: number; origem: string | null };
+function aninharProcessos(procs: ClienteProcMini[]): ProcNo[] {
+  const ids = new Set(procs.map((p) => p.id));
+  const filhos = new Map<string, ClienteProcMini[]>();
+  const raizes: ClienteProcMini[] = [];
+  for (const p of procs) {
+    const pai = p.processo_origem && ids.has(p.processo_origem) ? p.processo_origem : null;
+    if (pai) { const arr = filhos.get(pai) ?? []; arr.push(p); filhos.set(pai, arr); }
+    else raizes.push(p);
+  }
+  const out: ProcNo[] = [];
+  const visto = new Set<string>();
+  const walk = (p: ClienteProcMini, depth: number, origem: string | null) => {
+    if (visto.has(p.id)) return; // guarda contra ciclo de origem
+    visto.add(p.id);
+    out.push({ proc: p, depth, origem });
+    for (const f of filhos.get(p.id) ?? []) walk(f, depth + 1, numLabel(p));
+  };
+  for (const r of raizes) walk(r, 0, null);
+  for (const p of procs) if (!visto.has(p.id)) out.push({ proc: p, depth: 0, origem: null });
+  return out;
+}
 
 /* ── seção rotulada ──────────────────────────────────────────────────────── */
 function Sec({ titulo, sub, extra, children }: { titulo: string; sub?: string; extra?: ReactNode; children: ReactNode }) {
@@ -175,33 +203,43 @@ function CriarEstudo({ p }: { p: ClienteFull }) {
 
 /* ── blocos reutilizados ─────────────────────────────────────────────────── */
 function ProcessosBloco({ p, tab, setTab }: { p: ClienteFull; tab: Tab; setTab: (t: Tab) => void }) {
-  const lista = tab === "processos" ? p.processos : p.processos.slice(0, 2);
+  const ordenados = aninharProcessos(p.processos);
+  const lista = tab === "processos" ? ordenados : ordenados.slice(0, 2);
   const resto = p.processos.length - lista.length;
+  const temVinculo = ordenados.some((n) => n.depth > 0);
   return (
     <Sec titulo="Processos vinculados" extra={<span className="audp-count">{p.processos.length}</span>}>
       {p.processos.length === 0 ? (
         <div className="audp-empty">Sem processos vinculados.</div>
       ) : (
         <div className="przp-stack">
-          {lista.map((pr) => (
-            <div className="przp-origem" key={pr.id}>
-              <span className="pz-tag cat-slate">{polo(pr)}</span>
-              <div className="mid">
-                <div className="t">{classeObjeto(pr)}{pr.segredo && <> <SegredoTag on /></>}</div>
-                <div className="s mono">
-                  {(pr.numero_cnj || pr.numero_registro)
-                    ? <ProcRef cnj={pr.numero_cnj} registro={pr.numero_registro} id={pr.id} />
-                    : "sem CNJ"}
-                  {pr.vara_comarca ? ` · ${pr.vara_comarca}` : pr.tribunal ? ` · ${pr.tribunal}` : ""}
+          {lista.map(({ proc: pr, depth, origem }) => {
+            const filho = depth > 0;
+            return (
+              <div className={`przp-origem${filho ? " proc-filho" : ""}`} key={pr.id} style={filho ? { marginLeft: depth * 30 } : undefined}>
+                {filho && <span className="proc-elo" aria-hidden />}
+                <span className={`pz-tag ${filho ? "cowork" : "cat-slate"}`}>{polo(pr)}</span>
+                <div className="mid">
+                  <div className="t">{classeObjeto(pr)}{pr.segredo && <> <SegredoTag on /></>}</div>
+                  <div className="s mono">
+                    {(pr.numero_cnj || pr.numero_registro)
+                      ? <ProcRef cnj={pr.numero_cnj} registro={pr.numero_registro} id={pr.id} />
+                      : "sem CNJ"}
+                    {pr.vara_comarca ? ` · ${pr.vara_comarca}` : pr.tribunal ? ` · ${pr.tribunal}` : ""}
+                  </div>
+                  {filho && origem && <div className="proc-vinc">⛓ vinculado à ação de origem · <span className="mono">{origem}</span></div>}
                 </div>
+                <Link className="btn sm abrir" href={linkPara("processo", pr.id)}>Abrir</Link>
               </div>
-              <Link className="btn sm abrir" href={linkPara("processo", pr.id)}>Abrir</Link>
-            </div>
-          ))}
+            );
+          })}
           {resto > 0 && (
             <button type="button" className="cli-vertodos" onClick={() => setTab("processos")}>
               + {resto} processo{resto === 1 ? "" : "s"} · ver todos na aba Processos
             </button>
+          )}
+          {temVinculo && (tab === "processos" || lista.some((n) => n.depth > 0)) && (
+            <div className="proc-vinc-nota">⛓ Recuo e corrente indicam processo vinculado à ação de origem (ex.: recurso e sua ação penal) — pelo campo <code>processo_origem</code>, não por texto de observação.</div>
           )}
         </div>
       )}

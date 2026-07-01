@@ -2384,6 +2384,13 @@ a.tk-title:hover{text-decoration:underline}
 .przp-origem .mid{flex:1;min-width:0}
 .przp-origem .mid .t{font-weight:700;color:var(--name);font-size:13px}
 .przp-origem .mid .s{font-size:11px;color:var(--muted);margin-top:1px}
+/* Processo vinculado (recurso/derivado) — recuo + corrente/elo ligando à origem */
+.przp-origem.proc-filho{position:relative;background:color-mix(in srgb,var(--accent) 4%,var(--surface));border-color:color-mix(in srgb,var(--accent) 22%,var(--line))}
+.proc-elo{position:absolute;left:-19px;top:-9px;width:14px;height:calc(50% + 9px);border-left:2px solid color-mix(in srgb,var(--accent) 50%,transparent);border-bottom:2px solid color-mix(in srgb,var(--accent) 50%,transparent);border-bottom-left-radius:9px;pointer-events:none}
+.proc-vinc{font-size:10.5px;color:var(--accent-strong);margin-top:4px;font-weight:600}
+.proc-vinc .mono{font-weight:700}
+.proc-vinc-nota{font-size:10.5px;color:var(--muted);line-height:1.5;padding:4px 2px 0}
+.proc-vinc-nota code{font-family:var(--mono);font-size:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .przp-note{font-size:11.5px;color:var(--text);line-height:1.55;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 14px}
 .przp-note .accent{color:var(--accent-strong)}
 .przp-empty-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;background:var(--surface-2);border:1px dashed var(--line);border-radius:12px;font-size:12.5px;color:var(--muted-2)}
