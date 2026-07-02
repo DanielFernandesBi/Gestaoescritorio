@@ -26,7 +26,7 @@ const statusLabel = (s: string) => (s === "concluida" ? "concluída" : s === "pa
 const statusTone = (s: string): "green" | "amber" | "red" => (s === "concluida" ? "green" : s === "parcial" ? "amber" : "red");
 const fonteLabel = (f: string) =>
   f === "ambas" ? "DJEN + push" : f === "djen" ? "DJEN" : f === "push" ? "push"
-    : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f;
+    : f === "radar" ? "Radar" : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f;
 const janelaDias = (a: string | null, b: string | null) => {
   if (!a || !b) return null;
   const d = Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);

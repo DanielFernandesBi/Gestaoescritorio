@@ -870,3 +870,38 @@ export async function getExpectativaPendente(limit = 20): Promise<ExpectativaPen
     segredo: Boolean(r.segredo_justica),
   }));
 }
+
+/* ===== Sentinela de atos (Sug. 75 · F5) — vw_sentinela_atos =====
+ * Painel único de saúde da conciliação de atos gêmeos: quantos clusters têm
+ * status divergente entre fontes (a conferir), quantas peças ficaram órfãs, e o
+ * volume de intimações em aberto / clusters gêmeos. Uma linha global, só leitura.
+ * As views são CANDIDATAS de conferência — agrupam, nunca mesclam nem escondem. */
+
+export type SentinelaAtos = {
+  intimacoes_total: number;
+  intimacoes_em_aberto: number;
+  clusters_intimacao_gemea: number;
+  clusters_status_divergente: number;
+  clusters_andamento_gemeo: number;
+  pecas_orfas: number;
+  pecas_a_fazer: number;
+};
+
+export async function getSentinelaAtos(): Promise<SentinelaAtos | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_sentinela_atos")
+    .select("intimacoes_total, intimacoes_em_aberto, clusters_intimacao_gemea, clusters_status_divergente, clusters_andamento_gemeo, pecas_orfas, pecas_a_fazer")
+    .maybeSingle();
+  if (!data) return null;
+  const r = data as Record<string, unknown>;
+  return {
+    intimacoes_total: Number(r.intimacoes_total ?? 0),
+    intimacoes_em_aberto: Number(r.intimacoes_em_aberto ?? 0),
+    clusters_intimacao_gemea: Number(r.clusters_intimacao_gemea ?? 0),
+    clusters_status_divergente: Number(r.clusters_status_divergente ?? 0),
+    clusters_andamento_gemeo: Number(r.clusters_andamento_gemeo ?? 0),
+    pecas_orfas: Number(r.pecas_orfas ?? 0),
+    pecas_a_fazer: Number(r.pecas_a_fazer ?? 0),
+  };
+}

@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getEstudosDoProcesso, getDocumentosProcesso } from "@/lib/data";
 
-/** Detalhe cruzado de um processo: prazos, audiências, intimações e andamentos. */
+/** Detalhe cruzado de um processo: prazos, audiências, intimações, andamentos,
+ * peças e tarefas (F1 · Sug. 75). */
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -10,7 +11,7 @@ export async function GET(
   const { id } = await params;
   const supabase = await createClient();
 
-  const [completo, prazos, audiencias, intimacoes, andamentos, estudos, documentos] = await Promise.all([
+  const [completo, prazos, audiencias, intimacoes, andamentos, pecas, tarefas, estudos, documentos] = await Promise.all([
     supabase.from("processos").select("*").eq("id", id).single(),
     supabase
       .from("prazos")
@@ -35,6 +36,18 @@ export async function GET(
       .eq("processo_id", id)
       .order("data", { ascending: false })
       .limit(20),
+    // Sug. 75 (F1) — peças e tarefas do processo, antes ausentes deste loader.
+    supabase
+      .from("pecas")
+      .select("id, titulo, tipo, subtipo, status")
+      .eq("processo_id", id)
+      .order("criado_em", { ascending: false }),
+    supabase
+      .from("tarefas")
+      .select("id, titulo, status, prioridade, responsavel, data_limite")
+      .eq("processo_id", id)
+      .order("data_limite", { ascending: true, nullsFirst: false })
+      .limit(50),
     getEstudosDoProcesso(id),
     getDocumentosProcesso(id),
   ]);
@@ -45,6 +58,8 @@ export async function GET(
     audiencias: audiencias.data ?? [],
     intimacoes: intimacoes.data ?? [],
     andamentos: andamentos.data ?? [],
+    pecas: pecas.data ?? [],
+    tarefas: tarefas.data ?? [],
     estudos,
     documentos,
   });

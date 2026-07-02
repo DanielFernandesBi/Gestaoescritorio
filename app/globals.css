@@ -2875,6 +2875,94 @@ h4 .xp-frescor{margin-left:8px;text-transform:none;letter-spacing:0}
 .exp-cta{font-size:10.5px;font-weight:700;color:var(--accent-strong);white-space:nowrap}
 .exp-foot{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5}
 
+/* ===== Sentinela de atos (Sug. 75 · F5) — saúde da conciliação ===== */
+.sentinela{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+.sentinela.alerta{border-color:color-mix(in srgb,var(--red) 40%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--red) 18%,transparent),var(--shadow)}
+.sentinela-h{padding:14px 20px;border-bottom:1px solid var(--line-soft);display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.sentinela-h .lhs{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
+.sentinela-sub{font-size:11px;color:var(--muted)}
+.sentinela-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:14px 20px}
+.sent-ct{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;text-align:center;text-decoration:none;display:block}
+.sent-ct:hover{border-color:var(--accent)}
+.sent-ct b{display:block;font-family:var(--serif);font-size:26px;line-height:1;color:var(--ink)}
+.sent-ct span{display:block;font-size:10.5px;color:var(--muted);margin-top:4px}
+.sent-ct.red b{color:var(--red)}
+.sent-ct.red{border-color:color-mix(in srgb,var(--red) 40%,var(--line))}
+.sent-ct.amber b{color:var(--amber)}
+.sent-ct.off{opacity:.6}
+.sent-ct.off b{color:var(--muted-2)}
+.sentinela-foot{font-size:10.5px;color:var(--muted);line-height:1.5;padding:0 20px 14px}
+.sentinela.alerta .sentinela-foot b{color:var(--red)}
+@media(max-width:1080px){.sentinela-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== Linha canônica de atos (Sug. 75 · F3) — atos gêmeos ===== */
+.ato-aviso{display:flex;align-items:center;gap:8px;font-size:11.5px;line-height:1.5;color:var(--red);background:color-mix(in srgb,var(--red) 7%,var(--surface));border:1px solid color-mix(in srgb,var(--red) 30%,var(--line));border-radius:9px;padding:8px 11px;margin-bottom:12px}
+.ato-timeline{display:flex;flex-direction:column;gap:2px}
+.ato-linha{display:flex;gap:10px;padding:10px 0;position:relative}
+.ato-linha:not(:last-child){border-bottom:1px solid var(--line-soft)}
+.ato-dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--accent);margin-top:5px;box-shadow:0 0 0 3px var(--accent-soft)}
+.ato-linha.divergente .ato-dot{background:var(--red);box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 18%,transparent)}
+.ato-body{min-width:0;flex:1}
+.ato-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ato-data{font-size:12px;color:var(--muted);font-weight:600}
+.ato-fonte{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.ato-h .btn.abrir{margin-left:auto}
+.ato-amostra{font-size:12.5px;color:var(--name);line-height:1.5;margin:5px 0 0}
+.ato-selo{margin-top:7px;font-size:11px;font-weight:700;color:var(--accent-strong);background:none;border:none;padding:0;cursor:pointer}
+.ato-selo:hover{text-decoration:underline}
+.ato-gemeas{margin-top:8px;padding:9px 11px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;display:flex;flex-direction:column;gap:8px}
+.ato-gemea{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ato-gemea-txt{font-size:11.5px;color:var(--muted);min-width:0;flex:1}
+.ato-gemea .btn.abrir{margin-left:auto}
+.ato-nota{font-size:10.5px;color:var(--muted);line-height:1.5;border-top:1px dashed var(--line);padding-top:7px}
+
+/* ===== Caixa de trabalho (Sug. 75 · F2) — agrupada por processo ===== */
+.caixa-page{max-width:1100px}
+.cx-counters{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:16px 0}
+.cx-counter{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow)}
+.cx-counter .big{font-family:var(--serif);font-size:26px;line-height:1;color:var(--ink)}
+.cx-counter .lbl{font-size:10.5px;color:var(--muted);margin-top:5px}
+.cx-counter.accent{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.cx-counter.accent .big{color:var(--accent-strong)}
+.cx-counter.red .big{color:var(--red)}
+@media(max-width:1080px){.cx-counters{grid-template-columns:repeat(2,1fr)}}
+.cx-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.cx-list{display:flex;flex-direction:column;gap:10px}
+.cx-row{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.cx-row.urg{border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
+.cx-head{width:100%;display:flex;align-items:center;gap:12px;padding:13px 16px;background:none;border:none;cursor:pointer;text-align:left}
+.cx-head:hover{background:var(--surface-2)}
+.cx-caret{flex:none;color:var(--muted);transition:transform .15s;font-size:12px}
+.cx-caret.on{transform:rotate(90deg)}
+.cx-id{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+.cx-num{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--name)}
+.cx-nclasse{color:var(--muted);font-weight:600;font-size:12px}
+.cx-cli{font-size:11.5px;color:var(--muted)}
+.cx-chips{flex:none;display:flex;align-items:center;gap:12px}
+.cx-fatal{font-family:var(--mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px}
+.cx-fatal.red{color:var(--red);background:color-mix(in srgb,var(--red) 12%,transparent)}
+.cx-fatal.amber{color:var(--amber);background:var(--amber-soft)}
+.cx-fatal.tang{color:var(--muted);background:var(--surface-2)}
+.cx-resumo{font-size:11px;color:var(--muted);max-width:260px;text-align:right}
+.cx-total{flex:none;min-width:26px;text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:2px 8px}
+.cx-body{border-top:1px solid var(--line-soft);padding:12px 16px;display:flex;flex-direction:column;gap:14px}
+.cx-grp-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.cx-grp-n{font-family:var(--mono);font-size:10.5px;color:var(--muted);background:var(--surface-2);border-radius:20px;padding:0 7px}
+.cx-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;text-decoration:none;margin-bottom:6px;background:var(--surface)}
+.cx-item:hover{border-color:var(--accent)}
+.cx-item-t{flex:1;min-width:0;font-size:12.5px;color:var(--name);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cx-item-d{font-size:11px;color:var(--muted);white-space:nowrap}
+.cx-item-dias{font-family:var(--mono);font-size:11.5px;font-weight:700}
+.cx-item-dias.red{color:var(--red)}.cx-item-dias.amber{color:var(--amber)}.cx-item-dias.tang{color:var(--muted)}
+.cx-foot{display:flex;justify-content:flex-end}
+.cx-empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.cx-empty.sm{padding:24px}
+.cx-empty-ico{display:inline-flex;padding:14px;border-radius:50%;background:var(--surface-2);color:var(--accent);margin-bottom:12px}
+.cx-empty h3{font-family:var(--serif);font-size:18px;color:var(--ink);margin-bottom:6px}
+.cx-empty p{font-size:13px;max-width:460px;margin:0 auto;line-height:1.6}
+.cx-note{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;font-size:11.5px;color:var(--muted);line-height:1.6}
+.cx-note .ico{flex:none;color:var(--accent)}
+
 /* ===== Clientes similares + modal de mescla (Sug. 69) ===== */
 .dup-card.sim-forte{border-color:color-mix(in srgb,var(--red) 40%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--red) 20%,transparent)}
 .dup-split.sim .dup-merge .lbl{color:var(--muted)}

@@ -74,21 +74,6 @@ const classeObjeto = (p: ClienteProcMini) =>
     .filter(Boolean).join(" · ");
 const numLabel = (p: ClienteProcMini) => p.numero_cnj ?? (p.numero_registro ? `reg ${p.numero_registro}` : "processo de origem");
 
-/* Interino (Sug. 76): a numeração da classe (ex.: "AREsp nº 3222041") ainda não
- * tem coluna própria — vive só no texto de observações. Extrai o padrão
- * "<sigla-da-classe> nº <número>" casando com a CLASSE do processo (evita falso
- * positivo), para exibir esse número na frente do registro. Quando existir campo
- * estruturado, troca-se a fonte sem mexer no resto. */
-function numeroClasse(p: ClienteProcMini): { sigla: string; numero: string } | null {
-  if (!p.observacoes || !p.classe) return null;
-  const sigla = p.classe.trim().split(/[\s·—–-]+/)[0];
-  if (!sigla || sigla.length > 8 || !/^[A-Za-zÀ-ÿ]+$/.test(sigla)) return null;
-  const m = p.observacoes.match(new RegExp(`\\b${sigla}\\s*n[º°o.]*\\s*([0-9][0-9./-]*)`, "i"));
-  if (!m) return null;
-  const numero = m[1].replace(/[.\-/]+$/, "");
-  return numero ? { sigla, numero } : null;
-}
-
 /* Aninha os processos vinculados (recurso/derivado) logo abaixo da sua AÇÃO DE
  * ORIGEM, com profundidade — para o recuo + corrente/elo na tela. O vínculo vem
  * de processos.processo_origem (self-FK). Processo cuja origem não está entre os
@@ -230,7 +215,7 @@ function ProcessosBloco({ p, tab, setTab }: { p: ClienteFull; tab: Tab; setTab: 
         <div className="przp-stack">
           {lista.map(({ proc: pr, depth, origem }) => {
             const filho = depth > 0;
-            const nc = numeroClasse(pr);
+            const ncl = pr.numero_classe_tribunal; // Sug. 76 — numeração da classe (com sigla)
             return (
               <div className={`przp-origem${filho ? " proc-filho" : ""}`} key={pr.id} style={filho ? { marginLeft: depth * 30 } : undefined}>
                 {filho && <span className="proc-elo" aria-hidden />}
@@ -238,10 +223,10 @@ function ProcessosBloco({ p, tab, setTab }: { p: ClienteFull; tab: Tab; setTab: 
                 <div className="mid">
                   <div className="t">{classeObjeto(pr)}{pr.segredo && <> <SegredoTag on /></>}</div>
                   <div className="s mono">
-                    {nc && <><Link className="proc-nclasse" href={linkPara("processo", pr.id)}>{nc.sigla} nº {nc.numero}</Link>{(pr.numero_cnj || pr.numero_registro) ? " · " : ""}</>}
+                    {ncl && <><Link className="proc-nclasse" href={linkPara("processo", pr.id)}>{ncl}</Link>{(pr.numero_cnj || pr.numero_registro) ? " · " : ""}</>}
                     {(pr.numero_cnj || pr.numero_registro)
                       ? <ProcRef cnj={pr.numero_cnj} registro={pr.numero_registro} id={pr.id} />
-                      : (nc ? null : "sem CNJ")}
+                      : (ncl ? null : "sem CNJ")}
                     {pr.vara_comarca ? ` · ${pr.vara_comarca}` : pr.tribunal ? ` · ${pr.tribunal}` : ""}
                   </div>
                   {filho && origem && <div className="proc-vinc">⛓ vinculado à ação de origem · <span className="mono">{origem}</span></div>}

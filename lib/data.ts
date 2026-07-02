@@ -1398,12 +1398,97 @@ export type ProcAudMini = { id: string; tipo: string; nome: string | null; data_
 export type ProcIntimMini = { id: string; resumo: string | null; origem: string | null; status: string; data_publicacao: string | null; providencia: string | null };
 export type ProcAndMini = { id: string; data: string; tipo: string; descricao: string; origem: string | null };
 export type ProcPecaMini = { id: string; titulo: string; tipo: string; subtipo: string | null; status: string };
+
+/* Timeline canônica de atos (Sug. 75 · F3) — clusters de "atos gêmeos" ---------
+ * As views vw_intimacoes_atos_candidatos e vw_andamentos_atos_candidatos agrupam
+ * registros que descrevem o MESMO ato jurídico captado por fontes diferentes
+ * (DJEN, e-mail push, etc.). São CANDIDATAS de conferência: a UI mostra 1 linha
+ * por ato_cluster_id, com selo "+N de outras fontes", e nunca esconde nem funde
+ * os registros — as fontes gêmeas ficam num "expandir". status_divergente marca
+ * clusters cujas fontes discordam do estado (destaque vermelho, conferir à mão). */
+export type AtoFonte = {
+  id: string; origem: string | null; status: string | null; amostra: string | null; data_ato: string | null;
+};
+export type AtoCanonico = {
+  cluster_id: string; kind: "intimacao" | "andamento";
+  data_ato: string | null; tipo: string | null; classe: string | null; tribunal: string | null;
+  status: string | null; origens: string[]; n_no_cluster: number; status_divergente: boolean;
+  principal: AtoFonte; outras: AtoFonte[];
+};
+
+// Prioridade de "fonte canônica" dentro de um cluster: o diário oficial eletrônico
+// manda; o e-mail push e o recorte digital são conferência. Menor = mais canônico.
+const ATO_ORIGEM_RANK: Record<string, number> = { djen: 0, dje: 1, push: 2, email: 2, radar: 3, redacao: 4 };
+const rankOrigem = (o: string | null) => (o ? ATO_ORIGEM_RANK[o.toLowerCase()] ?? 9 : 9);
+
+export async function getAtosProcesso(processoId: string): Promise<AtoCanonico[]> {
+  const supabase = await createClient();
+  const [intim, ands] = await Promise.all([
+    supabase
+      .from("vw_intimacoes_atos_candidatos")
+      .select("ato_cluster_id, intimacao_id, data_ato, origem, status, tribunal, classe, amostra, n_no_cluster, n_origens, origens_cluster, status_divergente")
+      .eq("processo_id", processoId),
+    supabase
+      .from("vw_andamentos_atos_candidatos")
+      .select("ato_cluster_id, andamento_id, data_ato, tipo, origem, amostra, n_no_cluster, n_origens, origens_cluster")
+      .eq("processo_id", processoId),
+  ]);
+
+  type Grupo = { rows: Record<string, unknown>[]; kind: "intimacao" | "andamento" };
+  const grupos = new Map<string, Grupo>();
+  for (const r of (intim.data ?? []) as Record<string, unknown>[]) {
+    const k = r.ato_cluster_id as string;
+    (grupos.get(k) ?? grupos.set(k, { rows: [], kind: "intimacao" }).get(k)!).rows.push(r);
+  }
+  for (const r of (ands.data ?? []) as Record<string, unknown>[]) {
+    const k = r.ato_cluster_id as string;
+    (grupos.get(k) ?? grupos.set(k, { rows: [], kind: "andamento" }).get(k)!).rows.push(r);
+  }
+
+  const atos: AtoCanonico[] = [];
+  for (const [cluster_id, g] of grupos) {
+    const idKey = g.kind === "intimacao" ? "intimacao_id" : "andamento_id";
+    // Canônico = fonte de maior autoridade; empate resolve pela mais recente.
+    const ordenadas = [...g.rows].sort((a, b) => {
+      const dr = rankOrigem(a.origem as string | null) - rankOrigem(b.origem as string | null);
+      if (dr !== 0) return dr;
+      return String(b.data_ato ?? "").localeCompare(String(a.data_ato ?? ""));
+    });
+    const fonte = (r: Record<string, unknown>): AtoFonte => ({
+      id: r[idKey] as string, origem: (r.origem as string | null) ?? null,
+      status: (r.status as string | null) ?? null, amostra: (r.amostra as string | null) ?? null,
+      data_ato: (r.data_ato as string | null) ?? null,
+    });
+    const head = ordenadas[0];
+    const origensRaw = (head.origens_cluster as string[] | null) ?? ordenadas.map((r) => r.origem as string).filter(Boolean);
+    atos.push({
+      cluster_id, kind: g.kind,
+      data_ato: (head.data_ato as string | null) ?? null,
+      tipo: (head.tipo as string | null) ?? null,
+      classe: (head.classe as string | null) ?? null,
+      tribunal: (head.tribunal as string | null) ?? null,
+      status: (head.status as string | null) ?? null,
+      origens: [...new Set(origensRaw.map((o) => String(o)))],
+      n_no_cluster: Number(head.n_no_cluster ?? g.rows.length),
+      status_divergente: Boolean(head.status_divergente),
+      principal: fonte(head),
+      outras: ordenadas.slice(1).map(fonte),
+    });
+  }
+  // Mais recentes primeiro; divergências sobem para conferência.
+  atos.sort((a, b) => {
+    if (a.status_divergente !== b.status_divergente) return a.status_divergente ? -1 : 1;
+    return String(b.data_ato ?? "").localeCompare(String(a.data_ato ?? ""));
+  });
+  return atos;
+}
+export type ProcTarefaMini = { id: string; titulo: string; status: string; prioridade: string | null; responsavel: string | null; data_limite: string | null };
 export type ProcEstudoMini = { id: string; titulo: string; status: string; tipo: string | null };
 export type ProcContratoMini = { id: string; objeto: string | null; status: string; valor_total: number | null };
 export type ProcCompromissoMini = { id: string; titulo: string; data_hora: string; status: string };
 
 export type ProcessoFull = {
-  id: string; numero_cnj: string | null; numero_registro: string | null;
+  id: string; numero_cnj: string | null; numero_registro: string | null; numero_classe: string | null;
   tribunal: string | null; vara_comarca: string | null; uf: string | null; instancia: string | null;
   area: string | null; classe: string | null; assunto: string | null; fase: string | null;
   status: string; responsavel: string | null; segredo: boolean; cadastro_automatico: boolean; cadastrado_por: string | null;
@@ -1414,7 +1499,9 @@ export type ProcessoFull = {
   audiencias: ProcAudMini[];
   intimacoes: ProcIntimMini[];
   andamentos: ProcAndMini[];
+  atos: AtoCanonico[];
   pecas: ProcPecaMini[];
+  tarefas: ProcTarefaMini[];
   estudos: ProcEstudoMini[];
   contratos: ProcContratoMini[];
   compromissos: ProcCompromissoMini[];
@@ -1425,7 +1512,7 @@ export async function getProcessoFull(id: string): Promise<ProcessoFull | null> 
   const supabase = await createClient();
   const { data: r } = await supabase
     .from("processos")
-    .select("id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, assunto, fase, status, responsavel, segredo_justica, cadastro_automatico, cadastrado_por, processo_origem, link_tribunal, observacoes, merged_into, criado_em, cliente_processo(papel, clientes(id, nome))")
+    .select("id, numero_cnj, numero_registro_tribunal, numero_classe_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, assunto, fase, status, responsavel, segredo_justica, cadastro_automatico, cadastrado_por, processo_origem, link_tribunal, observacoes, merged_into, criado_em, cliente_processo(papel, clientes(id, nome))")
     .eq("id", id)
     .maybeSingle();
   if (!r) return null;
@@ -1438,12 +1525,14 @@ export async function getProcessoFull(id: string): Promise<ProcessoFull | null> 
     if (c?.id && c.nome && !vistos.has(c.id)) { vistos.add(c.id); partes.push({ id: c.id, nome: c.nome, papel: v.papel ?? null }); }
   }
 
-  const [prz, aud, intim, ands, pcs, est, ctr, comp, docs] = await Promise.all([
+  const [prz, aud, intim, ands, atos, pcs, tar, est, ctr, comp, docs] = await Promise.all([
     supabase.from("prazos").select("id, ato, data_fatal, data_interna, validado, status").eq("processo_id", id).eq("status", "aberto").order("data_fatal", { ascending: true }),
     supabase.from("audiencias").select("id, tipo, nome, data_hora, modalidade, status, validado").eq("processo_id", id).order("data_hora", { ascending: true }),
     supabase.from("intimacoes").select("id, resumo, origem, status, data_publicacao, providencia").eq("processo_id", id).order("data_publicacao", { ascending: false, nullsFirst: false }).limit(20),
     supabase.from("andamentos").select("id, data, tipo, descricao, origem").eq("processo_id", id).order("data", { ascending: false }).limit(200),
+    getAtosProcesso(id),
     supabase.from("pecas").select("id, titulo, tipo, subtipo, status").eq("processo_id", id).order("criado_em", { ascending: false }),
+    supabase.from("tarefas").select("id, titulo, status, prioridade, responsavel, data_limite").eq("processo_id", id).order("data_limite", { ascending: true, nullsFirst: false }).limit(50),
     supabase.from("estudo_processo").select("estudo_id, estudos_caso(id, titulo, status, tipo)").eq("processo_id", id),
     supabase.from("contratos").select("id, objeto, status, valor_total").eq("processo_id", id).order("criado_em", { ascending: false }),
     supabase.from("compromissos").select("id, titulo, data_hora, status").eq("processo_id", id).order("data_hora", { ascending: false }).limit(20),
@@ -1461,6 +1550,7 @@ export async function getProcessoFull(id: string): Promise<ProcessoFull | null> 
     id: r.id as string,
     numero_cnj: (r.numero_cnj as string | null) ?? null,
     numero_registro: (r.numero_registro_tribunal as string | null) ?? null,
+    numero_classe: (r.numero_classe_tribunal as string | null) ?? null,
     tribunal: (r.tribunal as string | null) ?? null,
     vara_comarca: (r.vara_comarca as string | null) ?? null,
     uf: (r.uf as string | null) ?? null,
@@ -1485,12 +1575,99 @@ export async function getProcessoFull(id: string): Promise<ProcessoFull | null> 
     audiencias: (aud.data ?? []).map((a) => ({ id: a.id as string, tipo: a.tipo as string, nome: (a.nome as string | null) ?? null, data_hora: a.data_hora as string, modalidade: (a.modalidade as string | null) ?? null, status: a.status as string, validado: Boolean(a.validado) })),
     intimacoes: (intim.data ?? []).map((i) => ({ id: i.id as string, resumo: (i.resumo as string | null) ?? null, origem: (i.origem as string | null) ?? null, status: i.status as string, data_publicacao: (i.data_publicacao as string | null) ?? null, providencia: (i.providencia as string | null) ?? null })),
     andamentos: (ands.data ?? []).map((a) => ({ id: a.id as string, data: a.data as string, tipo: a.tipo as string, descricao: a.descricao as string, origem: (a.origem as string | null) ?? null })),
+    atos,
     pecas: (pcs.data ?? []).map((p) => ({ id: p.id as string, titulo: p.titulo as string, tipo: p.tipo as string, subtipo: (p.subtipo as string | null) ?? null, status: p.status as string })),
+    tarefas: (tar.data ?? []).map((t) => ({ id: t.id as string, titulo: t.titulo as string, status: t.status as string, prioridade: (t.prioridade as string | null) ?? null, responsavel: (t.responsavel as string | null) ?? null, data_limite: (t.data_limite as string | null) ?? null })),
     estudos,
     contratos: (ctr.data ?? []).map((c) => ({ id: c.id as string, objeto: (c.objeto as string | null) ?? null, status: c.status as string, valor_total: c.valor_total == null ? null : Number(c.valor_total) })),
     compromissos: (comp.data ?? []).map((c) => ({ id: c.id as string, titulo: c.titulo as string, data_hora: c.data_hora as string, status: c.status as string })),
     documentos: docs,
   };
+}
+
+/* Caixa de trabalho (Sug. 75 · F2) — uma linha por processo com trabalho em aberto
+ * -----------------------------------------------------------------------------
+ * Agrega, por processo_id, tudo que ainda pede uma providência: intimações em
+ * aberto (sem_providencia/em_analise), prazos abertos, peças a_fazer/aguardando
+ * insumo e tarefas pendente/em_andamento. Só leitura. A tela expande cada
+ * processo para mostrar os itens. Nº por extenso e selo de sigilo preservados. */
+export type CaixaIntim = { id: string; resumo: string | null; status: string; data: string | null };
+export type CaixaPrazo = { id: string; ato: string; data_fatal: string; data_interna: string | null; validado: boolean; dias: number };
+export type CaixaPeca = { id: string; titulo: string; tipo: string; subtipo: string | null; status: string };
+export type CaixaTarefa = { id: string; titulo: string; status: string; prioridade: string | null; responsavel: string | null; data_limite: string | null };
+export type CaixaProcesso = {
+  processo_id: string;
+  numero_cnj: string | null; numero_registro: string | null; numero_classe: string | null;
+  segredo: boolean; area: string | null; classe: string | null; clientes: string;
+  intimacoes: CaixaIntim[]; prazos: CaixaPrazo[]; pecas: CaixaPeca[]; tarefas: CaixaTarefa[];
+  total: number; prox_fatal: number | null;
+};
+
+export async function getCaixaTrabalho(): Promise<CaixaProcesso[]> {
+  const supabase = await createClient();
+  const [intim, prz, pec, tar] = await Promise.all([
+    supabase.from("intimacoes").select("id, resumo, status, data_publicacao, processo_id").in("status", ["sem_providencia", "em_analise"]).not("processo_id", "is", null).order("data_publicacao", { ascending: false, nullsFirst: false }),
+    supabase.from("prazos").select("id, ato, data_fatal, data_interna, validado, processo_id").eq("status", "aberto").not("processo_id", "is", null).order("data_fatal", { ascending: true }),
+    supabase.from("pecas").select("id, titulo, tipo, subtipo, status, processo_id").in("status", ["a_fazer", "aguardando_insumo"]).not("processo_id", "is", null),
+    supabase.from("tarefas").select("id, titulo, status, prioridade, responsavel, data_limite, processo_id").in("status", ["pendente", "em_andamento"]).not("processo_id", "is", null).order("data_limite", { ascending: true, nullsFirst: false }),
+  ]);
+
+  const grupos = new Map<string, CaixaProcesso>();
+  const grupo = (pid: string): CaixaProcesso => {
+    let g = grupos.get(pid);
+    if (!g) {
+      g = { processo_id: pid, numero_cnj: null, numero_registro: null, numero_classe: null, segredo: false, area: null, classe: null, clientes: "", intimacoes: [], prazos: [], pecas: [], tarefas: [], total: 0, prox_fatal: null };
+      grupos.set(pid, g);
+    }
+    return g;
+  };
+
+  for (const r of (intim.data ?? []) as Record<string, unknown>[]) {
+    grupo(r.processo_id as string).intimacoes.push({ id: r.id as string, resumo: (r.resumo as string | null) ?? null, status: r.status as string, data: (r.data_publicacao as string | null) ?? null });
+  }
+  for (const r of (prz.data ?? []) as Record<string, unknown>[]) {
+    const dias = diasAte(r.data_fatal as string);
+    const g = grupo(r.processo_id as string);
+    g.prazos.push({ id: r.id as string, ato: r.ato as string, data_fatal: r.data_fatal as string, data_interna: (r.data_interna as string | null) ?? null, validado: Boolean(r.validado), dias });
+    if (g.prox_fatal == null || dias < g.prox_fatal) g.prox_fatal = dias;
+  }
+  for (const r of (pec.data ?? []) as Record<string, unknown>[]) {
+    grupo(r.processo_id as string).pecas.push({ id: r.id as string, titulo: r.titulo as string, tipo: r.tipo as string, subtipo: (r.subtipo as string | null) ?? null, status: r.status as string });
+  }
+  for (const r of (tar.data ?? []) as Record<string, unknown>[]) {
+    grupo(r.processo_id as string).tarefas.push({ id: r.id as string, titulo: r.titulo as string, status: r.status as string, prioridade: (r.prioridade as string | null) ?? null, responsavel: (r.responsavel as string | null) ?? null, data_limite: (r.data_limite as string | null) ?? null });
+  }
+
+  const ids = [...grupos.keys()];
+  if (!ids.length) return [];
+
+  const { data: procs } = await supabase
+    .from("processos")
+    .select("id, numero_cnj, numero_registro_tribunal, numero_classe_tribunal, segredo_justica, area, classe, cliente_processo(clientes(nome))")
+    .in("id", ids);
+  for (const r of (procs ?? []) as Record<string, unknown>[]) {
+    const g = grupos.get(r.id as string);
+    if (!g) continue;
+    g.numero_cnj = (r.numero_cnj as string | null) ?? null;
+    g.numero_registro = (r.numero_registro_tribunal as string | null) ?? null;
+    g.numero_classe = (r.numero_classe_tribunal as string | null) ?? null;
+    g.segredo = Boolean(r.segredo_justica);
+    g.area = (r.area as string | null) ?? null;
+    g.classe = (r.classe as string | null) ?? null;
+    g.clientes = nomesClientes(r.cliente_processo as unknown as NestedCliente[] | null);
+  }
+
+  const lista = [...grupos.values()];
+  for (const g of lista) g.total = g.intimacoes.length + g.prazos.length + g.pecas.length + g.tarefas.length;
+  // Ordena: quem tem fatal mais próximo primeiro; sem prazo, por volume de trabalho.
+  lista.sort((a, b) => {
+    const fa = a.prox_fatal, fb = b.prox_fatal;
+    if (fa != null && fb != null) return fa - fb;
+    if (fa != null) return -1;
+    if (fb != null) return 1;
+    return b.total - a.total;
+  });
+  return lista;
 }
 
 /* Clientes --------------------------------------------------------------- */
@@ -1705,9 +1882,8 @@ export type ClienteProcMini = {
   // Vínculo processo→processo: aponta para a AÇÃO DE ORIGEM (ex.: AREsp → ação penal
   // que o originou). Self-FK em processos.processo_origem. Null = processo raiz.
   processo_origem: string | null;
-  // Interino (Sug. 76): a numeração da classe (ex.: "AREsp nº 3222041") ainda não
-  // tem coluna própria; o frontend a extrai daqui até existir campo estruturado.
-  observacoes: string | null;
+  // Sug. 76 — numeração do processo na classe/recurso (com sigla, ex.: "AREsp 3222041").
+  numero_classe_tribunal: string | null;
 };
 export type ClientePrazoMini = { id: string; ato: string; data_fatal: string; data_interna: string | null; validado: boolean; dias: number };
 export type ClienteContratoMini = { id: string; objeto: string | null; status: string; contratante: string | null; valor_total: number | null; valor_aberto: number; prox_venc: string | null };
@@ -1751,7 +1927,7 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
     supabase.from("clientes").select("*").eq("id", id).maybeSingle(),
     supabase.from("vw_situacao_cliente").select("*").eq("cliente_id", id).maybeSingle(),
     supabase.from("vw_situacao_executoria_atual").select("regime_atual, pena_total_texto, dias_para_progressao, dias_para_livramento, data_atestado").eq("cliente_id", id).maybeSingle(),
-    supabase.from("cliente_processo").select("papel, processos(id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, area, classe, instancia, status, segredo_justica, responsavel, processo_origem, observacoes)").eq("cliente_id", id),
+    supabase.from("cliente_processo").select("papel, processos(id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, area, classe, instancia, status, segredo_justica, responsavel, processo_origem, numero_classe_tribunal)").eq("cliente_id", id),
   ]);
 
   const c = base.data as Record<string, unknown> | null;
@@ -1795,7 +1971,7 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
     }
   }
 
-  type PV = { id: string; numero_cnj: string | null; numero_registro_tribunal: string | null; tribunal: string | null; vara_comarca: string | null; area: string | null; classe: string | null; instancia: string | null; status: string; segredo_justica: boolean | null; responsavel: string | null; processo_origem: string | null; observacoes: string | null };
+  type PV = { id: string; numero_cnj: string | null; numero_registro_tribunal: string | null; tribunal: string | null; vara_comarca: string | null; area: string | null; classe: string | null; instancia: string | null; status: string; segredo_justica: boolean | null; responsavel: string | null; processo_origem: string | null; numero_classe_tribunal: string | null };
   const processos: ClienteProcMini[] = (vinc.data ?? [])
     .map((v) => {
       const p = v.processos as unknown as PV | null;
@@ -1805,7 +1981,7 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
         tribunal: p.tribunal, vara_comarca: p.vara_comarca, area: p.area, classe: p.classe,
         instancia: p.instancia, status: p.status, segredo: Boolean(p.segredo_justica), papel: v.papel as string | null,
         processo_origem: (p.processo_origem as string | null) ?? null,
-        observacoes: (p.observacoes as string | null) ?? null,
+        numero_classe_tribunal: (p.numero_classe_tribunal as string | null) ?? null,
       } as ClienteProcMini;
     })
     .filter(Boolean) as ClienteProcMini[];

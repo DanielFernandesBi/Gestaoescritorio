@@ -1,4 +1,4 @@
-import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos, getBriefingAtual, getExecucaoFrescor, getExpectativaPendente } from "@/lib/queries";
+import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos, getBriefingAtual, getExecucaoFrescor, getExpectativaPendente, getSentinelaAtos } from "@/lib/queries";
 import { getAudiencias, getPecas, getPrazos } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
@@ -22,7 +22,7 @@ const statusTone = (s: string): "green" | "amber" | "red" =>
 // Sug. 80 — rótulo da fonte da varredura (inclui redação/manutenção).
 const fonteLabel = (f: string) =>
   f === "ambas" ? "DJEN + push" : f === "djen" ? "DJEN" : f === "push" ? "Push"
-    : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f.toUpperCase();
+    : f === "radar" ? "Radar" : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f.toUpperCase();
 
 // Caixinha de data (dia + mês) para audiências.
 function diaMes(iso: string) {
@@ -60,6 +60,7 @@ export default async function PainelPage() {
     prazosAll,
     cobertura,
     expectativa,
+    sentinela,
   ] = await Promise.all([
     getPainelData(),
     getUltimaVarredura(),
@@ -72,6 +73,7 @@ export default async function PainelPage() {
     getPrazos(),
     getExecucaoFrescor(),
     getExpectativaPendente(),
+    getSentinelaAtos(),
   ]);
 
   const nome = socioDoEmail(email);
@@ -357,6 +359,43 @@ export default async function PainelPage() {
           </>
         )}
       </div>
+
+      {/* SENTINELA DE ATOS (Sug. 75 · F5) — saúde da conciliação de atos gêmeos */}
+      {sentinela && (sentinela.clusters_status_divergente > 0 || sentinela.pecas_orfas > 0 || sentinela.clusters_intimacao_gemea > 0 || sentinela.clusters_andamento_gemeo > 0) && (
+        <div className={`sentinela${sentinela.clusters_status_divergente > 0 || sentinela.pecas_orfas >= 10 ? " alerta" : ""}`}>
+          <div className="sentinela-h">
+            <span className="lhs"><Icon name="shield" size={16} /> Sentinela de atos</span>
+            <span className="sentinela-sub">vw_sentinela_atos · conferência de atos gêmeos (agrupa, nunca funde)</span>
+          </div>
+          <div className="sentinela-grid">
+            <Link className={`sent-ct ${sentinela.clusters_status_divergente > 0 ? "red" : "off"}`} href="/varredura/intimacoes">
+              <b>{fmtNum(sentinela.clusters_status_divergente)}</b>
+              <span>status divergente entre fontes</span>
+            </Link>
+            <Link className={`sent-ct ${sentinela.pecas_orfas >= 10 ? "red" : sentinela.pecas_orfas > 0 ? "amber" : "off"}`} href="/producao">
+              <b>{fmtNum(sentinela.pecas_orfas)}</b>
+              <span>peças órfãs · sem ato de origem</span>
+            </Link>
+            <Link className="sent-ct" href="/varredura/intimacoes">
+              <b>{fmtNum(sentinela.clusters_intimacao_gemea)}</b>
+              <span>clusters de intimação gêmea</span>
+            </Link>
+            <Link className="sent-ct" href="/varredura/andamentos">
+              <b>{fmtNum(sentinela.clusters_andamento_gemeo)}</b>
+              <span>clusters de andamento gêmeo</span>
+            </Link>
+            <Link className="sent-ct" href="/varredura/intimacoes">
+              <b>{fmtNum(sentinela.intimacoes_em_aberto)}</b>
+              <span>intimações em aberto</span>
+            </Link>
+          </div>
+          <div className="sentinela-foot">
+            {sentinela.clusters_status_divergente > 0
+              ? <><b>Atenção:</b> {sentinela.clusters_status_divergente} ato{sentinela.clusters_status_divergente === 1 ? "" : "s"} com o mesmo fato relatado por fontes diferentes com status divergente — conferir manualmente. Nada é fundido nem escondido automaticamente.</>
+              : "Nenhuma divergência de status entre fontes. Clusters são apenas dicas de conferência — cada registro permanece íntegro."}
+          </div>
+        </div>
+      )}
 
       {/* KPIs — panorama do acervo e financeiro */}
       <div className="kpis kpis-6">

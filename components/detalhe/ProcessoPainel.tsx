@@ -16,9 +16,9 @@ import {
   ANDAMENTO_TIPO, ANDAMENTO_ORIGEM, TIPO_CONTAGEM, RESPONSAVEIS,
   PROCESSO_INSTANCIA, PROCESSO_AREA, PROCESSO_STATUS, PAPEL,
 } from "@/lib/enums";
-import { humano } from "@/lib/format";
+import { humano, fmtDate } from "@/lib/format";
 import { linkPara } from "@/lib/links";
-import type { Processo, ProcessoFull, ProcAndMini, Anotacao } from "@/lib/data";
+import type { Processo, ProcessoFull, ProcAndMini, AtoCanonico, Anotacao } from "@/lib/data";
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
 const Spark = ({ s = 13 }: { s?: number }) => (
@@ -85,6 +85,59 @@ function Movimentacoes({ andamentos }: { andamentos: ProcAndMini[] }) {
         </button>
       )}
     </>
+  );
+}
+
+/* ── linha canônica de atos (F3 · Sug. 75) — 1 linha por ato_cluster_id ─────
+ * Agrupa registros gêmeos (mesmo ato captado por fontes diferentes) numa única
+ * entrada, com selo "+N de outras fontes". As gêmeas ficam num "expandir" — nunca
+ * são escondidas nem fundidas. status_divergente destaca o cluster em vermelho. */
+const fonteAto = (o: string | null) => {
+  const f = (o ?? "").toLowerCase();
+  return f === "djen" ? "DJEN" : f === "dje" ? "DJE" : f === "push" ? "e-mail push"
+    : f === "email" ? "e-mail" : f === "radar" ? "Radar" : f === "redacao" ? "Redação" : (o ?? "—");
+};
+const intimTone = (s: string | null) =>
+  s === "providencia_tomada" ? "val" : s === "arquivada" ? "cat-neutral" : s === "em_analise" ? "cat-blue" : "tang";
+const trunc = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
+
+function AtoLinha({ a }: { a: AtoCanonico }) {
+  const [aberto, setAberto] = useState(false);
+  const tipoLabel = a.kind === "andamento" ? humano(a.tipo) : (a.classe ? humano(a.classe) : "Intimação");
+  const nOutras = a.outras.length;
+  return (
+    <div className={`ato-linha${a.status_divergente ? " divergente" : ""}`}>
+      <div className="ato-dot" aria-hidden />
+      <div className="ato-body">
+        <div className="ato-h">
+          <span className="ato-data mono">{ddmm(a.data_ato)}</span>
+          <span className={`pz-tag ${a.kind === "andamento" ? "cat-neutral" : "cat-blue"}`}>{tipoLabel}</span>
+          {a.kind === "intimacao" && a.status && <span className={`pz-tag ${intimTone(a.status)}`}>{humano(a.status)}</span>}
+          {a.status_divergente && <span className="pz-tag preso">status divergente · conferir</span>}
+          <span className="ato-fonte mono">{fonteAto(a.principal.origem)}</span>
+          <Link className="btn sm abrir" href={linkPara(a.kind, a.principal.id)}>Abrir</Link>
+        </div>
+        {a.principal.amostra && <p className="ato-amostra">{trunc(a.principal.amostra, 220)}</p>}
+        {nOutras > 0 && (
+          <button type="button" className="ato-selo" onClick={() => setAberto((v) => !v)} aria-expanded={aberto}>
+            {aberto ? "▲ ocultar" : `+${nOutras} de outras fontes`} ({a.origens.map(fonteAto).join(", ")})
+          </button>
+        )}
+        {aberto && nOutras > 0 && (
+          <div className="ato-gemeas">
+            {a.outras.map((o) => (
+              <div className="ato-gemea" key={o.id}>
+                <span className="ato-fonte mono">{fonteAto(o.origem)}</span>
+                {a.kind === "intimacao" && o.status && <span className={`pz-tag ${intimTone(o.status)}`}>{humano(o.status)}</span>}
+                <span className="ato-gemea-txt">{o.amostra ? trunc(o.amostra, 160) : "—"}</span>
+                <Link className="btn sm abrir" href={linkPara(a.kind, o.id)}>Abrir</Link>
+              </div>
+            ))}
+            <div className="ato-nota">Registros gêmeos preservados na íntegra — a linha canônica só agrupa para conferência, não funde nem apaga.</div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -230,7 +283,10 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
                   {p.cadastro_automatico && <span className="pz-tag cowork"><Spark s={9} />cadastro automático</span>}
                 </div>
                 <h2 className="audp-h2">{titulo}</h2>
-                <div className="audp-cliline"><ProcRef cnj={p.numero_cnj} registro={p.numero_registro} id={p.id} /></div>
+                <div className="audp-cliline">
+                  {p.numero_classe && <span className="proc-nclasse mono">{p.numero_classe}</span>}
+                  <ProcRef cnj={p.numero_cnj} registro={p.numero_registro} id={p.id} />
+                </div>
               </div>
               <div className="proc-head-actions">
                 <RegistrarAndamento p={p} />
@@ -267,6 +323,7 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
               <div className="cli-ia-grid">
                 <div className="fld"><div className="k">Número CNJ</div><div className="v mono">{p.numero_cnj ?? "—"}</div></div>
                 <div className="fld"><div className="k">Registro do tribunal</div><div className="v mono">{p.numero_registro ?? "— (consulta por CNJ)"}</div></div>
+                {p.numero_classe && <div className="fld"><div className="k">Número na classe</div><div className="v mono">{p.numero_classe}</div></div>}
               </div>
               <div className="audp-ia-note">Antes de cadastrar, o sistema consulta por <b>CNJ ou registro do tribunal</b> — evita duplicata. Este é o registro <b>canônico</b>{p.merged_into ? "" : " (nenhum tombstone aponta para ele)"}.</div>
             </div>
@@ -319,11 +376,38 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
               )}
             </Sec>
 
+            {/* BLOCO 6b · LINHA CANÔNICA DE ATOS (F3 · Sug. 75) — atos gêmeos agrupados */}
+            {p.atos.length > 0 && (
+              <Sec
+                titulo="Linha canônica de atos"
+                sub="vw_*_atos_candidatos · 1 linha por ato, fontes gêmeas agrupadas"
+                extra={<span className="audp-count">{p.atos.length}</span>}
+              >
+                {p.atos.some((a) => a.status_divergente) && (
+                  <div className="ato-aviso">
+                    <span aria-hidden>⚠</span> Há atos com <b>status divergente</b> entre fontes — conferir manualmente nos autos. Nada é fundido automaticamente.
+                  </div>
+                )}
+                <div className="ato-timeline">
+                  {p.atos.map((a) => <AtoLinha key={a.cluster_id} a={a} />)}
+                </div>
+              </Sec>
+            )}
+
             {/* BLOCO 7 · PEÇAS (produção) — fora do print, surfaçado */}
             {p.pecas.length > 0 && (
               <Sec titulo="Peças · produção" extra={<span className="audp-count">{p.pecas.length}</span>}>
                 <div className="przp-stack">{p.pecas.map((pc) => (
                   <Item key={pc.id} tag={humano(pc.tipo)} tagTone="cat-neutral" titulo={curto(pc.titulo)} sub={<>{pc.subtipo ? `${humano(pc.subtipo)} · ` : ""}{humano(pc.status)}</>} href={linkPara("peca", pc.id)} />
+                ))}</div>
+              </Sec>
+            )}
+
+            {/* BLOCO 7b · TAREFAS (F1 · Sug. 75) */}
+            {p.tarefas.length > 0 && (
+              <Sec titulo="Tarefas" extra={<span className="audp-count">{p.tarefas.length}</span>}>
+                <div className="przp-stack">{p.tarefas.map((t) => (
+                  <Item key={t.id} tag={humano(t.status)} tagTone="cat-slate" titulo={curto(t.titulo)} sub={<>{humano(t.prioridade)}{t.responsavel ? ` · ${t.responsavel}` : ""}{t.data_limite ? ` · limite ${fmtDate(t.data_limite)}` : ""}</>} href={linkPara("tarefa", t.id)} />
                 ))}</div>
               </Sec>
             )}

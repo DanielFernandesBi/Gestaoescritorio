@@ -34,6 +34,7 @@ export const NAV: NavGroup[] = [
   {
     grp: "Trabalho",
     items: [
+      { id: "caixa", label: "Caixa de trabalho", ico: "inbox", href: "/caixa" },
       { id: "prazos", label: "Prazos", ico: "clock", href: "/prazos", badgeKey: "prazos", kind: "alert" },
       { id: "audiencias", label: "Audiências", ico: "gavel", href: "/audiencias", badgeKey: "audiencias" },
       { id: "tarefas", label: "Tarefas", ico: "list", href: "/tarefas", badgeKey: "tarefas" },

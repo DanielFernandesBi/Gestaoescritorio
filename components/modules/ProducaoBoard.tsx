@@ -106,10 +106,11 @@ function PrazoChip({ p }: { p: Peca }) {
   return <span className={`prd-chip ${ddClass(p.dias_restantes)}`}><Clock />{p.dias_restantes} dias</span>;
 }
 // Texto do prazo: interno (do prazo) / alvo (data própria), indicando a natureza.
+// Sug. 80 — peça de prosseguimento nasce SEM prazo legal: rotula explicitamente.
 function prazoMeta(p: Peca): string {
   if (p.prazo_id) return `interno ${fmtDate(p.data_interna)} · do prazo`;
   if (p.data_efetiva) return `alvo ${fmtDate(p.data_efetiva)}`;
-  return p.responsavel ?? "";
+  return p.responsavel ? `sem prazo legal · ${p.responsavel}` : "sem prazo legal";
 }
 
 const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } as const;

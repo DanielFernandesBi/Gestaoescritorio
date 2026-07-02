@@ -14,7 +14,7 @@ const statusTone = (s: string): "green" | "amber" | "red" =>
 // Sug. 80 — a T2 (redação) e a T3 (manutenção) também gravam varredura.
 const fonteLabel = (f: string) =>
   f === "ambas" ? "DJEN + push" : f === "djen" ? "DJEN" : f === "push" ? "Push"
-    : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f.toUpperCase();
+    : f === "radar" ? "Radar" : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f.toUpperCase();
 
 const relTone = (r: string | null): "red" | "amber" | "green" | "gray" =>
   r === "alta" || r === "vinculante" ? "red" : r === "media" ? "amber" : r === "baixa" ? "gray" : "green";
