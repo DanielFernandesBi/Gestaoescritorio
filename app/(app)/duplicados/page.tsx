@@ -1,5 +1,6 @@
 import {
   getClientesDuplicados,
+  getClientesSimilares,
   getProcessosReconciliacao,
   getProcessosPossiveisDuplicatas,
   getDuplicadosContadores,
@@ -10,9 +11,10 @@ import { DuplicadosView } from "@/components/modules/DuplicadosView";
 export const dynamic = "force-dynamic";
 
 export default async function DuplicadosPage() {
-  const [contadores, clusters, possiveis, processos, tombstones] = await Promise.all([
+  const [contadores, clusters, similares, possiveis, processos, tombstones] = await Promise.all([
     getDuplicadosContadores(),
     getClientesDuplicados(),
+    getClientesSimilares(),
     getProcessosPossiveisDuplicatas(),
     getProcessosReconciliacao(),
     getTombstonesResolvidos(),
@@ -22,6 +24,7 @@ export default async function DuplicadosPage() {
     <DuplicadosView
       contadores={contadores}
       clusters={clusters}
+      similares={similares}
       possiveis={possiveis}
       processos={processos}
       tombstones={tombstones}

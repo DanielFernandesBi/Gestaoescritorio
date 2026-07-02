@@ -8,6 +8,7 @@ import { fmtDate, humano } from "@/lib/format";
 import type { Resultado } from "@/app/actions";
 import type {
   ClienteDuplicadoCluster,
+  ClienteSimilar,
   ProcessoReconciliacao,
   ProcessoPossivelDuplicata,
   DuplicadosContadores,
@@ -355,18 +356,140 @@ function ClienteCard({ cluster }: { cluster: ClienteDuplicadoCluster }) {
   );
 }
 
+/* ── Sug. 69 · par de clientes SEMELHANTES (trigram) — grafia aproximada ─── */
+function SimilarCard({ par }: { par: ClienteSimilar }) {
+  const router = useRouter();
+  const forte = par.processos_compartilhados > 0;
+  const pct = Math.round(par.similaridade * 100);
+  const cpfA = (par.a_cpf ?? "").replace(/\D/g, "");
+  const cpfB = (par.b_cpf ?? "").replace(/\D/g, "");
+  const cpfConflito = Boolean(cpfA && cpfB && cpfA !== cpfB);
+
+  // Canônico padrão = cadastro mais antigo (âncora da grafia consolidada).
+  const aMaisVelho = (par.a_criado ?? "9999") <= (par.b_criado ?? "9999");
+  const [canon, setCanon] = useState<"a" | "b">(aMaisVelho ? "a" : "b");
+  const [modal, setModal] = useState(false);
+  const [pend, setPend] = useState(false);
+  const [res, setRes] = useState<Resultado | null>(null);
+  const [oculto, setOculto] = useState(false);
+
+  const canonId = canon === "a" ? par.a_id : par.b_id;
+  const dupId = canon === "a" ? par.b_id : par.a_id;
+  const canonNome = canon === "a" ? par.a_nome : par.b_nome;
+  const dupNome = canon === "a" ? par.b_nome : par.a_nome;
+
+  async function confirmar() {
+    setPend(true);
+    const r = await mesclarCliente(canonId, dupId);
+    setPend(false);
+    setRes(r);
+    if (r.ok) { setModal(false); router.refresh(); }
+  }
+
+  if (oculto) {
+    return (
+      <div className="dup-dismissed">
+        Marcado como <b>não duplicado</b> nesta sessão · {par.a_nome} × {par.b_nome}
+        <button type="button" onClick={() => setOculto(false)}>desfazer</button>
+      </div>
+    );
+  }
+
+  const lado = (nome: string, cpf: string | null, criado: string | null) => (
+    <div className="dup-side">
+      <div className="dup-person"><Person /><b>{nome}</b></div>
+      <div className="dup-id mono">{cpf ? `CPF ${cpf}` : "sem CPF"}</div>
+      <div className="dup-prov">criado {fmtDate(criado)}</div>
+    </div>
+  );
+
+  return (
+    <article className={`dup-card${forte ? " sim-forte" : ""}`}>
+      <div className="dup-card-h plain">
+        <span className="dup-badge soft"><Spark c="var(--accent)" />grafia aproximada</span>
+        <span className="dup-scn">trigram · {pct}% similar</span>
+        <span className="dup-h-end">
+          {forte
+            ? <span className="dup-flag red"><Alert />{par.processos_compartilhados} processo{par.processos_compartilhados === 1 ? "" : "s"} em comum</span>
+            : cpfConflito
+              ? <span className="dup-flag amber"><Alert />CPFs distintos</span>
+              : <span className="dup-flag gray">sem processo em comum</span>}
+        </span>
+      </div>
+
+      <div className="dup-split sim">
+        {lado(par.a_nome, par.a_cpf, par.a_criado)}
+        <div className="dup-merge"><span className="ring"><Merge /></span><span className="lbl">semelhante</span></div>
+        {lado(par.b_nome, par.b_cpf, par.b_criado)}
+      </div>
+
+      <div className="dup-foot">
+        <span className="note">
+          Nomes semelhantes por trigram (não idênticos) — provável variação de grafia.{" "}
+          {forte
+            ? <span className="warn-txt">Processo(s) em comum: forte evidência de ser a mesma pessoa.</span>
+            : cpfConflito
+              ? <span className="warn-txt">CPFs distintos — pode ser homônimo; confirme antes de mesclar.</span>
+              : <span className="dim">Confirme o CPF antes de mesclar.</span>}
+        </span>
+        <button type="button" className="btn sm" onClick={() => setOculto(true)}>Não é duplicado</button>
+        <button type="button" className="btn sm primary" onClick={() => { setRes(null); setModal(true); }}>
+          <Merge s={13} c="#fff" tail={false} />Mesclar
+        </button>
+      </div>
+      {res && !modal && <div className={`dup-msg ${res.ok ? "ok" : "err"}`}>{res.message}</div>}
+
+      {modal && (
+        <div className="mesc-overlay" role="dialog" aria-modal="true" onClick={() => { if (!pend) setModal(false); }}>
+          <div className="mesc-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mesc-h"><Merge s={16} /> Mesclar clientes</div>
+            <p className="mesc-sub">Escolha o cadastro <b>canônico</b> (o que permanece). O outro vira lápide apontando para ele — nada é apagado.</p>
+            <div className="mesc-opts">
+              {(["a", "b"] as const).map((k) => {
+                const nome = k === "a" ? par.a_nome : par.b_nome;
+                const cpf = k === "a" ? par.a_cpf : par.b_cpf;
+                const criado = k === "a" ? par.a_criado : par.b_criado;
+                return (
+                  <label key={k} className={`mesc-opt${canon === k ? " on" : ""}`}>
+                    <input type="radio" name={`canon-${par.a_id}-${par.b_id}`} checked={canon === k} onChange={() => setCanon(k)} />
+                    <span className="mesc-opt-main">
+                      <span className="nome">{nome}</span>
+                      <span className="meta mono">{cpf ? `CPF ${cpf}` : "sem CPF"} · criado {fmtDate(criado)}</span>
+                    </span>
+                    <span className="mesc-opt-tag">{canon === k ? "canônico" : "vira lápide"}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="mesc-eq">Mantém <b>{canonNome}</b> · lápide: <b>{dupNome}</b></div>
+            {res && <div className={`dup-msg ${res.ok ? "ok" : "err"}`}>{res.message}</div>}
+            <div className="mesc-modal-foot">
+              <button type="button" className="btn sm" onClick={() => setModal(false)} disabled={pend}>Cancelar</button>
+              <button type="button" className="btn sm primary" onClick={confirmar} disabled={pend}>
+                <Merge s={13} c="#fff" tail={false} />{pend ? "Mesclando…" : "Confirmar mescla"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
 /* ── tela ────────────────────────────────────────────────────────────────── */
 const LOTE = 6;
 
 export function DuplicadosView({
   contadores,
   clusters,
+  similares,
   possiveis,
   processos,
   tombstones,
 }: {
   contadores: DuplicadosContadores;
   clusters: ClienteDuplicadoCluster[];
+  similares: ClienteSimilar[];
   possiveis: ProcessoPossivelDuplicata[];
   processos: ProcessoReconciliacao[];
   tombstones: TombstoneResolvido[];
@@ -430,6 +553,17 @@ export function DuplicadosView({
         clusters.map((c) => <ClienteCard key={c.nome_normalizado} cluster={c} />)
       ) : (
         <div className="dup-empty">Nenhum cliente duplicado por nome normalizado. 🎉</div>
+      )}
+
+      {/* Sug. 69 — clientes com grafia SEMELHANTE (trigram), que o nome exato não pega */}
+      <div className="dup-seclabel">
+        <span className="t">Clientes similares · grafia aproximada</span>
+        <code>vw_clientes_similares</code>
+      </div>
+      {similares.length > 0 ? (
+        similares.map((s) => <SimilarCard key={`${s.a_id}-${s.b_id}`} par={s} />)
+      ) : (
+        <div className="dup-empty">Sem pares suspeitos por similaridade de grafia. 🎉</div>
       )}
 
       {/* Sug. 54 — LEGADO só-registro: backlog estático, não alarme diário */}

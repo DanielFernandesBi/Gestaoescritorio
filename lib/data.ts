@@ -1762,9 +1762,11 @@ export async function getClienteFull(id: string): Promise<ClienteFull | null> {
   let mescladoEm: string | null = null, canonicoId: string | null = null, canonicoNome: string | null = null;
   if (c.ativo === false) {
     const m = String(c.observacoes ?? "").match(/\[mesclado em (\d{2}\/\d{2}\/\d{4}) no cliente ([0-9a-fA-F-]{36})\]/);
-    if (m) {
-      mescladoEm = m[1];
-      canonicoId = m[2];
+    // Sug. 69 — o ponteiro estruturado merged_into tem prioridade sobre a nota em
+    // observacoes (resolve a lápide ao canônico mesmo se a nota faltar/mudar).
+    canonicoId = (c.merged_into as string | null) ?? (m ? m[2] : null);
+    mescladoEm = m ? m[1] : null;
+    if (canonicoId) {
       const { data: can } = await supabase.from("clientes").select("nome").eq("id", canonicoId).maybeSingle();
       canonicoNome = (can?.nome as string | null) ?? null;
     }
@@ -4166,6 +4168,38 @@ export async function getClientesDuplicados(): Promise<ClienteDuplicadoCluster[]
     vinculos: c.ids.map((id) => porId.get(id)?.v ?? { n_processos: 0, n_contratos: 0, n_docs: 0 }),
     criados: c.ids.map((id) => porId.get(id)?.criado ?? null),
     cadastrados_por: c.ids.map((id) => porId.get(id)?.por ?? null),
+  }));
+}
+
+/* Sug. 69 — pares de clientes com nome SEMELHANTE (trigram), não idêntico. Pega
+ * a variação de grafia (WELINGTON × WELLINGTON) que vw_clientes_duplicados (nome
+ * normalizado EXATO) não vê. processos_compartilhados > 0 é evidência forte de
+ * ser a mesma pessoa. Só leitura; a mescla é fn_mesclar_cliente (via ação). */
+export type ClienteSimilar = {
+  a_id: string; a_nome: string; a_cpf: string | null; a_criado: string | null;
+  b_id: string; b_nome: string; b_cpf: string | null; b_criado: string | null;
+  similaridade: number; // 0..1
+  processos_compartilhados: number;
+};
+
+export async function getClientesSimilares(): Promise<ClienteSimilar[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_clientes_similares")
+    .select("cliente_a_id, cliente_a, cliente_b_id, cliente_b, similaridade, processos_compartilhados, cpf_a, cpf_b, criado_a, criado_b")
+    .order("processos_compartilhados", { ascending: false })
+    .order("similaridade", { ascending: false });
+  return ((data ?? []) as Record<string, unknown>[]).map((r): ClienteSimilar => ({
+    a_id: r.cliente_a_id as string,
+    a_nome: (r.cliente_a as string) ?? "—",
+    a_cpf: (r.cpf_a as string | null) ?? null,
+    a_criado: (r.criado_a as string | null) ?? null,
+    b_id: r.cliente_b_id as string,
+    b_nome: (r.cliente_b as string) ?? "—",
+    b_cpf: (r.cpf_b as string | null) ?? null,
+    b_criado: (r.criado_b as string | null) ?? null,
+    similaridade: Number(r.similaridade ?? 0),
+    processos_compartilhados: Number(r.processos_compartilhados ?? 0),
   }));
 }
 
