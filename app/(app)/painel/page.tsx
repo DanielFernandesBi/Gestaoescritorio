@@ -1,4 +1,4 @@
-import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos, getBriefingAtual } from "@/lib/queries";
+import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos, getBriefingAtual, getExecucaoFrescor, getExpectativaPendente } from "@/lib/queries";
 import { getAudiencias, getPecas, getPrazos } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
@@ -63,6 +63,8 @@ export default async function PainelPage() {
     beneficios,
     briefing,
     prazosAll,
+    cobertura,
+    expectativa,
   ] = await Promise.all([
     getPainelData(),
     getUltimaVarredura(),
@@ -73,6 +75,8 @@ export default async function PainelPage() {
     getBeneficiosProximos(),
     getBriefingAtual(),
     getPrazos(),
+    getExecucaoFrescor(),
+    getExpectativaPendente(),
   ]);
 
   const nome = socioDoEmail(email);
@@ -328,6 +332,30 @@ export default async function PainelPage() {
                   </div>
                 ) : (
                   <div className="empty sm">Sem anomalias. 🎉</div>
+                )}
+                {/* Sug. 64 — possível cobertura perdida (gatilho sem desfecho na janela) */}
+                {expectativa.length > 0 && (
+                  <div className="exp-block">
+                    <div className="exp-h">
+                      <span className="ico">⚠</span> Possível cobertura perdida
+                      <span className="exp-n">{expectativa.length}</span>
+                    </div>
+                    <div className="exp-list">
+                      {expectativa.slice(0, 6).map((e) => (
+                        <Link className="exp-row" key={`${e.processo_id}-${e.tipo}`} href={linkPara("processo", e.processo_id)}>
+                          <div className="exp-main">
+                            <div className="exp-t">{e.tipo === "hc_impetrado" ? "HC impetrado" : humano(e.tipo)} · sem desfecho há {dl(e.dias_desde_gatilho)}</div>
+                            <div className="exp-s">
+                              <span>{e.segredo ? <SegredoTag on /> : (e.numero_cnj ?? (e.numero_registro ? `reg ${e.numero_registro}` : "sem nº"))}</span>
+                              {e.instancia ? ` · ${e.instancia.toUpperCase()}` : ""}
+                            </div>
+                          </div>
+                          <span className="exp-cta">conferir nos autos →</span>
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="exp-foot">Ato nosso que deveria ter resposta e não veio — possível intimação não capturada.</div>
+                  </div>
                 )}
               </div>
             </div>
@@ -668,6 +696,46 @@ export default async function PainelPage() {
             <div className="empty">Nenhum benefício de execução próximo.</div>
           )}
         </div>
+      </div>
+
+      {/* Cobertura de execução (Sug. 63) — cobertura/validade do atestado */}
+      <div className="hcard section-gap">
+        <h3>
+          <span className="lhs"><Icon name="shield" /> Cobertura de execução</span>
+          <Link className="link" href="/clientes">clientes →</Link>
+        </h3>
+        <div className="cov-counters">
+          <div className={`cov-ct red${cobertura.sem_atestado ? "" : " off"}`}><b>{fmtNum(cobertura.sem_atestado)}</b><span>sem atestado</span></div>
+          <div className={`cov-ct amber${cobertura.defasado ? "" : " off"}`}><b>{fmtNum(cobertura.defasado)}</b><span>defasado · acima do limiar</span></div>
+          <div className="cov-ct green"><b>{fmtNum(cobertura.em_dia)}</b><span>em dia</span></div>
+        </div>
+        {cobertura.semLista.length > 0 ? (
+          <>
+            <div className="cov-sub">
+              Clientes de execução sem atestado
+              {cobertura.algum_sigiloso && <span className="cov-sig">🔒 inclui sigiloso</span>}
+            </div>
+            <VerMais max={5}>
+              {cobertura.semLista.map((c) => (
+                <Link className="deadline" key={c.cliente_id} href={linkPara("cliente", c.cliente_id)}>
+                  <div className="dl-main">
+                    <div className="dl-t">{c.algum_sigiloso ? <SegredoTag on /> : c.nome}</div>
+                    <div className="dl-s">
+                      {c.condenacoes_ativas > 0
+                        ? `${c.condenacoes_ativas} condenação${c.condenacoes_ativas === 1 ? "" : "ões"} ativa${c.condenacoes_ativas === 1 ? "" : "s"}`
+                        : "execução ativa"}
+                      {c.tem_hediondo ? " · hediondo" : ""}
+                    </div>
+                  </div>
+                  <Pill tone="red" dot={false}>sem atestado</Pill>
+                </Link>
+              ))}
+            </VerMais>
+          </>
+        ) : (
+          <div className="empty">Todo cliente de execução tem atestado lançado. 🎉</div>
+        )}
+        <div className="cov-foot">Universo: condenação ativa, snapshot de execução ou processo de execução ativo. Benefícios correm no escuro sem atestado vigente.</div>
       </div>
     </div>
   );

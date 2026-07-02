@@ -71,6 +71,26 @@ function CenarioCard({ c }: { c: ExecCenario }) {
   );
 }
 
+// Sug. 63 — badge de frescor/cobertura do atestado no topo da aba Execução.
+// Vermelho quando não há atestado ou quando dias_desde_atestado > limiar_dias.
+function FrescorBadge({ f }: { f: TExec["frescor"] }) {
+  if (!f) return null;
+  const vermelho = f.frescor === "sem_atestado" || (f.dias_desde_atestado != null && f.dias_desde_atestado > f.limiar_dias);
+  const txt =
+    f.frescor === "sem_atestado"
+      ? "sem atestado de pena"
+      : `atestado de ${f.dias_desde_atestado} ${f.dias_desde_atestado === 1 ? "dia" : "dias"}`;
+  const title =
+    f.frescor === "sem_atestado"
+      ? "Nenhum atestado de pena lançado — benefícios correm no escuro. Solicitar/lançar atestado do SEEU."
+      : `${vermelho ? "Defasado" : "Em dia"} · limiar ${f.limiar_dias} dias${f.ult_atestado ? ` · último em ${fmtDate(f.ult_atestado)}` : ""}`;
+  return (
+    <span className={`xp-frescor ${vermelho ? "red" : "ok"}`} title={title}>
+      {vermelho ? "⚠ " : "✓ "}{txt}
+    </span>
+  );
+}
+
 const REGIME_LBL: Record<string, string> = {
   fechado: "Regime fechado",
   semiaberto: "Regime semiaberto",
@@ -111,7 +131,7 @@ export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExe
   if (!exec.temDados) {
     return (
       <div className="dsec">
-        <h4>Execução penal</h4>
+        <h4>Execução penal {exec.frescor && <FrescorBadge f={exec.frescor} />}</h4>
         <div className="banner" style={{ margin: "0 0 12px" }}>
           <span className="ico">⚖</span>
           <div>
@@ -142,6 +162,14 @@ export function ExecucaoCliente({ exec, clienteId, situacaoAtual }: { exec: TExe
 
   return (
     <>
+      {/* cobertura/validade do atestado (Sug. 63) */}
+      {exec.frescor && (
+        <div className="xp-frescor-row">
+          <span className="xp-frescor-lbl">Cobertura do atestado</span>
+          <FrescorBadge f={exec.frescor} />
+        </div>
+      )}
+
       {/* contexto da pena (cabeçalho da aba) */}
       {s && (
         <div className="xp-base" style={{ marginBottom: 14, fontSize: 12 }}>

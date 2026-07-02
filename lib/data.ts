@@ -3893,6 +3893,15 @@ export type ExecCenario = {
   criado_em: string | null;
 };
 
+// Sug. 63 — frescor/cobertura do atestado deste cliente (vw_execucao_frescor).
+// null = cliente não pertence ao universo de execução (sem badge).
+export type ExecFrescor = {
+  frescor: "sem_atestado" | "defasado" | "em_dia";
+  dias_desde_atestado: number | null;
+  limiar_dias: number;
+  ult_atestado: string | null;
+};
+
 export type ExecucaoCliente = {
   temDados: boolean;
   situacao: ExecSituacao | null;
@@ -3901,11 +3910,12 @@ export type ExecucaoCliente = {
   estrategia: ExecEstrategia[];
   objetivos: ExecObjetivo[];
   cenarios: ExecCenario[];
+  frescor: ExecFrescor | null;
 };
 
 export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCliente> {
   const supabase = await createClient();
-  const [sit, atest, cond, estr, obj, cen] = await Promise.all([
+  const [sit, atest, cond, estr, obj, cen, fre] = await Promise.all([
     supabase.from("vw_situacao_executoria_atual").select("*").eq("cliente_id", cliente_id).maybeSingle(),
     supabase
       .from("situacao_executoria")
@@ -3918,11 +3928,14 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
     supabase.from("vw_objetivos_instrumento").select("*").eq("cliente_id", cliente_id),
     // Sug. 57 — cenários projetados (reflexo de peça nos marcos), mais recentes primeiro.
     supabase.from("execucao_cenarios").select("*").eq("cliente_id", cliente_id).order("criado_em", { ascending: false }),
+    // Sug. 63 — frescor/cobertura do atestado (null quando não é cliente de execução).
+    supabase.from("vw_execucao_frescor").select("frescor, dias_desde_atestado, limiar_dias, ult_atestado").eq("cliente_id", cliente_id).maybeSingle(),
   ]);
 
   let segredo = false;
   let pec: { numero_cnj: string | null; tribunal: string | null; instancia: string | null } | null = null;
   const sitRow = sit.data as Record<string, unknown> | null;
+  const freRow = fre.data as Record<string, unknown> | null;
   if (sitRow?.processo_id) {
     const { data: p } = await supabase
       .from("processos")
@@ -4001,6 +4014,14 @@ export async function getExecucaoCliente(cliente_id: string): Promise<ExecucaoCl
     estrategia,
     objetivos,
     cenarios,
+    frescor: freRow
+      ? {
+          frescor: (freRow.frescor as ExecFrescor["frescor"]) ?? "sem_atestado",
+          dias_desde_atestado: freRow.dias_desde_atestado == null ? null : Number(freRow.dias_desde_atestado),
+          limiar_dias: Number(freRow.limiar_dias ?? 120),
+          ult_atestado: (freRow.ult_atestado as string | null) ?? null,
+        }
+      : null,
   };
 }
 

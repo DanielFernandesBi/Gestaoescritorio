@@ -715,3 +715,110 @@ export async function getProcessosInercia(limit = 200): Promise<ProcessoInercia[
   );
   return out;
 }
+
+/* ===== Frescor da execução penal (Sugestão 63) — cobertura/validade do atestado =====
+ * vw_execucao_frescor: universo de clientes de execução (condenação ativa OU snapshot
+ * OU processo area=execucao_penal ativo). Para cada um, o último data_atestado,
+ * dias_desde_atestado, limiar_dias e a classe frescor: sem_atestado (zero snapshot),
+ * defasado (dias_desde_atestado > limiar) ou em_dia. A view não grava; o passo Cowork
+ * levanta a pendência como tarefa (motivo_auto='atestado_frescor'). Aqui, só leitura. */
+
+export type FrescorCliente = {
+  cliente_id: string;
+  nome: string;
+  algum_sigiloso: boolean;
+  condenacoes_ativas: number;
+  tem_hediondo: boolean;
+  ult_atestado: string | null;
+  dias_desde_atestado: number | null;
+  limiar_dias: number;
+  frescor: "sem_atestado" | "defasado" | "em_dia";
+};
+
+export type ExecucaoCobertura = {
+  sem_atestado: number;
+  defasado: number;
+  em_dia: number;
+  total: number;
+  algum_sigiloso: boolean;
+  semLista: FrescorCliente[]; // clientes SEM atestado (condenação ativa no topo)
+  defasadoLista: FrescorCliente[]; // atestados defasados (mais velho primeiro)
+};
+
+export async function getExecucaoFrescor(): Promise<ExecucaoCobertura> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_execucao_frescor")
+    .select("cliente_id, nome, algum_sigiloso, condenacoes_ativas, tem_hediondo, ult_atestado, dias_desde_atestado, limiar_dias, frescor");
+  const rows = ((data ?? []) as Record<string, unknown>[]).map((r): FrescorCliente => ({
+    cliente_id: r.cliente_id as string,
+    nome: (r.nome as string) ?? "—",
+    algum_sigiloso: Boolean(r.algum_sigiloso),
+    condenacoes_ativas: Number(r.condenacoes_ativas ?? 0),
+    tem_hediondo: Boolean(r.tem_hediondo),
+    ult_atestado: (r.ult_atestado as string | null) ?? null,
+    dias_desde_atestado: r.dias_desde_atestado == null ? null : Number(r.dias_desde_atestado),
+    limiar_dias: Number(r.limiar_dias ?? 120),
+    frescor: (r.frescor as FrescorCliente["frescor"]) ?? "sem_atestado",
+  }));
+  const sem = rows.filter((r) => r.frescor === "sem_atestado");
+  const def = rows.filter((r) => r.frescor === "defasado");
+  const emDia = rows.filter((r) => r.frescor === "em_dia").length;
+  // Sem atestado: condenação ativa no topo (roda benefício no escuro), depois sigiloso, depois nome.
+  const semOrd = [...sem].sort(
+    (a, b) =>
+      Number(b.condenacoes_ativas > 0) - Number(a.condenacoes_ativas > 0) ||
+      Number(b.algum_sigiloso) - Number(a.algum_sigiloso) ||
+      a.nome.localeCompare(b.nome),
+  );
+  const defOrd = [...def].sort((a, b) => (b.dias_desde_atestado ?? 0) - (a.dias_desde_atestado ?? 0));
+  return {
+    sem_atestado: sem.length,
+    defasado: def.length,
+    em_dia: emDia,
+    total: rows.length,
+    algum_sigiloso: rows.some((r) => r.algum_sigiloso),
+    semLista: semOrd,
+    defasadoLista: defOrd,
+  };
+}
+
+/* ===== Reconciliação de expectativa processual (Sugestão 64) — cobertura perdida =====
+ * vw_expectativa_pendente: gatilhos nossos (recurso_interposto / hc_impetrado /
+ * peticao_protocolada) cuja janela de resposta estourou SEM evento satisfatório
+ * posterior — possível intimação não capturada, a conferir nos autos. Rede de
+ * segurança acima da captura; tende a poucos itens. Só leitura. */
+
+export type ExpectativaPendente = {
+  processo_id: string;
+  tipo: string;
+  data_gatilho: string;
+  dias_desde_gatilho: number;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  area: string | null;
+  instancia: string | null;
+  responsavel: string | null;
+  segredo: boolean;
+};
+
+export async function getExpectativaPendente(limit = 20): Promise<ExpectativaPendente[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_expectativa_pendente")
+    .select("processo_id, tipo, data_gatilho, dias_desde_gatilho, numero_cnj, numero_registro_tribunal, area, instancia, responsavel, segredo_justica")
+    .order("dias_desde_gatilho", { ascending: false })
+    .limit(limit);
+  return ((data ?? []) as Record<string, unknown>[]).map((r): ExpectativaPendente => ({
+    processo_id: r.processo_id as string,
+    tipo: r.tipo as string,
+    data_gatilho: r.data_gatilho as string,
+    dias_desde_gatilho: Number(r.dias_desde_gatilho ?? 0),
+    numero_cnj: (r.numero_cnj as string | null) ?? null,
+    numero_registro: (r.numero_registro_tribunal as string | null) ?? null,
+    area: (r.area as string | null) ?? null,
+    instancia: (r.instancia as string | null) ?? null,
+    responsavel: (r.responsavel as string | null) ?? null,
+    segredo: Boolean(r.segredo_justica),
+  }));
+}

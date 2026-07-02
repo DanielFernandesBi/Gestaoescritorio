@@ -2827,3 +2827,39 @@ a.and-procref:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line)
 .inc-empty p{max-width:560px;margin:8px auto 0;font-size:12.5px;color:var(--muted);line-height:1.6}
 
 @media (max-width:900px){.inc-list{grid-template-columns:1fr}.inc-counters{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== Frescor da execução (Sug. 63) — badge na aba Execução ===== */
+.xp-frescor-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.xp-frescor-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.xp-frescor{display:inline-flex;align-items:center;font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px}
+.xp-frescor.red{color:var(--red);background:var(--red-soft);border:1px solid color-mix(in srgb,var(--red) 28%,transparent)}
+.xp-frescor.ok{color:var(--green);background:var(--green-soft);border:1px solid color-mix(in srgb,var(--green) 24%,transparent)}
+h4 .xp-frescor{margin-left:8px;text-transform:none;letter-spacing:0}
+
+/* ===== Cobertura de execução (Sug. 63) — cartão no Painel ===== */
+.cov-counters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.cov-ct{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;text-align:center}
+.cov-ct b{display:block;font-family:var(--serif);font-size:26px;line-height:1}
+.cov-ct span{display:block;font-size:10.5px;color:var(--muted);margin-top:4px}
+.cov-ct.red b{color:var(--red)}
+.cov-ct.amber b{color:var(--amber)}
+.cov-ct.green b{color:var(--green)}
+.cov-ct.off{opacity:.6}
+.cov-ct.off b{color:var(--muted-2)}
+.cov-sub{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--name);margin:4px 0 8px}
+.cov-sig{font-size:10px;font-weight:600;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.cov-foot{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:10px;padding-top:8px;border-top:1px solid var(--line-soft)}
+
+/* ===== Possível cobertura perdida (Sug. 64) — sub-bloco em Anomalias ===== */
+.exp-block{margin-top:12px;padding-top:10px;border-top:1px dashed color-mix(in srgb,var(--amber) 40%,var(--line))}
+.exp-h{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--amber);margin-bottom:8px}
+.exp-h .ico{font-size:12px}
+.exp-n{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--amber);background:var(--amber-soft);border-radius:20px;padding:1px 8px}
+.exp-list{display:flex;flex-direction:column;gap:6px}
+.exp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;text-decoration:none}
+.exp-row:hover{border-color:color-mix(in srgb,var(--amber) 40%,var(--line))}
+.exp-main{min-width:0}
+.exp-t{font-size:12px;font-weight:700;color:var(--name)}
+.exp-s{font-size:11px;color:var(--muted);margin-top:1px;font-family:var(--mono)}
+.exp-cta{font-size:10.5px;font-weight:700;color:var(--accent-strong);white-space:nowrap}
+.exp-foot{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5}
