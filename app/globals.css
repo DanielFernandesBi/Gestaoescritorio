@@ -104,7 +104,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 body.nav-locked{overflow:hidden}
 
 .main{display:flex;flex-direction:column;min-width:0}
-.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:18px}
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--blue) 16%,var(--paper));backdrop-filter:blur(10px);border-bottom:1px solid color-mix(in srgb,var(--blue) 32%,var(--line));padding:13px 30px;display:flex;align-items:center;gap:18px}
 .search{flex:1;max-width:440px;position:relative}
 .search input{width:100%;padding:9px 13px 9px 36px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--text)}
 .search input:focus{outline:none;border-color:var(--accent);box-shadow:var(--focus)}
