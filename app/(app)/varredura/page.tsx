@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
 const statusTone = (s: string): "green" | "amber" | "red" =>
   s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
 
+// Sug. 80 — a T2 (redação) e a T3 (manutenção) também gravam varredura.
+const fonteLabel = (f: string) =>
+  f === "ambas" ? "DJEN + push" : f === "djen" ? "DJEN" : f === "push" ? "Push"
+    : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f.toUpperCase();
+
 const relTone = (r: string | null): "red" | "amber" | "green" | "gray" =>
   r === "alta" || r === "vinculante" ? "red" : r === "media" ? "amber" : r === "baixa" ? "gray" : "green";
 
@@ -101,7 +106,7 @@ export default async function VarreduraPage() {
               </div>
               <div className="vr-wm-i">
                 <div className="vr-wm-l">Referência</div>
-                <div className="vr-wm-v">{fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}</div>
+                <div className="vr-wm-v">{fmtDate(varredura.data_referencia)} · fonte {fonteLabel(varredura.fonte)}</div>
               </div>
             </div>
 
@@ -217,7 +222,7 @@ export default async function VarreduraPage() {
                   <tr key={h.id} className="vr-row">
                     <td className="mono"><Link className="vr-rowlink" href={`/varredura/ciclos/${h.id}`}>{fmtDate(h.criado_em)} {fmtTime(h.criado_em)}</Link></td>
                     <td className="mono">{h.janela_inicio ? `${fmtDate(h.janela_inicio)} – ${fmtDate(h.janela_fim)}` : "—"}</td>
-                    <td>{h.fonte.toUpperCase()}</td>
+                    <td>{fonteLabel(h.fonte)}</td>
                     <td className="num mono">{fmtNum(h.itens_processados)}</td>
                     <td className="num mono">{h.intimacoes_novas} · {h.andamentos_novos} · {h.prazos_criados}</td>
                     <td>

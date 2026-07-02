@@ -340,7 +340,12 @@ export async function getUltimaVarredura(): Promise<Varredura | null> {
     .order("criado_em", { ascending: false });
   const rows = (data ?? []) as Record<string, unknown>[];
   if (!rows.length) return null;
-  const row = rows.find((r) => r.fonte === "ambas") ?? rows[0];
+  // Sug. 80 — a T2 (redação) e a T3 (manutenção) também gravam varredura; o HERO
+  // quer a última CAPTURA real: prefere 'ambas', depois djen/push, só então o resto.
+  const row =
+    rows.find((r) => r.fonte === "ambas") ??
+    rows.find((r) => r.fonte === "djen" || r.fonte === "push") ??
+    rows[0];
   return {
     fonte: (row.fonte as string) ?? "",
     criado_em: row.criado_em as string,

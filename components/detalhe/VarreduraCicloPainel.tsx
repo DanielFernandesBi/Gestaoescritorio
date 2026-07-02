@@ -24,7 +24,9 @@ const PenIco = () => (
 const ddmm = (iso: string | null | undefined) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "—");
 const statusLabel = (s: string) => (s === "concluida" ? "concluída" : s === "parcial" ? "parcial" : "falha");
 const statusTone = (s: string): "green" | "amber" | "red" => (s === "concluida" ? "green" : s === "parcial" ? "amber" : "red");
-const fonteLabel = (f: string) => (f === "ambas" ? "DJEN + push" : f === "djen" ? "DJEN" : f === "push" ? "push" : f);
+const fonteLabel = (f: string) =>
+  f === "ambas" ? "DJEN + push" : f === "djen" ? "DJEN" : f === "push" ? "push"
+    : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f;
 const janelaDias = (a: string | null, b: string | null) => {
   if (!a || !b) return null;
   const d = Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);
@@ -213,7 +215,7 @@ export function VarreduraCicloPainel({
                 enviarLabel="Salvar"
                 variant="default"
               >
-                <div><label>Fonte</label><select name="fonte" defaultValue={ciclo.fonte}><option value="djen">DJEN</option><option value="push">push</option><option value="ambas">ambas</option></select></div>
+                <div><label>Fonte</label><select name="fonte" defaultValue={ciclo.fonte}><option value="djen">DJEN</option><option value="push">push</option><option value="ambas">ambas</option><option value="redacao">redação</option><option value="manutencao">manutenção</option></select></div>
                 <div><label>Status</label><select name="status" defaultValue={ciclo.status}><option value="concluida">concluída</option><option value="parcial">parcial</option><option value="falha">falha</option></select></div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div><label>Janela início</label><input type="date" name="janela_inicio" defaultValue={ciclo.janela_inicio?.slice(0, 10) ?? ""} /></div>

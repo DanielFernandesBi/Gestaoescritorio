@@ -19,6 +19,11 @@ export const dynamic = "force-dynamic";
 const statusTone = (s: string): "green" | "amber" | "red" =>
   s === "concluida" ? "green" : s === "parcial" ? "amber" : "red";
 
+// Sug. 80 — rótulo da fonte da varredura (inclui redação/manutenção).
+const fonteLabel = (f: string) =>
+  f === "ambas" ? "DJEN + push" : f === "djen" ? "DJEN" : f === "push" ? "Push"
+    : f === "redacao" ? "Redação" : f === "manutencao" ? "Manutenção" : f.toUpperCase();
+
 // Caixinha de data (dia + mês) para audiências.
 function diaMes(iso: string) {
   const d = new Date(iso);
@@ -270,7 +275,7 @@ export default async function PainelPage() {
           <>
             <div className="scan-sub">
               Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
-              {fmtDate(varredura.data_referencia)} · fonte {varredura.fonte.toUpperCase()}
+              {fmtDate(varredura.data_referencia)} · fonte {fonteLabel(varredura.fonte)}
             </div>
             <div className="scan-flow">
               <div className="flow-src">
