@@ -104,7 +104,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 body.nav-locked{overflow:hidden}
 
 .main{display:flex;flex-direction:column;min-width:0}
-.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--blue) 16%,var(--paper));backdrop-filter:blur(10px);border-bottom:1px solid color-mix(in srgb,var(--blue) 32%,var(--line));padding:13px 30px;display:flex;align-items:center;gap:18px}
+/* Cabeçalho escuro azulado — harmoniza com a barra lateral (--rail) e emoldura o
+ * corpo claro da página. Controles ficam translúcidos-claros p/ pertencer à barra. */
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--blue) 26%,var(--rail));backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08);padding:13px 30px;display:flex;align-items:center;gap:18px}
 .search{flex:1;max-width:440px;position:relative}
 .search input{width:100%;padding:9px 13px 9px 36px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--text)}
 .search input:focus{outline:none;border-color:var(--accent);box-shadow:var(--focus)}
@@ -115,6 +117,16 @@ body.nav-locked{overflow:hidden}
 .topbar .who{width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center;font-weight:600;font-size:13px;font-family:var(--serif)}
 .theme-toggle{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;font-size:15px;transition:.12s}
 .theme-toggle:hover{border-color:var(--muted-2);color:var(--text)}
+
+/* Contraste dos controles sobre o cabeçalho escuro */
+.topbar .search input{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.16);color:#fff}
+.topbar .search input::placeholder{color:rgba(255,255,255,.6)}
+.topbar .search .si{color:rgba(255,255,255,.6)}
+.topbar .sino,.topbar .theme-toggle,.topbar .nav-menu-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:rgba(255,255,255,.85)}
+.topbar .sino:hover,.topbar .theme-toggle:hover,.topbar .nav-menu-btn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);color:#fff}
+.topbar .sino-badge{border-color:color-mix(in srgb,var(--blue) 26%,var(--rail))}
+.topbar .today{color:rgba(255,255,255,.62)}
+.topbar .today b{color:#fff}
 
 .content{padding:28px 34px 60px;width:100%}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px}
