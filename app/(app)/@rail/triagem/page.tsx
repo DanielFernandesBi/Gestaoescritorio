@@ -12,7 +12,7 @@ export default function TriagemRail() {
       <div className="vrail-card">
         <div className="vrail-h">Como funciona a triagem</div>
         <ul className="fila-help">
-          <li><b>Prazo órfão</b> = fatal viva. Entra no Calendar como provisório e só é validável após vincular.</li>
+          <li><b>Prazo órfão</b> = fatal viva. Nasce provisório (visível na /agenda) e só é validável após vincular.</li>
           <li><b>Promover</b> resolve por nome normalizado + <code>fn_resolver_processo</code> e vincula; auditado, nada apagado.</li>
           <li><b>Homônimo</b> — nomes muito parecidos nunca viram cadastro automático; sua decisão resolve.</li>
           <li>Sigiloso nunca vira cliente automaticamente — fica para triagem humana.</li>

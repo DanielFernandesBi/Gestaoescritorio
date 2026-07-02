@@ -15,7 +15,7 @@ export default function IntimacoesRail() {
           <li><b>Para revisar</b> — não lidas. Abrir já marca como lida (o Cowork nunca lê por você).</li>
           <li><b>Na caixa</b> — aguardam encaminhamento (sem prazo/peça ainda).</li>
           <li><span className="enc-ok">✓ Encaminhada</span> — virou prazo ou peça (minuta IA).</li>
-          <li>Ações gravam no banco e no Calendar com auditoria. O “do que se trata” é montado do banco.</li>
+          <li>Ações gravam no banco com auditoria. O “do que se trata” é montado do banco.</li>
         </ul>
       </div>
 

@@ -2,8 +2,8 @@ import Link from "next/link";
 
 /**
  * Trilho lateral da /prazos — 3ª coluna do shell (slot @rail). Doutrina do
- * ciclo do prazo (provisório → validado → baixa), a legenda de cores do
- * Calendar e a faixa Assistente. Conteúdo estático; o input é CTA para a
+ * ciclo do prazo (provisório → validado → baixa), a legenda de cores da
+ * /agenda e a faixa Assistente. Conteúdo estático; o input é CTA para a
  * busca (sem chat embutido falso), como nos demais trilhos.
  */
 const SPARK = (
@@ -14,21 +14,21 @@ const SPARK = (
 
 export default function PrazosRail() {
   return (
-    <aside className="orfas-rail" aria-label="Ciclo do prazo e cores no Calendar">
+    <aside className="orfas-rail" aria-label="Ciclo do prazo e cores na agenda">
       {/* ciclo do prazo */}
       <div className="vrail-card pz-ciclo-card">
         <div className="pz-ciclo-h">{SPARK}<span>Ciclo do prazo</span></div>
         <ol className="pz-ciclo">
-          <li><span className="n tang">1</span><span><b>Nasce provisório</b> (cowork) e já entra no Calendar em <b className="tang">tangerina</b> — nenhuma fatal fica invisível.</span></li>
-          <li><span className="n green">2</span><span>Daniel <b>valida</b>: o provisório vira cor calma e cria o marcador da fatal em <b className="red">vermelho</b>.</span></li>
-          <li><span className="n slate">3</span><span>Na <b>baixa</b> os eventos são reescritos para <b className="slate">grafite</b> — nunca apagados nem movidos.</span></li>
+          <li><span className="n tang">1</span><span><b>Nasce provisório</b> (cowork) e já aparece na /agenda em <b className="tang">tangerina</b> — nenhuma fatal fica invisível.</span></li>
+          <li><span className="n green">2</span><span>Daniel <b>valida</b>: o provisório é confirmado e a fatal fica em <b className="red">vermelho</b>.</span></li>
+          <li><span className="n slate">3</span><span>Na <b>baixa</b> o prazo vira <b className="slate">grafite</b> (cumprido/encerrado) — troca de status, nunca apagado.</span></li>
         </ol>
         <div className="pz-ciclo-foot">Data interna sugerida 2 dias úteis antes da fatal. Validar órfão exige vincular o processo antes.</div>
       </div>
 
-      {/* cores no calendar */}
+      {/* cores na agenda */}
       <div className="vrail-card">
-        <div className="vrail-h">Cores no Calendar</div>
+        <div className="vrail-h">Cores na agenda</div>
         <ul className="pz-cores">
           <li><span className="sw tang" /><span><b>Tangerina</b> — provisório, ainda não confirmado.</span></li>
           <li><span className="sw red" /><span><b>Vermelho</b> — fatal real, sempre conferida.</span></li>
@@ -45,7 +45,7 @@ export default function PrazosRail() {
         </div>
         <div className="chat-body">
           <div className="bubble user">Confere a fatal da apelação do Marcos.</div>
-          <div className="bubble ia">8 dias corridos da ciência (25/06) → fatal 02/07, sem feriado no MA na janela. Posso validar e criar o marcador vermelho?</div>
+          <div className="bubble ia">8 dias corridos da ciência (25/06) → fatal 02/07, sem feriado no MA na janela. Posso validar e fixar a fatal?</div>
         </div>
         <Link className="chat-input" href="/busca">
           <span>Validar, recontar dias, dar baixa, promover órfã…</span>

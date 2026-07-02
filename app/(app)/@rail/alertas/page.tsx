@@ -14,7 +14,7 @@ export default function AlertasRail() {
         <ul className="al-help">
           <li><span className="al-dot crit" /><b>Liberdade primeiro</b> — preso, prisão, busca, regressão sobem ao topo.</li>
           <li><span className="al-dot exec" /><b>Execução</b> — progressão/livramento ≤180d (vencidos no topo) de <code>vw_situacao_executoria</code>.</li>
-          <li><span className="al-dot radar" /><b>Radar &amp; varredura</b> — parados ≥30d e anomalias de cobertura DJEN/Calendar/Drive.</li>
+          <li><span className="al-dot radar" /><b>Radar &amp; varredura</b> — parados ≥30d e anomalias de cobertura DJEN/Drive.</li>
         </ul>
         <div className="cal-note">Financeiro entra como alerta pontual (vencido/vence hoje), não como bloco fixo.</div>
       </div>

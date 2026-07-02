@@ -80,7 +80,7 @@ function EditarPrazo({ p }: { p: PrazoFull }) {
     <FormModal
       label={<><PenIco /> Editar prazo</>}
       titulo="Editar prazo"
-      descricao="Recalcule a contagem, ajuste a data interna ou troque o responsável. Se já validado, o marcador fatal no Calendar é re-sincronizado."
+      descricao="Recalcule a contagem, ajuste a data interna ou troque o responsável. A /agenda reflete a mudança."
       acao={atualizarPrazo.bind(null, p.id)}
       enviarLabel="Salvar"
       variant="default"
@@ -262,15 +262,15 @@ export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: Praz
               </div>
             </Sec>
 
-            {/* GOOGLE CALENDAR */}
-            <Sec titulo="Google Calendar">
+            {/* VISIBILIDADE NA AGENDA */}
+            <Sec titulo="Visibilidade">
               <div className="audp-cal">
                 <div className="audp-cal-row">
-                  <span className="audp-cal-chip"><span className="sw tang" /><b style={{ color: "var(--tang)" }}>Tangerina</b> — provisório</span>
+                  <span className="audp-cal-chip"><span className="sw tang" /><b style={{ color: "var(--tang)" }}>Provisório</b> — a validar</span>
                   <span className="audp-cal-arrow">→</span>
-                  <span className="audp-cal-chip"><span className="sw red" /><b style={{ color: "var(--red)" }}>Vermelho</b> — fatal, após validar</span>
+                  <span className="audp-cal-chip"><span className="sw red" /><b style={{ color: "var(--red)" }}>Fatal</b> — após validar</span>
                 </div>
-                <div className="audp-cal-note">Evento de dia inteiro na data interna, título <span className="mono">[PROVISÓRIO – CONFERIR]</span>. Validar recolore para cor calma, remove o prefixo e cria o marcador vermelho da fatal. Na baixa, vira grafite — eventos são reescritos, nunca apagados.</div>
+                <div className="audp-cal-note">Nasce provisório e já aparece na <Link className="proc-link" href="/agenda">/agenda</Link> (dois marcos: interna e fatal). A validação do Daniel confirma a fatal. Baixa é troca de status — nunca apagado.</div>
               </div>
             </Sec>
 
@@ -340,13 +340,13 @@ export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: Praz
               size="md"
               titulo="Validar prazo"
               confirmarLabel="Validar"
-              resumo={<>Marcar <b>{p.ato}</b> como validado e criar o marcador fatal (vermelho) no Google Calendar? Confira a contagem e o feriado local antes.</>}
+              resumo={<>Marcar <b>{p.ato}</b> como validado e fixar a fatal (fica vermelha na /agenda)? Confira a contagem e o feriado local antes.</>}
               acao={() => validarPrazo(p.id)}
             />
           )}
           {p.orfao && <span className="przp-orfa-aviso">⚠ Prazo órfão — promova na <Link className="proc-link" href="/triagem">triagem</Link> antes de validar.</span>}
           {p.processo_id && <CriarPecaBtn p={p} label={<><FileIco /> Criar peça</>} />}
-          <Link className="btn default" href="/agenda"><CalIco /> Calendar</Link>
+          <Link className="btn default" href="/agenda"><CalIco /> Agenda</Link>
         </div>
       </section>
     </div>

@@ -319,7 +319,7 @@ export async function getValidacao(): Promise<Validacao[]> {
 
 /* Fila de validação (tela /validacao) — provisórios (validado=false) com os campos
  * do mockup Plantão: contexto da intimação (disponibilização/ciência/fundamento/origem),
- * prazo legal em dias, selo de evento no Calendar e flag de réu preso. Tudo via joins
+ * prazo legal em dias e flag de réu preso. Tudo via joins
  * já existentes no schema — sem inventar dado. */
 
 const PRESO_SET = new Set(["preso_provisorio", "preso_definitivo", "regime_semiaberto"]);
@@ -355,7 +355,6 @@ export type PrazoValidacao = {
   clientes: string;
   preso: boolean;
   segredo: boolean;
-  tem_calendar: boolean;
   intimacao_id: string | null;
   data_disponibilizacao: string | null;
   data_ciencia: string | null;
@@ -373,7 +372,6 @@ export type AudienciaValidacao = {
   numero_cnj: string | null;
   clientes: string;
   segredo: boolean;
-  tem_calendar: boolean;
   dias_ate: number;
   responsavel: string | null;
 };
@@ -393,7 +391,7 @@ export async function getFilaValidacao(): Promise<{
     supabase
       .from("prazos")
       .select(
-        "id, ato, data_fatal, data_interna, dias, tipo_contagem, responsavel, calendar_event_id, intimacao_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome,situacao_prisional))), intimacoes(data_disponibilizacao,data_ciencia,fundamento,origem)",
+        "id, ato, data_fatal, data_interna, dias, tipo_contagem, responsavel, intimacao_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome,situacao_prisional))), intimacoes(data_disponibilizacao,data_ciencia,fundamento,origem)",
       )
       .eq("status", "aberto")
       .eq("validado", false)
@@ -401,7 +399,7 @@ export async function getFilaValidacao(): Promise<{
     supabase
       .from("audiencias")
       .select(
-        "id, tipo, data_hora, modalidade, local_link, responsavel, calendar_event_id, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
+        "id, tipo, data_hora, modalidade, local_link, responsavel, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome)))",
       )
       .eq("status", "designada")
       .eq("validado", false)
@@ -427,7 +425,6 @@ export async function getFilaValidacao(): Promise<{
       clientes: nomesDeCp(cps),
       preso: cps.some((x) => x.clientes?.situacao_prisional != null && PRESO_SET.has(x.clientes.situacao_prisional)),
       segredo: Boolean(p?.segredo_justica),
-      tem_calendar: Boolean(r.calendar_event_id),
       intimacao_id: (r.intimacao_id as string) ?? null,
       data_disponibilizacao: it?.data_disponibilizacao ?? null,
       data_ciencia: it?.data_ciencia ?? null,
@@ -448,7 +445,6 @@ export async function getFilaValidacao(): Promise<{
       numero_cnj: p?.numero_cnj ?? null,
       clientes: nomesDeCp(p?.cliente_processo),
       segredo: Boolean(p?.segredo_justica),
-      tem_calendar: Boolean(r.calendar_event_id),
       dias_ate: diasAte(r.data_hora as string),
       responsavel: (r.responsavel as string) ?? null,
     };
@@ -481,7 +477,6 @@ export type PrazoCard = {
   clientes: string;
   preso: boolean;
   segredo: boolean;
-  tem_calendar: boolean;
   intimacao_id: string | null;
   data_disponibilizacao: string | null;
   data_ciencia: string | null;
@@ -495,7 +490,7 @@ export async function getPrazosPainel(): Promise<PrazoCard[]> {
   const { data } = await supabase
     .from("prazos")
     .select(
-      "id, ato, data_fatal, data_interna, dias, tipo_contagem, responsavel, validado, processo_id, calendar_event_id, intimacao_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome,situacao_prisional))), intimacoes(data_disponibilizacao,data_ciencia,fundamento,origem)",
+      "id, ato, data_fatal, data_interna, dias, tipo_contagem, responsavel, validado, processo_id, intimacao_id, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,segredo_justica,cliente_processo(clientes(nome,situacao_prisional))), intimacoes(data_disponibilizacao,data_ciencia,fundamento,origem)",
     )
     .eq("status", "aberto")
     .order("data_fatal", { ascending: true });
@@ -522,7 +517,6 @@ export async function getPrazosPainel(): Promise<PrazoCard[]> {
       clientes: nomesDeCp(cps),
       preso: cps.some((x) => x.clientes?.situacao_prisional != null && PRESO_SET.has(x.clientes.situacao_prisional)),
       segredo: Boolean(p?.segredo_justica),
-      tem_calendar: Boolean(r.calendar_event_id),
       intimacao_id: (r.intimacao_id as string) ?? null,
       data_disponibilizacao: it?.data_disponibilizacao ?? null,
       data_ciencia: it?.data_ciencia ?? null,
@@ -561,7 +555,7 @@ export type AgendaEvento = {
   dias_restantes: number;
   // status cru da tabela de origem (prazo: aberto/cumprido/prejudicado/cancelado;
   // audiência: designada/realizada/…; compromisso: agendado/realizado/cancelado).
-  // Alimenta o rótulo estilo Calendar (✅ CUMPRIDO / ❌ ENCERRADO …).
+  // Alimenta o rótulo de estado da agenda (✅ CUMPRIDO / ❌ ENCERRADO …).
   status: string | null;
 };
 

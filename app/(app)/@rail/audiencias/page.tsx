@@ -3,7 +3,7 @@ import Link from "next/link";
 /**
  * Trilho lateral da /audiencias — 3ª coluna do shell (slot @rail). Distingue a
  * sessão virtual (votos eletrônicos, sem sustentação) da videoconferência (ao
- * vivo), a legenda de cores do Calendar e a faixa Assistente. Conteúdo estático;
+ * vivo), a legenda de cores da /agenda e a faixa Assistente. Conteúdo estático;
  * o input é CTA para a busca (sem chat embutido falso), como nos demais trilhos.
  */
 const SPARK = (
@@ -14,7 +14,7 @@ const SPARK = (
 
 export default function AudienciasRail() {
   return (
-    <aside className="orfas-rail" aria-label="Virtual × videoconferência e cores no Calendar">
+    <aside className="orfas-rail" aria-label="Virtual × videoconferência e cores na agenda">
       {/* virtual ≠ videoconferência */}
       <div className="vrail-card pz-ciclo-card">
         <div className="pz-ciclo-h">{SPARK}<span>Virtual ≠ videoconferência</span></div>
@@ -24,15 +24,15 @@ export default function AudienciasRail() {
         </ul>
       </div>
 
-      {/* no calendar */}
+      {/* cores na agenda */}
       <div className="vrail-card">
-        <div className="vrail-h">No Calendar</div>
+        <div className="vrail-h">Na agenda</div>
         <ul className="pz-cores">
           <li><span className="sw tang" /><span><b>Tangerina</b> — designada provisória, a conferir.</span></li>
           <li><span className="sw green" /><span><b>Calma</b> — validada por Daniel (data/local confirmados).</span></li>
           <li><span className="sw slate" /><span><b>Grafite</b> — realizada / redesignada / cancelada.</span></li>
         </ul>
-        <div className="pz-ciclo-foot">Eventos são reescritos, nunca apagados nem movidos. A realizada vira andamento no processo.</div>
+        <div className="pz-ciclo-foot">Baixa é troca de status, nunca apagada nem movida. A realizada vira andamento no processo.</div>
       </div>
 
       {/* Assistente */}
@@ -43,7 +43,7 @@ export default function AudienciasRail() {
         </div>
         <div className="chat-body">
           <div className="bubble user">O júri do Rafael é dia 03?</div>
-          <div className="bubble ia">A data 03/07 09h veio da pauta capturada — provisória. Confirmo no portal antes de validar? Aí recoloro de tangerina para confirmada no Calendar.</div>
+          <div className="bubble ia">A data 03/07 09h veio da pauta capturada — provisória. Confirmo no portal antes de validar? Aí ela passa de tangerina para confirmada na /agenda.</div>
         </div>
         <Link className="chat-input" href="/busca">
           <span>Validar, redesignar, preparar, marcar realizada…</span>

@@ -31,7 +31,7 @@ export default function TarefasRail() {
         <div className="vrail-h">A tarefa puxa</div>
         <ul className="tk-rail-list">
           <li><span className="b sq accent" /><span><b>Criar peça</b> — pré-preenche tipo/subtipo pelo mapa de providência.</span></li>
-          <li><span className="b green" /><span><b>Agenda</b> — vira compromisso/lembrete no Google Calendar.</span></li>
+          <li><span className="b green" /><span><b>Agenda</b> — vira compromisso/lembrete na agenda do escritório.</span></li>
           <li><span className="b slate" /><span><b>Ver movimentação</b> — abre o andamento que originou a conferência.</span></li>
           <li><span className="b muted" /><span><b>Atribuição</b> — assumir ou reatribuir entre Daniel e Rodolfo.</span></li>
         </ul>

@@ -36,7 +36,7 @@ export default async function VarreduraPage() {
     { t: "Recorte Digital — conferência cruzada", d: "não ingere; casa por conteúdo — detecta buraco de cobertura do DJEN", tag: anomCount ? `${anomCount} anomalia${anomCount > 1 ? "s" : ""}` : "sem buraco", tone: anomCount ? "amber" : "green" },
     { t: "Extração & cruzamento — Claude", d: "CNJ, partes, datas, providência, prazo + fundamento · cruza fontes da mesma execução", tag: "núcleo", tone: "ai" },
     { t: "Gravação no banco", d: "UPSERT processos/clientes · INSERT intimações/andamentos · origem=cowork · auditado", tag: "verificado", tone: "green" },
-    { t: "Google Calendar — eventos provisórios", d: "prazos/audiências lançados como tangerina (rede de segurança até validar)", tag: `${fmtNum(varredura?.prazos_criados ?? 0)} prazos`, tone: "" },
+    { t: "Prazos & audiências provisórios", d: "criados como provisórios (validado=false), visíveis na /agenda até a validação do Daniel", tag: `${fmtNum(varredura?.prazos_criados ?? 0)} prazos`, tone: "" },
     { t: "Redator agendado — 2ª passada", d: "minutas de alta confiança (em revisão) · diferidas (aguardando insumo)", tag: `${minutasRevisar} minuta${minutasRevisar === 1 ? "" : "s"}`, tone: "ai" },
   ];
 
@@ -132,7 +132,7 @@ export default async function VarreduraPage() {
                     {varredura.anomalias.map((a, i) => <AnomaliaRow key={i} a={a} critico={varredura.status !== "concluida"} />)}
                   </div>
                 ) : (
-                  <div className="empty sm">Calendar, Drive e Gmail sem degradação nesta execução. 🎉</div>
+                  <div className="empty sm">Drive e Gmail sem degradação nesta execução. 🎉</div>
                 )}
               </div>
             </div>
@@ -144,7 +144,7 @@ export default async function VarreduraPage() {
       <div className="card section-gap">
         <div className="card-h">
           <h3><Icon name="activity" /> Etapas do pipeline</h3>
-          <span className="vr-sub">degradação segura · Supabase/Gmail abortam · Calendar/Drive/DJEN degradam</span>
+          <span className="vr-sub">degradação segura · Supabase/Gmail abortam · Drive/DJEN degradam</span>
         </div>
         <div className="vr-steps">
           {etapas.map((e, i) => (

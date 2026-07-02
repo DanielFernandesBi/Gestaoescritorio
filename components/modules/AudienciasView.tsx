@@ -137,7 +137,7 @@ function ValidarBtn({ a }: { a: AudienciaCard }) {
       size="sm"
       titulo="Validar audiência"
       confirmarLabel="Validar"
-      resumo={<>Confirmar a audiência de <b>{humano(a.tipo)}</b> e fixar data/local? Cria o evento (cor calma) no Google Calendar — confira a data capturada da pauta.</>}
+      resumo={<>Confirmar a audiência de <b>{humano(a.tipo)}</b> e fixar data/local? Fica confirmada na /agenda — confira a data capturada da pauta.</>}
       acao={validarAudiencia.bind(null, a.id)}
     />
   );
@@ -150,7 +150,7 @@ function RealizadaBtn({ a }: { a: AudienciaCard }) {
       size="sm"
       titulo="Dar baixa na audiência"
       confirmarLabel="Marcar realizada"
-      resumo={<>Marcar a audiência de <b>{humano(a.tipo)}</b> como <b>realizada</b>? O evento no Calendar é baixado (grafite + ✅) e a realização vira andamento — nunca apagado.</>}
+      resumo={<>Marcar a audiência de <b>{humano(a.tipo)}</b> como <b>realizada</b>? A realização vira andamento — nunca apagado.</>}
       acao={() => baixarAudiencia(a.id)}
     />
   );
@@ -163,7 +163,7 @@ function CancelarBtn({ a }: { a: AudienciaCard }) {
       size="sm"
       titulo="Cancelar audiência"
       confirmarLabel="Cancelar"
-      resumo={<>Cancelar a audiência? Não é apagada — muda para <b>cancelada</b> (auditado) e o evento do Calendar é encerrado.</>}
+      resumo={<>Cancelar a audiência? Não é apagada — muda para <b>cancelada</b> (auditado).</>}
       campoTexto={{ label: "Motivo (opcional)", placeholder: "Ex.: acordo / redesignada." }}
       acao={cancelarAudiencia.bind(null, a.id)}
     />
@@ -208,13 +208,13 @@ function AudienciaCardView({ a, variant, hero = false }: { a: AudienciaCard; var
 
           <div className="aud-foot">
             {variant === "conf"
-              ? <span className="aud-resp">Responsável <b>{a.responsavel ?? "—"}</b> · lembrete no Calendar</span>
+              ? <span className="aud-resp">Responsável <b>{a.responsavel ?? "—"}</b> · na /agenda</span>
               : <span className="aud-resp dim">Confira data e local antes de validar</span>}
             {variant === "prov" && <ValidarBtn a={a} />}
             {variant === "conf" && <RealizadaBtn a={a} />}
             <Redesignar a={a} />
             {variant === "conf" && <CancelarBtn a={a} />}
-            <Link className="btn sm" href="/agenda"><CalIco />Calendar</Link>
+            <Link className="btn sm" href="/agenda"><CalIco />Agenda</Link>
           </div>
         </div>
       </div>
@@ -256,7 +256,7 @@ function VirtualCard({ a }: { a: AudienciaCard }) {
           <span className="aud-resp">Acompanhar o placar pelo portal — não há comparecimento. O resultado vira <span className="mono">andamento</span> ao fim da janela.</span>
           <AlterarModalidade a={a} />
           <Link className="btn sm" href={linkPara("audiencia", a.id)}>Acompanhar pauta</Link>
-          <Link className="btn sm" href="/agenda"><CalIco />Calendar</Link>
+          <Link className="btn sm" href="/agenda"><CalIco />Agenda</Link>
         </div>
       </div>
     </article>
@@ -270,7 +270,7 @@ function AlterarModalidade({ a }: { a: AudienciaCard }) {
     <FormModal
       label={<><Monitor c="currentColor" /> Alterar modalidade</>}
       titulo="Alterar modalidade / tipo"
-      descricao="Reclassifica a sessão — ex.: de pauta virtual para presencial ou videoconferência (com sustentação ao vivo). Se validada, o evento do Calendar é re-sincronizado."
+      descricao="Reclassifica a sessão — ex.: de pauta virtual para presencial ou videoconferência (com sustentação ao vivo). A /agenda reflete a mudança."
       acao={atualizarAudiencia.bind(null, a.id)}
       enviarLabel="Salvar"
       variant="default"
@@ -362,11 +362,11 @@ export function AudienciasView({ audiencias }: { audiencias: AudienciaCard[] }) 
       {/* cabeçalho */}
       <div className="pz-head">
         <div className="lhs">
-          <div className="eyebrow">Designadas no Calendar · provisórias até validar</div>
+          <div className="eyebrow">Designadas · provisórias até validar</div>
           <h1>Audiências</h1>
           <p>
-            Instrução, custódia, júri e sessões de julgamento. A captura cria a audiência <b>provisória</b> e visível no
-            Calendar; a validação do Daniel confirma data e local. Sessão <b>virtual</b> dos tribunais superiores ≠ videoconferência.
+            Instrução, custódia, júri e sessões de julgamento. A captura cria a audiência <b>provisória</b> e visível na
+            /agenda; a validação do Daniel confirma data e local. Sessão <b>virtual</b> dos tribunais superiores ≠ videoconferência.
           </p>
         </div>
         <CadastrarAudiencia />
@@ -414,7 +414,7 @@ export function AudienciasView({ audiencias }: { audiencias: AudienciaCard[] }) 
         <>
           <div className="pz-seclabel">
             <span className="t accent">A validar · provisórias</span>
-            <span className="pz-pill tang"><span className="d" />Tangerina no Calendar</span>
+            <span className="pz-pill tang"><span className="d" />provisória · a validar</span>
             <code>vw_pendentes_validacao</code>
           </div>
           {provisorias.length ? (

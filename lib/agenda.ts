@@ -1,10 +1,10 @@
 import type { AgendaEvento } from "@/lib/data";
 
-/* Sistema de cores/estado da agenda — espelho do Calendar (manual, "Prazos e
- * Calendar"): provisório/não validado = Tangerina; fatal confirmado = Vermelho;
- * interna já validada = Banana (calmo); baixado (cumprido/cancelado/prejudicado)
- * = Grafite, com anotação ✅ CUMPRIDO / ❌ ENCERRADO. Uma fonte única para as
- * três telas (semana, lista, mês). */
+/* Sistema de cores/estado da agenda (interno, Sug. 79 — sem Google Calendar):
+ * provisório/não validado = tangerina; fatal confirmado = vermelho; interna já
+ * validada = banana (calmo); baixado (cumprido/cancelado/prejudicado) = grafite,
+ * com anotação ✅ CUMPRIDO / ❌ ENCERRADO. Fonte única para as três telas
+ * (semana, lista, mês). A doutrina validado=false/true permanece intacta. */
 
 export type EvTom = "fatal" | "prov" | "interna" | "aud" | "comp" | "baixado";
 
@@ -29,9 +29,8 @@ export function estado(e: AgendaEvento): { label: string; tone: EvTom; ia: boole
   return { label: "Compromisso", tone: "comp", ia: false };
 }
 
-// Rótulo do chip do mês, com a MESMA anotação que o Cowork grava no Calendar
-// (✅ CUMPRIDO — / ❌ ENCERRADO — / FATAL: / ⚠ provisório). "Interna — …" já vem
-// no próprio título do evento.
+// Rótulo do chip do mês com a anotação de estado (✅ CUMPRIDO — / ❌ ENCERRADO —
+// / FATAL: / ⚠ provisório). "Interna — …" já vem no próprio título do evento.
 export function chipTexto(e: AgendaEvento): string {
   const st = estado(e);
   const t = e.titulo;

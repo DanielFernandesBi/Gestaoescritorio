@@ -149,7 +149,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     <div className="ag-page">
       <div className="ag-head">
         <div className="lhs">
-          <div className="eyebrow">Próximos 7 dias · sincronizado com o Calendar</div>
+          <div className="eyebrow">Próximos 7 dias · prazos, audiências e compromissos</div>
           <h1>Agenda</h1>
           <p>Prazos, audiências e compromissos da semana. Eventos provisórios da triagem aguardam validação.</p>
         </div>

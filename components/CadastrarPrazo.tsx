@@ -23,7 +23,7 @@ export function CadastrarPrazo() {
     <FormModal
       label={<><Icon name="clock" size={15} /> Cadastrar prazo</>}
       titulo="Novo prazo"
-      descricao="Nasce validado=false; evento provisório (Tangerina) é criado no Calendar. A fatal vermelha entra na validação de Daniel."
+      descricao="Nasce validado=false; provisório e já visível na /agenda. A fatal vermelha entra na validação de Daniel."
       acao={criarPrazo}
       enviarLabel="Cadastrar"
     >

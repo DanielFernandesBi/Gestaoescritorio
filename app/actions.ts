@@ -4,16 +4,6 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { socioDoEmail, outroSocio } from "@/lib/allowlist";
-import {
-  confirmarPrazo,
-  criarEventoProvisorio,
-  criarEventoAudiencia,
-  atualizarEventoAudiencia,
-  criarEventoCompromisso,
-  encerrarEventoPrazo,
-  encerrarEventoAudiencia,
-  calendarConfigurado,
-} from "@/lib/calendar";
 import { driveConfigurado, uploadParaDrive } from "@/lib/drive";
 import {
   INTIMACAO_STATUS,
@@ -54,13 +44,6 @@ async function resolverProcesso(
   return (data as string | null) ?? id;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function refProcesso(proc: any): string {
-  if (!proc) return "processo";
-  const nome = proc?.cliente_processo?.[0]?.clientes?.nome;
-  return nome || proc?.numero_cnj || proc?.numero_registro_tribunal || "processo";
-}
-
 function revalidarTudo() {
   for (const p of [
     "/painel", "/validacao", "/prazos", "/audiencias", "/intimacoes",
@@ -99,9 +82,7 @@ export async function validarPrazo(id: string): Promise<Resultado> {
     const supabase = await createClient();
     const { data: pr, error } = await supabase
       .from("prazos")
-      .select(
-        "id, ato, data_fatal, data_interna, validado, calendar_event_id, processos(numero_cnj, numero_registro_tribunal, cliente_processo(clientes(nome)))",
-      )
+      .select("id, validado")
       .eq("id", id)
       .single();
     if (error || !pr) throw new Error("Prazo não encontrado.");
@@ -113,38 +94,11 @@ export async function validarPrazo(id: string): Promise<Resultado> {
       .eq("id", id);
     if (upErr) throw upErr;
 
-    let msg = "Prazo validado.";
-    const fatalId = await confirmarPrazo(
-      { ato: pr.ato as string, dataFatal: pr.data_fatal as string, dataInterna: pr.data_interna as string | null, ref: refProcesso(pr.processos) },
-      (pr.calendar_event_id as string | null) ?? null,
-    );
-    if (fatalId) {
-      await supabase.from("prazos").update({ calendar_event_id_fatal: fatalId }).eq("id", id);
-      msg += " Marcador fatal (vermelho) criado no Google Calendar.";
-    } else if (calendarConfigurado()) {
-      msg += " (Calendar indisponível agora — gravado só no banco.)";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Prazo validado. Fatal fixada — acompanhe na /agenda." };
   } catch (e) {
     return falha(e);
   }
-}
-
-/**
- * Baixa os dois eventos do prazo no Google Calendar (provisório/interno e fatal),
- * quando existirem. best-effort: falha do Calendar não derruba a baixa no banco.
- */
-async function baixarEventosPrazo(
-  evId: string | null,
-  evFatalId: string | null,
-  cumprido: boolean,
-): Promise<boolean> {
-  let algum = false;
-  for (const ev of [evId, evFatalId]) {
-    if (ev && (await encerrarEventoPrazo(ev, cumprido))) algum = true;
-  }
-  return algum;
 }
 
 export async function baixarPrazo(id: string, descricao?: string): Promise<Resultado> {
@@ -153,7 +107,7 @@ export async function baixarPrazo(id: string, descricao?: string): Promise<Resul
     const supabase = await createClient();
     const { data: pr, error } = await supabase
       .from("prazos")
-      .select("id, ato, processo_id, intimacao_id, status, calendar_event_id, calendar_event_id_fatal")
+      .select("id, ato, processo_id, intimacao_id, status")
       .eq("id", id)
       .single();
     if (error || !pr) throw new Error("Prazo não encontrado.");
@@ -166,10 +120,6 @@ export async function baixarPrazo(id: string, descricao?: string): Promise<Resul
     if (upErr) throw upErr;
 
     let msg = "Prazo dado como cumprido.";
-    // Sugestão 37: baixa dos eventos no Calendar (grafite + ✅), best-effort.
-    if (await baixarEventosPrazo(pr.calendar_event_id as string | null, pr.calendar_event_id_fatal as string | null, true)) {
-      msg += " Eventos do Calendar baixados.";
-    }
     let andamentoId: string | null = null;
     if (pr.processo_id) {
       const { data: and, error: andErr } = await supabase
@@ -225,37 +175,27 @@ export async function cancelarPrazo(id: string, motivo: string): Promise<Resulta
     await requireUser();
     if (!motivo?.trim()) return { ok: false, message: "Informe o motivo do cancelamento." };
     const supabase = await createClient();
-    const { data: pr } = await supabase
-      .from("prazos")
-      .select("calendar_event_id, calendar_event_id_fatal")
-      .eq("id", id)
-      .single();
     const { error } = await supabase
       .from("prazos")
       .update({ status: "cancelado", observacoes: `Cancelado: ${motivo.trim()}` })
       .eq("id", id);
     if (error) throw error;
-    let msg = "Prazo cancelado (registrado na auditoria).";
-    // Sugestão 37: baixa dos eventos no Calendar (grafite + ❌), best-effort.
-    if (await baixarEventosPrazo((pr?.calendar_event_id as string | null) ?? null, (pr?.calendar_event_id_fatal as string | null) ?? null, false)) {
-      msg += " Eventos do Calendar encerrados.";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Prazo cancelado (registrado na auditoria)." };
   } catch (e) {
     return falha(e);
   }
 }
 
 /** Baixa por "prejudicado" — o prazo perdeu o objeto (ex.: recurso da parte
- * contrária inadmitido). Troca de status, nunca DELETE; encerra os eventos. */
+ * contrária inadmitido). Troca de status, nunca DELETE. */
 export async function prejudicarPrazo(id: string, motivo: string): Promise<Resultado> {
   try {
     await requireUser();
     const supabase = await createClient();
     const { data: pr } = await supabase
       .from("prazos")
-      .select("status, calendar_event_id, calendar_event_id_fatal")
+      .select("status")
       .eq("id", id)
       .single();
     if (pr && pr.status !== "aberto") return { ok: false, message: `Prazo não está aberto (${pr.status}).` };
@@ -264,12 +204,8 @@ export async function prejudicarPrazo(id: string, motivo: string): Promise<Resul
     if (obs) patch.observacoes = obs;
     const { error } = await supabase.from("prazos").update(patch).eq("id", id);
     if (error) throw error;
-    let msg = "Prazo marcado como prejudicado (auditado).";
-    if (await baixarEventosPrazo((pr?.calendar_event_id as string | null) ?? null, (pr?.calendar_event_id_fatal as string | null) ?? null, false)) {
-      msg += " Eventos do Calendar encerrados.";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Prazo marcado como prejudicado (auditado)." };
   } catch (e) {
     return falha(e);
   }
@@ -306,17 +242,9 @@ export async function criarPrazo(fd: FormData): Promise<Resultado> {
       await carimbarLeitura(supabase, intimacao_id, email);
     }
 
-    // Evento PROVISÓRIO (Tangerina) — nasce visível, conforme manual.
-    const { data: proc } = await supabase
-      .from("processos")
-      .select("numero_cnj, numero_registro_tribunal, cliente_processo(clientes(nome))")
-      .eq("id", processo_id)
-      .single();
-    const evId = await criarEventoProvisorio({ ato, dataFatal: data_fatal, dataInterna: data_interna, ref: refProcesso(proc) });
-    if (evId && novo) await supabase.from("prazos").update({ calendar_event_id: evId }).eq("id", novo.id);
-
+    void novo;
     revalidarTudo();
-    return { ok: true, message: "Prazo criado (validado=false)." + (evId ? " Evento provisório no Calendar." : "") };
+    return { ok: true, message: "Prazo criado (provisório · a validar). Visível na /agenda." };
   } catch (e) {
     return falha(e);
   }
@@ -325,8 +253,8 @@ export async function criarPrazo(fd: FormData): Promise<Resultado> {
 /* ============================ AUDIÊNCIAS ============================ */
 
 /** Cadastro manual de audiência. Nasce status='designada', validado=false
- * (provisória): aparece em "A validar" e o evento do Calendar é criado na
- * validação (validarAudiencia). Exige processo, tipo e data/hora. */
+ * (provisória): aparece em "A validar" e é fixada na validação
+ * (validarAudiencia). Exige processo, tipo e data/hora. */
 export async function criarAudiencia(fd: FormData): Promise<Resultado> {
   try {
     await requireUser();
@@ -351,7 +279,7 @@ export async function criarAudiencia(fd: FormData): Promise<Resultado> {
     if (error) throw error;
 
     revalidarTudo();
-    return { ok: true, message: "Audiência criada (provisória). Valide para fixar data/local e criar o evento no Calendar." };
+    return { ok: true, message: "Audiência criada (provisória). Valide para fixar data e local." };
   } catch (e) {
     return falha(e);
   }
@@ -363,7 +291,7 @@ export async function validarAudiencia(id: string): Promise<Resultado> {
     const supabase = await createClient();
     const { data: a, error } = await supabase
       .from("audiencias")
-      .select("id, tipo, data_hora, modalidade, local_link, validado, calendar_event_id, processos(numero_cnj, cliente_processo(clientes(nome)))")
+      .select("id, validado")
       .eq("id", id)
       .single();
     if (error || !a) throw new Error("Audiência não encontrada.");
@@ -375,20 +303,8 @@ export async function validarAudiencia(id: string): Promise<Resultado> {
       .eq("id", id);
     if (upErr) throw upErr;
 
-    let msg = "Audiência validada.";
-    const evId = await criarEventoAudiencia({
-      tipo: a.tipo as string, dataHora: a.data_hora as string,
-      modalidade: a.modalidade as string | null, local: a.local_link as string | null,
-      ref: refProcesso(a.processos),
-    });
-    if (evId) {
-      await supabase.from("audiencias").update({ calendar_event_id: evId }).eq("id", id);
-      msg += " Evento criado no Google Calendar.";
-    } else if (calendarConfigurado()) {
-      msg += " (Calendar indisponível agora — gravado só no banco.)";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Audiência validada. Fixada na /agenda." };
   } catch (e) {
     return falha(e);
   }
@@ -603,12 +519,11 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
  *
  * Quando um humano protocola pelo board de Produção, dispara a MESMA cascata da baixa
  * de prazo (fluxo #3 do manual) em vez de um flip silencioso de pecas.status — que
- * fazia board e banco DIVERGIREM (peça "protocolada" com prazo ainda "aberto", fatal
- * viva/vermelha no Calendar, intimação sem providência). Cascata, origem carimbada
+ * fazia board e banco DIVERGIREM (peça "protocolada" com prazo ainda "aberto",
+ * intimação sem providência). Cascata, origem carimbada
  * 'frontend' pelo header x-app-origem (auditada por fn_auditar):
  *   1. andamento "peticao_protocolada" — dedup idempotente por codigo_movimentacao;
- *   2. prazo vinculado → "cumprido" (+cumprido_em), se ainda "aberto", recolorindo o
- *      Calendar (grafite + ✅, best-effort; o Cowork reconcilia no ciclo seguinte);
+ *   2. prazo vinculado → "cumprido" (+cumprido_em), se ainda "aberto";
  *   3. intimação vinculada → "providencia_tomada";
  *   4. peça → "protocolada" (+protocolada_em +andamento_id que a materializou).
  *
@@ -636,20 +551,18 @@ export async function baixarProtocoloPeca(id: string, descricao?: string): Promi
       return { ok: false, message: `Peça já está em status terminal (${pc.status}); protocolo não reaplicado.` };
     }
 
-    // Prazo vinculado (para baixa + recoloração do Calendar). O processo_id da peça
-    // pode estar vazio (inicial de caso novo); herda do prazo quando houver.
+    // Prazo vinculado (para baixa em cascata). O processo_id da peça pode estar
+    // vazio (inicial de caso novo); herda do prazo quando houver.
     type PrazoVinc = {
       id: string;
       status: string;
       processo_id: string | null;
-      calendar_event_id: string | null;
-      calendar_event_id_fatal: string | null;
     };
     let prazo: PrazoVinc | null = null;
     if (pc.prazo_id) {
       const { data: pr } = await supabase
         .from("prazos")
-        .select("id, status, processo_id, calendar_event_id, calendar_event_id_fatal")
+        .select("id, status, processo_id")
         .eq("id", pc.prazo_id)
         .maybeSingle();
       prazo = (pr as PrazoVinc | null) ?? null;
@@ -694,7 +607,7 @@ export async function baixarProtocoloPeca(id: string, descricao?: string): Promi
       }
     }
 
-    // 2) Prazo vinculado → cumprido (só se ainda aberto) + Calendar (best-effort).
+    // 2) Prazo vinculado → cumprido (só se ainda aberto).
     if (prazo && prazo.status === "aberto") {
       const { error: upErr } = await supabase
         .from("prazos")
@@ -702,9 +615,6 @@ export async function baixarProtocoloPeca(id: string, descricao?: string): Promi
         .eq("id", prazo.id);
       if (upErr) throw upErr;
       msg += " Prazo vinculado dado como cumprido.";
-      if (await baixarEventosPrazo(prazo.calendar_event_id, prazo.calendar_event_id_fatal, true)) {
-        msg += " Eventos do Calendar baixados.";
-      }
     }
 
     // 3) Intimação vinculada → providência tomada (+ carimbo de leitura: ação humana).
@@ -1252,31 +1162,14 @@ export async function validarPrazoEditado(id: string, fd: FormData): Promise<Res
     const tipo_contagem = String(fd.get("tipo_contagem") || "corridos");
     if (!ato || !data_fatal) return { ok: false, message: "Ato e data fatal são obrigatórios." };
 
-    const { data: pr } = await supabase
-      .from("prazos")
-      .select("calendar_event_id, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")
-      .eq("id", id)
-      .single();
-
     const { error } = await supabase
       .from("prazos")
       .update({ ato, data_fatal, data_interna, responsavel, tipo_contagem, validado: true, validado_em: agora() })
       .eq("id", id);
     if (error) throw error;
 
-    let msg = "Prazo validado com os ajustes.";
-    const fatalId = await confirmarPrazo(
-      { ato, dataFatal: data_fatal, dataInterna: data_interna, ref: refProcesso(pr?.processos) },
-      (pr?.calendar_event_id as string | null) ?? null,
-    );
-    if (fatalId) {
-      await supabase.from("prazos").update({ calendar_event_id_fatal: fatalId }).eq("id", id);
-      msg += " Marcador fatal (vermelho) no Calendar.";
-    } else if (calendarConfigurado()) {
-      msg += " (Calendar indisponível — gravado só no banco.)";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Prazo validado com os ajustes. Fatal fixada — veja na /agenda." };
   } catch (e) {
     return falha(e);
   }
@@ -1294,28 +1187,14 @@ export async function validarAudienciaEditada(id: string, fd: FormData): Promise
     if (!dataLocal) return { ok: false, message: "Data e hora são obrigatórias." };
     const data_hora = `${dataLocal}:00-03:00`; // horário de Brasília
 
-    const { data: a } = await supabase
-      .from("audiencias")
-      .select("processos(numero_cnj,cliente_processo(clientes(nome)))")
-      .eq("id", id)
-      .single();
-
     const { error } = await supabase
       .from("audiencias")
       .update({ tipo, data_hora, modalidade, local_link, responsavel, validado: true, validado_em: agora() })
       .eq("id", id);
     if (error) throw error;
 
-    let msg = "Audiência validada com os ajustes.";
-    const evId = await criarEventoAudiencia({ tipo, dataHora: data_hora, modalidade, local: local_link, ref: refProcesso(a?.processos) });
-    if (evId) {
-      await supabase.from("audiencias").update({ calendar_event_id: evId }).eq("id", id);
-      msg += " Evento no Calendar.";
-    } else if (calendarConfigurado()) {
-      msg += " (Calendar indisponível — gravado só no banco.)";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Audiência validada com os ajustes. Fixada na /agenda." };
   } catch (e) {
     return falha(e);
   }
@@ -1324,8 +1203,7 @@ export async function validarAudienciaEditada(id: string, fd: FormData): Promise
 /**
  * Edição livre de uma audiência (sem mexer no estado de validação).
  * Útil sobretudo em inclusões automáticas de processos sigilosos, que chegam
- * com dados incompletos. Se já validada e com evento no Calendar, re-sincroniza
- * o evento existente (patch) em vez de duplicar.
+ * com dados incompletos.
  */
 export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resultado> {
   try {
@@ -1345,12 +1223,6 @@ export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resu
     const data_fim = fimLocal ? `${fimLocal}:00-03:00` : null; // Sugestão 66: fim da janela (sessão virtual)
     if (data_fim && data_fim < data_hora) return { ok: false, message: "O fim da janela deve ser igual ou posterior ao início." };
 
-    const { data: a } = await supabase
-      .from("audiencias")
-      .select("validado, calendar_event_id, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")
-      .eq("id", id)
-      .single();
-
     const patch: Record<string, unknown> = { tipo, data_hora, data_fim, modalidade, local_link, responsavel, observacoes };
     if (nome !== undefined) patch.nome = nome;
     const { error } = await supabase
@@ -1359,23 +1231,14 @@ export async function atualizarAudiencia(id: string, fd: FormData): Promise<Resu
       .eq("id", id);
     if (error) throw error;
 
-    let msg = "Audiência atualizada.";
-    if (a?.validado && a.calendar_event_id) {
-      const ok = await atualizarEventoAudiencia(a.calendar_event_id, {
-        tipo, dataHora: data_hora, modalidade, local: local_link, ref: refProcesso(a?.processos),
-      });
-      if (ok) msg += " Evento do Calendar atualizado.";
-      else if (calendarConfigurado()) msg += " (Calendar indisponível — gravado só no banco.)";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Audiência atualizada." };
   } catch (e) {
     return falha(e);
   }
 }
 
-/** Troca rápida de modalidade (botões do card de IA no detalhe). Re-sincroniza o
- * Calendar quando a audiência já está validada. */
+/** Troca rápida de modalidade (botões do card de IA no detalhe). */
 export async function definirModalidadeAudiencia(id: string, modalidade: string): Promise<Resultado> {
   try {
     await requireUser();
@@ -1383,23 +1246,11 @@ export async function definirModalidadeAudiencia(id: string, modalidade: string)
       return { ok: false, message: "Modalidade inválida." };
     }
     const supabase = await createClient();
-    const { data: a } = await supabase
-      .from("audiencias")
-      .select("tipo, data_hora, local_link, validado, calendar_event_id, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")
-      .eq("id", id)
-      .single();
     const { error } = await supabase.from("audiencias").update({ modalidade }).eq("id", id);
     if (error) throw error;
-    let msg = `Modalidade definida: ${humano(modalidade)}.`;
-    if (a?.validado && a.calendar_event_id) {
-      const ok = await atualizarEventoAudiencia(a.calendar_event_id as string, {
-        tipo: a.tipo as string, dataHora: a.data_hora as string, modalidade, local: a.local_link as string | null, ref: refProcesso(a?.processos),
-      });
-      if (ok) msg += " Calendar atualizado.";
-    }
     revalidarTudo();
     revalidatePath(`/audiencias/${id}`);
-    return { ok: true, message: msg };
+    return { ok: true, message: `Modalidade definida: ${humano(modalidade)}.` };
   } catch (e) {
     return falha(e);
   }
@@ -1881,33 +1732,21 @@ export async function cancelarAudiencia(id: string, motivo: string): Promise<Res
   try {
     await requireUser();
     const supabase = await createClient();
-    const { data: a } = await supabase
-      .from("audiencias")
-      .select("calendar_event_id")
-      .eq("id", id)
-      .single();
     const obs = motivo?.trim() ? motivo.trim() : null;
     const patch: Record<string, unknown> = { status: "cancelada" };
     if (obs) patch.observacoes = obs;
     const { error } = await supabase.from("audiencias").update(patch).eq("id", id);
     if (error) throw error;
-    let msg = "Audiência cancelada (auditado).";
-    // Sugestão 41: baixa não-destrutiva do evento (grafite + ❌), best-effort.
-    if (a?.calendar_event_id && (await encerrarEventoAudiencia(a.calendar_event_id as string, false))) {
-      msg += " Evento do Calendar encerrado.";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Audiência cancelada (auditado)." };
   } catch (e) {
     return falha(e);
   }
 }
 
 /**
- * Baixa de audiência REALIZADA (Sugestão 41): marca status='realizada' e
- * reconcilia o evento do Calendar pela doutrina não-destrutiva dos prazos
- * (grafite 8 + "✅ REALIZADA — "). Best-effort: falha do Calendar não derruba
- * a baixa no banco.
+ * Baixa de audiência REALIZADA (Sugestão 41): marca status='realizada'.
+ * Correção é troca de status — nunca DELETE.
  */
 export async function baixarAudiencia(id: string): Promise<Resultado> {
   try {
@@ -1915,7 +1754,7 @@ export async function baixarAudiencia(id: string): Promise<Resultado> {
     const supabase = await createClient();
     const { data: a, error } = await supabase
       .from("audiencias")
-      .select("status, tipo, calendar_event_id")
+      .select("status, tipo")
       .eq("id", id)
       .single();
     if (error || !a) throw new Error("Audiência não encontrada.");
@@ -1927,12 +1766,8 @@ export async function baixarAudiencia(id: string): Promise<Resultado> {
       .eq("id", id);
     if (upErr) throw upErr;
 
-    let msg = "Audiência dada como realizada.";
-    if (a.calendar_event_id && (await encerrarEventoAudiencia(a.calendar_event_id as string, true))) {
-      msg += " Evento do Calendar baixado.";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Audiência dada como realizada." };
   } catch (e) {
     return falha(e);
   }
@@ -1941,7 +1776,7 @@ export async function baixarAudiencia(id: string): Promise<Resultado> {
 /**
  * Redesigna uma audiência: marca a antiga como `redesignada` (preserva a data
  * original no histórico) e cria uma NOVA audiência já vinculada à anterior
- * (redesignada_de), nascendo validado=false — a fatal/Calendar entra na validação.
+ * (redesignada_de), nascendo validado=false — a nova data entra na validação.
  */
 export async function redesignarAudiencia(id: string, fd: FormData): Promise<Resultado> {
   try {
@@ -1956,7 +1791,7 @@ export async function redesignarAudiencia(id: string, fd: FormData): Promise<Res
 
     const { data: ant } = await supabase
       .from("audiencias")
-      .select("processo_id, tipo, responsavel, calendar_event_id")
+      .select("processo_id, tipo, responsavel")
       .eq("id", id)
       .single();
     if (!ant) return { ok: false, message: "Audiência original não encontrada." };
@@ -1966,13 +1801,6 @@ export async function redesignarAudiencia(id: string, fd: FormData): Promise<Res
       .update({ status: "redesignada" })
       .eq("id", id);
     if (eUp) throw eUp;
-
-    // Sugestão 41: baixa não-destrutiva do evento da audiência ANTERIOR
-    // (grafite + ❌ ENCERRADA), best-effort. A nova data terá seu próprio
-    // evento provisório/validado pela validação.
-    if (ant.calendar_event_id) {
-      await encerrarEventoAudiencia(ant.calendar_event_id as string, false);
-    }
 
     const { error: eIns } = await supabase.from("audiencias").insert({
       processo_id: ant.processo_id,
@@ -2083,7 +1911,7 @@ export async function excluirAnotacao(id: string): Promise<Resultado> {
 
 /* ============================ COMPROMISSOS ============================ */
 
-/** Cria um compromisso na agenda (e tenta espelhar no Google Calendar). */
+/** Cria um compromisso na agenda. */
 export async function criarCompromisso(fd: FormData): Promise<Resultado> {
   try {
     await requireUser();
@@ -2100,23 +1928,13 @@ export async function criarCompromisso(fd: FormData): Promise<Resultado> {
     const processo_id = String(fd.get("processo_id") || "") || null;
     const tarefa_id = String(fd.get("tarefa_id") || "") || null;
 
-    const { data: ins, error } = await supabase
+    const { error } = await supabase
       .from("compromissos")
-      .insert({ titulo, descricao, data_hora, local, responsavel, cliente_id, processo_id, tarefa_id, status: "agendado" })
-      .select("id")
-      .single();
+      .insert({ titulo, descricao, data_hora, local, responsavel, cliente_id, processo_id, tarefa_id, status: "agendado" });
     if (error) throw error;
 
-    let msg = "Compromisso criado na agenda.";
-    const evId = await criarEventoCompromisso({ titulo, dataHora: data_hora, local, descricao });
-    if (evId) {
-      await supabase.from("compromissos").update({ calendar_event_id: evId }).eq("id", ins.id);
-      msg += " Evento criado no Google Calendar.";
-    } else if (calendarConfigurado()) {
-      msg += " (Calendar indisponível agora — gravado só no banco.)";
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Compromisso criado na agenda." };
   } catch (e) {
     return falha(e);
   }
@@ -2336,28 +2154,11 @@ export async function atualizarPrazo(id: string, fd: FormData): Promise<Resultad
       const d = String(fd.get("dias") || "").trim();
       patch.dias = d === "" ? null : Number(d);
     }
-    const { data: pr } = await supabase
-      .from("prazos")
-      .select("validado, calendar_event_id_fatal, processos(numero_cnj,numero_registro_tribunal,cliente_processo(clientes(nome)))")
-      .eq("id", id)
-      .single();
     const { error } = await supabase.from("prazos").update(patch).eq("id", id);
     if (error) throw error;
 
-    let msg = "Prazo atualizado.";
-    // Se já validado, re-sincroniza o marcador fatal no Calendar.
-    if (pr?.validado) {
-      const fatalId = await confirmarPrazo(
-        { ato, dataFatal: data_fatal, dataInterna: (patch.data_interna as string | null) ?? null, ref: refProcesso(pr.processos) },
-        (pr.calendar_event_id_fatal as string | null) ?? null,
-      );
-      if (fatalId) {
-        await supabase.from("prazos").update({ calendar_event_id_fatal: fatalId }).eq("id", id);
-        msg += " Calendar atualizado.";
-      }
-    }
     revalidarTudo();
-    return { ok: true, message: msg };
+    return { ok: true, message: "Prazo atualizado." };
   } catch (e) {
     return falha(e);
   }

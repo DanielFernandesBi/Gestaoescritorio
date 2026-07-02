@@ -23,8 +23,8 @@ function Chip({ e }: { e: AgendaEvento }) {
   );
 }
 
-/* Grade do mês estilo Google Calendar: células de ALTURA FIXA; o excedente vira
- * "+N mais", que abre um popover com o dia inteiro (sem esticar a linha). */
+/* Grade do mês com células de ALTURA FIXA; o excedente vira "+N mais", que abre
+ * um popover com o dia inteiro (sem esticar a linha). */
 export function AgendaMes({
   eventos,
   gridStart,

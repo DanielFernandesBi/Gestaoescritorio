@@ -9,7 +9,7 @@ import { AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE, RESPONSAVEIS } from "@/lib/enums"
 import { humano } from "@/lib/format";
 
 /** Botão + modal para cadastrar uma audiência (exige processo; nasce provisória,
- * validado=false — o evento do Calendar é criado na validação). */
+ * validado=false — fixada na validação). */
 export function CadastrarAudiencia() {
   const [procs, setProcs] = useState<{ id: string; label: string }[]>([]);
   useEffect(() => {
@@ -25,7 +25,7 @@ export function CadastrarAudiencia() {
     <FormModal
       label={<><Icon name="gavel" size={15} /> Nova audiência</>}
       titulo="Nova audiência"
-      descricao="Nasce provisória (validado=false): aparece em “A validar”. A validação fixa data/local e cria o evento no Google Calendar."
+      descricao="Nasce provisória (validado=false): aparece em “A validar”. A validação fixa data e local na /agenda."
       acao={criarAudiencia}
       enviarLabel="Cadastrar"
     >

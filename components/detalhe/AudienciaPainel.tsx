@@ -181,7 +181,7 @@ function EditarAudiencia({ aud }: { aud: Audiencia }) {
     <FormModal
       label={<><PenIco /> Editar audiência</>}
       titulo="Editar audiência"
-      descricao="Ajuste qualquer dado da audiência. Se já validada, o evento no Google Calendar é re-sincronizado."
+      descricao="Ajuste qualquer dado da audiência. A /agenda reflete a mudança."
       acao={atualizarAudiencia.bind(null, aud.id)}
       enviarLabel="Salvar"
       variant="default"
@@ -287,19 +287,19 @@ export function AudienciaPainel({ aud, lista, anotacoes }: { aud: Audiencia; lis
               <div className="audp-realizar">
                 <div className="row"><Bolt /><div>Gera <b>andamento</b> no processo (registro do ato realizado)</div></div>
                 <div className="row"><CheckBox /><div>Pode abrir <b>tarefa</b> de acompanhamento (ex.: prazo de memoriais)</div></div>
-                <div className="note">Aparece em <span className="mono">vw_agenda_semana</span> (próximos 7 dias). Calendar tangerina → cor calma ao validar.</div>
+                <div className="note">Aparece na <Link className="proc-link" href="/agenda">/agenda</Link> (próximos 7 dias). Provisória até a validação do Daniel.</div>
               </div>
             </Sec>
 
-            {/* calendar */}
-            <Sec titulo="Google Calendar">
+            {/* visibilidade */}
+            <Sec titulo="Visibilidade">
               <div className="audp-cal">
                 <div className="audp-cal-row">
-                  <span className="audp-cal-chip"><span className="sw tang" /><b style={{ color: "var(--tang)" }}>Tangerina</b> — provisória</span>
+                  <span className="audp-cal-chip"><span className="sw tang" /><b style={{ color: "var(--tang)" }}>Provisória</b> — a validar</span>
                   <span className="audp-cal-arrow">→</span>
-                  <span className="audp-cal-chip"><span className="sw green" /><b style={{ color: "var(--green)" }}>Cor calma</b> — após validar</span>
+                  <span className="audp-cal-chip"><span className="sw green" /><b style={{ color: "var(--green)" }}>Confirmada</b> — após validar</span>
                 </div>
-                <div className="audp-cal-note">Evento na data e hora da sessão. Validar recolore para cor calma e remove o prefixo provisório — eventos são reescritos, nunca apagados nem movidos.</div>
+                <div className="audp-cal-note">Aparece na <Link className="proc-link" href="/agenda">/agenda</Link> na data e hora da sessão. Validar confirma data e local. Baixa é troca de status — nunca apagada nem movida.</div>
               </div>
             </Sec>
 
@@ -347,7 +347,7 @@ export function AudienciaPainel({ aud, lista, anotacoes }: { aud: Audiencia; lis
                   variant="danger"
                   titulo="Cancelar audiência"
                   confirmarLabel="Cancelar"
-                  resumo={<>Cancelar a audiência? Não é apagada — muda para <b>cancelada</b> (auditado) e o evento do Calendar é encerrado.</>}
+                  resumo={<>Cancelar a audiência? Não é apagada — muda para <b>cancelada</b> (auditado).</>}
                   campoTexto={{ label: "Motivo (opcional)", placeholder: "Ex.: acordo / redesignada." }}
                   acao={cancelarAudiencia.bind(null, aud.id)}
                 />
@@ -366,7 +366,7 @@ export function AudienciaPainel({ aud, lista, anotacoes }: { aud: Audiencia; lis
               size="md"
               titulo="Validar audiência"
               confirmarLabel="Validar"
-              resumo={<>Confirmar a audiência de <b>{humano(aud.tipo)}</b> e fixar data/local? Cria o evento (cor calma) no Google Calendar — confira a data capturada da pauta.</>}
+              resumo={<>Confirmar a audiência de <b>{humano(aud.tipo)}</b> e fixar data/local? Fica confirmada na /agenda — confira a data capturada da pauta.</>}
               acao={validarAudiencia.bind(null, aud.id)}
             />
           )}
@@ -377,11 +377,11 @@ export function AudienciaPainel({ aud, lista, anotacoes }: { aud: Audiencia; lis
               size="md"
               titulo="Dar baixa na audiência"
               confirmarLabel="Marcar realizada"
-              resumo={<>Marcar a audiência de <b>{humano(aud.tipo)}</b> como <b>realizada</b>? O evento no Calendar é baixado (grafite + ✅) e a realização vira andamento — nunca apagado.</>}
+              resumo={<>Marcar a audiência de <b>{humano(aud.tipo)}</b> como <b>realizada</b>? A realização vira andamento — nunca apagado.</>}
               acao={() => baixarAudiencia(aud.id)}
             />
           )}
-          <Link className="btn default" href="/agenda"><CalIco /> Calendar</Link>
+          <Link className="btn default" href="/agenda"><CalIco /> Agenda</Link>
         </div>
       </section>
     </div>

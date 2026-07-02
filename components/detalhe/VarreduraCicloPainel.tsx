@@ -156,13 +156,13 @@ export function VarreduraCicloPainel({
 
             {/* ANOMALIAS */}
             <div className="audp-sec">
-              <div className="audp-sech">anomalias · DJEN / Calendar / Drive <span className="audp-count">{anom.length}</span></div>
+              <div className="audp-sech">anomalias · DJEN / Drive <span className="audp-count">{anom.length}</span></div>
               {anom.length ? (
                 <div className="anom-list">
                   {anom.map((a, i) => <AnomaliaRow key={i} a={a} critico={ciclo.status !== "concluida"} />)}
                 </div>
               ) : (
-                <div className="vc-ok"><Check s={15} /> Nenhuma falha degradada nesta execução. DJEN, Calendar e Drive responderam — as gravações no banco persistiram normalmente.</div>
+                <div className="vc-ok"><Check s={15} /> Nenhuma falha degradada nesta execução. DJEN e Drive responderam — as gravações no banco persistiram normalmente.</div>
               )}
             </div>
 

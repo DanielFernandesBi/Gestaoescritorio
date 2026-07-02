@@ -18,7 +18,6 @@ export default async function VarreduraRail() {
     { nome: "Supabase", ok: Boolean(varredura) },
     { nome: "Gmail", ok: Boolean(varredura) && varredura!.status !== "falha" && !degradou("gmail") },
     { nome: "DJEN · Cloud Run 22h", ok: !degradou("djen") },
-    { nome: "Google Calendar", ok: !degradou("calendar") },
     { nome: "Google Drive", ok: !degradou("drive") },
   ];
 

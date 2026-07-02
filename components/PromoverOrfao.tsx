@@ -79,7 +79,7 @@ export function PromoverOrfao({
 
       <h4 style={{ margin: "12px 0 2px", fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--brass)" }}>3 · Validação</h4>
       <label style={{ display: "flex", alignItems: "center", gap: 8, textTransform: "none", letterSpacing: 0 }}>
-        <input type="checkbox" name="validar_agora" style={{ width: "auto" }} /> Validar agora (cria o marcador fatal vermelho no Google Calendar)
+        <input type="checkbox" name="validar_agora" style={{ width: "auto" }} /> Validar agora (fatal fica vermelha na /agenda)
       </label>
       <p className="sub" style={{ margin: 0 }}>A validação só roda após o vínculo do processo — exigência do banco (nenhuma fatal validada fica sem processo).</p>
     </FormModal>

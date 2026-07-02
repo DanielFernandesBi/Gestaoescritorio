@@ -6,9 +6,9 @@ import { criarCompromisso } from "@/app/actions";
 import { RESPONSAVEIS } from "@/lib/enums";
 
 /**
- * Botão + modal para criar um compromisso na agenda (grava no banco e espelha
- * no Google Calendar). Reaproveitado nos drawers de tarefa, intimação,
- * processo e cliente — os vínculos vêm por props.
+ * Botão + modal para criar um compromisso na agenda (grava no banco).
+ * Reaproveitado nos drawers de tarefa, intimação, processo e cliente — os
+ * vínculos vêm por props.
  */
 export function CriarCompromisso({
   tituloPadrao = "",
@@ -32,7 +32,7 @@ export function CriarCompromisso({
     <FormModal
       label={<><Icon name="clock" size={14} /> Criar compromisso</>}
       titulo="Novo compromisso na agenda"
-      descricao="Cria um compromisso (reunião, diligência, lembrete) na agenda do escritório e no Google Calendar."
+      descricao="Cria um compromisso (reunião, diligência, lembrete) na agenda do escritório."
       acao={criarCompromisso}
       enviarLabel="Criar compromisso"
       variant="default"

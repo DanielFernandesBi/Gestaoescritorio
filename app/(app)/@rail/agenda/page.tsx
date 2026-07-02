@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * Trilho lateral da /agenda — 3ª coluna do shell (slot @rail).
- * Estado do Calendar (a triagem cria os eventos), fila de provisórios e o
- * atalho do Assistente (o Claude opera pelo chat — aqui é CTA, não chat embutido).
+ * Fonte da agenda (banco), fila de provisórios e o atalho do Assistente
+ * (o Claude opera pelo chat — aqui é CTA, não chat embutido).
  */
 export default async function AgendaRail() {
   const [varredura, { prazos, audiencias }] = await Promise.all([getUltimaVarredura(), getFilaValidacao()]);
@@ -18,20 +18,20 @@ export default async function AgendaRail() {
   return (
     <aside className="orfas-rail" aria-label="Resumo da agenda">
       <div className="vrail-card">
-        <div className="vrail-h">Google Calendar</div>
+        <div className="vrail-h">Fonte da agenda</div>
         <div className="cal-sync">
           <span className="cal-dot" />
-          {varredura ? <>Sincronizado · última triagem às <b>{fmtTime(varredura.criado_em)}</b></> : "Sem sincronização registrada"}
+          {varredura ? <>Última triagem às <b>{fmtTime(varredura.criado_em)}</b></> : "Sem triagem registrada"}
         </div>
         <div className="cal-note">
-          A triagem cria todo prazo/audiência como evento <span className="tang">tangerina</span> — rede de
-          segurança até você validar.
+          Prazos, audiências e compromissos vêm direto do banco. Todo prazo/audiência da triagem nasce{" "}
+          <span className="tang">provisório</span> — rede de segurança até você validar.
         </div>
       </div>
 
       <Link className="vrail-card prov-card" href="/validacao">
         <div className="prov-n">{provisorios}</div>
-        <div className="prov-l">{provisorios === 1 ? "evento provisório" : "eventos provisórios"} aguardam validação</div>
+        <div className="prov-l">{provisorios === 1 ? "item provisório" : "itens provisórios"} aguardam validação</div>
         <span className="prov-cta">Validar →</span>
       </Link>
 

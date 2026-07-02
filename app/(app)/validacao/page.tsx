@@ -56,9 +56,9 @@ export default async function ValidacaoPage({
       <div className="banner ai">
         <span className="ia-seal">IA</span>
         <div>
-          Estes itens nasceram <b>provisórios</b> e já têm evento <span className="tang">tangerina</span> no Calendar
-          (rede de segurança). Ao <b>validar</b>, você confirma a ciência, a fatal vira <span className="vermelho">vermelha</span> e
-          o prazo é liberado. As datas fatais são <b>estimativas</b> — confira feriados locais e suspensão de expediente.
+          Estes itens nasceram <b>provisórios</b> e já aparecem na <b>/agenda</b> (rede de segurança). Ao <b>validar</b>,
+          você confirma a ciência, a fatal é <b>fixada</b> e o prazo é liberado. As datas fatais são <b>estimativas</b> —
+          confira feriados locais e suspensão de expediente.
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export default async function ValidacaoPage({
                 <div className="vcard-foot">
                   <span className="vfoot-l">
                     <Icon name="grid" size={13} />{" "}
-                    {p.tem_calendar ? <>evento <span className="tang">tangerina</span> no Calendar</> : "sem evento no Calendar"}
+                    provisório · a validar
                     {p.origem && <> · extraído do {p.origem.toUpperCase()}</>}
                   </span>
                   <div className="vactions">
@@ -128,7 +128,7 @@ export default async function ValidacaoPage({
                     <Acao
                       label={<><Icon name="check" size={14} /> Validar fatal</>}
                       titulo="Validar prazo"
-                      resumo={<>Confirmar a ciência e fixar a fatal de <b>{p.ato}</b> em <b>{fmtDate(p.data_fatal)}</b>. Cria o marcador vermelho no Calendar — confira feriados locais.</>}
+                      resumo={<>Confirmar a ciência e fixar a fatal de <b>{p.ato}</b> em <b>{fmtDate(p.data_fatal)}</b>. Fica vermelha na /agenda — confira feriados locais.</>}
                       acao={validarPrazo.bind(null, p.id)}
                       confirmarLabel="Validar fatal"
                       variant="primary"
@@ -173,7 +173,7 @@ export default async function ValidacaoPage({
                   <div className="vcard-foot">
                     <span className="vfoot-l">
                       <Icon name="grid" size={13} />{" "}
-                      {a.tem_calendar ? <>evento <span className="tang">tangerina</span> com horário no Calendar</> : "sem evento no Calendar"}
+                      provisória · a validar
                     </span>
                     <div className="vactions">
                       <Link className="btn ghost sm" href={linkPara("audiencia", a.id)}>Ver audiência</Link>

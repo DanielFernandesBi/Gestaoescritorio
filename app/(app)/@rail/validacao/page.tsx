@@ -18,7 +18,7 @@ export default async function ValidacaoRail() {
         <div className="vrail-h">O que acontece ao validar</div>
         <ol className="vrail-steps">
           <li><span className="vstep-n">1</span> Confirma a ciência e fixa a data fatal.</li>
-          <li><span className="vstep-n">2</span> O evento provisório vira marcador <span className="vermelho">vermelho</span> no Calendar.</li>
+          <li><span className="vstep-n">2</span> O provisório vira fatal <span className="vermelho">vermelha</span> na /agenda.</li>
           <li><span className="vstep-n">3</span> <code>validado=true</code> · sai desta fila e entra nos prazos ativos.</li>
         </ol>
       </div>

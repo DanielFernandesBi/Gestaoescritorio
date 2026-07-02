@@ -91,14 +91,14 @@ function ProvisorioCard({ p }: { p: PrazoCard }) {
           <Acao
             label={<><Check /> Validar prazo</>}
             titulo="Validar prazo"
-            resumo={<>Confirmar a ciência e fixar a fatal de <b>{p.ato}</b> em <b>{fmtDate(p.data_fatal)}</b>. Cria o marcador vermelho no Calendar — confira feriados locais e suspensão de expediente.</>}
+            resumo={<>Confirmar a ciência e fixar a fatal de <b>{p.ato}</b> em <b>{fmtDate(p.data_fatal)}</b>. Fica vermelha na /agenda — confira feriados locais e suspensão de expediente.</>}
             acao={validarPrazo.bind(null, p.id)}
             confirmarLabel="Validar fatal"
             variant="primary"
             size="sm"
           />
         </div>
-        <Link className="pz-foot-link" href="/agenda"><CalIco />Calendar</Link>
+        <Link className="pz-foot-link" href="/agenda"><CalIco />Agenda</Link>
         <Link className="pz-foot-link" href="/producao"><Doc />Criar peça</Link>
       </div>
     </article>
@@ -111,7 +111,7 @@ function DarBaixa({ p, label }: { p: PrazoCard; label: React.ReactNode }) {
     <Acao
       label={label}
       titulo="Dar baixa no prazo"
-      resumo={<>Marcar <b>{p.ato}</b> como cumprido (protocolado). Os eventos do Calendar viram grafite — nunca apagados. Se houver peça vinculada, ela passa a “protocolada”.</>}
+      resumo={<>Marcar <b>{p.ato}</b> como cumprido (protocolado). Troca de status — nunca apagado. Se houver peça vinculada, ela passa a “protocolada”.</>}
       acao={baixarPrazo.bind(null, p.id)}
       confirmarLabel="Dar baixa"
       variant="default"
@@ -162,7 +162,7 @@ function ValidadoRico({ p }: { p: PrazoCard }) {
       <div className="pz-foot">
         <div className="grow"><DarBaixa p={p} label={<><Check c="var(--text)" /> Dar baixa (protocolada)</>} /></div>
         <Link className="pz-foot-link" href="/producao"><Doc />Abrir peça</Link>
-        <Link className="pz-foot-link" href="/agenda"><CalIco />Calendar</Link>
+        <Link className="pz-foot-link" href="/agenda"><CalIco />Agenda</Link>
       </div>
     </article>
   );
@@ -197,7 +197,7 @@ function ValidadoCompacto({ p }: { p: PrazoCard }) {
         </div>
         <div className="pz-actions">
           <DarBaixa p={p} label="Dar baixa" />
-          <Link className="btn sm" href="/agenda"><CalIco />Calendar</Link>
+          <Link className="btn sm" href="/agenda"><CalIco />Agenda</Link>
         </div>
       </div>
     </article>
@@ -215,7 +215,7 @@ function OrfaoCard({ o, procs, clis }: { o: PrazoOrfao; procs: ProcLite[]; clis:
         <div className="pz-tags">
           <span className="pz-tag orfa"><Alert />órfão · sem processo</span>
           <span className="pz-tag cowork"><Spark />cowork</span>
-          <span className="pz-tag tang2">provisório no Calendar</span>
+          <span className="pz-tag tang2">provisório · a validar</span>
         </div>
         <div className="pz-main">
           <div className="pz-lhs">
@@ -302,7 +302,7 @@ export function PrazosView({ prazos, orfaos }: { prazos: PrazoCard[]; orfaos: Pr
           <h1>Prazos</h1>
           <p>
             Contínuos e peremptórios; fatal em fim de semana/feriado prorroga para o próximo dia útil. O prazo da
-            automação nasce <b>provisório</b> mas <b>visível no Calendar</b>; vira fatal vermelho só com a validação do Daniel.
+            automação nasce <b>provisório</b> mas <b>visível na /agenda</b>; vira fatal vermelha só com a validação do Daniel.
           </p>
         </div>
         <CadastrarPrazo />
@@ -339,7 +339,7 @@ export function PrazosView({ prazos, orfaos }: { prazos: PrazoCard[]; orfaos: Pr
       {/* A VALIDAR · PROVISÓRIOS */}
       <div className="pz-seclabel">
         <span className="t accent">A validar · provisórios</span>
-        <span className="pz-pill tang"><span className="d" />Tangerina no Calendar</span>
+        <span className="pz-pill tang"><span className="d" />provisório · a validar</span>
         <code>vw_pendentes_validacao</code>
       </div>
       {provisorios.length ? (
@@ -353,7 +353,7 @@ export function PrazosView({ prazos, orfaos }: { prazos: PrazoCard[]; orfaos: Pr
         <>
           <div className="pz-seclabel">
             <span className="t">Abertos · validados</span>
-            <span className="pz-pill red"><span className="d" />fatal vermelha no Calendar</span>
+            <span className="pz-pill red"><span className="d" />fatal confirmada</span>
             <code>vw_prazos_abertos</code>
           </div>
           {validados.length ? (
