@@ -13,7 +13,7 @@ const addDays = (iso: string, n: number) => {
   return d.toISOString().slice(0, 10);
 };
 const DOW = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-const MAX = 3; // eventos visíveis por célula antes do "+N mais" (célula é fixa)
+const MAX = 5; // eventos visíveis por célula antes do "+N mais" (célula é fixa)
 
 function Chip({ e }: { e: AgendaEvento }) {
   return (

@@ -727,7 +727,7 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .ag-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .ag-grid-dow{background:var(--surface-2);padding:8px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 /* Célula de ALTURA FIXA (Google Calendar): o excedente vira "+N mais" (popover) */
-.ag-cell{background:var(--surface);height:120px;min-width:0;padding:6px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.ag-cell{background:var(--surface);height:184px;min-width:0;padding:6px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
 .ag-cell.fora{background:var(--surface-2)}
 .ag-cell.fora .ag-cell-n{color:var(--muted-2)}
 .ag-cell.ag-hoje{box-shadow:inset 0 0 0 2px var(--accent)}
@@ -746,7 +746,7 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .ag-daypop-h .x:hover{background:var(--surface-2)}
 .ag-daypop-list{display:flex;flex-direction:column;gap:5px;padding:12px 14px;overflow-y:auto}
 .ag-daypop-list .ag-chip{white-space:normal;overflow:visible;font-size:11px;padding:5px 8px;line-height:1.35}
-@media(max-width:760px){.ag-cell{height:92px}.ag-chip{font-size:9px}.ag-ev-r{padding:11px 10px}}
+@media(max-width:760px){.ag-cell{height:150px}.ag-chip{font-size:9px}.ag-ev-r{padding:11px 10px}}
 
 /* Trilho da agenda */
 .cal-sync{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);margin-bottom:8px}
