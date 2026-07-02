@@ -1,8 +1,9 @@
 import { getAgendaEventos, type AgendaEvento } from "@/lib/data";
+import { estado } from "@/lib/agenda";
+import { AgendaMes } from "@/components/modules/AgendaMes";
 import { SegredoTag } from "@/components/ui";
 import { fmtTime } from "@/lib/format";
 import { linkPara } from "@/lib/links";
-import { Expansivel } from "@/components/Expansivel";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -27,17 +28,6 @@ const mesLongo = (ym: string) => {
   return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)));
 };
 const DOW = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-
-// Estado visual (cor/rótulo + se é provisório da IA). Tons: fatal=red,
-// provisório/interna/fatal provisória=amber, audiência=blue, compromisso=green,
-// baixado=muted.
-function estado(e: AgendaEvento): { label: string; tone: string; ia: boolean } {
-  if (e.baixado) return { label: "baixado", tone: "baixado", ia: false };
-  if (e.tipo === "compromisso") return { label: "compromisso", tone: "comp", ia: false };
-  if (e.tipo === "audiencia") return e.validado ? { label: "audiência", tone: "aud", ia: false } : { label: "provisório", tone: "prov", ia: true };
-  if (e.marcador === "interna") return { label: "interna", tone: "interna", ia: false };
-  return e.validado ? { label: "fatal", tone: "fatal", ia: false } : { label: "fatal provisória", tone: "prov", ia: true };
-}
 
 // Separa o ato curto da nota longa que a triagem anexa entre colchetes
 // (reclassificação/conferência) — a nota vira uma 3ª linha menor, sem negrito.
@@ -204,29 +194,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
             <div className="ag-month-t">{mesLongo(mesRef)}</div>
             <Link className="btn sm" href={`/agenda?view=mes&m=${addMonth(mesRef, 1)}`}>próximo →</Link>
           </div>
-          <div className="ag-grid">
-            {DOW.map((d) => <div key={d} className="ag-grid-dow">{d}</div>)}
-            {Array.from({ length: 42 }, (_, i) => addDays(gridStart, i)).map((iso) => {
-              const doDia = eventos.filter((e) => e.data.slice(0, 10) === iso);
-              const foraDoMes = iso.slice(0, 7) !== mesRef;
-              return (
-                <div key={iso} className={`ag-cell${foraDoMes ? " fora" : ""}${iso === hojeISO ? " ag-hoje" : ""}`}>
-                  <div className="ag-cell-n">{Number(iso.slice(8, 10))}</div>
-                  {doDia.length > 0 && (
-                    <Expansivel altura={86} mais={`+${doDia.length} ver tudo`} menos="recolher">
-                      <div className="ag-cell-evs">
-                        {doDia.map((e, i) => (
-                          <Link key={`${e.id}-${i}`} className={`ag-chip ev-${estado(e).tone}`} href={linkPara(e.tipo, e.id)} title={e.titulo}>
-                            {e.titulo}
-                          </Link>
-                        ))}
-                      </div>
-                    </Expansivel>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <AgendaMes eventos={eventos} gridStart={gridStart} mesRef={mesRef} hojeISO={hojeISO} />
         </div>
       )}
     </div>

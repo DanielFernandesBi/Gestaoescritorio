@@ -559,6 +559,10 @@ export type AgendaEvento = {
   fundamento: string | null;
   responsavel: string | null;
   dias_restantes: number;
+  // status cru da tabela de origem (prazo: aberto/cumprido/prejudicado/cancelado;
+  // audiência: designada/realizada/…; compromisso: agendado/realizado/cancelado).
+  // Alimenta o rótulo estilo Calendar (✅ CUMPRIDO / ❌ ENCERRADO …).
+  status: string | null;
 };
 
 export async function getAgendaEventos(inicio: string, fim: string): Promise<AgendaEvento[]> {
@@ -610,6 +614,7 @@ export async function getAgendaEventos(inicio: string, fim: string): Promise<Age
       local: null,
       fundamento: it?.fundamento ?? null,
       responsavel: (r.responsavel as string) ?? null,
+      status: (r.status as string) ?? null,
     };
     const ato = r.ato as string;
     const dataFatal = r.data_fatal as string;
@@ -645,6 +650,7 @@ export async function getAgendaEventos(inicio: string, fim: string): Promise<Age
       fundamento: null,
       responsavel: (r.responsavel as string) ?? null,
       dias_restantes: diasAte(r.data_hora as string),
+      status: (r.status as string) ?? null,
     });
   }
 
@@ -672,6 +678,7 @@ export async function getAgendaEventos(inicio: string, fim: string): Promise<Age
       fundamento: null,
       responsavel: (r.responsavel as string) ?? null,
       dias_restantes: diasAte(r.data_hora as string),
+      status: (r.status as string) ?? null,
     });
   }
 

@@ -648,8 +648,10 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 /* ---------- Agenda (/agenda) — alvo Plantão ---------- */
 /* Cores por estado: fatal=red, provisório/interna=amber, audiência=blue,
  * compromisso=green, baixado=muted. */
+/* Sistema de cores do Calendar (manual): fatal=vermelho, provisório=tangerina,
+ * interna validada=banana(âmbar), audiência=azul, compromisso=verde, baixado=grafite */
 .ev-fatal{--ev:var(--red);--evs:var(--red-soft)}
-.ev-prov{--ev:var(--amber);--evs:var(--amber-soft)}
+.ev-prov{--ev:var(--tang);--evs:var(--tang-soft)}
 .ev-aud{--ev:var(--blue);--evs:var(--blue-soft)}
 .ev-comp{--ev:var(--green);--evs:var(--green-soft)}
 .ev-interna{--ev:var(--amber);--evs:var(--amber-soft)}
@@ -724,18 +726,27 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .ag-month-t{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);text-transform:capitalize}
 .ag-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .ag-grid-dow{background:var(--surface-2);padding:8px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.ag-cell{background:var(--surface);min-height:104px;min-width:0;padding:6px;display:flex;flex-direction:column;gap:4px}
+/* Célula de ALTURA FIXA (Google Calendar): o excedente vira "+N mais" (popover) */
+.ag-cell{background:var(--surface);height:120px;min-width:0;padding:6px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
 .ag-cell.fora{background:var(--surface-2)}
 .ag-cell.fora .ag-cell-n{color:var(--muted-2)}
 .ag-cell.ag-hoje{box-shadow:inset 0 0 0 2px var(--accent)}
-.ag-cell .exp{min-width:0}
-.ag-cell .exp-fade{height:34px}
-.ag-cell .exp-btn{font-size:10px;margin-top:4px}
-.ag-cell-n{font-size:12px;font-weight:700;color:var(--ink)}
+.ag-cell-n{font-size:12px;font-weight:700;color:var(--ink);flex:none}
 .ag-cell-evs{display:flex;flex-direction:column;gap:3px;min-width:0}
-.ag-chip{display:block;min-width:0;font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--evs);color:var(--ev);border-left:3px solid var(--ev);line-height:1.3;overflow-wrap:anywhere;text-decoration:none}
-.ag-chip-mais{font-size:10px;color:var(--muted-2);font-weight:600;padding-left:2px}
-@media(max-width:760px){.ag-cell{min-height:72px}.ag-chip{font-size:9px}.ag-ev-r{padding:11px 10px}}
+.ag-chip{display:block;min-width:0;font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--evs);color:var(--ev);border-left:3px solid var(--ev);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
+.ag-chip-mais{align-self:flex-start;font-size:10px;color:var(--muted);font-weight:700;padding:1px 4px;background:none;border:none;cursor:pointer;border-radius:5px}
+.ag-chip-mais:hover{background:var(--surface-2);color:var(--text)}
+
+/* Popover do dia (abre pelo "+N mais") — dia inteiro sem esticar a grade */
+.ag-daypop-ov{position:fixed;inset:0;background:rgba(16,24,40,.35);display:grid;place-items:center;z-index:70;padding:20px}
+.ag-daypop{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 50px rgba(16,24,40,.28);width:min(380px,100%);max-height:72vh;display:flex;flex-direction:column;overflow:hidden}
+.ag-daypop-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-soft)}
+.ag-daypop-h .t{font-weight:700;color:var(--name);font-size:13px;text-transform:capitalize}
+.ag-daypop-h .x{width:28px;height:28px;border-radius:7px;color:var(--muted);font-size:20px;line-height:1;display:grid;place-items:center;background:none;border:none;cursor:pointer}
+.ag-daypop-h .x:hover{background:var(--surface-2)}
+.ag-daypop-list{display:flex;flex-direction:column;gap:5px;padding:12px 14px;overflow-y:auto}
+.ag-daypop-list .ag-chip{white-space:normal;overflow:visible;font-size:11px;padding:5px 8px;line-height:1.35}
+@media(max-width:760px){.ag-cell{height:92px}.ag-chip{font-size:9px}.ag-ev-r{padding:11px 10px}}
 
 /* Trilho da agenda */
 .cal-sync{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);margin-bottom:8px}
