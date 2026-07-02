@@ -1,8 +1,11 @@
-import { getFilaValidacao, getProcessosParados, getFinanceiro } from "@/lib/data";
-import { getBeneficiosProximos, getUltimaVarredura } from "@/lib/queries";
+import { getProcessosParados, getFinanceiro } from "@/lib/data";
+import { getBeneficiosProximos, getUltimaVarredura, getAlertas } from "@/lib/queries";
 import { AlertasView, type Alerta } from "@/components/modules/AlertasView";
+import { Icon } from "@/components/Icon";
+import { rotuloAlerta, toneAlerta, alvoAlerta, prazoAlerta } from "@/lib/alertas";
 import { fmtDate, fmtBRL, fmtTime, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +21,8 @@ const tituloAnomalia = (t: string) => TITULO_ANOMALIA[t] ?? humano(t);
 const ORDEM: Record<Alerta["categoria"], number> = { prazo_fatal: 0, execucao: 1, parado: 2, anomalia: 3, financeiro: 4 };
 
 export default async function AlertasPage() {
-  const [fila, parados, fin, beneficios, varredura] = await Promise.all([
-    getFilaValidacao(),
+  const [vwAlertas, parados, fin, beneficios, varredura] = await Promise.all([
+    getAlertas(),
     getProcessosParados(30),
     getFinanceiro(),
     getBeneficiosProximos(50),
@@ -28,24 +31,7 @@ export default async function AlertasPage() {
 
   const alertas: Alerta[] = [];
 
-  // 1. Prazos fatais críticos (provisórios no limite ≤ 5 dias).
-  for (const p of fila.prazos.filter((p) => p.dias_restantes <= 5)) {
-    alertas.push({
-      id: `prazo-${p.id}`,
-      categoria: "prazo_fatal",
-      severidade: "critico",
-      tag: "PRAZO FATAL",
-      preso: p.preso,
-      titulo: `${p.ato}${p.clientes ? ` — ${p.segredo ? "Cliente sigiloso" : p.clientes}` : ""}`,
-      sub: [p.fundamento, p.numero_cnj].filter(Boolean).join(" · ") || null,
-      metrica: `fatal ${fmtDate(p.data_fatal)}${p.data_interna ? ` · interna ${fmtDate(p.data_interna)}` : ""}${p.preso ? " · réu preso" : ""}`,
-      dias: p.dias_restantes,
-      acoes: [
-        { label: "Abrir prazo", href: "/validacao", primary: true },
-        { label: "Ver minuta", href: "/producao" },
-      ],
-    });
-  }
+  // Prazos e audiências no radar vêm da vw_alertas (seção Central, abaixo).
 
   // 2. Benefícios de execução (vencidos = crítico; próximos ≤180d = acompanhar).
   for (const b of beneficios.filter((b) => b.dias <= 180)) {
@@ -136,9 +122,35 @@ export default async function AlertasPage() {
         <div>
           <div className="eyebrow">Radar de riscos</div>
           <h1>Alertas</h1>
-          <p>O que pode escapar: prazos no limite, benefícios de execução, processos parados e anomalias da varredura. Críticos no topo.</p>
+          <p>O que pode escapar: prazos e audiências no limite, benefícios de execução, processos parados e anomalias da varredura. Críticos no topo.</p>
         </div>
       </div>
+
+      {/* Sug. 79 — Central de prazos & audiências (mesma fonte do sino: vw_alertas) */}
+      <div className="al-central">
+        <div className="al-central-h">
+          <span className="t"><Icon name="bell" size={15} /> Prazos &amp; audiências no radar</span>
+          <span className="n">{vwAlertas.length}</span>
+          <code>vw_alertas</code>
+        </div>
+        {vwAlertas.length ? (
+          <div className="al-central-list">
+            {vwAlertas.map((a) => (
+              <Link key={`${a.tipo_alerta}-${a.id}`} className={`al-crow t-${toneAlerta(a.prioridade)}`} href={alvoAlerta(a)}>
+                <span className="al-ctag">{rotuloAlerta(a.tipo_alerta)}</span>
+                <div className="al-cmid">
+                  <div className="ti">{a.segredo ? "🔒 Sigiloso" : a.titulo}</div>
+                  {a.numero_cnj && !a.segredo && <div className="sub mono">{a.numero_cnj}</div>}
+                </div>
+                {prazoAlerta(a) && <span className={`al-cdias t-${toneAlerta(a.prioridade)}`}>{prazoAlerta(a)}</span>}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="empty">Nenhum prazo ou audiência no limite. 🎉</div>
+        )}
+      </div>
+
       <AlertasView alertas={alertas} />
     </>
   );

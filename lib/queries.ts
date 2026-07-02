@@ -802,6 +802,49 @@ export type ExpectativaPendente = {
   segredo: boolean;
 };
 
+/* ===== Central de alertas (Sugestão 79) — vw_alertas =====
+ * Consolida os critérios de alerta para o frontend não repetir lógica: prazo
+ * fatal próximo/vencido, interna próxima, prazos/audiências pendentes de
+ * validação, audiência hoje/amanhã e fatal caindo em fim de semana. Prioridade
+ * 1 (crítico) → 3 (acompanhar). Alimenta o sino do topbar e a /alertas. */
+
+export type AlertaVw = {
+  tipo_alerta: string;
+  origem: string; // 'prazo' | 'audiencia'
+  id: string;
+  titulo: string;
+  data_ref: string | null;
+  dias_restantes: number | null;
+  validado: boolean;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  segredo: boolean;
+  prioridade: number; // 1..3
+};
+
+export async function getAlertas(limit = 60): Promise<AlertaVw[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_alertas")
+    .select("tipo_alerta, origem, id, titulo, data_ref, dias_restantes, validado, processo_id, numero_cnj, segredo_justica, prioridade")
+    .order("prioridade", { ascending: true })
+    .order("dias_restantes", { ascending: true, nullsFirst: false })
+    .limit(limit);
+  return ((data ?? []) as Record<string, unknown>[]).map((r): AlertaVw => ({
+    tipo_alerta: (r.tipo_alerta as string) ?? "",
+    origem: (r.origem as string) ?? "prazo",
+    id: r.id as string,
+    titulo: (r.titulo as string) ?? "—",
+    data_ref: (r.data_ref as string | null) ?? null,
+    dias_restantes: r.dias_restantes == null ? null : Number(r.dias_restantes),
+    validado: Boolean(r.validado),
+    processo_id: (r.processo_id as string | null) ?? null,
+    numero_cnj: (r.numero_cnj as string | null) ?? null,
+    segredo: Boolean(r.segredo_justica),
+    prioridade: Number(r.prioridade ?? 3),
+  }));
+}
+
 export async function getExpectativaPendente(limit = 20): Promise<ExpectativaPendente[]> {
   const supabase = await createClient();
   const { data } = await supabase

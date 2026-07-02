@@ -2,6 +2,7 @@
 
 import { Icon } from "./Icon";
 import { ThemeToggle } from "./ThemeToggle";
+import { SinoAlertas } from "./SinoAlertas";
 
 export function Topbar({
   iniciais,
@@ -46,6 +47,7 @@ export function Topbar({
         />
       </form>
       <div className="spacer" />
+      <SinoAlertas />
       <ThemeToggle />
       <div className="today">
         <b>{dataLonga}</b>

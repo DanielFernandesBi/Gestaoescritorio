@@ -2894,3 +2894,60 @@ h4 .xp-frescor{margin-left:8px;text-transform:none;letter-spacing:0}
 .mesc-eq{font-size:12px;color:var(--text);margin-top:12px;padding:8px 11px;background:var(--surface-2);border-radius:8px}
 .mesc-eq b{color:var(--name)}
 .mesc-modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+
+/* ===== Sino de alertas (Sug. 79) — topbar + dropdown + toast ===== */
+.sino-wrap{position:relative}
+.sino{position:relative;width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;transition:.12s}
+.sino:hover{color:var(--text);background:var(--surface-2)}
+.sino-badge{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--amber);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;line-height:1;border:2px solid var(--paper)}
+.sino-badge.crit{background:var(--red)}
+.sino-scrim{position:fixed;inset:0;z-index:55}
+.sino-pop{position:absolute;top:calc(100% + 8px);right:0;width:min(360px,92vw);z-index:56;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px rgba(16,24,40,.22);overflow:hidden}
+.sino-pop-h{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line-soft)}
+.sino-pop-h .t{font-weight:700;color:var(--name);font-size:13px}
+.sino-pop-h .n{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-radius:20px;padding:1px 8px}
+.sino-pop-h .lk{margin-left:auto;font-size:11px;font-weight:700;color:var(--accent-strong);text-decoration:none}
+.sino-pop-h .lk:hover{text-decoration:underline}
+.sino-list{max-height:min(60vh,420px);overflow-y:auto;padding:6px}
+.sino-item{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;text-decoration:none}
+.sino-item:hover{background:var(--surface-2)}
+.sino-tag{flex:none;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;border-radius:5px;padding:2px 6px}
+.sino-item.t-crit .sino-tag{color:#fff;background:var(--red)}
+.sino-item.t-warn .sino-tag{color:var(--amber);background:var(--amber-soft)}
+.sino-item.t-info .sino-tag{color:var(--muted);background:var(--surface-2);border:1px solid var(--line)}
+.sino-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.sino-mid .ti{font-size:12px;font-weight:600;color:var(--name);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sino-mid .sub{font-size:10.5px;color:var(--muted)}
+.sino-dias{flex:none;font-size:11px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.sino-item.t-crit .sino-dias{color:var(--red)}
+.sino-vazio{padding:20px;text-align:center;font-size:12px;color:var(--muted)}
+.sino-mais{display:block;text-align:center;padding:9px;font-size:11px;font-weight:700;color:var(--accent-strong);text-decoration:none;border-top:1px solid var(--line-soft)}
+.sino-mais:hover{background:var(--surface-2)}
+.sino-toast{position:fixed;right:20px;bottom:20px;z-index:60;display:flex;align-items:center;gap:10px;max-width:340px;padding:12px 14px;background:var(--surface);border:1px solid color-mix(in srgb,var(--red) 40%,var(--line));border-left:4px solid var(--red);border-radius:11px;box-shadow:0 12px 32px rgba(16,24,40,.24);text-decoration:none;animation:sino-in .25s ease}
+.sino-toast .ic{color:var(--red);flex:none;display:grid;place-items:center}
+.sino-toast .tx{flex:1;font-size:12.5px;font-weight:600;color:var(--name);line-height:1.35}
+.sino-toast .cta{flex:none;font-size:11px;font-weight:800;color:var(--accent-strong)}
+@keyframes sino-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ===== Central de prazos & audiências na /alertas (Sug. 79 · vw_alertas) ===== */
+.al-central{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.al-central-h{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.al-central-h .t{display:inline-flex;align-items:center;gap:7px;font-weight:700;color:var(--name);font-size:14px}
+.al-central-h .n{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-radius:20px;padding:1px 8px}
+.al-central-h code{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)}
+.al-central-list{display:flex;flex-direction:column;gap:6px}
+.al-crow{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;text-decoration:none;border-left:3px solid var(--line)}
+.al-crow.t-crit{border-left-color:var(--red)}
+.al-crow.t-warn{border-left-color:var(--amber)}
+.al-crow.t-info{border-left-color:var(--brass)}
+.al-crow:hover{border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.al-ctag{flex:none;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;border-radius:5px;padding:2px 7px}
+.al-crow.t-crit .al-ctag{color:#fff;background:var(--red)}
+.al-crow.t-warn .al-ctag{color:var(--amber);background:var(--amber-soft)}
+.al-crow.t-info .al-ctag{color:var(--muted);background:var(--surface);border:1px solid var(--line)}
+.al-cmid{flex:1;min-width:0}
+.al-cmid .ti{font-size:12.5px;font-weight:600;color:var(--name);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.al-cmid .sub{font-size:11px;color:var(--muted)}
+.al-cdias{flex:none;font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.al-cdias.t-crit{color:var(--red)}
+.al-cdias.t-warn{color:var(--amber)}
