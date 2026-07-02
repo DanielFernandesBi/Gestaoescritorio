@@ -4,7 +4,6 @@ import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
 import { Pill, SegredoTag, DiasBox } from "@/components/ui";
 import { VerMais } from "@/components/VerMais";
-import { Expansivel } from "@/components/Expansivel";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
 import { FormModal } from "@/components/FormModal";
 import { validarPrazoEditado, validarAudienciaEditada } from "@/app/actions";
@@ -40,15 +39,6 @@ function splitAto(ato: string): [string, string | null] {
   if (j > 0) return [ato.slice(0, j).trim(), ato.slice(j).trim()];
   return [ato, null];
 }
-
-// Colunas do mini-board de produção (subset do kanban; vw_pecas_pendentes já
-// exclui protocoladas/canceladas/prejudicadas).
-const PROD_COLS: { key: string; label: string }[] = [
-  { key: "a_fazer", label: "A fazer" },
-  { key: "em_elaboracao", label: "Em elaboração" },
-  { key: "em_revisao", label: "Em revisão" },
-  { key: "aguardando_insumo", label: "Aguardando insumo" },
-];
 
 type FocoCard = { titulo: string; sub: string; href: string | null; tag: string; tone: "crit" | "warn" | "ok" };
 
@@ -582,62 +572,6 @@ export default async function PainelPage() {
             <div className="empty">Nenhuma audiência próxima.</div>
           )}
         </div>
-      </div>
-
-      {/* PRODUÇÃO DE PEÇAS — mini-board do kanban (vw_pecas_pendentes) */}
-      <div className="card">
-        <div className="card-h">
-          <h3><Icon name="book" /> Produção de peças</h3>
-          <Link className="link" href="/producao">abrir fila →</Link>
-        </div>
-        {pecas.length ? (
-          <Expansivel altura={250} mais="ver board completo" menos="recolher board">
-          <div className="prod-board">
-            {PROD_COLS.map((col) => {
-              const itens = pecas.filter((p) => p.status === col.key);
-              return (
-                <div className={`prod-col col-${col.key}`} key={col.key}>
-                  <div className="prod-col-h">
-                    <span>{col.label}</span>
-                    <span className="ct">{itens.length}</span>
-                  </div>
-                  {itens.length ? (
-                    itens.map((p) => (
-                      <Link
-                        className="prod-item"
-                        key={p.id}
-                        href={linkPara("peca", p.id)}
-                      >
-                        <div className="pi-t">{p.titulo}</div>
-                        <div className="pi-s">{p.segredo ? "🔒 sigilo" : p.cliente ?? "—"}</div>
-                        <div className="pi-tags">
-                          {col.key === "em_revisao" && p.cadastro_automatico ? (
-                            <span className="pi-tag ai">minuta IA · revisar</span>
-                          ) : col.key === "a_fazer" && p.cadastro_automatico ? (
-                            <span className="pi-tag ai">IA · triagem</span>
-                          ) : null}
-                          {p.dias_restantes != null && (
-                            <span className={`pi-tag ${p.dias_restantes <= 2 ? "crit" : p.dias_restantes <= 7 ? "warn" : ""}`}>
-                              {p.dias_restantes < 0 ? `${Math.abs(p.dias_restantes)}d em atraso` : `fatal em ${dl(p.dias_restantes)}`}
-                            </span>
-                          )}
-                        </div>
-                        {col.key === "aguardando_insumo" && p.gate_pendencia && (
-                          <div className="pi-insumo">{p.gate_pendencia}</div>
-                        )}
-                      </Link>
-                    ))
-                  ) : (
-                    <div className="prod-empty">—</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          </Expansivel>
-        ) : (
-          <div className="empty">Nenhuma peça em produção.</div>
-        )}
       </div>
 
       {/* Movimentações recentes + Benefícios próximos · execução */}
