@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ProcRef, SegredoTag } from "@/components/ui";
 import { fmtDate, fmtBRL, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
+import { lidaPorMim, seloCiencia } from "@/lib/ciencia";
 import type {
   ClienteFicha, FichaIntimacao, FichaAndamento, FichaAudiencia, FichaPendente,
   FichaTarefa, FichaPeca, FichaCenario, FichaDespesa, FichaOrigem, ClientePrazoMini,
@@ -37,9 +38,10 @@ function Proc({ cnj, registro, id, segredo }: { cnj: string | null; registro: st
 const intimTone = (s: string) =>
   s === "pendente" ? "tang" : s === "providencia_tomada" ? "val" : s === "em_analise" ? "tone-blue" : s === "sem_providencia" ? "cat-neutral" : "cat-slate";
 
-function IntimacaoCard({ i }: { i: FichaIntimacao }) {
+function IntimacaoCard({ i, meuId }: { i: FichaIntimacao; meuId: string | null }) {
   const [aberto, setAberto] = useState(false);
-  const naoLida = i.revisado_em == null;
+  const selo = seloCiencia(i, meuId);
+  const naoLida = !selo.lida;
   return (
     <div className={`cli-fi-card${i.na_caixa ? " na-caixa" : ""}`}>
       <div className="cli-fi-top">
@@ -47,7 +49,7 @@ function IntimacaoCard({ i }: { i: FichaIntimacao }) {
         <span className="cli-fi-data mono">{fmtDate(i.criado_em)}</span>
         <span className={`pz-tag ${intimTone(i.status)}`}>{humano(i.status)}</span>
         {i.na_caixa && <span className="pz-tag tang">na caixa</span>}
-        {naoLida ? <span className="cli-fi-flag">não revisada</span> : <span className="cli-fi-flag lida">revisada{i.revisado_por ? ` · ${i.revisado_por}` : ""}</span>}
+        <span className={`cli-fi-flag${selo.lida ? " lida" : ""}`}>{selo.rotulo}</span>
         {i.tem_prazo && <span className="pz-tag cat-slate">prazo ✓</span>}
         {i.tem_peca && <span className="pz-tag cowork">peça ✓</span>}
         {i.tem_providencia && <span className="pz-tag val">providência ✓</span>}
@@ -74,9 +76,9 @@ function IntimacaoCard({ i }: { i: FichaIntimacao }) {
   );
 }
 
-export function IntimacoesTab({ itens }: { itens: FichaIntimacao[] }) {
+export function IntimacoesTab({ itens, meuId }: { itens: FichaIntimacao[]; meuId: string | null }) {
   const [filtro, setFiltro] = useState<"para_revisar" | "todas">("para_revisar");
-  const paraRevisar = itens.filter((i) => i.revisado_em == null);
+  const paraRevisar = itens.filter((i) => !lidaPorMim(i, meuId));
   const visiveis = filtro === "para_revisar" ? paraRevisar : itens;
   return (
     <Sec titulo="Intimações" sub="vw_intimacoes_contexto · fluxo × leitura" extra={<span className="audp-count">{itens.length}</span>}>
@@ -86,7 +88,7 @@ export function IntimacoesTab({ itens }: { itens: FichaIntimacao[] }) {
       </div>
       {visiveis.length === 0
         ? <div className="audp-empty">{filtro === "para_revisar" ? "Nada para revisar." : "Sem intimações para este cliente."}</div>
-        : <div className="cli-fi-stack">{visiveis.map((i) => <IntimacaoCard key={i.id} i={i} />)}</div>}
+        : <div className="cli-fi-stack">{visiveis.map((i) => <IntimacaoCard key={i.id} i={i} meuId={meuId} />)}</div>}
     </Sec>
   );
 }

@@ -706,8 +706,12 @@ export type Intimacao = {
   tem_peca?: boolean;         // já tem peça vinculada
   tem_providencia?: boolean;  // providência registrada
   na_caixa?: boolean;         // FLUXO: ainda precisa de encaminhamento (caixa derivada)
-  revisado_em?: string | null;   // LEITURA: quando o humano leu (null = não lida)
+  revisado_em?: string | null;   // LEITURA (1ª por qualquer humano): quando alguém leu
   revisado_por?: string | null;
+  // Sugestão 82 — ciência PESSOAL (por usuário): quem já deu ciência (ids + rótulos).
+  leram_ids?: string[];
+  leram_rotulos?: string[];
+  qtd_leituras?: number;
   // Redesign /intimacoes — flag de réu preso + detalhe do encaminhamento (prazo/peça vinculados).
   preso?: boolean;
   prazo_fatal?: string | null;
@@ -797,7 +801,7 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
     const [{ data: sinais }, { data: prz }, { data: pcs }] = await Promise.all([
       supabase
         .from("vw_intimacoes_contexto")
-        .select("intimacao_id, tem_prazo, tem_peca, tem_providencia, na_caixa, revisado_em, revisado_por")
+        .select("intimacao_id, tem_prazo, tem_peca, tem_providencia, na_caixa, revisado_em, revisado_por, leram_ids, leram_rotulos, qtd_leituras")
         .in("intimacao_id", ids),
       // Detalhe do encaminhamento: prazo aberto vinculado (fatal/dias/validado).
       supabase.from("prazos").select("intimacao_id, data_fatal, validado").eq("status", "aberto").in("intimacao_id", ids),
@@ -824,6 +828,9 @@ export async function getIntimacoes(): Promise<Intimacao[]> {
       i.na_caixa = Boolean(s?.na_caixa);
       i.revisado_em = (s?.revisado_em as string | null) ?? null;
       i.revisado_por = (s?.revisado_por as string | null) ?? null;
+      i.leram_ids = (s?.leram_ids as string[] | null) ?? [];
+      i.leram_rotulos = (s?.leram_rotulos as string[] | null) ?? [];
+      i.qtd_leituras = Number(s?.qtd_leituras ?? 0);
       const pz = prazoPorInt.get(i.id);
       i.prazo_fatal = pz?.data_fatal ?? null;
       i.prazo_dias_restantes = pz?.data_fatal ? diasAte(pz.data_fatal) : null;
@@ -917,7 +924,7 @@ export async function getIntimacaoFull(id: string): Promise<IntimacaoFull | null
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
     supabase.from("prazos").select("id, ato, data_fatal, validado").eq("intimacao_id", id).eq("status", "aberto").order("data_fatal", { ascending: true }),
     supabase.from("pecas").select("id, titulo, status").eq("intimacao_id", id),
-    supabase.from("vw_intimacoes_contexto").select("revisado_em, revisado_por").eq("intimacao_id", id).maybeSingle(),
+    supabase.from("vw_intimacoes_contexto").select("revisado_em, revisado_por, leram_ids, leram_rotulos, qtd_leituras").eq("intimacao_id", id).maybeSingle(),
   ]);
 
   const clienteRefs: ParteRefLite[] = [];
@@ -949,6 +956,9 @@ export async function getIntimacaoFull(id: string): Promise<IntimacaoFull | null
     ...base,
     revisado_em: (s?.revisado_em as string | null) ?? null,
     revisado_por: (s?.revisado_por as string | null) ?? null,
+    leram_ids: (s?.leram_ids as string[] | null) ?? [],
+    leram_rotulos: (s?.leram_rotulos as string[] | null) ?? [],
+    qtd_leituras: Number(s?.qtd_leituras ?? 0),
     clienteRefs,
     prazo,
     peca,
@@ -2105,6 +2115,7 @@ export type FichaProcMeta = { id: string; numero_cnj: string | null; numero_regi
 export type FichaIntimacao = {
   id: string; status: string; criado_em: string | null; processo_id: string | null;
   revisado_em: string | null; revisado_por: string | null;
+  leram_ids: string[]; leram_rotulos: string[]; qtd_leituras: number;
   classe: string | null; area: string | null; tribunal: string | null; orgao: string | null;
   numero_cnj: string | null; numero_registro: string | null; segredo: boolean;
   tem_prazo: boolean; tem_peca: boolean; tem_providencia: boolean; na_caixa: boolean;
@@ -2197,7 +2208,7 @@ export async function getClienteFicha(id: string): Promise<ClienteFicha> {
 
   const inProcs = `(${procIds.join(",")})`;
   const [intim, ands, auds, pend, tar, pec, cen, desp, opp] = await Promise.all([
-    supabase.from("vw_intimacoes_contexto").select("intimacao_id, status, criado_em, processo_id, revisado_em, revisado_por, classe, area, tribunal, orgao, numero_cnj, numero_registro_tribunal, segredo_justica, tem_prazo, tem_peca, tem_providencia, na_caixa").in("processo_id", procIds).order("criado_em", { ascending: false }),
+    supabase.from("vw_intimacoes_contexto").select("intimacao_id, status, criado_em, processo_id, revisado_em, revisado_por, leram_ids, leram_rotulos, qtd_leituras, classe, area, tribunal, orgao, numero_cnj, numero_registro_tribunal, segredo_justica, tem_prazo, tem_peca, tem_providencia, na_caixa").in("processo_id", procIds).order("criado_em", { ascending: false }),
     supabase.from("andamentos").select("id, data, tipo, descricao, autor, origem, codigo_movimentacao, cadastro_automatico, cadastrado_por, processo_id").in("processo_id", procIds).order("data", { ascending: false }).limit(300),
     supabase.from("audiencias").select("id, tipo, nome, data_hora, data_fim, modalidade, local_link, status, validado, processo_id").in("processo_id", procIds).order("data_hora", { ascending: false }),
     cnjs.length ? supabase.from("vw_pendentes_validacao").select("tipo, id, numero_cnj, descricao, data_relevante, cadastrado_por, criado_em").in("numero_cnj", cnjs) : Promise.resolve({ data: [] as Record<string, unknown>[] }),
@@ -2221,6 +2232,7 @@ export async function getClienteFicha(id: string): Promise<ClienteFicha> {
     return {
       id: r.intimacao_id as string, status: r.status as string, criado_em: (r.criado_em as string | null) ?? null,
       processo_id: (r.processo_id as string | null) ?? null, revisado_em: (r.revisado_em as string | null) ?? null, revisado_por: (r.revisado_por as string | null) ?? null,
+      leram_ids: (r.leram_ids as string[] | null) ?? [], leram_rotulos: (r.leram_rotulos as string[] | null) ?? [], qtd_leituras: Number(r.qtd_leituras ?? 0),
       classe: (r.classe as string | null) ?? null, area: (r.area as string | null) ?? null, tribunal: (r.tribunal as string | null) ?? null, orgao: (r.orgao as string | null) ?? null,
       numero_cnj: (r.numero_cnj as string | null) ?? null, numero_registro: (r.numero_registro_tribunal as string | null) ?? null, segredo: Boolean(r.segredo_justica),
       tem_prazo: Boolean(r.tem_prazo), tem_peca: Boolean(r.tem_peca), tem_providencia: Boolean(r.tem_providencia), na_caixa: Boolean(r.na_caixa),

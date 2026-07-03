@@ -154,6 +154,8 @@ body.nav-locked{overflow:hidden}
 .btn.marcar-lido{color:var(--blue);background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 35%,transparent);font-weight:700}
 .btn.marcar-lido:hover{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,var(--surface))}
 .btn.marcar-lido svg{color:var(--blue)}
+.btn.marcar-lido.on{color:var(--green);background:var(--green-soft);border-color:color-mix(in srgb,var(--green) 35%,transparent)}
+.btn.marcar-lido.on svg{color:var(--green)}
 
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 .chip{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--muted);transition:.12s}
@@ -832,6 +834,7 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .int-orig{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--muted);background:var(--surface-2);border:1px solid var(--line-soft);border-radius:6px;padding:2px 8px}
 .int-date{font-size:11.5px;color:var(--muted)}
 .int-flag-lida{font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:20px;padding:1px 8px}
+.int-flag-lida.lida{color:var(--green);background:var(--green-soft)}
 .int-cliente{margin-top:9px;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--name);font-weight:700}
 .int-orfa{color:var(--amber);font-weight:700}
 .int-card .ctx-caso{margin-top:5px}

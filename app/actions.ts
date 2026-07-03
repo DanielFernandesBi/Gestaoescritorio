@@ -63,15 +63,12 @@ function revalidarTudo() {
 async function carimbarLeitura(
   supabase: Awaited<ReturnType<typeof createClient>>,
   intimacaoId: string,
-  email: string,
 ): Promise<boolean> {
-  const { data } = await supabase
-    .from("intimacoes")
-    .update({ revisado_em: agora(), revisado_por: email })
-    .eq("id", intimacaoId)
-    .is("revisado_em", null)
-    .select("id");
-  return Boolean(data?.length);
+  // Sugestão 82 — ciência PESSOAL (por usuário logado) via RPC. "Se agiu, viu": toda
+  // ação humana carimba a ciência de quem agiu (a fn deriva o usuário de auth.uid()).
+  // Chamada só de sessão autenticada; Cowork/chat (sem sessão) levanta exceção por design.
+  const { error } = await supabase.rpc("fn_marcar_ciencia", { p_intimacao: intimacaoId, p_lido: true });
+  return !error;
 }
 
 /* ============================ PRAZOS ============================ */
@@ -103,7 +100,7 @@ export async function validarPrazo(id: string): Promise<Resultado> {
 
 export async function baixarPrazo(id: string, descricao?: string): Promise<Resultado> {
   try {
-    const email = await requireUser();
+    await requireUser();
     const supabase = await createClient();
     const { data: pr, error } = await supabase
       .from("prazos")
@@ -141,7 +138,7 @@ export async function baixarPrazo(id: string, descricao?: string): Promise<Resul
     }
     if (pr.intimacao_id) {
       await supabase.from("intimacoes").update({ status: "providencia_tomada" }).eq("id", pr.intimacao_id);
-      await carimbarLeitura(supabase, pr.intimacao_id as string, email); // ação humana = leu (Sugestão 53)
+      await carimbarLeitura(supabase, pr.intimacao_id as string); // ação humana = leu (Sugestão 53)
       msg += " Intimação marcada como providência tomada.";
     }
 
@@ -213,7 +210,7 @@ export async function prejudicarPrazo(id: string, motivo: string): Promise<Resul
 
 export async function criarPrazo(fd: FormData): Promise<Resultado> {
   try {
-    const email = await requireUser();
+    await requireUser();
     const supabase = await createClient();
     const processo_id = String(fd.get("processo_id") || "");
     const ato = String(fd.get("ato") || "").trim();
@@ -239,7 +236,7 @@ export async function criarPrazo(fd: FormData): Promise<Resultado> {
     // Bidirecionalidade: encaminhar a intimação de origem (pendente→em_analise) e carimbar leitura.
     if (intimacao_id) {
       await supabase.from("intimacoes").update({ status: "em_analise" }).eq("id", intimacao_id).eq("status", "pendente");
-      await carimbarLeitura(supabase, intimacao_id, email);
+      await carimbarLeitura(supabase, intimacao_id);
     }
 
     void novo;
@@ -318,7 +315,7 @@ export async function atualizarIntimacao(
   providencia?: string,
 ): Promise<Resultado> {
   try {
-    const email = await requireUser();
+    await requireUser();
     if (!(INTIMACAO_STATUS as readonly string[]).includes(status)) {
       return { ok: false, message: "Status inválido." };
     }
@@ -328,7 +325,7 @@ export async function atualizarIntimacao(
     const { error } = await supabase.from("intimacoes").update(patch).eq("id", id);
     if (error) throw error;
     // Sugestão 53: ação humana de status = também leu a intimação (carimbo COALESCE-safe).
-    await carimbarLeitura(supabase, id, email);
+    await carimbarLeitura(supabase, id);
     revalidarTudo();
     return { ok: true, message: "Intimação atualizada." };
   } catch (e) {
@@ -341,13 +338,15 @@ export async function atualizarIntimacao(
  * COALESCE: só seta se ainda não lida; reabrir o drawer não sobrescreve. Só revalida
  * quando realmente marcou (evita churn de cache em reaberturas).
  */
-export async function marcarIntimacaoLida(id: string): Promise<Resultado> {
+export async function marcarIntimacaoLida(id: string, lido: boolean = true): Promise<Resultado> {
   try {
-    const email = await requireUser();
+    await requireUser();
     const supabase = await createClient();
-    const marcou = await carimbarLeitura(supabase, id, email);
-    if (marcou) revalidarTudo();
-    return { ok: true, message: marcou ? "Intimação marcada como lida." : "Intimação já estava lida." };
+    // Sug. 82 — ciência pessoal (toggle). p_lido=false desfaz a ciência do próprio usuário.
+    const { error } = await supabase.rpc("fn_marcar_ciencia", { p_intimacao: id, p_lido: lido });
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: lido ? "Marcada como lida (por você)." : "Marcada como não lida." };
   } catch (e) {
     return falha(e);
   }
@@ -549,7 +548,7 @@ export async function criarTarefa(fd: FormData): Promise<Resultado> {
 /** Cria uma peça do backlog. Manual nasce validado=true, cadastrado_por='manual'. */
 export async function criarPeca(fd: FormData): Promise<Resultado> {
   try {
-    const email = await requireUser();
+    await requireUser();
     const supabase = await createClient();
     const titulo = String(fd.get("titulo") || "").trim();
     if (!titulo) return { ok: false, message: "Título é obrigatório." };
@@ -609,7 +608,7 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
     // pendente→em_analise, guard anti-rebaixamento) e conta como leitura (COALESCE).
     if (intimacao_id) {
       await supabase.from("intimacoes").update({ status: "em_analise" }).eq("id", intimacao_id).eq("status", "pendente");
-      await carimbarLeitura(supabase, intimacao_id, email);
+      await carimbarLeitura(supabase, intimacao_id);
     }
     revalidarTudo();
     // Aviso não-bloqueante: peça 100% órfã não participa da baixa em cascata.
@@ -703,7 +702,7 @@ export async function baixarProtocoloPeca(id: string, descricao?: string, opts?:
   const granular = Boolean(opts && (opts.pularPrazo || opts.pularTarefa || opts.pularIntimacao));
   if (!granular) return baixarAtoPeca(id, [], opts?.dataProtocolo);
   try {
-    const email = await requireUser();
+    await requireUser();
     const supabase = await createClient();
     const dt = opts?.dataProtocolo || hoje();
 
@@ -772,7 +771,7 @@ export async function baixarProtocoloPeca(id: string, descricao?: string, opts?:
       if (opts?.pularIntimacao) { aberto.push("intimação"); }
       else {
         await supabase.from("intimacoes").update({ status: "providencia_tomada" }).eq("id", pc.intimacao_id);
-        await carimbarLeitura(supabase, pc.intimacao_id as string, email);
+        await carimbarLeitura(supabase, pc.intimacao_id as string);
         msg += " Intimação com providência tomada.";
       }
     }

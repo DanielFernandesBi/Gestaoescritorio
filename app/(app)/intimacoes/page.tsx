@@ -1,4 +1,5 @@
 import { getIntimacoes } from "@/lib/data";
+import { getUserId } from "@/lib/queries";
 import { IntimacoesList } from "@/components/modules/IntimacoesList";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/Icon";
@@ -8,7 +9,7 @@ import { INTIMACAO_ORIGEM } from "@/lib/enums";
 export const dynamic = "force-dynamic";
 
 export default async function IntimacoesPage() {
-  const intimacoes = await getIntimacoes();
+  const [intimacoes, meuId] = await Promise.all([getIntimacoes(), getUserId()]);
   return (
     <>
       <div className="page-head">
@@ -39,7 +40,7 @@ export default async function IntimacoesPage() {
           </div>
         </FormModal>
       </div>
-      <IntimacoesList intimacoes={intimacoes} />
+      <IntimacoesList intimacoes={intimacoes} meuId={meuId} />
     </>
   );
 }

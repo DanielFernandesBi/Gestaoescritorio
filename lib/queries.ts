@@ -23,8 +23,9 @@ export async function getBadges(): Promise<Badges> {
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
     supabase.from("audiencias").select("*", { count: "exact", head: true }).eq("status", "designada"),
-    // Sugestão 53: a "caixa" deixa de contar status cru e passa a derivar dos fatos (na_caixa).
-    supabase.from("vw_intimacoes_contexto").select("*", { count: "exact", head: true }).eq("na_caixa", true),
+    // Sugestão 82: o badge é a caixa PESSOAL — itens de trabalho que o usuário logado
+    // ainda não deu ciência (vw_minhas_intimacoes_pendentes já filtra por auth.uid()).
+    supabase.from("vw_minhas_intimacoes_pendentes").select("*", { count: "exact", head: true }),
     supabase.from("tarefas").select("*", { count: "exact", head: true }).in("status", ["pendente", "em_andamento"]),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("clientes").select("*", { count: "exact", head: true }).eq("ativo", true),
@@ -59,6 +60,13 @@ export async function getUserEmail(): Promise<string | null> {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   return (data?.claims?.email as string | undefined) ?? null;
+}
+
+/** UUID do usuário logado (auth.uid()) — para a ciência pessoal (Sugestão 82). */
+export async function getUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return (data?.claims?.sub as string | undefined) ?? null;
 }
 
 export function iniciaisDoEmail(email: string | null): string {

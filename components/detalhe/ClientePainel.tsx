@@ -327,9 +327,9 @@ function FinanceiroBloco({ p }: { p: ClienteFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function ClientePainel({
-  p, lista, anotacoes, exec, documentos, ficha,
+  p, lista, anotacoes, exec, documentos, ficha, meuId,
 }: {
-  p: ClienteFull; lista: Cliente[]; anotacoes: Anotacao[]; exec: TExec; documentos: Documento[]; ficha: ClienteFicha;
+  p: ClienteFull; lista: Cliente[]; anotacoes: Anotacao[]; exec: TExec; documentos: Documento[]; ficha: ClienteFicha; meuId: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("consolidado");
   const [verNotas, setVerNotas] = useState(false);
@@ -419,7 +419,7 @@ export function ClientePainel({
             {/* /CARD 1 */}
 
             {/* ABAS DO CICLO intimação → prazo → peça → andamento (recorte do cliente) */}
-            {tab === "intimacoes" && <div className="proc-card"><IntimacoesTab itens={ficha.intimacoes} /></div>}
+            {tab === "intimacoes" && <div className="proc-card"><IntimacoesTab itens={ficha.intimacoes} meuId={meuId} /></div>}
             {tab === "movimentacoes" && <div className="proc-card"><MovimentacoesTab itens={ficha.andamentos} procMeta={ficha.procMeta} /></div>}
             {tab === "prazos" && <div className="proc-card"><PrazosAudienciasTab prazos={p.prazos} audiencias={ficha.audiencias} pendentes={ficha.pendentesValidacao} /></div>}
             {tab === "tarefas" && <div className="proc-card"><TarefasTab itens={ficha.tarefas} setTab={(t) => setTab(t as Tab)} /></div>}

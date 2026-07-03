@@ -18,7 +18,7 @@ const Olho = () => (
  * evitando miss-clicks. Some quando a intimação já foi lida (o pai só o renderiza
  * enquanto revisado_em é null). Dentro de uma RowLink o clique não navega.
  */
-export function MarcarLido({ id }: { id: string }) {
+export function MarcarLido({ id, lida = false }: { id: string; lida?: boolean }) {
   const router = useRouter();
   const [pend, setPend] = useState(false);
 
@@ -26,15 +26,16 @@ export function MarcarLido({ id }: { id: string }) {
     e.preventDefault();
     e.stopPropagation();
     setPend(true);
-    const r = await marcarIntimacaoLida(id);
+    // Sug. 82 — ciência pessoal: alterna a leitura do próprio usuário.
+    const r = await marcarIntimacaoLida(id, !lida);
     setPend(false);
     if (r.ok) router.refresh();
   }
 
   return (
-    <button type="button" className="btn sm marcar-lido" onClick={onClick} disabled={pend} title="Marcar como lida">
+    <button type="button" className={`btn sm marcar-lido${lida ? " on" : ""}`} onClick={onClick} disabled={pend} title={lida ? "Desmarcar (marcar como não lida por você)" : "Marcar como lida por você"}>
       <Olho />
-      {pend ? "…" : "Marcar lido"}
+      {pend ? "…" : lida ? "Lida por você" : "Marcar lido"}
     </button>
   );
 }

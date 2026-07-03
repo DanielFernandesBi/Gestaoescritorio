@@ -8,6 +8,7 @@ import { Icon } from "@/components/Icon";
 import { MarcarLido } from "@/components/MarcarLido";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
+import { lidaPorMim, seloCiencia } from "@/lib/ciencia";
 import type { Intimacao } from "@/lib/data";
 
 const PASSO = 50;
@@ -58,8 +59,8 @@ function encaminhamento(i: Intimacao): { label: string; cls: string; check?: boo
   return null;
 }
 
-export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
-  // Abre no eixo de LEITURA: o que o humano ainda não revisou (inbox profissional).
+export function IntimacoesList({ intimacoes, meuId }: { intimacoes: Intimacao[]; meuId: string | null }) {
+  // Abre no eixo de LEITURA PESSOAL: o que EU ainda não revisei (Sug. 82).
   const [st, setSt] = useState("para_revisar");
   const [orig, setOrig] = useState("todas");
   const [visiveis, setVisiveis] = useState(PASSO);
@@ -68,7 +69,7 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
     () =>
       intimacoes.filter((i) => {
         const okSt =
-          st === "para_revisar" ? i.revisado_em == null
+          st === "para_revisar" ? !lidaPorMim(i, meuId)
             : st === "na_caixa" ? Boolean(i.na_caixa)
               : st === "pendentes" ? i.status === "pendente"
                 : st === "em_analise" ? i.status === "em_analise"
@@ -80,11 +81,11 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
         const okOrig = orig === "todas" ? true : i.origem === orig;
         return okSt && okOrig;
       }),
-    [intimacoes, st, orig],
+    [intimacoes, st, orig, meuId],
   );
   const mostradas = filtradas.slice(0, visiveis);
 
-  const nRevisar = intimacoes.filter((i) => i.revisado_em == null).length;
+  const nRevisar = intimacoes.filter((i) => !lidaPorMim(i, meuId)).length;
   const nCaixa = intimacoes.filter((i) => i.na_caixa).length;
   const nPend = intimacoes.filter((i) => i.status === "pendente").length;
   const nAnalise = intimacoes.filter((i) => i.status === "em_analise").length;
@@ -129,7 +130,8 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
       {mostradas.length ? (
         <div className="int-list">
           {mostradas.map((i) => {
-            const naoLida = i.revisado_em == null;
+            const selo = seloCiencia(i, meuId);
+            const naoLida = !selo.lida;
             const enc = encaminhamento(i);
             const abrir = linkPara("intimacao", i.id);
             return (
@@ -139,7 +141,7 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
                   <span className="int-orig">{(i.origem ?? "—").toUpperCase()}</span>
                   <span className="int-date mono">{fmtDate(i.data_publicacao)}</span>
                   <Pill tone={tone(i.status)}>{humano(i.status)}</Pill>
-                  {naoLida && <span className="int-flag-lida">não lida</span>}
+                  <span className={`int-flag-lida${selo.lida ? " lida" : ""}`}>{selo.rotulo}</span>
                 </div>
 
                 <div className="int-cliente">
@@ -177,7 +179,7 @@ export function IntimacoesList({ intimacoes }: { intimacoes: Intimacao[] }) {
                     ) : i.tem_peca ? (
                       <Link className="btn sm" href="/producao">Ver minuta</Link>
                     ) : null}
-                    {naoLida && <MarcarLido id={i.id} />}
+                    <MarcarLido id={i.id} lida={selo.lida} />
                     <Link className="btn sm abrir" href={abrir}>Abrir</Link>
                   </div>
                 </div>

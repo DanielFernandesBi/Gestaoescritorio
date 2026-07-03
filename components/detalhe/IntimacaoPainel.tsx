@@ -14,6 +14,7 @@ import { PROCESSO_INSTANCIA, PROCESSO_AREA, RESPONSAVEIS, TIPO_CONTAGEM, PRIORID
 import { sugerirPeca, type MapaProvidencia } from "@/lib/pecas";
 import { fmtDate, humano, dividirAto } from "@/lib/format";
 import { linkPara } from "@/lib/links";
+import { lidaPorMim, seloCiencia } from "@/lib/ciencia";
 import type { Intimacao, IntimacaoFull, Anotacao } from "@/lib/data";
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
@@ -172,7 +173,7 @@ function NovaTarefaIntim({ i, label, variant = "default" }: { i: IntimacaoFull; 
 }
 
 /* ── componente principal ────────────────────────────────────────────────── */
-export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFull; lista: Intimacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[] }) {
+export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: IntimacaoFull; lista: Intimacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; meuId: string | null }) {
   const [verNotas, setVerNotas] = useState(false);
   const [procs, setProcs] = useState<{ id: string; label: string }[]>([]);
   const [clis, setClis] = useState<{ id: string; nome: string }[]>([]);
@@ -336,8 +337,9 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes }: { i: IntimacaoFul
 
             {/* STATUS */}
             <div className="audp-status">
-              <div className="audp-sech" style={{ flex: 1, margin: 0 }}>Status</div>
-              {i.revisado_em == null && <MarcarLido id={i.id} />}
+              <div className="audp-sech" style={{ margin: 0 }}>Status</div>
+              <span className={`cli-fi-flag${seloCiencia(i, meuId).lida ? " lida" : ""}`} style={{ flex: 1 }}>{seloCiencia(i, meuId).rotulo}</span>
+              <MarcarLido id={i.id} lida={lidaPorMim(i, meuId)} />
               <EditarIntimacao i={i} />
               <button type="button" className={`btn default${verNotas ? " on" : ""}`} onClick={() => setVerNotas((v) => !v)}>
                 <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
