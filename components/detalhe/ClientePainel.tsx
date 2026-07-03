@@ -360,7 +360,7 @@ export function ClientePainel({
         </div>
 
         <div className="audp-scroll">
-          <div className="audp-inner">
+          <div className="audp-inner proc-fichas">
             {/* Aviso de cadastro obsoleto (unificado em outro) */}
             {obsoleto && (
               <div className="cli-obsoleto">
@@ -377,7 +377,8 @@ export function ClientePainel({
                 )}
               </div>
             )}
-            {/* cabeçalho do perfil */}
+            {/* CARD 1 · cabeçalho do perfil + ações de gestão */}
+            <div className="proc-card proc-card-head">
             <div className="audp-title-row">
               <div className="audp-title-l">
                 <div className="audp-tags">
@@ -397,21 +398,36 @@ export function ClientePainel({
                   <OrigemLeadSelo origem={ficha.origem} />
                 </div>
               </div>
-              <div className="cli-head-actions">
-                <NovaTarefa p={p} />
-                <button type="button" className="btn default" onClick={abrirNotas}><NoteIco /> Nota datada</button>
+              <div className="proc-head-actions">
+                <div className="proc-head-row">
+                  <NovaTarefa p={p} />
+                  <button type="button" className="btn default" onClick={abrirNotas}><NoteIco /> Nota datada</button>
+                </div>
+                <div className="proc-head-row proc-head-manage">
+                  <EditarCliente p={p} />
+                  <button type="button" className={`btn default${verNotas || tab === "notas" ? " on" : ""}`} onClick={abrirNotas}>
+                    <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
+                  </button>
+                  {p.ativo && (
+                    <Acao label="Inativar" variant="danger" titulo="Inativar cliente" confirmarLabel="Inativar" resumo={<>O cliente <b>não é apagado</b> — fica inativo (some das listas, mantido no banco e auditado). Confirmar?</>} acao={() => desativarCliente(p.id)} />
+                  )}
+                </div>
               </div>
             </div>
+            <div className="audp-status-note">Editar e inativar não apagam nada — inativar é troca de status, tudo auditado.</div>
+            </div>
+            {/* /CARD 1 */}
 
             {/* ABAS DO CICLO intimação → prazo → peça → andamento (recorte do cliente) */}
-            {tab === "intimacoes" && <IntimacoesTab itens={ficha.intimacoes} />}
-            {tab === "movimentacoes" && <MovimentacoesTab itens={ficha.andamentos} procMeta={ficha.procMeta} />}
-            {tab === "prazos" && <PrazosAudienciasTab prazos={p.prazos} audiencias={ficha.audiencias} pendentes={ficha.pendentesValidacao} />}
-            {tab === "tarefas" && <TarefasTab itens={ficha.tarefas} setTab={(t) => setTab(t as Tab)} />}
-            {tab === "producao" && <ProducaoTab itens={ficha.pecas} />}
+            {tab === "intimacoes" && <div className="proc-card"><IntimacoesTab itens={ficha.intimacoes} /></div>}
+            {tab === "movimentacoes" && <div className="proc-card"><MovimentacoesTab itens={ficha.andamentos} procMeta={ficha.procMeta} /></div>}
+            {tab === "prazos" && <div className="proc-card"><PrazosAudienciasTab prazos={p.prazos} audiencias={ficha.audiencias} pendentes={ficha.pendentesValidacao} /></div>}
+            {tab === "tarefas" && <div className="proc-card"><TarefasTab itens={ficha.tarefas} setTab={(t) => setTab(t as Tab)} /></div>}
+            {tab === "producao" && <div className="proc-card"><ProducaoTab itens={ficha.pecas} /></div>}
 
             {/* BLOCO 1 · CONSOLIDADO */}
             {ver("consolidado") && (
+              <div className="proc-card">
               <Sec titulo="Consolidado" sub="vw_situacao_cliente">
                 <div className="cli-kpis">
                   <div className="cli-kpi"><div className="n">{p.processos_ativos}</div><div className="l">processos ativos</div></div>
@@ -420,10 +436,12 @@ export function ClientePainel({
                   <div className="cli-kpi"><div className="n">{p.audiencias_futuras}</div><div className="l">audiência{p.audiencias_futuras === 1 ? "" : "s"} designada{p.audiencias_futuras === 1 ? "" : "s"}</div></div>
                 </div>
               </Sec>
+              </div>
             )}
 
             {/* BLOCO 2 · DADOS PESSOAIS */}
             {ver("consolidado") && (
+              <div className="proc-card">
               <Sec titulo="Dados pessoais">
                 <div className="audp-dados">
                   <div className="fld"><div className="k">CPF</div><div className="v mono">{mascararCpf(p.cpf)}</div></div>
@@ -440,6 +458,7 @@ export function ClientePainel({
                   </div>
                 )}
               </Sec>
+              </div>
             )}
 
             {/* BLOCO 3 · IDENTIDADE ÚNICA (IA) */}
@@ -471,13 +490,14 @@ export function ClientePainel({
             )}
 
             {/* BLOCO 4 · EXECUÇÃO PENAL (resumo) */}
-            {ver("consolidado") && <ExecBloco p={p} />}
+            {ver("consolidado") && p.exec && <div className="proc-card"><ExecBloco p={p} /></div>}
 
             {/* BLOCO 5 · PROCESSOS VINCULADOS */}
-            {(tab === "consolidado" || tab === "processos") && <ProcessosBloco p={p} tab={tab} setTab={setTab} />}
+            {(tab === "consolidado" || tab === "processos") && <div className="proc-card"><ProcessosBloco p={p} tab={tab} setTab={setTab} /></div>}
 
             {/* BLOCO 6 · PRAZOS ABERTOS */}
             {ver("consolidado") && p.prazos.length > 0 && (
+              <div className="proc-card">
               <Sec titulo="Prazos abertos" extra={<span className="audp-count">{p.prazos.length}</span>}>
                 <div className="przp-stack">
                   {p.prazos.map((pr) => (
@@ -495,34 +515,36 @@ export function ClientePainel({
                   ))}
                 </div>
               </Sec>
+              </div>
             )}
 
             {/* BLOCO 7 · FINANCEIRO */}
-            {(tab === "consolidado" || tab === "financeiro") && <FinanceiroBloco p={p} />}
-            {tab === "financeiro" && <DespesasBloco itens={ficha.despesas} />}
+            {(tab === "consolidado" || tab === "financeiro") && <div className="proc-card"><FinanceiroBloco p={p} /></div>}
+            {tab === "financeiro" && <div className="proc-card"><DespesasBloco itens={ficha.despesas} /></div>}
 
             {/* BLOCO 8 · ESTUDO DE EXECUÇÃO */}
-            {(tab === "consolidado" || tab === "execucao" || tab === "estudos") && <EstudosBloco p={p} />}
+            {(tab === "consolidado" || tab === "execucao" || tab === "estudos") && <div className="proc-card"><EstudosBloco p={p} /></div>}
 
             {/* EXECUÇÃO — visão completa (aba) */}
             {tab === "execucao" && (
-              <div className="audp-sec cli-exec-full">
+              <div className="proc-card cli-exec-full">
                 <ExecucaoCliente exec={exec} clienteId={p.id} situacaoAtual={p.situacao_prisional} />
               </div>
             )}
 
             {/* REFLEXOS NA EXECUÇÃO (cenários) — dentro de Execução / Estudo */}
-            {(tab === "execucao" || tab === "estudos") && <CenariosBloco itens={ficha.cenarios} />}
+            {(tab === "execucao" || tab === "estudos") && <div className="proc-card"><CenariosBloco itens={ficha.cenarios} /></div>}
 
             {/* DOCUMENTOS (aba) */}
             {tab === "documentos" && (
-              <div className="audp-sec">
+              <div className="proc-card">
                 <DocumentosCaso documentos={documentos} vinculo={{ campo: "cliente_id", id: p.id }} />
               </div>
             )}
 
             {/* BLOCO 9 · AUDIÊNCIAS FUTURAS */}
             {ver("consolidado") && (
+              <div className="proc-card">
               <Sec titulo="Audiências futuras" extra={<span className="audp-count">{p.audiencias.length}</span>}>
                 {p.audiencias.length === 0 ? (
                   <div className="przp-empty-row">
@@ -545,37 +567,16 @@ export function ClientePainel({
                   </div>
                 )}
               </Sec>
+              </div>
             )}
 
             {/* NOTAS (aba dedicada ou bloco no consolidado via botão) */}
             {(tab === "notas" || (verNotas && tab === "consolidado")) && (
+              <div className="proc-card">
               <Sec titulo="Anotações" extra={<span className="audp-count">{anotacoes.length}</span>}>
                 <Anotacoes entidadeTipo="cliente" entidadeId={p.id} notas={anotacoes} />
               </Sec>
-            )}
-
-            {/* EDITAR / ARQUIVAR */}
-            {ver("consolidado") && (
-              <>
-                <div className="audp-status">
-                  <div className="audp-sech" style={{ flex: 1, margin: 0 }}>Editar / arquivar</div>
-                  <EditarCliente p={p} />
-                  <button type="button" className={`btn default${verNotas || tab === "notas" ? " on" : ""}`} onClick={abrirNotas}>
-                    <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
-                  </button>
-                  {p.ativo && (
-                    <Acao
-                      label="Inativar"
-                      variant="danger"
-                      titulo="Inativar cliente"
-                      confirmarLabel="Inativar"
-                      resumo={<>O cliente <b>não é apagado</b> — fica inativo (some das listas, mantido no banco e auditado). Confirmar?</>}
-                      acao={() => desativarCliente(p.id)}
-                    />
-                  )}
-                </div>
-                <div className="audp-status-note">Inativar é troca de status — nunca DELETE. O histórico de execução e contratos permanece. Tudo auditado.</div>
-              </>
+              </div>
             )}
           </div>
         </div>
