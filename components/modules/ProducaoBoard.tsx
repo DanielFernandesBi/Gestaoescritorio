@@ -135,7 +135,7 @@ function useLites() {
 
 /* ---- Campos do formulário (criar/editar) ------------------------------ */
 
-function CamposBasicos({ p }: { p?: Peca }) {
+function CamposBasicos({ p, textos = true }: { p?: Peca; textos?: boolean }) {
   const editar = Boolean(p);
   return (
     <>
@@ -152,6 +152,15 @@ function CamposBasicos({ p }: { p?: Peca }) {
         <div><label>Data alvo (opcional)</label><input type="date" name="data_alvo" />{editar && <span className="sub">Em branco mantém a atual.</span>}</div>
         <div><label>Drive (id da minuta)</label><input name="drive_file_id" defaultValue={p?.drive_file_id ?? ""} placeholder="opcional" /></div>
       </div>
+      {textos && <CamposTexto p={p} />}
+    </>
+  );
+}
+
+/* Áreas livres de texto — separadas p/ posicioná-las DEPOIS dos vínculos na criação. */
+function CamposTexto({ p }: { p?: Peca }) {
+  return (
+    <>
       <div><label>Descrição</label><textarea name="descricao" defaultValue={p?.descricao ?? ""} placeholder="Detalhes da peça…" /></div>
       <div>
         <label>Anotações (o que observar ao redigir)</label>
@@ -173,7 +182,7 @@ export function NovaPeca() {
       acao={criarPeca}
       enviarLabel="Criar peça"
     >
-      <CamposBasicos />
+      <CamposBasicos textos={false} />
       <h4 style={{ margin: "12px 0 2px", fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--brass)" }}>Vínculos · informe ao menos processo ou cliente</h4>
       <p className="sub" style={{ margin: "0 0 2px" }}>Sem nenhum vínculo a peça fica órfã e a baixa em cascata não a alcança. Com um único cliente no processo, o cliente é preenchido sozinho.</p>
       <div style={grid2}>
@@ -201,6 +210,8 @@ export function NovaPeca() {
         </select>
       </div>
       <p className="sub" style={{ margin: 0 }}>O prazo vinculado herda o semáforo de dias corridos; na baixa do prazo a peça vai para “protocolada” automaticamente.</p>
+      <h4 style={{ margin: "12px 0 2px", fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--brass)" }}>Descrição e anotações</h4>
+      <CamposTexto />
     </FormModal>
   );
 }
