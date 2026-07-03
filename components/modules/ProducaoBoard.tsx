@@ -174,7 +174,8 @@ export function NovaPeca() {
       enviarLabel="Criar peça"
     >
       <CamposBasicos />
-      <h4 style={{ margin: "12px 0 2px", fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--brass)" }}>Vínculos (todos opcionais)</h4>
+      <h4 style={{ margin: "12px 0 2px", fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--brass)" }}>Vínculos · informe ao menos processo ou cliente</h4>
+      <p className="sub" style={{ margin: "0 0 2px" }}>Sem nenhum vínculo a peça fica órfã e a baixa em cascata não a alcança. Com um único cliente no processo, o cliente é preenchido sozinho.</p>
       <div style={grid2}>
         <div>
           <label>Cliente</label>

@@ -479,7 +479,32 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
     const tipo = String(fd.get("tipo") || "outra");
     if (!(PECA_TIPO as readonly string[]).includes(tipo)) return { ok: false, message: "Tipo de peça inválido." };
 
-    const intimacao_id = String(fd.get("intimacao_id") || "").trim() || null;
+    // Vínculos de proveniência disponíveis no contexto da tela (Sug. 75 · etapa 3).
+    // Objetivo: zerar peça órfã — pré-requisito da baixa em cascata (F4).
+    let processo_id = String(fd.get("processo_id") || "").trim() || null;
+    let cliente_id = String(fd.get("cliente_id") || "").trim() || null;
+    let intimacao_id = String(fd.get("intimacao_id") || "").trim() || null;
+    const prazo_id = String(fd.get("prazo_id") || "").trim() || null;
+    const tarefa_id = String(fd.get("tarefa_id") || "").trim() || null;
+    const origem_andamento_id = String(fd.get("origem_andamento_id") || "").trim() || null;
+
+    // A partir de um PRAZO: herda o processo e a intimação de origem do prazo,
+    // sem sobrescrever o que a tela já trouxe (COALESCE).
+    if (prazo_id && (!processo_id || !intimacao_id)) {
+      const { data: pr } = await supabase.from("prazos").select("processo_id, intimacao_id").eq("id", prazo_id).maybeSingle();
+      if (pr) {
+        processo_id = processo_id ?? ((pr.processo_id as string | null) ?? null);
+        intimacao_id = intimacao_id ?? ((pr.intimacao_id as string | null) ?? null);
+      }
+    }
+
+    // cliente_id automático SÓ quando o processo tem um único cliente vinculado;
+    // com corréus, fica em branco para escolha manual. Nunca sobrescreve.
+    if (!cliente_id && processo_id) {
+      const { data: cps } = await supabase.from("cliente_processo").select("cliente_id").eq("processo_id", processo_id);
+      if (cps && cps.length === 1) cliente_id = cps[0].cliente_id as string;
+    }
+
     const { error } = await supabase.from("pecas").insert({
       titulo,
       tipo,
@@ -490,10 +515,12 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
       prioridade: String(fd.get("prioridade") || "media"),
       responsavel: String(fd.get("responsavel") || "Daniel"),
       // processo_id NULL = inicial de caso novo (permitido pelo schema).
-      cliente_id: String(fd.get("cliente_id") || "").trim() || null,
-      processo_id: String(fd.get("processo_id") || "").trim() || null,
-      prazo_id: String(fd.get("prazo_id") || "").trim() || null,
+      cliente_id,
+      processo_id,
+      prazo_id,
       intimacao_id,
+      tarefa_id,
+      origem_andamento_id,
       data_alvo: String(fd.get("data_alvo") || "") || null,
       drive_file_id: String(fd.get("drive_file_id") || "").trim() || null,
       validado: true,
@@ -508,7 +535,14 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
       await carimbarLeitura(supabase, intimacao_id, email);
     }
     revalidarTudo();
-    return { ok: true, message: "Peça criada no backlog (A fazer)." };
+    // Aviso não-bloqueante: peça 100% órfã não participa da baixa em cascata.
+    const orfa = !processo_id && !cliente_id && !prazo_id && !intimacao_id && !tarefa_id && !origem_andamento_id;
+    return {
+      ok: true,
+      message: orfa
+        ? "Peça criada — mas SEM vínculos (processo/cliente/prazo). A baixa em cascata não funcionará para ela; vincule-a depois no módulo Produção."
+        : "Peça criada no backlog (A fazer).",
+    };
   } catch (e) {
     return falha(e);
   }
@@ -844,6 +878,14 @@ export async function criarPecaDeOrigem(
       }
     }
 
+    // Proveniência extra (Sug. 75 · etapa 3): origem andamento/tarefa herda também a
+    // intimação do prazo escolhido, quando houver, para a baixa em cascata alcançá-la.
+    let intimacao_extra: string | null = null;
+    if (prazo_id && tipo_origem !== "intimacao") {
+      const { data: prz2 } = await supabase.from("prazos").select("intimacao_id").eq("id", prazo_id).maybeSingle();
+      intimacao_extra = (prz2?.intimacao_id as string | null) ?? null;
+    }
+
     const titulo = String(fd.get("titulo") || "").trim();
     if (!titulo) return { ok: false, message: "Título é obrigatório." };
     const tipo = String(fd.get("tipo") || "outra");
@@ -861,6 +903,8 @@ export async function criarPecaDeOrigem(
       processo_id,
       prazo_id,
       [colOrigem]: origem_id,
+      // além do vínculo de origem, carrega a intimação do prazo (quando não é ela a origem).
+      ...(intimacao_extra && tipo_origem !== "intimacao" ? { intimacao_id: intimacao_extra } : {}),
       data_alvo: String(fd.get("data_alvo") || "") || null,
       drive_file_id: String(fd.get("drive_file_id") || "").trim() || null,
       // Gate do manual: origem de automação nasce provisória (conferir no board).
