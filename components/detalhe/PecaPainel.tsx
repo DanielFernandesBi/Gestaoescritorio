@@ -7,6 +7,7 @@ import { ProcRef } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
+import { BaixaAtoModal } from "@/components/modules/BaixaAtoModal";
 import { atualizarPeca, moverPeca, validarMinuta, anexarInsumoPeca } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
@@ -351,7 +352,7 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
             {ativa && (
               <div className="audp-status" style={{ borderTop: "none", paddingTop: 0 }}>
                 <div className="audp-sech" style={{ flex: 1, margin: 0 }}>Baixa</div>
-                <Acao label={<><Check s={13} c="var(--green)" /> Marcar protocolada</>} variant="ok" titulo="Marcar protocolada" confirmarLabel="Marcar protocolada" resumo={<>Mover <b>{p.titulo}</b> para <b>protocolada</b>? O ideal é dar baixa pelo prazo (gera o andamento). Aqui é correção manual de status.</>} campoTexto={{ label: "Andamento (opcional)", placeholder: "Ex.: protocolado via PJe.", multiline: true }} acao={(t) => moverPeca(p.id, "protocolada", t)} />
+                <BaixaAtoModal pecaId={p.id} titulo={p.titulo} className="btn ok" label={<><Check s={13} c="#fff" /> Protocolei / dar baixa</>} />
                 <Acao label="Cancelar / prejudicar" variant="danger" titulo="Cancelar ou prejudicar peça" confirmarLabel="Cancelar" resumo={<>Encerrar <b>{p.titulo}</b> sem protocolo? Troca de status (cancelada) — nunca DELETE, auditado.</>} acao={() => moverPeca(p.id, "cancelada")} />
               </div>
             )}

@@ -7,6 +7,7 @@ import { linkPara } from "@/lib/links";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { BuscaSelect } from "@/components/BuscaSelect";
+import { BaixaAtoModal } from "@/components/modules/BaixaAtoModal";
 import {
   criarPeca,
   moverPeca,
@@ -439,7 +440,7 @@ export function ProducaoBoard({
             {p.drive_file_id
               ? <a className="prd-fbtn" href={docxHref(p.drive_file_id)} target="_blank" rel="noreferrer">Baixar .docx</a>
               : <button type="button" className="prd-fbtn" onClick={() => abrir(p)}>Baixar .docx</button>}
-            <button type="button" className="prd-fbtn sec" onClick={() => abrir(p)}>Abrir</button>
+            <span className="prd-fwrap"><BaixaAtoModal pecaId={p.id} titulo={p.titulo} className="prd-fbtn primary" label="Protocolei / dar baixa" /></span>
           </>}
         </div>
       </article>

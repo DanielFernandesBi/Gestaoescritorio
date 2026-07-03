@@ -645,14 +645,71 @@ export async function criarPeca(fd: FormData): Promise<Resultado> {
  * o sistema/redator agendado jamais protocola. A reversão (mover para fora de
  * "protocolada") NÃO reabre o prazo nem apaga o andamento — fica como está.
  */
-export async function baixarProtocoloPeca(id: string, descricao?: string): Promise<Resultado> {
+/**
+ * Sugestão 75 · etapa 5 (F4) — Baixa do ato pela fn_baixa_ato (cascata transacional
+ * no Postgres: andamento peticao_protocolada idempotente → peça protocolada → prazo
+ * cumprido → tarefa concluída → intimação providência tomada; + gêmeas extras
+ * marcadas). Sempre p_cadastrado_por='manual' (ação humana no app). Idempotente:
+ * rebaixar é seguro. Devolve um recibo do que foi fechado + avisos da função.
+ */
+export async function baixarAtoPeca(
+  pecaId: string,
+  intimacoesExtra: string[] = [],
+  dataProtocolo?: string,
+): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!pecaId) return { ok: false, message: "Peça inválida." };
+    const supabase = await createClient();
+    const extra = [...new Set((intimacoesExtra ?? []).filter(Boolean))];
+    const { data, error } = await supabase.rpc("fn_baixa_ato", {
+      p_peca_id: pecaId,
+      p_intimacoes_extra: extra,
+      p_data_protocolo: dataProtocolo || hoje(),
+      p_cadastrado_por: "manual",
+    });
+    if (error) throw error;
+
+    const r = (data ?? {}) as {
+      peca?: unknown; andamento?: unknown; prazo?: unknown; tarefa?: unknown;
+      intimacao?: unknown; intimacoes_extra?: unknown[]; avisos?: string[];
+    };
+    const nExtra = Array.isArray(r.intimacoes_extra) ? r.intimacoes_extra.length : 0;
+    const nIntim = (r.intimacao ? 1 : 0) + nExtra;
+    const partes: string[] = ["andamento registrado"];
+    if (r.prazo) partes.push("prazo cumprido");
+    if (r.tarefa) partes.push("tarefa concluída");
+    if (nIntim) partes.push(`${nIntim} intimação${nIntim === 1 ? "" : "s"} resolvida${nIntim === 1 ? "" : "s"}`);
+    const avisos = Array.isArray(r.avisos) ? r.avisos.filter(Boolean) : [];
+    let message = `Baixa concluída — ${partes.join(", ")}.`;
+    if (avisos.length) message += ` ⚠ Vínculos incompletos: ${avisos.join("; ")} — confira manualmente e rebaixe (é seguro, não duplica).`;
+
+    revalidarTudo();
+    return { ok: true, message };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+export type BaixaOpts = { pularPrazo?: boolean; pularTarefa?: boolean; pularIntimacao?: boolean; dataProtocolo?: string };
+
+/**
+ * Sugestão 51 — Baixa de protocolo pela PORTA DA PEÇA. Caminho PADRÃO (nada
+ * desmarcado) DELEGA à fn_baixa_ato (etapa 5). O caminho granular só roda quando o
+ * usuário desmarca algum vínculo no modal (item 4): aí o app fecha só o que foi
+ * marcado, deixando o desmarcado aberto de propósito. Nunca DELETE.
+ */
+export async function baixarProtocoloPeca(id: string, descricao?: string, opts?: BaixaOpts): Promise<Resultado> {
+  const granular = Boolean(opts && (opts.pularPrazo || opts.pularTarefa || opts.pularIntimacao));
+  if (!granular) return baixarAtoPeca(id, [], opts?.dataProtocolo);
   try {
     const email = await requireUser();
     const supabase = await createClient();
+    const dt = opts?.dataProtocolo || hoje();
 
     const { data: pc, error } = await supabase
       .from("pecas")
-      .select("id, titulo, status, processo_id, prazo_id, intimacao_id, andamento_id")
+      .select("id, titulo, status, processo_id, prazo_id, intimacao_id, tarefa_id, andamento_id")
       .eq("id", id)
       .single();
     if (error || !pc) throw new Error("Peça não encontrada.");
@@ -662,37 +719,22 @@ export async function baixarProtocoloPeca(id: string, descricao?: string): Promi
       return { ok: false, message: `Peça já está em status terminal (${pc.status}); protocolo não reaplicado.` };
     }
 
-    // Prazo vinculado (para baixa em cascata). O processo_id da peça pode estar
-    // vazio (inicial de caso novo); herda do prazo quando houver.
-    type PrazoVinc = {
-      id: string;
-      status: string;
-      processo_id: string | null;
-    };
+    type PrazoVinc = { id: string; status: string; processo_id: string | null };
     let prazo: PrazoVinc | null = null;
     if (pc.prazo_id) {
-      const { data: pr } = await supabase
-        .from("prazos")
-        .select("id, status, processo_id")
-        .eq("id", pc.prazo_id)
-        .maybeSingle();
+      const { data: pr } = await supabase.from("prazos").select("id, status, processo_id").eq("id", pc.prazo_id).maybeSingle();
       prazo = (pr as PrazoVinc | null) ?? null;
     }
     const processoId = (pc.processo_id as string | null) ?? prazo?.processo_id ?? null;
 
+    const aberto: string[] = [];
     let msg = "";
 
-    // 1) Andamento do protocolo — só com processo (andamentos exigem processo_id, como
-    //    em baixarPrazo). Dedup idempotente por codigo_movimentacao: reexecutar não
-    //    duplica o andamento. Reaproveita um já vinculado, se houver.
+    // 1) Andamento do protocolo (dedup idempotente por codigo_movimentacao).
     let andamentoId: string | null = (pc.andamento_id as string | null) ?? null;
     if (processoId && !andamentoId) {
       const codigoDedup = `protocolo-peca:${pc.id}`;
-      const { data: existente } = await supabase
-        .from("andamentos")
-        .select("id")
-        .eq("codigo_movimentacao", codigoDedup)
-        .maybeSingle();
+      const { data: existente } = await supabase.from("andamentos").select("id").eq("codigo_movimentacao", codigoDedup).maybeSingle();
       if (existente?.id) {
         andamentoId = existente.id as string;
       } else {
@@ -700,49 +742,50 @@ export async function baixarProtocoloPeca(id: string, descricao?: string): Promi
         const desc = descricao?.trim() || (tituloPeca ? `Protocolo: ${tituloPeca}.` : "Petição protocolada.");
         const { data: and, error: andErr } = await supabase
           .from("andamentos")
-          .insert({
-            processo_id: processoId,
-            data: hoje(),
-            tipo: "peticao_protocolada",
-            descricao: desc,
-            cadastrado_por: "manual",
-            cadastro_automatico: false,
-            codigo_movimentacao: codigoDedup,
-          })
-          .select("id")
-          .single();
-        if (!andErr) {
-          andamentoId = (and?.id as string) ?? null;
-          msg += " Andamento registrado.";
-        }
+          .insert({ processo_id: processoId, data: dt, tipo: "peticao_protocolada", descricao: desc, cadastrado_por: "manual", cadastro_automatico: false, codigo_movimentacao: codigoDedup })
+          .select("id").single();
+        if (!andErr) { andamentoId = (and?.id as string) ?? null; msg += " Andamento registrado."; }
       }
     }
 
-    // 2) Prazo vinculado → cumprido (só se ainda aberto).
+    // 2) Prazo vinculado → cumprido (a menos que desmarcado).
     if (prazo && prazo.status === "aberto") {
-      const { error: upErr } = await supabase
-        .from("prazos")
-        .update({ status: "cumprido", cumprido_em: hoje() })
-        .eq("id", prazo.id);
-      if (upErr) throw upErr;
-      msg += " Prazo vinculado dado como cumprido.";
+      if (opts?.pularPrazo) { aberto.push("prazo"); }
+      else {
+        const { error: upErr } = await supabase.from("prazos").update({ status: "cumprido", cumprido_em: dt }).eq("id", prazo.id);
+        if (upErr) throw upErr;
+        msg += " Prazo cumprido.";
+      }
     }
 
-    // 3) Intimação vinculada → providência tomada (+ carimbo de leitura: ação humana).
+    // 3) Tarefa vinculada → concluída (a menos que desmarcada).
+    if (pc.tarefa_id) {
+      if (opts?.pularTarefa) { aberto.push("tarefa"); }
+      else {
+        await supabase.from("tarefas").update({ status: "concluida", concluida_em: agora() }).eq("id", pc.tarefa_id).in("status", ["pendente", "em_andamento"]);
+        msg += " Tarefa concluída.";
+      }
+    }
+
+    // 4) Intimação vinculada → providência tomada (a menos que desmarcada).
     if (pc.intimacao_id) {
-      await supabase.from("intimacoes").update({ status: "providencia_tomada" }).eq("id", pc.intimacao_id);
-      await carimbarLeitura(supabase, pc.intimacao_id as string, email);
-      msg += " Intimação marcada como providência tomada.";
+      if (opts?.pularIntimacao) { aberto.push("intimação"); }
+      else {
+        await supabase.from("intimacoes").update({ status: "providencia_tomada" }).eq("id", pc.intimacao_id);
+        await carimbarLeitura(supabase, pc.intimacao_id as string, email);
+        msg += " Intimação com providência tomada.";
+      }
     }
 
-    // 4) Peça → protocolada (carimba a data e o andamento que a materializou).
-    const patch: Record<string, unknown> = { status: "protocolada", protocolada_em: hoje() };
+    // 5) Peça → protocolada.
+    const patch: Record<string, unknown> = { status: "protocolada", protocolada_em: dt };
     if (andamentoId) patch.andamento_id = andamentoId;
     const { error: pcErr } = await supabase.from("pecas").update(patch).eq("id", id);
     if (pcErr) throw pcErr;
 
     revalidarTudo();
-    return { ok: true, message: `Peça protocolada.${msg}` };
+    const nota = aberto.length ? ` Mantido(s) aberto(s) a pedido: ${aberto.join(", ")}.` : "";
+    return { ok: true, message: `Peça protocolada.${msg}${nota}` };
   } catch (e) {
     return falha(e);
   }
