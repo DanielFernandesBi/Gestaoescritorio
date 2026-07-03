@@ -2940,7 +2940,7 @@ h4 .xp-frescor{margin-left:8px;text-transform:none;letter-spacing:0}
 .cx-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 
 /* grade de cards de altura padrão (min-height) que se acomodam ao conteúdo */
-.cx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;align-items:start}
+.cx-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start}
 .cx-card{display:flex;flex-direction:column;min-height:212px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
 .cx-card.urg{border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
 .cx-card-h{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-soft)}
