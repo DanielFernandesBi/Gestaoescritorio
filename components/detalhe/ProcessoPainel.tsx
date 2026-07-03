@@ -9,6 +9,7 @@ import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
+import { ConfirmarAto } from "@/components/detalhe/ConfirmarAto";
 import {
   criarAndamento, criarPrazo, atualizarProcesso, arquivarProcesso, vincularClienteProcesso, reanalisarPecas,
 } from "@/app/actions";
@@ -95,7 +96,7 @@ function Movimentacoes({ andamentos }: { andamentos: ProcAndMini[] }) {
 const fonteAto = (o: string | null) => {
   const f = (o ?? "").toLowerCase();
   return f === "djen" ? "DJEN" : f === "dje" ? "DJE" : f === "push" ? "e-mail push"
-    : f === "email" ? "e-mail" : f === "radar" ? "Radar" : f === "redacao" ? "Redação" : (o ?? "—");
+    : f === "email" ? "e-mail" : f === "radar" ? "Radar" : f === "redacao" ? "Redação" : (o ? o.toUpperCase() : "—");
 };
 const intimTone = (s: string | null) =>
   s === "providencia_tomada" ? "val" : s === "arquivada" ? "cat-neutral" : s === "em_analise" ? "cat-blue" : "tang";
@@ -106,18 +107,20 @@ function AtoLinha({ a }: { a: AtoCanonico }) {
   const tipoLabel = a.kind === "andamento" ? humano(a.tipo) : (a.classe ? humano(a.classe) : "Intimação");
   const nOutras = a.outras.length;
   return (
-    <div className={`ato-linha${a.status_divergente ? " divergente" : ""}`}>
+    <div className={`ato-linha${a.status_divergente && !a.confirmado ? " divergente" : ""}${a.confirmado ? " confirmado" : ""}`}>
       <div className="ato-dot" aria-hidden />
       <div className="ato-body">
         <div className="ato-h">
           <span className="ato-data mono">{ddmm(a.data_ato)}</span>
           <span className={`pz-tag ${a.kind === "andamento" ? "cat-neutral" : "cat-blue"}`}>{tipoLabel}</span>
           {a.kind === "intimacao" && a.status && <span className={`pz-tag ${intimTone(a.status)}`}>{humano(a.status)}</span>}
-          {a.status_divergente && <span className="pz-tag preso">status divergente · conferir</span>}
+          {a.status_divergente && !a.confirmado && <span className="pz-tag preso">status divergente · conferir</span>}
           <span className="ato-fonte mono">{fonteAto(a.principal.origem)}</span>
           <Link className="btn sm abrir" href={linkPara(a.kind, a.principal.id)}>Abrir</Link>
         </div>
         {a.principal.amostra && <p className="ato-amostra">{trunc(a.principal.amostra, 220)}</p>}
+        {/* Confirmar "mesmo ato" (F3 · etapa 4) — só p/ cluster de intimações gêmeas */}
+        {a.kind === "intimacao" && nOutras > 0 && <ConfirmarAto a={a} />}
         {nOutras > 0 && (
           <button type="button" className="ato-selo" onClick={() => setAberto((v) => !v)} aria-expanded={aberto}>
             {aberto ? "▲ ocultar" : `+${nOutras} de outras fontes`} ({a.origens.map(fonteAto).join(", ")})

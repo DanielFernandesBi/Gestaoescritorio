@@ -421,6 +421,83 @@ export async function criarIntimacao(fd: FormData): Promise<Resultado> {
   }
 }
 
+/**
+ * Sugestão 75 · etapa 4 — Confirma que um CLUSTER de intimações gêmeas
+ * (vw_intimacoes_atos_candidatos, mesmo ato_cluster_id) descreve o MESMO ato.
+ * Grava ato_canonico_id = <canônica> em TODAS as intimações do cluster (inclusive
+ * a própria canônica). NÃO mexe em status — a partir daí o trigger
+ * trg_propaga_status_ato sincroniza mudanças FUTURAS entre as irmãs.
+ *
+ * `sincronizar`: passo opcional para o momento em que os status já divergem — o app
+ * alinha DIRETAMENTE as irmãs cujo status difere ao da canônica (o trigger não
+ * dispara re-gravando o mesmo status, exige IS DISTINCT FROM). Ato humano por
+ * cluster; nunca em massa. Nunca DELETE, nunca oculta registros.
+ */
+export async function confirmarAtoCanonico(
+  canonicaId: string,
+  idsCluster: string[],
+  sincronizar: boolean,
+): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!canonicaId) return { ok: false, message: "Escolha a intimação canônica." };
+    const ids = [...new Set((idsCluster ?? []).filter(Boolean))];
+    if (ids.length < 2) return { ok: false, message: "Cluster inválido — precisa de ao menos duas gêmeas." };
+    if (!ids.includes(canonicaId)) return { ok: false, message: "A canônica precisa ser uma das gêmeas do cluster." };
+    const supabase = await createClient();
+
+    // 1) Vincula todo o cluster à canônica (apenas ato_canonico_id).
+    const { error } = await supabase.from("intimacoes").update({ ato_canonico_id: canonicaId }).in("id", ids);
+    if (error) throw error;
+
+    // 2) Sincronização opcional do status divergente pelo estado da canônica.
+    let sinc = 0;
+    if (sincronizar) {
+      const { data: can } = await supabase.from("intimacoes").select("status").eq("id", canonicaId).maybeSingle();
+      const statusCanonico = (can?.status as string | null) ?? null;
+      if (statusCanonico) {
+        // irmãs (≠ canônica) cujo status difere — evita re-gravar o mesmo (trigger exige distinto).
+        const irmas = ids.filter((i) => i !== canonicaId);
+        const { data: divergentes } = await supabase
+          .from("intimacoes").select("id").in("id", irmas).neq("status", statusCanonico);
+        const alvo = (divergentes ?? []).map((r) => r.id as string);
+        if (alvo.length) {
+          const { error: e2 } = await supabase.from("intimacoes").update({ status: statusCanonico }).in("id", alvo);
+          if (e2) throw e2;
+          sinc = alvo.length;
+        }
+      }
+    }
+
+    revalidarTudo();
+    return {
+      ok: true,
+      message: sinc > 0
+        ? `Ato confirmado (${ids.length} fontes). ${sinc} irmã(s) sincronizada(s) pelo status da canônica; daqui em diante a propagação é automática.`
+        : `Ato confirmado (${ids.length} fontes). Mudanças de status passam a propagar entre as irmãs automaticamente.`,
+    };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/** Desfaz a confirmação: zera ato_canonico_id de todo o cluster (volta a candidatas).
+ *  Nenhum outro campo é tocado; as gêmeas seguem acessíveis. */
+export async function desvincularAtoCanonico(idsCluster: string[]): Promise<Resultado> {
+  try {
+    await requireUser();
+    const ids = [...new Set((idsCluster ?? []).filter(Boolean))];
+    if (!ids.length) return { ok: false, message: "Cluster inválido." };
+    const supabase = await createClient();
+    const { error } = await supabase.from("intimacoes").update({ ato_canonico_id: null }).in("id", ids);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Gêmeas desvinculadas — o cluster volta a candidatas." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /* ============================ TAREFAS ============================ */
 
 export async function moverTarefa(id: string, status: string): Promise<Resultado> {

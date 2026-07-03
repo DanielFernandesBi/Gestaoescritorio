@@ -2927,6 +2927,26 @@ h4 .xp-frescor{margin-left:8px;text-transform:none;letter-spacing:0}
 .ato-gemea-txt{font-size:11.5px;color:var(--muted);min-width:0;flex:1}
 .ato-gemea .btn.abrir{margin-left:auto}
 .ato-nota{font-size:10.5px;color:var(--muted);line-height:1.5;border-top:1px dashed var(--line);padding-top:7px}
+/* confirmar "mesmo ato" (etapa 4) */
+.ato-linha.confirmado .ato-dot{background:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 18%,transparent)}
+.ato-confirmar{margin-top:7px;align-self:flex-start;font-size:11px;font-weight:700;color:#fff;background:var(--accent);border:none;border-radius:7px;padding:5px 11px;cursor:pointer}
+.ato-confirmar:hover{background:var(--accent-strong)}
+.ato-conf{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px}
+.ato-conf-badge{font-size:11px;font-weight:700;color:var(--green);background:var(--green-soft);border:1px solid color-mix(in srgb,var(--green) 28%,transparent);border-radius:6px;padding:3px 9px}
+.ato-desvincular{font-size:11px;font-weight:600;color:var(--muted);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline}
+.ato-desvincular:hover{color:var(--red)}
+.ato-conf-err{font-size:11px;color:var(--red)}
+.ato-escolha{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.ato-opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.ato-opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.ato-opt input{width:auto;flex:none;margin-top:3px}
+.ato-opt-main{min-width:0;flex:1}
+.ato-opt-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ato-opt-fonte{font-size:12px;font-weight:700;color:var(--name);text-transform:uppercase;letter-spacing:.03em}
+.ato-opt-sug{font-size:10px;font-weight:700;color:var(--accent-strong);background:var(--accent-soft);border-radius:5px;padding:1px 6px}
+.ato-opt-txt{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:4px}
+.ato-sinc{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;margin-bottom:12px;border:1px solid color-mix(in srgb,var(--amber) 35%,var(--line));background:var(--amber-soft);border-radius:10px;font-size:11.5px;color:var(--text);line-height:1.5;cursor:pointer}
+.ato-sinc input{width:auto;flex:none;margin-top:2px}
 
 /* ===== Caixa de trabalho (Sug. 75 · F2) — um card por processo ===== */
 .cx-counters{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:16px 0}

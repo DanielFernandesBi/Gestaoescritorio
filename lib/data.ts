@@ -1408,12 +1408,16 @@ export type ProcPecaMini = { id: string; titulo: string; tipo: string; subtipo: 
  * clusters cujas fontes discordam do estado (destaque vermelho, conferir à mão). */
 export type AtoFonte = {
   id: string; origem: string | null; status: string | null; amostra: string | null; data_ato: string | null;
+  // Sug. 75 · etapa 4 — ponteiro para a intimação canônica do cluster (self-FK). Null = ainda candidata.
+  ato_canonico_id: string | null;
 };
 export type AtoCanonico = {
   cluster_id: string; kind: "intimacao" | "andamento";
   data_ato: string | null; tipo: string | null; classe: string | null; tribunal: string | null;
   status: string | null; origens: string[]; n_no_cluster: number; status_divergente: boolean;
   principal: AtoFonte; outras: AtoFonte[];
+  // Confirmação de "mesmo ato": true quando todas as gêmeas apontam para a mesma canônica.
+  confirmado: boolean; canonico_id: string | null;
 };
 
 // Prioridade de "fonte canônica" dentro de um cluster: o diário oficial eletrônico
@@ -1445,6 +1449,15 @@ export async function getAtosProcesso(processoId: string): Promise<AtoCanonico[]
     (grupos.get(k) ?? grupos.set(k, { rows: [], kind: "andamento" }).get(k)!).rows.push(r);
   }
 
+  // Sug. 75 · etapa 4 — a view não expõe ato_canonico_id; busca na tabela para
+  // saber quais clusters de intimação já foram confirmados como "mesmo ato".
+  const intimIds = (intim.data ?? []).map((r) => (r as Record<string, unknown>).intimacao_id as string);
+  const canonicoPorId = new Map<string, string | null>();
+  if (intimIds.length) {
+    const { data: ci } = await supabase.from("intimacoes").select("id, ato_canonico_id").in("id", intimIds);
+    for (const r of ci ?? []) canonicoPorId.set(r.id as string, (r.ato_canonico_id as string | null) ?? null);
+  }
+
   const atos: AtoCanonico[] = [];
   for (const [cluster_id, g] of grupos) {
     const idKey = g.kind === "intimacao" ? "intimacao_id" : "andamento_id";
@@ -1454,13 +1467,22 @@ export async function getAtosProcesso(processoId: string): Promise<AtoCanonico[]
       if (dr !== 0) return dr;
       return String(b.data_ato ?? "").localeCompare(String(a.data_ato ?? ""));
     });
-    const fonte = (r: Record<string, unknown>): AtoFonte => ({
-      id: r[idKey] as string, origem: (r.origem as string | null) ?? null,
-      status: (r.status as string | null) ?? null, amostra: (r.amostra as string | null) ?? null,
-      data_ato: (r.data_ato as string | null) ?? null,
-    });
+    const fonte = (r: Record<string, unknown>): AtoFonte => {
+      const id = r[idKey] as string;
+      return {
+        id, origem: (r.origem as string | null) ?? null,
+        status: (r.status as string | null) ?? null, amostra: (r.amostra as string | null) ?? null,
+        data_ato: (r.data_ato as string | null) ?? null,
+        ato_canonico_id: g.kind === "intimacao" ? (canonicoPorId.get(id) ?? null) : null,
+      };
+    };
     const head = ordenadas[0];
     const origensRaw = (head.origens_cluster as string[] | null) ?? ordenadas.map((r) => r.origem as string).filter(Boolean);
+    const principal = fonte(head);
+    const outras = ordenadas.slice(1).map(fonte);
+    // Confirmado: cluster de intimação com todas as gêmeas apontando p/ a mesma canônica.
+    const todosCanonicos = [principal, ...outras].map((f) => f.ato_canonico_id);
+    const confirmado = g.kind === "intimacao" && todosCanonicos.every((c) => c != null) && new Set(todosCanonicos).size === 1;
     atos.push({
       cluster_id, kind: g.kind,
       data_ato: (head.data_ato as string | null) ?? null,
@@ -1471,8 +1493,8 @@ export async function getAtosProcesso(processoId: string): Promise<AtoCanonico[]
       origens: [...new Set(origensRaw.map((o) => String(o)))],
       n_no_cluster: Number(head.n_no_cluster ?? g.rows.length),
       status_divergente: Boolean(head.status_divergente),
-      principal: fonte(head),
-      outras: ordenadas.slice(1).map(fonte),
+      principal, outras,
+      confirmado, canonico_id: confirmado ? (principal.ato_canonico_id ?? null) : null,
     });
   }
   // Mais recentes primeiro; divergências sobem para conferência.
