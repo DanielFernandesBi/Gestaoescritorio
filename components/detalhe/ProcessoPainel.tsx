@@ -275,8 +275,9 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
         <div className="audp-detail-top"><Link className="audp-back" href="/processos">← Processos</Link></div>
 
         <div className="audp-scroll">
-          <div className="audp-inner">
-            {/* cabeçalho */}
+          <div className="audp-inner proc-fichas">
+            {/* CARD 1 — cabeçalho + dados + identidade IA + ações de gestão */}
+            <div className="proc-card proc-card-head">
             <div className="audp-title-row">
               <div className="audp-title-l">
                 <div className="audp-tags">
@@ -292,9 +293,20 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
                 </div>
               </div>
               <div className="proc-head-actions">
-                <RegistrarAndamento p={p} />
-                <NovoPrazo p={p} />
-                <CriarCompromisso processoId={p.id} />
+                <div className="proc-head-row">
+                  <RegistrarAndamento p={p} />
+                  <NovoPrazo p={p} />
+                  <CriarCompromisso processoId={p.id} />
+                </div>
+                <div className="proc-head-row proc-head-manage">
+                  <EditarProcesso p={p} />
+                  <button type="button" className={`btn default${verNotas ? " on" : ""}`} onClick={() => setVerNotas((v) => !v)}>
+                    <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
+                  </button>
+                  {ativo && (
+                    <Acao label="Arquivar" variant="danger" titulo="Arquivar processo" confirmarLabel="Arquivar" resumo={<>Arquivar este processo? Não é apagado — muda para <b>arquivado</b> (auditado).</>} campoTexto={{ label: "Motivo (opcional)", placeholder: "Ex.: baixado / transitado em julgado." }} acao={(t) => arquivarProcesso(p.id, t)} />
+                  )}
+                </div>
               </div>
             </div>
 
@@ -331,7 +343,12 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
               <div className="audp-ia-note">Antes de cadastrar, o sistema consulta por <b>CNJ ou registro do tribunal</b> — evita duplicata. Este é o registro <b>canônico</b>{p.merged_into ? "" : " (nenhum tombstone aponta para ele)"}.</div>
             </div>
 
-            {/* BLOCO 3 · PARTES */}
+            <div className="audp-status-note">Editar e arquivar não apagam nada — arquivar é troca de status, tudo auditado.</div>
+            </div>
+            {/* /CARD 1 */}
+
+            {/* CARD 2 · PARTES */}
+            <div className="proc-card">
             <Sec titulo="Partes" extra={<span className="audp-count">{p.partes.length}</span>}>
               {p.partes.length === 0 ? (
                 <div className="przp-empty-row"><span>{p.segredo ? "Processo em segredo — partes não identificadas pela automação." : "Sem partes vinculadas."}</span><VincularCliente label="Vincular cliente" variant="default" /></div>
@@ -349,8 +366,10 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
               )}
               <div className="pk-vinc-nota">A IA tenta casar pelo <span className="mono">nome_normalizado</span> + CPF; na dúvida, abre tarefa de conferência em vez de criar às cegas.</div>
             </Sec>
+            </div>
 
-            {/* BLOCO 4 · PRAZOS */}
+            {/* CARD · PRAZOS */}
+            <div className="proc-card">
             <Sec titulo="Prazos abertos" extra={<span className="audp-count">{p.prazos.length}</span>}>
               {p.prazos.length === 0 ? <div className="audp-empty">Sem prazos abertos.</div> : (
                 <div className="przp-stack">{p.prazos.map((pr) => (
@@ -358,8 +377,10 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
                 ))}</div>
               )}
             </Sec>
+            </div>
 
-            {/* BLOCO 5 · AUDIÊNCIAS */}
+            {/* CARD · AUDIÊNCIAS */}
+            <div className="proc-card">
             <Sec titulo="Audiências" extra={<span className="audp-count">{p.audiencias.length}</span>}>
               {p.audiencias.length === 0 ? (
                 <div className="przp-empty-row"><span>Sem audiências designadas.</span><Link className="btn sm" href="/audiencias">Nova audiência</Link></div>
@@ -369,8 +390,10 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
                 ))}</div>
               )}
             </Sec>
+            </div>
 
-            {/* BLOCO 6 · INTIMAÇÕES */}
+            {/* CARD · INTIMAÇÕES */}
+            <div className="proc-card">
             <Sec titulo="Intimações" extra={<span className="audp-count">{p.intimacoes.length}</span>}>
               {p.intimacoes.length === 0 ? <div className="audp-empty">Sem intimações.</div> : (
                 <div className="przp-stack">{p.intimacoes.map((i) => (
@@ -378,9 +401,11 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
                 ))}</div>
               )}
             </Sec>
+            </div>
 
-            {/* BLOCO 6b · LINHA CANÔNICA DE ATOS (F3 · Sug. 75) — atos gêmeos agrupados */}
+            {/* CARD · LINHA CANÔNICA DE ATOS (F3 · Sug. 75) — atos gêmeos agrupados */}
             {p.atos.length > 0 && (
+              <div className="proc-card">
               <Sec
                 titulo="Linha canônica de atos"
                 sub="vw_*_atos_candidatos · 1 linha por ato, fontes gêmeas agrupadas"
@@ -395,84 +420,88 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
                   {p.atos.map((a) => <AtoLinha key={a.cluster_id} a={a} />)}
                 </div>
               </Sec>
+              </div>
             )}
 
-            {/* BLOCO 7 · PEÇAS (produção) — fora do print, surfaçado */}
+            {/* CARD · PEÇAS (produção) */}
             {p.pecas.length > 0 && (
+              <div className="proc-card">
               <Sec titulo="Peças · produção" extra={<span className="audp-count">{p.pecas.length}</span>}>
                 <div className="przp-stack">{p.pecas.map((pc) => (
                   <Item key={pc.id} tag={humano(pc.tipo)} tagTone="cat-neutral" titulo={curto(pc.titulo)} sub={<>{pc.subtipo ? `${humano(pc.subtipo)} · ` : ""}{humano(pc.status)}</>} href={linkPara("peca", pc.id)} />
                 ))}</div>
               </Sec>
+              </div>
             )}
 
-            {/* BLOCO 7b · TAREFAS (F1 · Sug. 75) */}
+            {/* CARD · TAREFAS (F1 · Sug. 75) */}
             {p.tarefas.length > 0 && (
+              <div className="proc-card">
               <Sec titulo="Tarefas" extra={<span className="audp-count">{p.tarefas.length}</span>}>
                 <div className="przp-stack">{p.tarefas.map((t) => (
                   <Item key={t.id} tag={humano(t.status)} tagTone="cat-slate" titulo={curto(t.titulo)} sub={<>{humano(t.prioridade)}{t.responsavel ? ` · ${t.responsavel}` : ""}{t.data_limite ? ` · limite ${fmtDate(t.data_limite)}` : ""}</>} href={linkPara("tarefa", t.id)} />
                 ))}</div>
               </Sec>
+              </div>
             )}
 
-            {/* BLOCO 8 · ESTUDOS — fora do print, surfaçado */}
+            {/* CARD · ESTUDOS */}
             {p.estudos.length > 0 && (
+              <div className="proc-card">
               <Sec titulo="Estudos de execução" extra={<span className="audp-count">{p.estudos.length}</span>}>
                 <div className="przp-stack">{p.estudos.map((e) => (
                   <Item key={e.id} tag="estudo" tagTone="cowork" titulo={curto(e.titulo)} sub={humano(e.status)} href={linkPara("estudo", e.id)} />
                 ))}</div>
               </Sec>
+              </div>
             )}
 
-            {/* BLOCO 9 · CONTRATOS — fora do print, surfaçado */}
+            {/* CARD · CONTRATOS */}
             {p.contratos.length > 0 && (
+              <div className="proc-card">
               <Sec titulo="Contratos" extra={<span className="audp-count">{p.contratos.length}</span>}>
                 <div className="przp-stack">{p.contratos.map((c) => (
                   <Item key={c.id} tag={humano(c.status)} tagTone={c.status === "vigente" ? "val" : "cat-neutral"} titulo={curto(c.objeto ?? "Contrato")} sub={c.valor_total ? `R$ ${c.valor_total.toLocaleString("pt-BR")}` : undefined} href={linkPara("contrato", c.id)} />
                 ))}</div>
               </Sec>
+              </div>
             )}
 
-            {/* BLOCO 10 · COMPROMISSOS — fora do print, surfaçado */}
+            {/* CARD · COMPROMISSOS */}
             {p.compromissos.length > 0 && (
+              <div className="proc-card">
               <Sec titulo="Compromissos" extra={<span className="audp-count">{p.compromissos.length}</span>}>
                 <div className="przp-stack">{p.compromissos.map((c) => (
                   <Item key={c.id} tag="compromisso" tagTone="cat-neutral" titulo={curto(c.titulo)} sub={<span className="mono">{ddmm(c.data_hora)} · {humano(c.status)}</span>} href={linkPara("compromisso", c.id)} />
                 ))}</div>
               </Sec>
+              </div>
             )}
 
-            {/* BLOCO 11 · ANDAMENTOS — movimentações com o teor inline (leitura rápida) */}
+            {/* CARD · ANDAMENTOS — movimentações com o teor inline (leitura rápida) */}
+            <div className="proc-card">
             <Sec titulo="Andamentos" sub="movimentações do processo" extra={<span className="audp-count">{p.andamentos.length}</span>}>
               {p.andamentos.length === 0 ? <div className="audp-empty">Sem andamentos.</div> : (
                 <Movimentacoes andamentos={p.andamentos} />
               )}
             </Sec>
+            </div>
 
-            {/* BLOCO 12 · DOCUMENTOS */}
+            {/* CARD · DOCUMENTOS */}
+            <div className="proc-card">
             <Sec titulo="Documentos" extra={<span className="cli-sech-acao"><Acao label={<>↻ Reavaliar peças pendentes</>} variant="ghost" size="sm" titulo="Reavaliar peças pendentes" confirmarLabel="Reavaliar" resumo={<>Reanalisar as peças pendentes deste processo (redator agendado)?</>} acao={() => reanalisarPecas(p.id)} /></span>}>
               <DocumentosCaso documentos={p.documentos} vinculo={{ campo: "processo_id", id: p.id }} segredo={p.segredo} titulo="Documentos do processo" tipoPadrao="peca" />
             </Sec>
+            </div>
 
-            {/* NOTAS */}
+            {/* CARD · NOTAS */}
             {verNotas && (
+              <div className="proc-card">
               <Sec titulo="Anotações" extra={<span className="audp-count">{anotacoes.length}</span>}>
                 <Anotacoes entidadeTipo="processo" entidadeId={p.id} notas={anotacoes} />
               </Sec>
+              </div>
             )}
-
-            {/* EDITAR / ARQUIVAR */}
-            <div className="audp-status">
-              <div className="audp-sech" style={{ flex: 1, margin: 0 }}>Editar / arquivar</div>
-              <EditarProcesso p={p} />
-              <button type="button" className={`btn default${verNotas ? " on" : ""}`} onClick={() => setVerNotas((v) => !v)}>
-                <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
-              </button>
-              {ativo && (
-                <Acao label="Arquivar" variant="danger" titulo="Arquivar processo" confirmarLabel="Arquivar" resumo={<>Arquivar este processo? Não é apagado — muda para <b>arquivado</b> (auditado).</>} campoTexto={{ label: "Motivo (opcional)", placeholder: "Ex.: baixado / transitado em julgado." }} acao={(t) => arquivarProcesso(p.id, t)} />
-              )}
-            </div>
-            <div className="audp-status-note">Arquivar é troca de status — nunca DELETE. Tudo auditado.</div>
           </div>
         </div>
       </section>
