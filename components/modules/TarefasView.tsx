@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
+import { PageHeader } from "@/components/PageHeader";
 import { moverTarefa, assumirTarefa, reatribuirTarefa, type Resultado } from "@/app/actions";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
@@ -282,27 +283,26 @@ export function TarefasView({
 
   return (
     <div className="pz-page">
-      {/* cabeçalho */}
-      <div className="pz-head">
-        <div className="lhs">
-          <div className="eyebrow">Fluxo de trabalho · conferências da triagem</div>
-          <h1>Tarefas</h1>
-          <p>
+      {/* cabeçalho heritage + KPIs */}
+      <PageHeader
+        breadcrumb={["Trabalho", "Tarefas"]}
+        eyebrow="Fluxo de trabalho · conferências da triagem"
+        titulo="Tarefas"
+        descricao={
+          <>
             Vinculáveis a processo e/ou cliente, com prioridade de baixa a urgente. Boa parte nasce sozinha: o
             <b> escalonamento</b> transforma movimentações com consequência em <b>conferências</b> para o Daniel — e cada
             tarefa puxa a peça, o compromisso ou a movimentação de origem.
-          </p>
-        </div>
-        {novaTarefa}
-      </div>
-
-      {/* contadores */}
-      <div className="pz-counters">
-        <div className="pz-counter"><div className="big">{cPend}</div><div className="lbl">pendentes</div></div>
-        <div className="pz-counter accent"><div className="big">{cConf}</div><div className="lbl">conferências Cowork</div></div>
-        <div className="pz-counter red"><div className="big">{cUrgente}</div><div className="lbl">urgente · liberdade</div></div>
-        <div className="pz-counter"><div className="big amber">{cDistribuir}</div><div className="lbl">a distribuir</div></div>
-      </div>
+          </>
+        }
+        acoes={novaTarefa}
+        kpis={[
+          { valor: cPend, label: "pendentes", tone: "neutral" },
+          { valor: cConf, label: "conferências Cowork", tone: "accent" },
+          { valor: cUrgente, label: "urgente · liberdade", tone: "red" },
+          { valor: cDistribuir, label: "a distribuir", tone: "amber" },
+        ]}
+      />
 
       {/* filtros */}
       <div className="tk-filters">

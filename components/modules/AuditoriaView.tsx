@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { fmtNum } from "@/lib/format";
+import { PageHeader } from "@/components/PageHeader";
 import { tipoDeTabela, linkNavegavel } from "@/lib/links";
 import type { EventoAuditoriaRico } from "@/lib/data";
 
@@ -80,26 +81,25 @@ export function AuditoriaView({
 
   return (
     <div className="aud-page">
-      {/* cabeçalho */}
-      <div className="aud-head">
-        <div className="lhs">
-          <div className="eyebrow">Log imutável · a prova</div>
-          <h1>Auditoria</h1>
-          <p>
+      {/* cabeçalho heritage + KPIs */}
+      <PageHeader
+        breadcrumb={["Gestão", "Auditoria"]}
+        eyebrow="Log imutável · a prova"
+        titulo="Auditoria"
+        descricao={
+          <>
             Toda operação fica registrada por <code>fn_auditar</code> com os dados antes/depois e a origem.{" "}
             <b>Relatório de agente não é prova — a auditoria é.</b> {fmtNum(total)} eventos no total.
-          </p>
-        </div>
-        <button type="button" className="btn"><Export />Exportar período</button>
-      </div>
-
-      {/* KPIs */}
-      <div className="aud-kpis">
-        <div className="aud-kpi"><div className="lbl">Eventos · 24h</div><div className="big">{contadores.eventos24h}</div><div className="cap mono">vw_relatorio_diario</div></div>
-        <div className="aud-kpi"><div className="lbl green"><span className="d" />INSERT</div><div className="big">{contadores.insert}</div><div className="cap mono">capturas + cadastros</div></div>
-        <div className="aud-kpi"><div className="lbl blue"><span className="d" />UPDATE</div><div className="big">{contadores.update}</div><div className="cap mono">validações + baixas</div></div>
-        <div className="aud-kpi"><div className="lbl red"><span className="d" />DELETE</div><div className="big">{contadores.delete}</div><div className="cap mono">bloqueado por fn_bloquear</div></div>
-      </div>
+          </>
+        }
+        acoes={<button type="button" className="btn"><Export />Exportar período</button>}
+        kpis={[
+          { valor: contadores.eventos24h, label: "Eventos · 24h", tone: "neutral" },
+          { valor: contadores.insert, label: "INSERT", tone: "green" },
+          { valor: contadores.update, label: "UPDATE", tone: "neutral" },
+          { valor: contadores.delete, label: "DELETE", tone: "red" },
+        ]}
+      />
 
       {/* toolbar */}
       <div className="aud-toolbar">

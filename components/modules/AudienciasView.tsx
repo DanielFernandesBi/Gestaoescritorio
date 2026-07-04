@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { CadastrarAudiencia } from "@/components/CadastrarAudiencia";
+import { PageHeader } from "@/components/PageHeader";
 import { validarAudiencia, redesignarAudiencia, cancelarAudiencia, baixarAudiencia, atualizarAudiencia } from "@/app/actions";
 import { AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE, RESPONSAVEIS } from "@/lib/enums";
 import { linkPara } from "@/lib/links";
@@ -359,26 +360,25 @@ export function AudienciasView({ audiencias }: { audiencias: AudienciaCard[] }) 
 
   return (
     <div className="pz-page">
-      {/* cabeçalho */}
-      <div className="pz-head">
-        <div className="lhs">
-          <div className="eyebrow">Designadas · provisórias até validar</div>
-          <h1>Audiências</h1>
-          <p>
+      {/* cabeçalho heritage + KPIs */}
+      <PageHeader
+        breadcrumb={["Trabalho", "Audiências"]}
+        eyebrow="Designadas · provisórias até validar"
+        titulo="Audiências"
+        descricao={
+          <>
             Instrução, custódia, júri e sessões de julgamento. A captura cria a audiência <b>provisória</b> e visível na
             /agenda; a validação do Daniel confirma data e local. Sessão <b>virtual</b> dos tribunais superiores ≠ videoconferência.
-          </p>
-        </div>
-        <CadastrarAudiencia />
-      </div>
-
-      {/* contadores */}
-      <div className="pz-counters">
-        <div className="pz-counter blue"><div className="big">{cAmanha}</div><div className="lbl">amanhã</div></div>
-        <div className="pz-counter accent"><div className="big">{cValidar}</div><div className="lbl">a validar · provisórias</div></div>
-        <div className="pz-counter"><div className="big">{cProx7}</div><div className="lbl">designadas · próx. 7 dias</div></div>
-        <div className="pz-counter"><div className="big slate">{cVirtual}</div><div className="lbl">sessão virtual em curso</div></div>
-      </div>
+          </>
+        }
+        acoes={<CadastrarAudiencia />}
+        kpis={[
+          { valor: cAmanha, label: "amanhã", tone: "neutral" },
+          { valor: cValidar, label: "a validar · provisórias", tone: "accent" },
+          { valor: cProx7, label: "designadas · próx. 7 dias", tone: "neutral" },
+          { valor: cVirtual, label: "sessão virtual em curso", tone: "neutral" },
+        ]}
+      />
 
       {/* toolbar */}
       <div className="pz-toolbar">

@@ -1,6 +1,7 @@
 import { getAgendaEventos, type AgendaEvento } from "@/lib/data";
 import { estado } from "@/lib/agenda";
 import { AgendaMes } from "@/components/modules/AgendaMes";
+import { PageHeader } from "@/components/PageHeader";
 import { SegredoTag } from "@/components/ui";
 import { fmtTime } from "@/lib/format";
 import { linkPara } from "@/lib/links";
@@ -147,18 +148,19 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="ag-page">
-      <div className="ag-head">
-        <div className="lhs">
-          <div className="eyebrow">Próximos 7 dias · prazos, audiências e compromissos</div>
-          <h1>Agenda</h1>
-          <p>Prazos, audiências e compromissos da semana. Eventos provisórios da triagem aguardam validação.</p>
-        </div>
-        <div className="ag-views">
-          <Link className={`ag-vbtn${view === "semana" ? " on" : ""}`} href={mHref("semana")}>Semana</Link>
-          <Link className={`ag-vbtn${view === "lista" ? " on" : ""}`} href={mHref("lista")}>Lista</Link>
-          <Link className={`ag-vbtn${view === "mes" ? " on" : ""}`} href={mHref("mes")}>Mês</Link>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={["Hoje", "Agenda"]}
+        eyebrow="Próximos 7 dias · prazos, audiências e compromissos"
+        titulo="Agenda"
+        descricao="Prazos, audiências e compromissos da semana. Eventos provisórios da triagem aguardam validação."
+        acoes={
+          <div className="ag-views">
+            <Link className={`ag-vbtn${view === "semana" ? " on" : ""}`} href={mHref("semana")}>Semana</Link>
+            <Link className={`ag-vbtn${view === "lista" ? " on" : ""}`} href={mHref("lista")}>Lista</Link>
+            <Link className={`ag-vbtn${view === "mes" ? " on" : ""}`} href={mHref("mes")}>Mês</Link>
+          </div>
+        }
+      />
 
       {/* legenda */}
       <div className="ag-legend">

@@ -2,6 +2,7 @@ import { getPecas, getPecasProtocoladas } from "@/lib/data";
 import { getUserEmail } from "@/lib/queries";
 import { socioDoEmail } from "@/lib/allowlist";
 import { ProducaoBoard, NovaPeca, ReanalisarFila } from "@/components/modules/ProducaoBoard";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -10,20 +11,23 @@ export default async function ProducaoPage() {
   const socio = socioDoEmail(email);
   return (
     <>
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">Operação · backlog de escrita</div>
-          <h1>Produção de peças</h1>
-          <p>
+      <PageHeader
+        breadcrumb={["Trabalho", "Produção · peças"]}
+        eyebrow="Operação · backlog de escrita"
+        titulo="Produção de peças"
+        descricao={
+          <>
             Iniciais, recursos e manifestações a produzir. Fecha o ciclo
             intimação → prazo → PEÇA → andamento. Arraste entre as colunas para mover.
-          </p>
-        </div>
-        <div className="acoes">
-          <ReanalisarFila />
-          <NovaPeca />
-        </div>
-      </div>
+          </>
+        }
+        acoes={
+          <>
+            <ReanalisarFila />
+            <NovaPeca />
+          </>
+        }
+      />
       <ProducaoBoard pecas={pecas} protocoladas={protocoladas} socio={socio} />
     </>
   );

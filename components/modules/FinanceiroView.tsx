@@ -6,6 +6,7 @@ import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { BuscaSelect } from "@/components/BuscaSelect";
 import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { marcarPago, criarContrato, criarDespesa, marcarDespesaReembolsada } from "@/app/actions";
 import { DESPESA_CATEGORIA } from "@/lib/enums";
 import { linkPara } from "@/lib/links";
@@ -148,52 +149,53 @@ export function FinanceiroView({
 
   return (
     <div className="fin-page">
-      {/* cabeçalho */}
-      <div className="fin-head">
-        <div className="lhs">
-          <div className="eyebrow">Honorários · contratos · parcelas · despesas</div>
-          <h1>Financeiro</h1>
-          <p>
+      {/* cabeçalho heritage + KPIs */}
+      <PageHeader
+        breadcrumb={["Gestão", "Financeiro"]}
+        eyebrow="Honorários · contratos · parcelas · despesas"
+        titulo="Financeiro"
+        descricao={
+          <>
             Fonte da verdade no Supabase (contratos + parcelas + despesas). Rateio do sócio a 50% do recebido.
             Rode <code>fn_marcar_atrasados()</code> antes de fechar o mês.
-          </p>
-        </div>
-        <div className="acoes">
-          <FormModal label={<><Icon name="wallet" size={15} /> Nova despesa</>} titulo="Nova despesa" descricao="Custas, diligências, cópias…" acao={criarDespesa} enviarLabel="Lançar" variant="default">
-            <div><label>Descrição</label><input name="descricao" required placeholder="Ex.: custas de apelação" /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div><label>Valor (R$)</label><input name="valor" required /></div>
-              <div><label>Categoria</label><select name="categoria" defaultValue="custas">{DESPESA_CATEGORIA.map((c) => <option key={c} value={c}>{humano(c)}</option>)}</select></div>
-            </div>
-            <div><label>Data</label><input type="date" name="data" /></div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, textTransform: "none", letterSpacing: 0 }}>
-              <input type="checkbox" name="reembolsavel" defaultChecked style={{ width: "auto" }} /> Reembolsável pelo cliente
-            </label>
-            <div><label>Observações</label><textarea name="observacoes" /></div>
-          </FormModal>
-          <FormModal label={<><Icon name="folder" size={15} /> Novo contrato</>} titulo="Novo contrato" acao={criarContrato} enviarLabel="Criar">
-            <div><label>Cliente</label>
-              <BuscaSelect name="cliente_id" options={clientes.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente…" />
-            </div>
-            <div><label>Objeto da contratação</label><textarea name="objeto" required placeholder="Ex.: Defesa criminal; execução penal — progressão…" /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div><label>Valor total (R$)</label><input name="valor_total" required placeholder="30000 ou 30.000,00" /></div>
-              <div><label>Data do contrato</label><input type="date" name="data_contrato" /></div>
-            </div>
-            <div><label>Contratante (se ≠ cliente)</label><input name="contratante" placeholder="Ex.: mãe do réu" /></div>
-            <div><label>Forma de pagamento</label><input name="forma_pagamento" placeholder="Entrada + 3x; à vista; quinzenal…" /></div>
-            <div><label>Observações</label><textarea name="observacoes" /></div>
-          </FormModal>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="fin-kpis">
-        <div className="fin-kpi"><div className="lbl green"><span className="d" />A receber · a vencer</div><div className="big">{kBRL(aVencer)}</div><div className="cap mono">{parcelas.length} parcelas em aberto</div></div>
-        <div className="fin-kpi red-card"><div className="lbl red"><span className="d" />Em atraso</div><div className="big red">{kBRL(totalAtraso)}</div><div className="cap mono">{atrasadas.length} parcelas · cobrança prioritária</div></div>
-        <div className="fin-kpi"><div className="lbl blue"><span className="d" />Recebido · acumulado</div><div className="big">{kBRL(recebidoAno)}</div><div className="cap mono">ano corrente · parcelas pagas</div></div>
-        <div className="fin-kpi"><div className="lbl slate"><span className="d" />Contratos vigentes</div><div className="big">{carteira.vigente}<span className="sub"> / {contratos.length}</span></div><div className="cap mono">{carteira.inadimplente} inadimplentes · {carteira.quitado} quitados</div></div>
-      </div>
+          </>
+        }
+        acoes={
+          <>
+            <FormModal label={<><Icon name="wallet" size={15} /> Nova despesa</>} titulo="Nova despesa" descricao="Custas, diligências, cópias…" acao={criarDespesa} enviarLabel="Lançar" variant="default">
+              <div><label>Descrição</label><input name="descricao" required placeholder="Ex.: custas de apelação" /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label>Valor (R$)</label><input name="valor" required /></div>
+                <div><label>Categoria</label><select name="categoria" defaultValue="custas">{DESPESA_CATEGORIA.map((c) => <option key={c} value={c}>{humano(c)}</option>)}</select></div>
+              </div>
+              <div><label>Data</label><input type="date" name="data" /></div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, textTransform: "none", letterSpacing: 0 }}>
+                <input type="checkbox" name="reembolsavel" defaultChecked style={{ width: "auto" }} /> Reembolsável pelo cliente
+              </label>
+              <div><label>Observações</label><textarea name="observacoes" /></div>
+            </FormModal>
+            <FormModal label={<><Icon name="folder" size={15} /> Novo contrato</>} titulo="Novo contrato" acao={criarContrato} enviarLabel="Criar">
+              <div><label>Cliente</label>
+                <BuscaSelect name="cliente_id" options={clientes.map((c) => ({ id: c.id, label: c.nome }))} placeholder="Buscar cliente…" />
+              </div>
+              <div><label>Objeto da contratação</label><textarea name="objeto" required placeholder="Ex.: Defesa criminal; execução penal — progressão…" /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label>Valor total (R$)</label><input name="valor_total" required placeholder="30000 ou 30.000,00" /></div>
+                <div><label>Data do contrato</label><input type="date" name="data_contrato" /></div>
+              </div>
+              <div><label>Contratante (se ≠ cliente)</label><input name="contratante" placeholder="Ex.: mãe do réu" /></div>
+              <div><label>Forma de pagamento</label><input name="forma_pagamento" placeholder="Entrada + 3x; à vista; quinzenal…" /></div>
+              <div><label>Observações</label><textarea name="observacoes" /></div>
+            </FormModal>
+          </>
+        }
+        kpis={[
+          { valor: kBRL(aVencer), label: "A receber · a vencer", tone: "green" },
+          { valor: kBRL(totalAtraso), label: "Em atraso", tone: "red" },
+          { valor: kBRL(recebidoAno), label: "Recebido · acumulado", tone: "neutral" },
+          { valor: <>{carteira.vigente}<span className="sub"> / {contratos.length}</span></>, label: "Contratos vigentes", tone: "neutral" },
+        ]}
+      />
 
       {/* fluxo de caixa */}
       <FluxoCaixa fluxo={fluxo} ano={new Date().getFullYear()} />
