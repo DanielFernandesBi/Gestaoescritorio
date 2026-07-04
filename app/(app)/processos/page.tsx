@@ -92,6 +92,12 @@ export default async function ProcessosPage({ searchParams }: { searchParams: Pr
             </label>
           </FormModal>
         }
+        kpis={[
+          { valor: fmtNum(total), label: "no acervo", tone: "accent" },
+          { valor: fmtNum(porStatus["ativo"] ?? 0), label: "ativos", tone: "green" },
+          { valor: fmtNum(stats.parados), label: "parados ≥30d · inércia", tone: "amber" },
+          { valor: fmtNum(stats.semcnj), label: "sem CNJ · só registro", tone: "neutral" },
+        ]}
       />
       <div className="proc-statusfiltro">
         <span className="proc-statusfiltro-l">Status</span>

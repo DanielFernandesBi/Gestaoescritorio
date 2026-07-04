@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SegredoTag } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 import { mesclarCliente, mesclarProcesso } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 import type { Resultado } from "@/app/actions";
@@ -511,27 +512,26 @@ export function DuplicadosView({
 
   return (
     <div className="dup-page">
-      {/* cabeçalho */}
-      <div className="dup-head">
-        <div className="lhs">
-          <div className="eyebrow">Conferência de identidade · nunca descarta</div>
-          <h1>Duplicados</h1>
-          <p>
+      {/* cabeçalho heritage + KPIs */}
+      <PageHeader
+        breadcrumb={["Gestão", "Duplicados"]}
+        eyebrow="Conferência de identidade · nunca descarta"
+        titulo="Duplicados"
+        descricao={
+          <>
             A IA sinaliza candidatos a duplicata por <code>numero_cnj</code> <b>ou</b> <code>numero_registro_tribunal</code> (STJ/STF)
             e por nome normalizado. Mesclar não apaga: o registro vira <b>tombstone</b> (<code>merged_into</code>) e os vínculos
             religam pelo canônico.
-          </p>
-        </div>
-        <button type="button" className="btn" onClick={() => router.refresh()}><Refresh />Rodar conferência</button>
-      </div>
-
-      {/* contadores */}
-      <div className="dup-counters">
-        <div className="dup-counter accent"><div className="big">{contadores.possiveis_revisar}</div><div className="lbl">possível duplicata · revisar</div></div>
-        <div className="dup-counter"><div className="big">{contadores.clientes_revisar}</div><div className="lbl">clientes · a revisar</div></div>
-        <div className="dup-counter"><div className="big">{contadores.legado_pendente}</div><div className="lbl">CNJ pendente · legado</div></div>
-        <div className="dup-counter"><div className="big green">{contadores.mesclados_30d}</div><div className="lbl">mesclados · 30d</div></div>
-      </div>
+          </>
+        }
+        acoes={<button type="button" className="btn" onClick={() => router.refresh()}><Refresh />Rodar conferência</button>}
+        kpis={[
+          { valor: contadores.possiveis_revisar, label: "possível duplicata · revisar", tone: "accent" },
+          { valor: contadores.clientes_revisar, label: "clientes · a revisar", tone: "amber" },
+          { valor: contadores.legado_pendente, label: "CNJ pendente · legado", tone: "neutral" },
+          { valor: contadores.mesclados_30d, label: "mesclados · 30d", tone: "green" },
+        ]}
+      />
 
       {/* Sug. 54 — FILA REAL de merge (stub só-registro × CNJ do mesmo cliente) */}
       <div className="dup-seclabel">

@@ -2,6 +2,7 @@ import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscalad
 import { getAudiencias, getPecas, getPrazos } from "@/lib/data";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { Pill, SegredoTag, DiasBox } from "@/components/ui";
 import { VerMais } from "@/components/VerMais";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
@@ -99,6 +100,7 @@ export default async function PainelPage() {
   const audProximas = audiencias
     .filter((a) => new Date(a.data_hora).getTime() >= agora - 12 * 3600 * 1000)
     .slice(0, 4);
+  const audHoje = audiencias.filter((a) => a.data_hora?.slice(0, 10) === hojeISO).length;
 
   // Produção: minutas em revisão para o KPI, a varredura e o "onde focar".
   const minutasRevisar = pecas.filter((p) => p.status === "em_revisao").length;
@@ -174,19 +176,28 @@ export default async function PainelPage() {
 
   return (
     <div className="painel-page">
-      <div className="painel-head">
-        <div>
-          <div className="eyebrow">Ritual matinal · {fmtDate(new Date().toISOString())}</div>
-          <h1>{saudacao}{nome ? `, ${nome}` : ""}.</h1>
-          <p>
+      <PageHeader
+        breadcrumb={["Hoje", "Painel"]}
+        eyebrow={`Ritual matinal · ${fmtDate(new Date().toISOString())}`}
+        titulo={`${saudacao}${nome ? `, ${nome}` : ""}.`}
+        descricao={
+          <>
             {varredura && <>Última varredura concluída às <b>{fmtTime(varredura.criado_em)}</b> · </>}
             {stats.pendentes_validacao} validações e {stats.intimacoes_orfas} intimações órfãs aguardam você.
-          </p>
-        </div>
-        <Link className="btn primary" href="/validacao">
-          <Icon name="check" size={15} /> Revisar validações ({stats.pendentes_validacao})
-        </Link>
-      </div>
+          </>
+        }
+        acoes={
+          <Link className="btn primary" href="/validacao">
+            <Icon name="check" size={15} /> Revisar validações ({stats.pendentes_validacao})
+          </Link>
+        }
+        kpis={[
+          { valor: stats.prazos_abertos, label: "prazos abertos", tone: "red" },
+          { valor: stats.pendentes_validacao, label: "a validar · provisórios", tone: "accent" },
+          { valor: audHoje, label: "audiências de hoje", tone: "neutral" },
+          { valor: stats.intimacoes_orfas, label: "intimações órfãs", tone: "amber" },
+        ]}
+      />
 
       {/* LEITURA DO DIA — briefing persistido (Sugestão 65); números seguem da varredura */}
       <div className="focus">

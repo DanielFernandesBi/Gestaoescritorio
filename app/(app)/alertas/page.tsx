@@ -1,6 +1,7 @@
 import { getProcessosParados, getFinanceiro } from "@/lib/data";
 import { getBeneficiosProximos, getUltimaVarredura, getAlertas } from "@/lib/queries";
 import { AlertasView, type Alerta } from "@/components/modules/AlertasView";
+import { PageHeader } from "@/components/PageHeader";
 import { Icon } from "@/components/Icon";
 import { rotuloAlerta, toneAlerta, alvoAlerta, prazoAlerta } from "@/lib/alertas";
 import { fmtDate, fmtBRL, fmtTime, humano } from "@/lib/format";
@@ -116,15 +117,23 @@ export default async function AlertasPage() {
     return (a.dias ?? 9999) - (b.dias ?? 9999);
   });
 
+  const nCrit = alertas.filter((a) => a.severidade === "critico").length;
+  const nParado = alertas.filter((a) => a.categoria === "parado").length;
+
   return (
     <>
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">Radar de riscos</div>
-          <h1>Alertas</h1>
-          <p>O que pode escapar: prazos e audiências no limite, benefícios de execução, processos parados e anomalias da varredura. Críticos no topo.</p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={["Entrada · IA", "Alertas"]}
+        eyebrow="Radar de riscos"
+        titulo="Alertas"
+        descricao="O que pode escapar: prazos e audiências no limite, benefícios de execução, processos parados e anomalias da varredura. Críticos no topo."
+        kpis={[
+          { valor: nCrit, label: "críticos · ação hoje", tone: "red" },
+          { valor: vwAlertas.length, label: "prazos & audiências no radar", tone: "amber" },
+          { valor: nParado, label: "parados ≥30d", tone: "neutral" },
+          { valor: alertas.length, label: "no radar · total", tone: "neutral" },
+        ]}
+      />
 
       {/* Sug. 79 — Central de prazos & audiências (mesma fonte do sino: vw_alertas) */}
       <div className="al-central">

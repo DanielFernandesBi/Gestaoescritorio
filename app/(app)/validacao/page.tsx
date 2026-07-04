@@ -1,5 +1,6 @@
 import { getFilaValidacao } from "@/lib/data";
 import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { DiasBox, SegredoTag } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
@@ -43,15 +44,22 @@ export default async function ValidacaoPage({
 
   return (
     <div className="valida-page">
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">Decisão humana · prioridade do dia</div>
-          <h1>Validação</h1>
-          <p>
+      <PageHeader
+        breadcrumb={["Hoje", "Validação"]}
+        eyebrow="Decisão humana · prioridade do dia"
+        titulo="Validação"
+        descricao={
+          <>
             {total} prazo{total === 1 ? "" : "s"} e audiências provisórios criados pela triagem aguardam sua confirmação.
-          </p>
-        </div>
-      </div>
+          </>
+        }
+        kpis={[
+          { valor: prazos.length, label: "prazos a validar", tone: "accent" },
+          { valor: audiencias.length, label: "audiências a validar", tone: "amber" },
+          { valor: presos, label: "com preso", tone: "red" },
+          { valor: total, label: "total na fila", tone: "neutral" },
+        ]}
+      />
 
       <div className="banner ai">
         <span className="ia-seal">IA</span>

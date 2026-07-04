@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { Pill } from "@/components/ui";
 import { linkPara } from "@/lib/links";
 import { fmtDate, fmtNum, humano } from "@/lib/format";
@@ -82,28 +83,30 @@ export function InerciaView({ processos }: { processos: ProcessoInercia[] }) {
 
   return (
     <div className="inercia-page">
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">Automação · sentinela de ausência</div>
-          <h1>Inércia · silêncio anômalo</h1>
-          <p>
+      <PageHeader
+        breadcrumb={["Entrada · IA", "Inércia · silêncio"]}
+        eyebrow="Automação · sentinela de ausência"
+        titulo="Inércia · silêncio anômalo"
+        descricao={
+          <>
             Todo o pipeline (DJEN/push/Radar) reage à <b>presença</b> de movimento; esta é a única peça que vigia a{" "}
             <b>ausência</b>. Processos <b>ativos com vida</b> cujo silêncio — contado sobre o <b>último movimento real</b>,
             nunca sobre o cadastro — passou do limiar da área/instância. Stub sem vida não entra (é legado da{" "}
             <Link className="link" href="/duplicados">reconciliação de CNJ</Link>).
-          </p>
-        </div>
-        <div className="inc-cta" title="Limiar por área/instância vem de config_sistema/mapa_cadencia_inercia, editável pelo Daniel">
-          <Icon name="clock" size={14} /> Cadência: HC STJ/STF 45d · STJ/STF 60d · execução 180d · 2º grau 120d · default 90d
-        </div>
-      </div>
-
-      <div className="inc-counters">
-        <div className="inc-counter accent"><div className="big">{fmtNum(processos.length)}</div><div className="lbl">em silêncio</div></div>
-        <div className="inc-counter red"><div className="big">{fmtNum(nAlta)}</div><div className="lbl">alta · execução/preso</div></div>
-        <div className="inc-counter"><div className="big">{fmtNum(nExec)}</div><div className="lbl">execução penal</div></div>
-        <div className="inc-counter"><div className="big">{maxDias ? fmtNum(maxDias) : "—"}</div><div className="lbl">maior silêncio (dias)</div></div>
-      </div>
+          </>
+        }
+        acoes={
+          <div className="inc-cta" title="Limiar por área/instância vem de config_sistema/mapa_cadencia_inercia, editável pelo Daniel">
+            <Icon name="clock" size={14} /> Cadência: HC STJ/STF 45d · STJ/STF 60d · execução 180d · 2º grau 120d · default 90d
+          </div>
+        }
+        kpis={[
+          { valor: fmtNum(processos.length), label: "em silêncio", tone: "accent" },
+          { valor: fmtNum(nAlta), label: "alta · execução/preso", tone: "red" },
+          { valor: fmtNum(nExec), label: "execução penal", tone: "neutral" },
+          { valor: maxDias ? fmtNum(maxDias) : "—", label: "maior silêncio (dias)", tone: "neutral" },
+        ]}
+      />
 
       <div className="inc-note">
         <span className="ico"><Icon name="shield" size={14} /></span>

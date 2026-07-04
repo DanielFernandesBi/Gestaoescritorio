@@ -1,26 +1,33 @@
 import Link from "next/link";
 import { getMeusPushesHoje } from "@/lib/push";
 import { fmtTime } from "@/lib/format";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
 export default async function NotificacoesPage() {
   const pushes = await getMeusPushesHoje();
+  const prazoCount = pushes.filter((p) => p.categoria === "prazo").length;
+  const financeiroCount = pushes.filter((p) => p.categoria === "financeiro").length;
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: "22px 20px" }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>
-          Web Push · pessoal
-        </div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--name)", margin: "2px 0 4px" }}>
-          Minhas notificações de hoje
-        </h1>
-        <p style={{ fontSize: 13.5, color: "var(--muted)", margin: 0 }}>
-          Os avisos enviados aos seus aparelhos hoje. Cada item abre a tela de origem.
-          O conteúdo é genérico por sigilo — os detalhes ficam na tela.
-        </p>
-      </div>
+      <PageHeader
+        breadcrumb={["Gestão", "Notificações"]}
+        eyebrow="Web Push · pessoal"
+        titulo="Minhas notificações de hoje"
+        descricao={
+          <>
+            Os avisos enviados aos seus aparelhos hoje. Cada item abre a tela de origem.
+            O conteúdo é genérico por sigilo — os detalhes ficam na tela.
+          </>
+        }
+        kpis={[
+          { valor: pushes.length, label: "avisos hoje", tone: "accent" },
+          { valor: prazoCount, label: "prazos e audiências", tone: "amber" },
+          { valor: financeiroCount, label: "financeiro", tone: "neutral" },
+        ]}
+      />
 
       {pushes.length === 0 ? (
         <div

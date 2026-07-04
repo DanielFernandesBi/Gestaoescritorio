@@ -146,6 +146,14 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const semana = Array.from({ length: 7 }, (_, i) => addDays(hojeISO, i));
   const mHref = (v: string) => `/agenda?view=${v}${v === "mes" ? `&m=${mesRef}` : ""}`;
 
+  // KPIs "próximos 7 dias" — derivados de `eventos` restritos à janela da semana.
+  const na7 = new Set(semana);
+  const ev7 = eventos.filter((e) => na7.has(e.data.slice(0, 10)));
+  const fatais7 = ev7.filter((e) => e.tipo === "prazo" && e.marcador === "fatal").length;
+  const audiencias7 = ev7.filter((e) => e.tipo === "audiencia").length;
+  const compromissos7 = ev7.filter((e) => e.tipo === "compromisso").length;
+  const aValidar7 = ev7.filter((e) => !e.validado && !e.baixado).length;
+
   return (
     <div className="ag-page">
       <PageHeader
@@ -160,6 +168,12 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
             <Link className={`ag-vbtn${view === "mes" ? " on" : ""}`} href={mHref("mes")}>Mês</Link>
           </div>
         }
+        kpis={[
+          { valor: fatais7, label: "fatais · 7 dias", tone: "red" },
+          { valor: audiencias7, label: "audiências · 7 dias", tone: "accent" },
+          { valor: aValidar7, label: "a validar · provisórios", tone: "amber" },
+          { valor: compromissos7, label: "compromissos · 7 dias", tone: "neutral" },
+        ]}
       />
 
       {/* legenda */}

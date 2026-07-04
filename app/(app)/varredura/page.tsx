@@ -1,6 +1,7 @@
 import { getUltimaVarredura, getVarreduras, getWatermarks } from "@/lib/queries";
 import { getPecas, getRadarRecente } from "@/lib/data";
 import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { Pill } from "@/components/ui";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
 import { fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
@@ -47,19 +48,28 @@ export default async function VarreduraPage() {
 
   return (
     <div className="varredura-page">
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">Automação · triagem autônoma</div>
-          <h1>Varredura</h1>
-          <p>
+      <PageHeader
+        breadcrumb={["Entrada · IA", "Varredura"]}
+        eyebrow="Automação · triagem autônoma"
+        titulo="Varredura"
+        descricao={
+          <>
             O Cowork lê DJEN e e-mail, extrai com IA e alimenta o banco — todo dia às <b>22h</b> e sob demanda.
             Nada é deletado; tudo é auditado.
-          </p>
-        </div>
-        <div className="vr-cta" title="A triagem roda no Cloud Scheduler às 22h; sob demanda, peça no chat (Cowork)">
-          <Icon name="clock" size={14} /> Roda 22:00 · ou peça <b>“rode a triagem”</b> no chat
-        </div>
-      </div>
+          </>
+        }
+        acoes={
+          <div className="vr-cta" title="A triagem roda no Cloud Scheduler às 22h; sob demanda, peça no chat (Cowork)">
+            <Icon name="clock" size={14} /> Roda 22:00 · ou peça <b>“rode a triagem”</b> no chat
+          </div>
+        }
+        kpis={[
+          { valor: anomCount, label: "anomalias · última", tone: "amber" },
+          { valor: fmtNum(varredura?.prazos_criados ?? 0), label: "prazos provisórios", tone: "accent" },
+          { valor: fmtNum(varredura?.itens_processados ?? 0), label: "itens lidos · última", tone: "neutral" },
+          { valor: historico.length, label: "ciclos recentes", tone: "neutral" },
+        ]}
+      />
 
       {/* HERO — última execução (mesma fonte do Painel: vw_ultima_varredura) */}
       <div className="scan">

@@ -11,19 +11,11 @@ export default async function AndamentosPage() {
     getMapaProvidenciaPeca(),
   ]);
   return (
-    <>
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">Histórico processual · captura automática</div>
-          <h1>Andamentos</h1>
-          <p>
-            Toda movimentação útil — decisões, despachos, juntadas, pautas — capturada e deduplicada.
-            São informativos; o que tem consequência é escalado para conferência.
-          </p>
-        </div>
-        <RegistrarAndamento />
-      </div>
-      <AndamentosModulo movimentacoes={movimentacoes} orfaos={orfaos} mapa={mapa} />
-    </>
+    <AndamentosModulo
+      movimentacoes={movimentacoes}
+      orfaos={orfaos}
+      mapa={mapa}
+      acoes={<RegistrarAndamento />}
+    />
   );
 }

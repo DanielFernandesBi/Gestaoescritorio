@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { ProcRef, SegredoTag } from "@/components/ui";
 import { linkPara } from "@/lib/links";
 import { fmtNum, humano } from "@/lib/format";
@@ -109,33 +110,27 @@ export function CaixaView({ processos }: { processos: CaixaProcesso[] }) {
     <button key={id} type="button" className={`tk-chip${f === id ? " on" : ""}`} onClick={() => { setF(id); setLimite(CARDS_INICIAIS); }}>{label}</button>
   );
 
-  const counters: [ReactNode, string, string][] = [
-    [fmtNum(processos.length), "processos com trabalho", "accent"],
-    [fmtNum(totIntim), "intimações em aberto", ""],
-    [fmtNum(totPrazo), "prazos abertos", "red"],
-    [fmtNum(totPeca), "peças na produção", ""],
-    [fmtNum(totTar), "tarefas pendentes", ""],
-  ];
-
   return (
     <div className="caixa-page">
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">Trabalho · o que pede providência</div>
-          <h1>Caixa de trabalho</h1>
-          <p>
+      <PageHeader
+        breadcrumb={["Trabalho", "Caixa de trabalho"]}
+        eyebrow="Trabalho · o que pede providência"
+        titulo="Caixa de trabalho"
+        descricao={
+          <>
             Um card por <b>processo</b> com trabalho em aberto: intimações, prazos, peças na produção e tarefas
             pendentes. Cada card mostra os <b>{CARD_ITENS} itens mais urgentes</b> — o restante fica em “expandir”.
             Ordenado pelo <b>fatal mais próximo</b>.
-          </p>
-        </div>
-      </div>
-
-      <div className="cx-counters">
-        {counters.map(([n, lbl, tone], i) => (
-          <div className={`cx-counter ${tone}`} key={i}><div className="big">{n}</div><div className="lbl">{lbl}</div></div>
-        ))}
-      </div>
+          </>
+        }
+        kpis={[
+          { valor: fmtNum(processos.length), label: "processos com trabalho", tone: "accent" },
+          { valor: fmtNum(totIntim), label: "intimações em aberto", tone: "neutral" },
+          { valor: fmtNum(totPrazo), label: "prazos abertos", tone: "red" },
+          { valor: fmtNum(totPeca), label: "peças na produção", tone: "neutral" },
+          { valor: fmtNum(totTar), label: "tarefas pendentes", tone: "amber" },
+        ]}
+      />
 
       {processos.length > 0 && (
         <div className="cx-filters">

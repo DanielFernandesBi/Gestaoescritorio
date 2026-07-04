@@ -11,6 +11,9 @@ export const dynamic = "force-dynamic";
 
 export default async function IntimacoesPage() {
   const [intimacoes, meuId] = await Promise.all([getIntimacoes(), getUserId()]);
+  const nPend = intimacoes.filter((i) => i.status === "pendente").length;
+  const nAnalise = intimacoes.filter((i) => i.status === "em_analise").length;
+  const nSemProv = intimacoes.filter((i) => i.status === "sem_providencia").length;
   return (
     <>
       <PageHeader
@@ -23,6 +26,12 @@ export default async function IntimacoesPage() {
             código de publicação; sem processo identificado entram como órfãs.
           </>
         }
+        kpis={[
+          { valor: nPend, label: "pendentes", tone: "amber" },
+          { valor: nAnalise, label: "em análise", tone: "accent" },
+          { valor: nSemProv, label: "sem providência", tone: "neutral" },
+          { valor: intimacoes.length, label: "total · acervo recente", tone: "neutral" },
+        ]}
         acoes={
           <FormModal
             label={<><Icon name="inbox" size={15} /> Cadastrar intimação</>}

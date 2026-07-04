@@ -10,8 +10,13 @@ import { SITUACAO_PRISIONAL } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
+const PRESO = new Set(["preso_provisorio", "preso_definitivo"]);
+
 export default async function ClientesPage() {
   const [clientes, indice] = await Promise.all([getAcervoClientes(), getClientes()]);
+  const nPresos = clientes.filter((c) => c.situacao_prisional && PRESO.has(c.situacao_prisional)).length;
+  const nExec = clientes.filter((c) => c.em_execucao).length;
+  const nInad = clientes.filter((c) => c.inadimplente).length;
   return (
     <ListaRaiz indice={<ClienteMaster lista={indice} />}>
       <PageHeader
@@ -35,6 +40,12 @@ export default async function ClientesPage() {
             </label>
           </FormModal>
         }
+        kpis={[
+          { valor: clientes.length, label: "clientes · ativos", tone: "accent" },
+          { valor: nPresos, label: "presos · liberdade", tone: "red" },
+          { valor: nExec, label: "em execução penal", tone: "amber" },
+          { valor: nInad, label: "inadimplentes · cobrança", tone: "neutral" },
+        ]}
       />
       <ClientesList clientes={clientes} />
     </ListaRaiz>

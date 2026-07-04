@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Chips } from "@/components/Chips";
+import { PageHeader } from "@/components/PageHeader";
 import { AndamentosTimeline } from "@/components/modules/AndamentosTimeline";
 import { AndamentosOrfaosList } from "@/components/modules/AndamentosOrfaosList";
 import type { Movimentacao, AndamentoOrfao } from "@/lib/data";
@@ -22,10 +23,12 @@ export function AndamentosModulo({
   movimentacoes,
   orfaos,
   mapa = null,
+  acoes,
 }: {
   movimentacoes: Movimentacao[];
   orfaos: AndamentoOrfao[];
   mapa?: MapaProvidencia | null;
+  acoes?: ReactNode;
 }) {
   const [aba, setAba] = useState("recentes");
   const [orig, setOrig] = useState("todas");
@@ -56,26 +59,29 @@ export function AndamentosModulo({
     [movimentacoes, aba, orig],
   );
 
-  const stats = [
-    { id: "recentes", n: movimentacoes.length, label: "Recentes · últimos 7 dias" },
-    { id: "escalados", n: nEscalados, label: "Escalados · conferência" },
-    { id: "orfaos", n: orfaos.length, label: "Órfãos · sem processo" },
-    { id: "decisoes", n: nDecisoes, label: "Decisões · mérito/despacho" },
-  ];
-
   return (
     <>
+      <PageHeader
+        breadcrumb={["Entrada · IA", "Andamentos"]}
+        eyebrow="Histórico processual · captura automática"
+        titulo="Andamentos"
+        descricao={
+          <>
+            Toda movimentação útil — decisões, despachos, juntadas, pautas — capturada e deduplicada.
+            São informativos; o que tem consequência é escalado para conferência.
+          </>
+        }
+        acoes={acoes}
+        kpis={[
+          { valor: movimentacoes.length, label: "Recentes · últimos 7 dias", tone: "neutral" },
+          { valor: nEscalados, label: "Escalados · conferência", tone: "amber" },
+          { valor: orfaos.length, label: "Órfãos · sem processo", tone: "red" },
+          { valor: nDecisoes, label: "Decisões · mérito/despacho", tone: "accent" },
+        ]}
+      />
+
       <Chips options={abas} value={aba} onChange={irAba} />
       {aba !== "orfaos" && <Chips options={ORIGENS} value={orig} onChange={irOrig} />}
-
-      <div className="stat-row">
-        {stats.map((s) => (
-          <button key={s.id} type="button" className={`stat${aba === s.id ? " on" : ""}`} onClick={() => irAba(s.id)}>
-            <b>{s.n}</b>
-            <span>{s.label}</span>
-          </button>
-        ))}
-      </div>
 
       {aba === "orfaos" ? (
         <AndamentosOrfaosList orfaos={orfaos} />

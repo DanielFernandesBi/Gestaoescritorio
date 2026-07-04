@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Acao } from "@/components/Acao";
+import { PageHeader } from "@/components/PageHeader";
 import { atualizarSugestao } from "@/app/actions";
 import { fmtNum, fmtDate } from "@/lib/format";
 import type { Sugestao } from "@/lib/data";
@@ -115,17 +116,24 @@ export function SistemaView({
 
   return (
     <div className="sis-page">
-      {/* cabeçalho */}
-      <div className="sis-head">
-        <div className="lhs">
-          <div className="eyebrow">Manual vivo · só leitura · DDL com autorização</div>
-          <h1>Sistema &amp; evolução</h1>
-          <p>
+      {/* cabeçalho heritage + KPIs */}
+      <PageHeader
+        breadcrumb={["Gestão", "Sistema · evolução"]}
+        eyebrow="Manual vivo · só leitura · DDL com autorização"
+        titulo="Sistema & evolução"
+        descricao={
+          <>
             Quando o sistema precisa de campo, tabela ou view nova, a IA registra a melhoria em <code>sugestoes_sistema</code>{" "}
             com o SQL pronto. Nada é executado aqui: a DDL só roda com autorização do Daniel, registrada em <code>migracoes</code>.
-          </p>
-        </div>
-      </div>
+          </>
+        }
+        kpis={[
+          { valor: nPend, label: "pendentes", tone: "amber" },
+          { valor: nAprov, label: "aprovadas", tone: "accent" },
+          { valor: migracoesCount, label: "executadas · migrações", tone: "green" },
+          { valor: estrutura.length, label: "tabelas no banco", tone: "neutral" },
+        ]}
+      />
 
       {/* aviso só-leitura */}
       <div className="sis-banner">
@@ -150,14 +158,6 @@ export function SistemaView({
             Ver minhas notificações de hoje →
           </Link>
         </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="sis-kpis">
-        <div className="sis-kpi accent"><div className="big">{nPend}</div><div className="lbl">pendentes</div></div>
-        <div className="sis-kpi"><div className="big">{nAprov}</div><div className="lbl">aprovadas</div></div>
-        <div className="sis-kpi"><div className="big">{migracoesCount}</div><div className="lbl">executadas · migrações</div></div>
-        <div className="sis-kpi"><div className="big">{estrutura.length}</div><div className="lbl">tabelas no banco</div></div>
       </div>
 
       {/* tabs */}
