@@ -5,7 +5,9 @@ import { Acao } from "@/components/Acao";
 import { atualizarSugestao } from "@/app/actions";
 import { fmtNum, fmtDate } from "@/lib/format";
 import type { Sugestao } from "@/lib/data";
+import Link from "next/link";
 import PushOptIn from "@/components/PushOptIn";
+import PushCategorias from "@/components/PushCategorias";
 
 const Spark = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" style={{ fill: "var(--accent)" }} aria-hidden><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z" /></svg>
@@ -131,18 +133,23 @@ export function SistemaView({
         <div><b>Tela só de leitura.</b> Aprovar / executada / rejeitar apenas registra a decisão — nenhuma DDL é executada pela interface.</div>
       </div>
 
-      {/* Notificações do aparelho (Sug. 81 — PWA + Web Push) */}
-      <div
-        className="sis-banner"
-        style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}
-      >
-        <span className="ico"><Gear /></span>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <b>Notificações neste aparelho.</b> Ative para receber avisos de
-          prazos/audiências e do financeiro do dia. É por aparelho — repita no
-          celular após instalar o app (Adicionar à Tela de Início no iPhone).
+      {/* Notificações do aparelho (Sug. 81 — PWA + Web Push, fase 2) */}
+      <div className="sis-banner" style={{ display: "block" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <span className="ico"><Gear /></span>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <b>Notificações neste aparelho.</b> Ative para receber os avisos do
+            dia (por volta das 10h). É por aparelho — repita no celular após
+            instalar o app (Adicionar à Tela de Início no iPhone).
+          </div>
+          <PushOptIn />
         </div>
-        <PushOptIn />
+        <PushCategorias />
+        <div style={{ marginTop: 10 }}>
+          <Link href="/notificacoes" style={{ fontSize: 13, fontWeight: 600, color: "var(--accent-strong, var(--accent))", textDecoration: "none" }}>
+            Ver minhas notificações de hoje →
+          </Link>
+        </div>
       </div>
 
       {/* KPIs */}
