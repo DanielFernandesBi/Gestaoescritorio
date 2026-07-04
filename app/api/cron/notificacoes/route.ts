@@ -177,11 +177,22 @@ export async function GET(req: NextRequest) {
 
   garantirVapid();
 
-  // Sem categoria (ou "todas") → roda as 5 EM SEQUÊNCIA (é o disparo das 10h).
-  // Com uma categoria válida → só ela (útil para teste manual).
+  // categoria pode ser: ausente (roda as 5), uma só, ou um GRUPO separado por
+  // vírgula (ex.: "prazo,intimacao,financeiro"). Assim o vercel.json agenda
+  // grupos em horários diferentes sem multiplicar rotas.
   const param = req.nextUrl.searchParams.get("categoria");
-  const alvo: readonly Categoria[] =
-    param && (CATEGORIAS as readonly string[]).includes(param) ? [param as Categoria] : CATEGORIAS;
+  let alvo: Categoria[];
+  if (param) {
+    alvo = param
+      .split(",")
+      .map((s) => s.trim())
+      .filter((c): c is Categoria => (CATEGORIAS as readonly string[]).includes(c));
+    if (!alvo.length) {
+      return NextResponse.json({ error: "categoria(s) inválida(s)" }, { status: 400 });
+    }
+  } else {
+    alvo = [...CATEGORIAS];
+  }
 
   try {
     const resultados = [];
