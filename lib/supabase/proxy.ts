@@ -38,7 +38,10 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isPublic =
-    path.startsWith("/login") || path.startsWith("/auth");
+    path.startsWith("/login") ||
+    path.startsWith("/auth") ||
+    // Cron do Vercel: chega sem sessão, autentica por Bearer na própria rota.
+    path.startsWith("/api/cron");
 
   // Sem usuário válido em rota protegida → manda para o login.
   if (!claims && !isPublic) {
