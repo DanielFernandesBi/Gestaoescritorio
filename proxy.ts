@@ -9,8 +9,11 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Roda em tudo, exceto estáticos e imagens:
+     * Roda em tudo, exceto estáticos, imagens e os arquivos públicos do PWA.
+     * manifest.json, sw.js e /icons precisam ser servidos SEM o gate de auth —
+     * senão o middleware os redireciona pro /login e o Chrome não reconhece o
+     * site como instalável (Sug. 81).
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
