@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Acao } from "@/components/Acao";
 import { CadastrarPrazo } from "@/components/CadastrarPrazo";
+import { PageHeader } from "@/components/PageHeader";
 import { PromoverOrfao, type ProcLite, type CliLite } from "@/components/PromoverOrfao";
 import { validarPrazo, baixarPrazo } from "@/app/actions";
 import { linkPara } from "@/lib/links";
@@ -295,26 +296,25 @@ export function PrazosView({ prazos, orfaos }: { prazos: PrazoCard[]; orfaos: Pr
 
   return (
     <div className="pz-page">
-      {/* cabeçalho */}
-      <div className="pz-head">
-        <div className="lhs">
-          <div className="eyebrow">Penais · dias corridos · CPP art. 798</div>
-          <h1>Prazos</h1>
-          <p>
+      {/* cabeçalho heritage + KPIs */}
+      <PageHeader
+        breadcrumb={["Trabalho", "Prazos"]}
+        eyebrow="Penais · dias corridos · CPP art. 798"
+        titulo="Prazos"
+        descricao={
+          <>
             Contínuos e peremptórios; fatal em fim de semana/feriado prorroga para o próximo dia útil. O prazo da
             automação nasce <b>provisório</b> mas <b>visível na /agenda</b>; vira fatal vermelha só com a validação do Daniel.
-          </p>
-        </div>
-        <CadastrarPrazo />
-      </div>
-
-      {/* contadores */}
-      <div className="pz-counters">
-        <div className="pz-counter red"><div className="big">{fatal2}</div><div className="lbl">fatal em ≤2 dias</div></div>
-        <div className="pz-counter accent"><div className="big">{aValidar}</div><div className="lbl">a validar · provisórios</div></div>
-        <div className="pz-counter"><div className="big">{totalAbertos}</div><div className="lbl">abertos no total</div></div>
-        <div className="pz-counter"><div className="big amber">{orfaos.length}</div><div className="lbl">órfãos · sem processo</div></div>
-      </div>
+          </>
+        }
+        acoes={<CadastrarPrazo />}
+        kpis={[
+          { valor: fatal2, label: "fatal em ≤2 dias", tone: "red" },
+          { valor: aValidar, label: "a validar · provisórios", tone: "accent" },
+          { valor: totalAbertos, label: "abertos no total", tone: "neutral" },
+          { valor: orfaos.length, label: "órfãos · sem processo", tone: "amber" },
+        ]}
+      />
 
       {/* toolbar */}
       <div className="pz-toolbar">

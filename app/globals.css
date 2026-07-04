@@ -134,6 +134,44 @@ body.nav-locked{overflow:hidden}
 .page-head p{color:var(--muted);font-size:13.5px;margin-top:3px}
 .page-head .eyebrow{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:4px}
 
+/* ===== PageHeader "heritage" (Sug. 81 adendo UI) — faixa escura emoldurada +
+   KPIs tonalizados. Só tokens; a faixa é escura nos dois temas, como a sidebar. */
+.ph{border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-lg);background:var(--surface);margin-bottom:22px}
+.ph-band{position:relative;background:linear-gradient(135deg,var(--rail),var(--rail-2));padding:22px 28px}
+.ph-band::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,var(--brass),transparent 60%)}
+.ph-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.ph-crumb{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);min-width:0}
+.ph-crumb .sep{opacity:.45}
+.ph-crumb .crumb-i:last-child{color:rgba(255,255,255,.82)}
+.ph-ctx{display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(255,255,255,.66);white-space:nowrap}
+.ph-ctx .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 30%,transparent)}
+.ph-main{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.ph-lhs{flex:1;min-width:0}
+.ph-eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:color-mix(in srgb,var(--brass) 55%,#fff)}
+.ph-title{font-family:var(--serif);font-weight:400;font-size:36px;line-height:1.05;color:#fff;margin:7px 0 0}
+.ph-desc{color:rgba(255,255,255,.72);font-size:13.5px;line-height:1.5;margin:8px 0 0;max-width:560px}
+.ph-acoes{flex:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ph-kpis{display:grid;grid-template-columns:repeat(var(--ph-kpi-n,4),1fr);gap:12px;padding:14px;background:var(--surface)}
+.ph-kpi{border-radius:var(--radius-sm);padding:13px 15px;background:var(--surface-2);border:1px solid var(--line-soft)}
+.ph-kpi .v{font-family:var(--serif);font-size:28px;line-height:1;color:var(--ink)}
+.ph-kpi .l{font-size:11px;color:var(--muted);margin-top:5px}
+.ph-kpi.red{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 22%,transparent)}
+.ph-kpi.red .v{color:var(--red)}
+.ph-kpi.amber{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 22%,transparent)}
+.ph-kpi.amber .v{color:var(--amber)}
+.ph-kpi.green{background:var(--green-soft);border-color:color-mix(in srgb,var(--green) 22%,transparent)}
+.ph-kpi.green .v{color:var(--green)}
+.ph-kpi.accent{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 26%,transparent)}
+.ph-kpi.accent .v{color:var(--accent-strong)}
+.ph-kpi.neutral .v{color:var(--ink)}
+@media (max-width:900px){
+  .ph-band{padding:18px 18px}
+  .ph-title{font-size:29px}
+  .ph-main{align-items:flex-start}
+  .ph-acoes{width:100%}
+  .ph-kpis{grid-template-columns:repeat(2,1fr)}
+}
+
 /* ---------- Buttons / chips ---------- */
 .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--text);transition:.12s}
 .btn:hover{border-color:var(--muted-2)}
