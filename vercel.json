@@ -1,12 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/notificacoes?categoria=prazo",
-      "schedule": "5 11 * * *"
-    },
-    {
-      "path": "/api/cron/notificacoes?categoria=financeiro",
-      "schedule": "35 11 * * *"
+      "path": "/api/cron/notificacoes",
+      "schedule": "0 13 * * *"
     }
   ]
 }
