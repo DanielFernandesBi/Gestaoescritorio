@@ -7,8 +7,6 @@ export const dynamic = "force-dynamic";
 
 export default async function NotificacoesPage() {
   const pushes = await getMeusPushesHoje();
-  const prazoCount = pushes.filter((p) => p.categoria === "prazo").length;
-  const financeiroCount = pushes.filter((p) => p.categoria === "financeiro").length;
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: "22px 20px" }}>
@@ -24,8 +22,7 @@ export default async function NotificacoesPage() {
         }
         kpis={[
           { valor: pushes.length, label: "avisos hoje", tone: "accent" },
-          { valor: prazoCount, label: "prazos e audiências", tone: "amber" },
-          { valor: financeiroCount, label: "financeiro", tone: "neutral" },
+          { valor: <>{pushes.length}<span className="sub"> / 5</span></>, label: "categorias ativas", tone: "neutral" },
         ]}
       />
 
