@@ -12,8 +12,21 @@ function urlBase64ToUint8Array(base64String: string) {
 
 type Status = "idle" | "subscribing" | "subscribed" | "unsupported" | "denied" | "error";
 
+type TesteStatus = "idle" | "enviando" | "ok" | "erro";
+
 export default function PushOptIn() {
   const [status, setStatus] = useState<Status>("idle");
+  const [teste, setTeste] = useState<TesteStatus>("idle");
+
+  async function enviarTeste() {
+    setTeste("enviando");
+    try {
+      const res = await fetch("/api/push/test", { method: "POST" });
+      setTeste(res.ok ? "ok" : "erro");
+    } catch {
+      setTeste("erro");
+    }
+  }
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -59,7 +72,31 @@ export default function PushOptIn() {
 
   if (status === "unsupported") return null; // navegador sem suporte, não mostra nada
   if (status === "subscribed") {
-    return <span style={{ fontSize: 13, opacity: 0.7 }}>Notificações ativadas neste aparelho.</span>;
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, opacity: 0.7 }}>Notificações ativadas neste aparelho.</span>
+        <button
+          onClick={enviarTeste}
+          disabled={teste === "enviando"}
+          style={{
+            background: "transparent",
+            color: "#0d1b33",
+            border: "1px solid currentColor",
+            borderRadius: 8,
+            padding: "5px 10px",
+            fontWeight: 600,
+            cursor: "pointer",
+            fontSize: 12,
+            opacity: 0.85,
+          }}
+        >
+          {teste === "enviando" ? "Enviando…" : teste === "ok" ? "Enviado ✓" : "Enviar teste"}
+        </button>
+        {teste === "erro" && (
+          <span style={{ fontSize: 12, opacity: 0.7 }}>Não deu certo, tenta de novo.</span>
+        )}
+      </span>
+    );
   }
 
   return (
