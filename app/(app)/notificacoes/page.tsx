@@ -16,7 +16,7 @@ export default async function NotificacoesPage() {
   const totalItens = grupos.reduce((n, g) => n + g.itens.length, 0);
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "22px 20px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <PageHeader
         breadcrumb={["Gestão", "Notificações"]}
         eyebrow="Web Push · pessoal"
