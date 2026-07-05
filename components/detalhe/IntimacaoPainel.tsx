@@ -429,7 +429,9 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
               ? <EncaminharPrazo i={i} sug={sug} label={<><Clock /> Encaminhar → prazo</>} variant="primary" />
               : <BotaoTravado label={<><Clock /> Encaminhar → prazo</>} motivo={dec.motivo} variant="primary" />
           )}
-          <CriarPecaPendente tipoOrigem="intimacao" origemId={i.id} texto={i.providencia || i.resumo} baseTitulo={i.resumo} mapa={mapa} />
+          {podeDecidir
+            ? <CriarPecaPendente tipoOrigem="intimacao" origemId={i.id} texto={i.providencia || i.resumo} baseTitulo={i.resumo} mapa={mapa} />
+            : <BotaoTravado label="+ Criar petição pendente" motivo={dec.motivo} />}
           <NovaTarefaIntim i={i} label={<><TaskIco /> Nova tarefa</>} />
           {i.orfa
             ? <PromoverProcessoForm titulo="Vincular processo" descricao="Identifica/cadastra o processo e vincula a intimação." acao={promoverOrfa.bind(null, "intimacao", i.id)} procs={procs} clis={clis} enviarLabel="Vincular" />
