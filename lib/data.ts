@@ -924,7 +924,7 @@ export async function getIntimacaoFull(id: string): Promise<IntimacaoFull | null
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
     supabase.from("prazos").select("id, ato, data_fatal, validado").eq("intimacao_id", id).eq("status", "aberto").order("data_fatal", { ascending: true }),
     supabase.from("pecas").select("id, titulo, status").eq("intimacao_id", id),
-    supabase.from("vw_intimacoes_contexto").select("revisado_em, revisado_por, leram_ids, leram_rotulos, qtd_leituras").eq("intimacao_id", id).maybeSingle(),
+    supabase.from("vw_intimacoes_contexto").select("revisado_em, revisado_por, leram_ids, leram_rotulos, qtd_leituras, na_caixa, tem_prazo, tem_peca").eq("intimacao_id", id).maybeSingle(),
   ]);
 
   const clienteRefs: ParteRefLite[] = [];
@@ -959,6 +959,10 @@ export async function getIntimacaoFull(id: string): Promise<IntimacaoFull | null
     leram_ids: (s?.leram_ids as string[] | null) ?? [],
     leram_rotulos: (s?.leram_rotulos as string[] | null) ?? [],
     qtd_leituras: Number(s?.qtd_leituras ?? 0),
+    // Sinais de FLUXO (Sug. 53) para o gate de "decisão" no drawer.
+    na_caixa: Boolean(s?.na_caixa),
+    tem_prazo: Boolean(s?.tem_prazo),
+    tem_peca: Boolean(s?.tem_peca),
     clienteRefs,
     prazo,
     peca,

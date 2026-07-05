@@ -173,6 +173,49 @@ function NovaTarefaIntim({ i, label, variant = "default" }: { i: IntimacaoFull; 
 }
 
 /* ── componente principal ────────────────────────────────────────────────── */
+// Estado de DECISÃO DE FLUXO (Sug. 53) — fonte: vw_intimacoes_contexto (status,
+// na_caixa) + os vínculos ABERTO/não-terminal (prazo/peça). Só está "aberta para
+// decisão" quando status='pendente' E na_caixa=true; caso contrário já foi
+// decidida/encaminhada e os botões de fluxo travam.
+type DecInfo = { aberta: boolean; selo: string; motivo: string };
+function classificarDecisao(i: IntimacaoFull): DecInfo {
+  if (i.status === "pendente" && i.na_caixa === true) return { aberta: true, selo: "", motivo: "" };
+  if (i.status === "arquivada") return { aberta: false, selo: "Arquivada", motivo: "Arquivada" };
+  if (i.prazo || i.peca) return { aberta: false, selo: `Encaminhada · ${i.prazo ? "tem prazo" : "tem peça"}`, motivo: "Já encaminhada (tem prazo/peça)" };
+  if (i.status === "sem_providencia") return { aberta: false, selo: "Decidida · sem providência", motivo: "Já decidida: sem providência" };
+  if (i.status === "providencia_tomada") return { aberta: false, selo: "Decidida · providência tomada", motivo: "Providência já tomada" };
+  if (i.status === "em_analise") return { aberta: false, selo: "Em análise", motivo: "Em análise" };
+  return { aberta: false, selo: "Já encaminhada", motivo: "Já encaminhada" };
+}
+
+// Botão de fluxo TRAVADO: visível, desabilitado, cadeado + tooltip (a11y).
+function BotaoTravado({ label, motivo, variant = "default" }: { label: ReactNode; motivo: string; variant?: string }) {
+  return (
+    <button type="button" className={`btn ${variant}`} disabled aria-disabled="true" title={motivo} style={{ opacity: 0.55, cursor: "not-allowed" }}>
+      🔒 {label}
+    </button>
+  );
+}
+
+// Reabrir decisão — desfaz o travamento SÓ após confirmar (nunca em clique único).
+function ReabrirDecisao({ onReabrir }: { onReabrir: () => void }) {
+  const [confirmar, setConfirmar] = useState(false);
+  if (!confirmar) {
+    return (
+      <button type="button" className="btn default" onClick={() => setConfirmar(true)} title="Desfazer a decisão e permitir novo encaminhamento">
+        ↻ Reabrir decisão
+      </button>
+    );
+  }
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 12, color: "var(--muted)" }}>Reabrir esta intimação e permitir novo encaminhamento?</span>
+      <button type="button" className="btn sm primary" onClick={onReabrir}>Sim, reabrir</button>
+      <button type="button" className="btn sm" onClick={() => setConfirmar(false)}>Cancelar</button>
+    </span>
+  );
+}
+
 export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: IntimacaoFull; lista: Intimacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; meuId: string | null }) {
   const [verNotas, setVerNotas] = useState(false);
   const [procs, setProcs] = useState<{ id: string; label: string }[]>([]);
@@ -186,7 +229,10 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
   }, []);
 
   const sug = useMemo(() => sugerirPeca(i.providencia || i.resumo, mapa), [i.providencia, i.resumo, mapa]);
-  const ativa = i.status !== "arquivada";
+  // Decisão de fluxo: trava os botões que mudam a decisão quando já decidida.
+  const dec = classificarDecisao(i);
+  const [reaberto, setReaberto] = useState(false);
+  const podeDecidir = dec.aberta || reaberto;
   const temCobertura = Boolean(i.codigo_publicacao);
 
   return (
@@ -209,6 +255,20 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
               {ehIA(i.cadastrado_por) && <span className="pz-tag cowork"><Spark s={9} />extraída pela IA</span>}
               {i.orfa && <span className="pz-tag orfa">órfã</span>}
               {i.segredo && <span className="pz-tag segredo">🔒 segredo de justiça</span>}
+              {!dec.aberta && (
+                <span
+                  className="pz-tag"
+                  title={dec.motivo}
+                  style={{
+                    background: "color-mix(in srgb, var(--brass) 16%, transparent)",
+                    color: "var(--brass)",
+                    border: "1px solid color-mix(in srgb, var(--brass) 32%, transparent)",
+                    fontWeight: 700,
+                  }}
+                >
+                  🔒 {dec.selo}{reaberto ? " · reaberta para edição" : ""}
+                </span>
+              )}
             </div>
             <div className="int-ident">
               {i.orfa ? (
@@ -322,7 +382,9 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
                 ) : !i.orfa ? (
                   <div className="przp-empty-row">
                     <span>Ainda sem prazo lançado.</span>
-                    <EncaminharPrazo i={i} sug={sug} label={<><Clock /> Encaminhar → prazo</>} />
+                    {podeDecidir
+                      ? <EncaminharPrazo i={i} sug={sug} label={<><Clock /> Encaminhar → prazo</>} />
+                      : <BotaoTravado label={<><Clock /> Encaminhar → prazo</>} motivo={dec.motivo} />}
                   </div>
                 ) : null}
               </div>
@@ -344,12 +406,17 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
               <button type="button" className={`btn default${verNotas ? " on" : ""}`} onClick={() => setVerNotas((v) => !v)}>
                 <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
               </button>
-              {ativa && (
+              {podeDecidir ? (
                 <Acao label="Marcar sem providência" titulo="Sem providência" confirmarLabel="Marcar" resumo={<>Marcar como <b>sem providência</b> (ciência apenas)?</>} acao={() => atualizarIntimacao(i.id, "sem_providencia")} />
+              ) : (
+                <BotaoTravado label="Marcar sem providência" motivo={dec.motivo} />
               )}
-              {ativa && (
+              {podeDecidir ? (
                 <Acao label="Arquivar" variant="danger" titulo="Arquivar intimação" confirmarLabel="Arquivar" resumo={<>Arquivar esta intimação? Muda o status para <b>arquivada</b> (auditado).</>} acao={() => atualizarIntimacao(i.id, "arquivada")} />
+              ) : (
+                <BotaoTravado label="Arquivar" motivo={dec.motivo} variant="danger" />
               )}
+              {!dec.aberta && !reaberto && <ReabrirDecisao onReabrir={() => setReaberto(true)} />}
             </div>
             <div className="audp-status-note">Arquivar é troca de status — nunca DELETE. A intimação permanece como porta de entrada auditada.</div>
           </div>
@@ -357,7 +424,11 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
 
         {/* action bar */}
         <div className="audp-actionbar">
-          {!i.orfa && !i.prazo && <EncaminharPrazo i={i} sug={sug} label={<><Clock /> Encaminhar → prazo</>} variant="primary" />}
+          {!i.orfa && !i.prazo && (
+            podeDecidir
+              ? <EncaminharPrazo i={i} sug={sug} label={<><Clock /> Encaminhar → prazo</>} variant="primary" />
+              : <BotaoTravado label={<><Clock /> Encaminhar → prazo</>} motivo={dec.motivo} variant="primary" />
+          )}
           <CriarPecaPendente tipoOrigem="intimacao" origemId={i.id} texto={i.providencia || i.resumo} baseTitulo={i.resumo} mapa={mapa} />
           <NovaTarefaIntim i={i} label={<><TaskIco /> Nova tarefa</>} />
           {i.orfa
