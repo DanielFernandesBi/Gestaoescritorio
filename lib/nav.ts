@@ -46,18 +46,18 @@ export const NAV: NavGroup[] = [
     ia: true,
     items: [
       { id: "intimacoes", label: "Intimações", ico: "inbox", href: "/intimacoes", badgeKey: "intimacoes" },
-      { id: "andamentos", label: "Andamentos", ico: "activity", href: "/andamentos" },
+      { id: "andamentos", label: "Andamentos", ico: "activity", href: "/andamentos", badgeKey: "andamentos", kind: "warn" },
       { id: "alertas", label: "Alertas", ico: "bell", href: "/alertas", badgeKey: "alertas", kind: "alert" },
       { id: "inercia", label: "Inércia · silêncio", ico: "clock", href: "/inercia", badgeKey: "inercia", kind: "warn" },
       { id: "varredura", label: "Varredura", ico: "shield", href: "/varredura" },
-      { id: "triagem", label: "Triagem · órfãos", ico: "list", href: "/triagem" },
+      { id: "triagem", label: "Triagem · órfãos", ico: "list", href: "/triagem", badgeKey: "triagem", kind: "warn" },
     ],
   },
   {
     grp: "Gestão",
     items: [
       { id: "negocios", label: "Novos negócios", ico: "briefcase", href: "/negocios" },
-      { id: "financeiro", label: "Financeiro", ico: "wallet", href: "/financeiro" },
+      { id: "financeiro", label: "Financeiro", ico: "wallet", href: "/financeiro", badgeKey: "financeiro", kind: "alert" },
       { id: "notificacoes", label: "Notificações", ico: "bell", href: "/notificacoes" },
       { id: "auditoria", label: "Auditoria", ico: "shield", href: "/auditoria" },
       { id: "duplicados", label: "Duplicados", ico: "users", href: "/duplicados", badgeKey: "duplicados", kind: "warn" },
