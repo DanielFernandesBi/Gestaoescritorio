@@ -19,6 +19,11 @@ export async function getBadges(): Promise<Badges> {
     dupProcessos,
     pecas,
     inercia,
+    andamentos,
+    orfPrazos,
+    orfIntimacoes,
+    orfAndamentos,
+    financeiro,
   ] = await Promise.all([
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
@@ -39,6 +44,19 @@ export async function getBadges(): Promise<Badges> {
     // Sug. 62 — Sentinela de Inércia: processos ativos COM VIDA em silêncio além do
     // limiar da área/instância. A view já aplica carve-out (stub fica de fora) e carência.
     supabase.from("vw_processos_inercia").select("*", { count: "exact", head: true }),
+    // Andamentos: o badge é a fila de CONFERÊNCIA — movimentações que a triagem escalou
+    // para atenção humana (Sug. 30), i.e. tarefas de conferência ainda em aberto amarradas
+    // a um andamento. Os informativos (a maioria) não entram — só o que tem consequência.
+    supabase.from("tarefas").select("*", { count: "exact", head: true }).not("andamento_id", "is", null).in("status", ["pendente", "em_andamento"]),
+    // Triagem · órfãos: itens capturados sem processo (prazos + intimações + andamentos
+    // órfãos) — a mesma fila que a tela soma nos KPIs. Nunca descartados; ficam aqui até
+    // serem promovidos/vinculados.
+    supabase.from("vw_prazos_orfaos").select("*", { count: "exact", head: true }),
+    supabase.from("vw_intimacoes_orfas").select("*", { count: "exact", head: true }),
+    supabase.from("vw_andamentos_orfaos").select("*", { count: "exact", head: true }),
+    // Financeiro: o badge é o que exige cobrança AGORA — parcelas em atraso (status já
+    // materializado por fn_marcar_atrasados). "A vencer" não alarma; só o vencido.
+    supabase.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "atrasado"),
   ]);
 
   return {
@@ -53,6 +71,9 @@ export async function getBadges(): Promise<Badges> {
     duplicados: (dupClientes.count ?? 0) + (dupProcessos.count ?? 0),
     pecas: pecas.count ?? 0,
     inercia: inercia.count ?? 0,
+    andamentos: andamentos.count ?? 0,
+    triagem: (orfPrazos.count ?? 0) + (orfIntimacoes.count ?? 0) + (orfAndamentos.count ?? 0),
+    financeiro: financeiro.count ?? 0,
   };
 }
 
