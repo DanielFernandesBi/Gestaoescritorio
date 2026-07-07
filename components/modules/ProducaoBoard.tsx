@@ -31,8 +31,8 @@ type Lite = { id: string; label: string };
 // (Em revisão a peça já está pronta para conferência; faltando insumo ainda não.)
 const COLS: { key: string; label: string; dot: string }[] = [
   { key: "a_fazer", label: "A fazer", dot: "slate" },
-  { key: "em_elaboracao", label: "Em elaboração", dot: "blue" },
   { key: "aguardando_insumo", label: "Aguardando insumo", dot: "amber" },
+  { key: "em_elaboracao", label: "Em elaboração", dot: "blue" },
   { key: "em_revisao", label: "Em revisão", dot: "accent" },
   { key: "pronta", label: "Pronta", dot: "green" },
 ];
@@ -41,8 +41,8 @@ const COLS: { key: string; label: string; dot: string }[] = [
 // 'protocolada' roteia para a baixa (gera andamento).
 const MOVE_OPTS: { k: string; l: string }[] = [
   { k: "a_fazer", l: "A fazer" },
-  { k: "em_elaboracao", l: "Em elaboração" },
   { k: "aguardando_insumo", l: "Aguardando insumo" },
+  { k: "em_elaboracao", l: "Em elaboração" },
   { k: "em_revisao", l: "Em revisão" },
   { k: "pronta", l: "Pronta" },
   { k: "protocolada", l: "Protocolada" },
