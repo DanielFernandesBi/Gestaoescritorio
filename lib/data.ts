@@ -1624,8 +1624,8 @@ export async function getProcessoFull(id: string): Promise<ProcessoFull | null> 
 /* Caixa de trabalho (Sug. 75 · F2) — uma linha por processo com trabalho em aberto
  * -----------------------------------------------------------------------------
  * Agrega, por processo_id, tudo que ainda pede uma providência: intimações em
- * aberto (sem_providencia/em_analise), prazos abertos, peças a_fazer/aguardando
- * insumo e tarefas pendente/em_andamento. Só leitura. A tela expande cada
+ * aberto (sem_providencia/em_analise), prazos abertos, peças na produção (todo
+ * status não-terminal) e tarefas pendente/em_andamento. Só leitura. A tela expande cada
  * processo para mostrar os itens. Nº por extenso e selo de sigilo preservados. */
 export type CaixaIntim = { id: string; resumo: string | null; status: string; data: string | null };
 export type CaixaPrazo = { id: string; ato: string; data_fatal: string; data_interna: string | null; validado: boolean; dias: number };
@@ -1644,7 +1644,10 @@ export async function getCaixaTrabalho(): Promise<CaixaProcesso[]> {
   const [intim, prz, pec, tar] = await Promise.all([
     supabase.from("intimacoes").select("id, resumo, status, data_publicacao, processo_id").in("status", ["sem_providencia", "em_analise"]).not("processo_id", "is", null).order("data_publicacao", { ascending: false, nullsFirst: false }),
     supabase.from("prazos").select("id, ato, data_fatal, data_interna, validado, processo_id").eq("status", "aberto").not("processo_id", "is", null).order("data_fatal", { ascending: true }),
-    supabase.from("pecas").select("id, titulo, tipo, subtipo, status, processo_id").in("status", ["a_fazer", "aguardando_insumo"]).not("processo_id", "is", null),
+    // "Peças na produção" = tudo que ainda não é terminal (a_fazer, em_elaboracao,
+    // aguardando_insumo, em_revisao, pronta). Casa com o texto da tela e o manual
+    // ("tem peça? cai sozinha") — só sai da caixa ao protocolar/cancelar/prejudicar.
+    supabase.from("pecas").select("id, titulo, tipo, subtipo, status, processo_id").not("status", "in", "(protocolada,cancelada,prejudicada)").not("processo_id", "is", null),
     supabase.from("tarefas").select("id, titulo, status, prioridade, responsavel, data_limite, processo_id").in("status", ["pendente", "em_andamento"]).not("processo_id", "is", null).order("data_limite", { ascending: true, nullsFirst: false }),
   ]);
 

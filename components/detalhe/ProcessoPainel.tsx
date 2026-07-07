@@ -10,6 +10,7 @@ import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { ConfirmarAto } from "@/components/detalhe/ConfirmarAto";
+import { CriarPecaNoProcesso } from "@/components/modules/ProducaoBoard";
 import {
   criarAndamento, criarPrazo, atualizarProcesso, arquivarProcesso, vincularClienteProcesso, reanalisarPecas,
 } from "@/app/actions";
@@ -423,16 +424,26 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
               </div>
             )}
 
-            {/* CARD · PEÇAS (produção) */}
-            {p.pecas.length > 0 && (
-              <div className="proc-card">
-              <Sec titulo="Peças · produção" extra={<span className="audp-count">{p.pecas.length}</span>}>
+            {/* CARD · PEÇAS (produção) — sempre visível, com o atalho de criar */}
+            <div className="proc-card">
+            <Sec
+              titulo="Peças · produção"
+              extra={
+                <span className="cli-sech-acao" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+                  {p.pecas.length > 0 && <span className="audp-count">{p.pecas.length}</span>}
+                  <CriarPecaNoProcesso processoId={p.id} />
+                </span>
+              }
+            >
+              {p.pecas.length > 0 ? (
                 <div className="przp-stack">{p.pecas.map((pc) => (
                   <Item key={pc.id} tag={humano(pc.tipo)} tagTone="cat-neutral" titulo={curto(pc.titulo)} sub={<>{pc.subtipo ? `${humano(pc.subtipo)} · ` : ""}{humano(pc.status)}</>} href={linkPara("peca", pc.id)} />
                 ))}</div>
-              </Sec>
-              </div>
-            )}
+              ) : (
+                <p className="sub" style={{ margin: 0 }}>Nenhuma peça na produção deste processo. Use <b>+ Criar peça</b> para começar.</p>
+              )}
+            </Sec>
+            </div>
 
             {/* CARD · TAREFAS (F1 · Sug. 75) */}
             {p.tarefas.length > 0 && (

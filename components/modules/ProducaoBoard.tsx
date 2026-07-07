@@ -171,6 +171,25 @@ function CamposTexto({ p }: { p?: Peca }) {
   );
 }
 
+/* ---- Botão "Criar peça neste processo" (drawer do processo) ------------
+ * Já nasce vinculada ao processo (processo_id escondido) — logo entra na Caixa
+ * de trabalho e a baixa em cascata a alcança. Cliente único é preenchido pelo
+ * servidor. */
+export function CriarPecaNoProcesso({ processoId, label }: { processoId: string; label?: React.ReactNode }) {
+  return (
+    <FormModal
+      label={label ?? <>+ Criar peça</>}
+      titulo="Criar peça neste processo"
+      descricao="Nasce na produção, já vinculada a este processo — entra na Caixa de trabalho e a baixa em cascata a alcança. Se o processo tiver um único cliente, ele é preenchido sozinho."
+      acao={criarPeca}
+      enviarLabel="Criar peça"
+    >
+      <input type="hidden" name="processo_id" value={processoId} />
+      <CamposBasicos textos={false} />
+    </FormModal>
+  );
+}
+
 /* ---- Botão "Nova peça" (page-head) ------------------------------------ */
 
 export function NovaPeca() {
