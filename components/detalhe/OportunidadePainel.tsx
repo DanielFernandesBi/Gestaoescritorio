@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
-import { SegredoTag } from "@/components/ui";
 import { HistoricoRegistro } from "@/components/detalhe/HistoricoRegistro";
 import { CamposOportunidade, ConverterBtn } from "@/components/modules/FunilNegocios";
 import { atualizarOportunidade, moverOportunidade } from "@/app/actions";
@@ -36,6 +35,7 @@ function MasterRow({ o, ativo }: { o: Oportunidade; ativo: boolean }) {
 export function OportunidadePainel({ o, lista }: { o: OportunidadeFull; lista: Oportunidade[] }) {
   const router = useRouter();
   const [mvPend, setMvPend] = useState(false);
+  const [filtro, setFiltro] = useState<"ativas" | "encerradas">(o.encerrado ? "encerradas" : "ativas");
   const mover = async (estagio: string) => {
     setMvPend(true);
     const r = await moverOportunidade(o.id, estagio);
@@ -43,16 +43,25 @@ export function OportunidadePainel({ o, lista }: { o: OportunidadeFull; lista: O
     if (r.ok) router.refresh();
   };
   const dHref = driveHref(o.drive_file_id);
+  const ativas = lista.filter((x) => !x.encerrado);
+  const encerradas = lista.filter((x) => x.encerrado);
+  const visiveis = filtro === "ativas" ? ativas : encerradas;
 
   return (
     <div className="audp">
       {/* MASTER */}
       <aside className="audp-master">
-        <div className="audp-master-h"><h1>Novos negócios</h1></div>
+        <div className="audp-master-h">
+          <h1>Novos negócios</h1>
+          <div className="audp-filtros">
+            <button type="button" className={`audp-chip ink${filtro === "ativas" ? " on" : ""}`} onClick={() => setFiltro("ativas")}>Ativas ({ativas.length})</button>
+            <button type="button" className={`audp-chip tang${filtro === "encerradas" ? " on" : ""}`} onClick={() => setFiltro("encerradas")}>Encerradas ({encerradas.length})</button>
+          </div>
+        </div>
         <div className="audp-master-list">
-          {lista.length === 0
-            ? <div className="audp-empty">Nenhuma oportunidade.</div>
-            : lista.map((x) => <MasterRow key={x.id} o={x} ativo={x.id === o.id} />)}
+          {visiveis.length === 0
+            ? <div className="audp-empty">Nenhuma oportunidade {filtro === "ativas" ? "ativa" : "encerrada"}.</div>
+            : visiveis.map((x) => <MasterRow key={x.id} o={x} ativo={x.id === o.id} />)}
         </div>
       </aside>
 

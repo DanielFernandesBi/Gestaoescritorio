@@ -4,7 +4,6 @@ import { useState, type DragEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormModal } from "@/components/FormModal";
-import { Acao } from "@/components/Acao";
 import { SegredoTag } from "@/components/ui";
 import { criarOportunidade, atualizarOportunidade, moverOportunidade, converterOportunidade } from "@/app/actions";
 import { PROCESSO_AREA, RESPONSAVEIS, ORIGEM_LEAD, PROBABILIDADE, SITUACAO_PRISIONAL } from "@/lib/enums";
@@ -24,6 +23,10 @@ const COLS: { key: string; label: string; dot: string }[] = [
 ];
 const MOVE_OPTS = COLS.map((c) => ({ k: c.key, l: c.label }));
 const probTone = (p: string | null) => (p === "alta" ? "tone-green" : p === "media" ? "tone-amber" : "tone-slate");
+
+/* glifos (mesma família do board de Produção) */
+const Person = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" strokeWidth="1.9" strokeLinecap="round" aria-hidden><circle cx="12" cy="8" r="3.4" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>;
+const Check = ({ c = "var(--green)" }: { c?: string }) => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M20 6 9 17l-5-5" /></svg>;
 
 /* ── campos do formulário (criar/editar) — reusado no kanban e no drawer ─── */
 export function CamposOportunidade({ o }: { o?: Oportunidade }) {
@@ -99,49 +102,47 @@ function Cartao({ o, onDragStart }: { o: Oportunidade; onDragStart: (e: DragEven
     setMvPend(false);
     if (r.ok) router.refresh();
   };
+  const dot = COLS.find((c) => c.key === o.estagio)?.dot ?? "slate";
+  const meta = [o.responsavel, o.origem_lead ? humano(o.origem_lead) : null].filter(Boolean).join(" · ");
   return (
     <article className={`prd-card ${o.estagio}`} draggable onDragStart={(e) => onDragStart(e, o)} onClick={() => router.push(`/negocios/${o.id}`)}>
-      <span className={`prd-strip ${COLS.find((c) => c.key === o.estagio)?.dot ?? "slate"}`} />
+      <span className={`prd-strip ${dot}`} />
       <div className="prd-body">
         <div className="prd-tags">
           {o.area && <span className="prd-tag tone-slate">{humano(o.area)}</span>}
-          {o.probabilidade && <span className={`prd-tag ${probTone(o.probabilidade)}`}>{humano(o.probabilidade)}</span>}
-          {o.segredo && <span className="prd-tag tone-neutral"><SegredoTag on /></span>}
+          {o.probabilidade && <span className={`prd-tag ${probTone(o.probabilidade)}`}>prob. {humano(o.probabilidade)}</span>}
+          {o.segredo && <span className="prd-tag segredo"><SegredoTag on /></span>}
         </div>
-        <div className="prd-titulo">{o.titulo}</div>
-        <div className="fn-contato">{o.contato_nome}{o.contato_telefone ? ` · ${o.contato_telefone}` : ""}</div>
-        <div className="fn-meta">
+        <div className="prd-title" title={o.titulo}>{o.titulo}</div>
+        <div className="prd-cli"><Person /><b>{o.contato_nome}</b></div>
+        {o.contato_telefone && <div className="prd-num mono">{o.contato_telefone}</div>}
+        <div className="prd-foot-meta">
           {o.valor_proposto != null && <span className="fn-valor">{fmtBRL(o.valor_proposto)}</span>}
-          {o.responsavel && <span className="fn-resp">{o.responsavel}</span>}
-          {o.origem_lead && <span className="fn-origem">{humano(o.origem_lead)}</span>}
+          <span className="prd-meta">{meta || "—"}</span>
         </div>
-        <div className="fn-foot" onClick={(e) => e.stopPropagation()}>
-          {o.estagio === "fechado" ? (
-            o.cliente_id ? (
-              <Link className="btn sm abrir" href={linkPara("cliente", o.cliente_id)}>cliente vinculado</Link>
-            ) : (
-              <ConverterBtn o={o} />
-            )
-          ) : (
-            <select className="prd-mover" value="" disabled={mvPend} title="Mover de estágio"
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => { if (e.target.value) mover(e.target.value); }}>
-              <option value="">{mvPend ? "Movendo…" : "Mover ▾"}</option>
-              {MOVE_OPTS.filter((m) => m.k !== o.estagio).map((m) => <option key={m.k} value={m.k}>{m.l}</option>)}
-            </select>
-          )}
+        {o.estagio === "fechado" && !o.cliente_id && (
+          <div className="prd-note">Fechado — <b>converta</b> para criar cliente, contrato e parcelas.</div>
+        )}
+      </div>
+
+      <div className="prd-foot" onClick={(e) => e.stopPropagation()}>
+        {o.estagio === "fechado" ? (
+          o.cliente_id
+            ? <Link className="prd-fbtn ok" href={linkPara("cliente", o.cliente_id)}><Check />cliente vinculado</Link>
+            : <span className="prd-fwrap fn-conv"><ConverterBtn o={o} /></span>
+        ) : (
+          <select className="prd-mover" value="" disabled={mvPend} title="Mover de estágio"
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => { if (e.target.value) mover(e.target.value); }}>
+            <option value="">{mvPend ? "Movendo…" : "Mover ▾"}</option>
+            {MOVE_OPTS.filter((m) => m.k !== o.estagio).map((m) => <option key={m.k} value={m.k}>{m.l}</option>)}
+          </select>
+        )}
+        <span className="prd-fwrap">
           <FormModal label="Editar" titulo="Editar oportunidade" acao={atualizarOportunidade.bind(null, o.id)} enviarLabel="Salvar" variant="default">
             <CamposOportunidade o={o} />
           </FormModal>
-          <Acao label="Recusar" variant="danger" titulo="Recusar oportunidade" confirmarLabel="Recusar"
-            resumo={<>Encerrar <b>{o.titulo}</b> como <b>recusada</b>? Informe o motivo (nunca apagamos — vira histórico).</>}
-            campoTexto={{ label: "Motivo da recusa", obrigatorio: true, multiline: true }}
-            acao={(t) => moverOportunidade(o.id, "recusado", t)} />
-          <Acao label="Perdido" titulo="Marcar como perdido" confirmarLabel="Marcar perdido"
-            resumo={<>Encerrar <b>{o.titulo}</b> como <b>perdido</b>? Informe o motivo.</>}
-            campoTexto={{ label: "Motivo", obrigatorio: true, multiline: true }}
-            acao={(t) => moverOportunidade(o.id, "perdido", t)} />
-        </div>
+        </span>
       </div>
     </article>
   );
@@ -177,21 +178,22 @@ export function FunilNegocios({ oportunidades }: { oportunidades: Oportunidade[]
   }
 
   return (
-    <>
+    <div className="prd-shell">
       <div className="prd-toolbar">
         <input className="cli-busca" style={{ maxWidth: 320, marginTop: 0 }} placeholder="Buscar contato, título, responsável…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <span className="prd-count mono">{ativas.length} ativas no funil</span>
       </div>
 
-      <div className="kanban k5">
+      <div className="prd-board">
         {COLS.map((col) => {
           const itens = ativas.filter((o) => o.estagio === col.key);
           return (
-            <section key={col.key} className={`prd-col${dragCol === col.key ? " drop-on" : ""}`}
+            <section key={col.key} className={`prd-col${dragCol === col.key ? " drop-on" : ""}${col.key === "fechado" ? " fechado" : ""}`}
               onDragOver={(e) => { e.preventDefault(); setDragCol(col.key); }}
               onDragLeave={() => setDragCol((c) => (c === col.key ? null : c))}
               onDrop={(e) => onDrop(e, col.key)}>
               <div className="prd-col-h">
-                <span className={`prd-col-dot ${col.dot}`} />
+                <span className={`prd-dot ${col.dot}`} />
                 <span className="prd-col-t">{col.label}</span>
                 <span className="prd-col-n mono">{itens.length}</span>
                 {col.key === "fechado" && <span className="prd-col-end green">converter →</span>}
@@ -229,6 +231,6 @@ export function FunilNegocios({ oportunidades }: { oportunidades: Oportunidade[]
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }
