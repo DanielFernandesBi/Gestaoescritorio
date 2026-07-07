@@ -7,12 +7,13 @@ import { humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { Cliente } from "@/lib/data";
 
-/* CPF mascarado e tom da situação prisional — usados na row do índice e no
- * detalhe do cliente (fonte única para os dois). */
+/* CPF formatado (completo) e tom da situação prisional — usados na row do índice
+ * e no detalhe do cliente (fonte única para os dois). Uso interno do escritório:
+ * o CPF aparece inteiro, sem tarja — a informação completa agiliza o trabalho. */
 export const mascararCpf = (cpf: string | null): string => {
   const d = (cpf ?? "").replace(/\D/g, "");
   if (d.length !== 11) return cpf || "—";
-  return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
 };
 export const sitTone = (s: string | null): "green" | "amber" | "red" => {
   if (s === "solto" || s === "regime_aberto") return "green";
