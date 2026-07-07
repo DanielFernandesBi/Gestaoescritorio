@@ -47,7 +47,10 @@ export async function getBadges(): Promise<Badges> {
     // Andamentos: o badge é a fila de CONFERÊNCIA — movimentações que a triagem escalou
     // para atenção humana (Sug. 30), i.e. tarefas de conferência ainda em aberto amarradas
     // a um andamento. Os informativos (a maioria) não entram — só o que tem consequência.
-    supabase.from("tarefas").select("*", { count: "exact", head: true }).not("andamento_id", "is", null).in("status", ["pendente", "em_andamento"]),
+    // Critério idêntico ao ehConferencia() da tela: escalonamento AUTOMÁTICO do Cowork.
+    // Tarefa manual (criada via chat) que por acaso referencia um andamento NÃO conta —
+    // não é conferência da triagem e não aparece no filtro "Conferências Cowork".
+    supabase.from("tarefas").select("*", { count: "exact", head: true }).not("andamento_id", "is", null).eq("cadastro_automatico", true).eq("cadastrado_por", "cowork").in("status", ["pendente", "em_andamento"]),
     // Triagem · órfãos: itens capturados sem processo (prazos + intimações + andamentos
     // órfãos) — a mesma fila que a tela soma nos KPIs. Nunca descartados; ficam aqui até
     // serem promovidos/vinculados.
