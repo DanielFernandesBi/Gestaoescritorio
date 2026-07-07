@@ -431,7 +431,7 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
               extra={
                 <span className="cli-sech-acao" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
                   {p.pecas.length > 0 && <span className="audp-count">{p.pecas.length}</span>}
-                  <CriarPecaNoProcesso processoId={p.id} />
+                  <CriarPecaNoProcesso processoId={p.id} prazos={p.prazos} />
                 </span>
               }
             >

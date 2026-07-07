@@ -175,17 +175,41 @@ function CamposTexto({ p }: { p?: Peca }) {
  * Já nasce vinculada ao processo (processo_id escondido) — logo entra na Caixa
  * de trabalho e a baixa em cascata a alcança. Cliente único é preenchido pelo
  * servidor. */
-export function CriarPecaNoProcesso({ processoId, label }: { processoId: string; label?: React.ReactNode }) {
+export function CriarPecaNoProcesso({
+  processoId,
+  prazos,
+  label,
+}: {
+  processoId: string;
+  prazos?: { id: string; ato: string; data_fatal: string; validado?: boolean }[];
+  label?: React.ReactNode;
+}) {
+  // Com um único prazo aberto, já sugere o vínculo — assim a baixa em cascata
+  // fecha o prazo junto ao protocolar. Vários/nenhum → escolha (ou nenhum).
+  const prazoPadrao = prazos && prazos.length === 1 ? prazos[0].id : "";
   return (
     <FormModal
       label={label ?? <>+ Criar peça</>}
       titulo="Criar peça neste processo"
-      descricao="Nasce na produção, já vinculada a este processo — entra na Caixa de trabalho e a baixa em cascata a alcança. Se o processo tiver um único cliente, ele é preenchido sozinho."
+      descricao="Nasce na produção, já vinculada a este processo — entra na Caixa de trabalho. Amarre o prazo aberto para a baixa em cascata fechá-lo junto ao protocolar. Cliente único é preenchido sozinho."
       acao={criarPeca}
       enviarLabel="Criar peça"
     >
       <input type="hidden" name="processo_id" value={processoId} />
       <CamposBasicos textos={false} />
+      {prazos && prazos.length > 0 && (
+        <div>
+          <label>Prazo vinculado <span className="sub">(para a baixa em cascata)</span></label>
+          <select name="prazo_id" defaultValue={prazoPadrao}>
+            <option value="">— nenhum —</option>
+            {prazos.map((pr) => (
+              <option key={pr.id} value={pr.id}>
+                {(pr.ato.length > 48 ? pr.ato.slice(0, 47) + "…" : pr.ato)} · fatal {fmtDate(pr.data_fatal)}{pr.validado === false ? " (provisório)" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </FormModal>
   );
 }
