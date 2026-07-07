@@ -1780,6 +1780,8 @@ a.aud-title:hover{text-decoration:underline}
 .tk-col-hint{font-size:10.5px;color:var(--muted)}
 .tk-col-b{padding:11px;display:flex;flex-direction:column;gap:11px}
 .tk-col-empty{padding:14px;text-align:center;color:var(--muted-2);font-size:12.5px}
+.tk-col-more{flex:none;margin:0 11px 11px;padding:9px;border:1px dashed var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:background .12s,color .12s,border-color .12s}
+.tk-col-more:hover{background:var(--surface-2);color:var(--ink);border-color:var(--brass)}
 
 /* card — reaproveita a doutrina de cor de /andamentos (--uc/--ucs + .and-banner) */
 .tk-card{position:relative;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.05);overflow:hidden}

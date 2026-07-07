@@ -218,6 +218,35 @@ function ConcluidaCard({ t }: { t: TarefaCard }) {
   );
 }
 
+/* ── coluna do kanban (teto de 10 cards, "ver mais" revela o resto) ──────── */
+const TETO_COLUNA = 10;
+function Coluna({ c }: {
+  c: { key: string; label: string; dot: string; itens: TarefaCard[]; render: (t: TarefaCard) => ReactNode; extra?: ReactNode };
+}) {
+  const [aberta, setAberta] = useState(false);
+  const total = c.itens.length;
+  const excedente = Math.max(0, total - TETO_COLUNA);
+  const visiveis = aberta ? c.itens : c.itens.slice(0, TETO_COLUNA);
+  return (
+    <section className="tk-col" key={c.key}>
+      <div className="tk-col-h">
+        <span className={`tk-dot ${c.dot}`} />
+        <span className="tk-col-t">{c.label}</span>
+        <span className="tk-col-n mono">{total}</span>
+        {c.extra && <span className="tk-col-end">{c.extra}</span>}
+      </div>
+      <div className="tk-col-b">
+        {total ? visiveis.map(c.render) : <div className="tk-col-empty">—</div>}
+      </div>
+      {excedente > 0 && (
+        <button type="button" className="tk-col-more" onClick={() => setAberta((v) => !v)}>
+          {aberta ? "Ver menos" : `Ver mais (${excedente})`}
+        </button>
+      )}
+    </section>
+  );
+}
+
 /* ── tela ────────────────────────────────────────────────────────────────── */
 export function TarefasView({
   tarefas,
@@ -326,17 +355,7 @@ export function TarefasView({
       {/* kanban */}
       <div className="tk-board">
         {cols.map((c) => (
-          <section className="tk-col" key={c.key}>
-            <div className="tk-col-h">
-              <span className={`tk-dot ${c.dot}`} />
-              <span className="tk-col-t">{c.label}</span>
-              <span className="tk-col-n mono">{c.itens.length}</span>
-              {c.extra && <span className="tk-col-end">{c.extra}</span>}
-            </div>
-            <div className="tk-col-b">
-              {c.itens.length ? c.itens.map(c.render) : <div className="tk-col-empty">—</div>}
-            </div>
-          </section>
+          <Coluna key={c.key} c={c} />
         ))}
       </div>
     </div>
