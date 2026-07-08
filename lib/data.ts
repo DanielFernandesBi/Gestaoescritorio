@@ -1178,7 +1178,10 @@ export type Processo = {
   papel: string | null;
 };
 
-export async function getProcessos(limit = 250): Promise<Processo[]> {
+// Índice do drawer de /processos: a busca é client-side sobre ESTA lista, então ela
+// precisa conter TODO o acervo ativo — senão um processo fora da janela some da busca
+// (o acervo passou de 250 e processos além do corte ficavam invisíveis no drawer).
+export async function getProcessos(limit = 1000): Promise<Processo[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("processos")
@@ -3654,6 +3657,15 @@ export async function buscaGlobal(termoRaw: string): Promise<ResultadosBusca> {
   const termo = termoRaw.replace(/[,()*%]/g, " ").trim();
   if (termo.length < 2) return { clientes: [], processos: [], intimacoes: [] };
   const like = `%${termo}%`;
+  // CNJ/registro casam por DÍGITOS (colunas geradas numero_*_digitos): acha o
+  // processo com ou sem máscara e — por não conter '.'/'-' — evita o parse quebrado
+  // do .or() do PostgREST (que trata '.',',','()' como reservados). Sem dígitos
+  // (busca por nome), o sentinela impede o padrão vazio '%%' casar todos os processos.
+  const digitos = termo.replace(/\D/g, "");
+  const orProc =
+    digitos.length >= 3
+      ? `numero_cnj_digitos.ilike.%${digitos}%,numero_registro_digitos.ilike.%${digitos}%`
+      : "numero_cnj_digitos.eq.__sem_correspondencia__";
   const supabase = await createClient();
 
   const [cli, proc, intim] = await Promise.all([
@@ -3668,7 +3680,7 @@ export async function buscaGlobal(termoRaw: string): Promise<ResultadosBusca> {
       .select(
         "id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, status, responsavel, segredo_justica, cadastro_automatico, cliente_processo(papel,clientes(nome))",
       )
-      .or(`numero_cnj.ilike.${like},numero_registro_tribunal.ilike.${like}`)
+      .or(orProc)
       .limit(25),
     supabase
       .from("intimacoes")
