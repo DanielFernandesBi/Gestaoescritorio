@@ -332,13 +332,12 @@ export function ClientePainel({
   p: ClienteFull; lista: Cliente[]; anotacoes: NotaUnificada[]; exec: TExec; documentos: Documento[]; ficha: ClienteFicha; meuId: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("consolidado");
-  const [verNotas, setVerNotas] = useState(true);
 
   const idade = idadeDe(p.data_nascimento);
   const desde = mesAno(p.criado_em);
 
   const ver = (t: Tab) => tab === "consolidado" || tab === t;
-  const abrirNotas = () => { setTab("notas"); setVerNotas(true); };
+  const abrirNotas = () => setTab("notas");
 
   // Cadastro obsoleto: foi unificado em outro (ativo=false + ponteiro do canônico).
   const obsoleto = !p.ativo;
@@ -405,7 +404,7 @@ export function ClientePainel({
                 </div>
                 <div className="proc-head-row proc-head-manage">
                   <EditarCliente p={p} />
-                  <button type="button" className={`btn default${verNotas || tab === "notas" ? " on" : ""}`} onClick={abrirNotas}>
+                  <button type="button" className={`btn default${tab === "notas" ? " on" : ""}`} onClick={abrirNotas}>
                     <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
                   </button>
                   {p.ativo && (
@@ -570,8 +569,9 @@ export function ClientePainel({
               </div>
             )}
 
-            {/* NOTAS (aba dedicada ou bloco no consolidado via botão) */}
-            {(tab === "notas" || (verNotas && tab === "consolidado")) && (
+            {/* NOTAS — agregado só na aba dedicada; no consolidado (e demais) não
+                aparece: cada nota fica no registro onde foi escrita. */}
+            {tab === "notas" && (
               <div className="proc-card">
               <Sec titulo="Anotações" sub="tudo o que foi anotado nos registros deste cliente" extra={<span className="audp-count">{anotacoes.length}</span>}>
                 <NotasCliente clienteId={p.id} notas={anotacoes} />
