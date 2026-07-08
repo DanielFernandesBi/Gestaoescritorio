@@ -92,7 +92,7 @@ function NovaParcela({ c, label }: { c: Contrato; label: ReactNode }) {
 /* ── componente principal ────────────────────────────────────────────────── */
 export function ContratoPainel({ c, lista, documentos, anotacoes }: { c: Contrato; lista: Contrato[]; documentos: Documento[]; anotacoes: Anotacao[] }) {
   const [filtro, setFiltro] = useState<"vigentes" | "aberto">("vigentes");
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(true);
 
   const vigentes = lista.filter((x) => x.status === "vigente");
   const aberto = lista.filter((x) => x.total_aberto > 0 && x.status !== "quitado" && x.status !== "rescindido");

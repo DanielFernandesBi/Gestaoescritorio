@@ -247,7 +247,7 @@ function NovoPrazo({ p }: { p: ProcessoFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista: Processo[]; anotacoes: Anotacao[] }) {
-  const [verNotas, setVerNotas] = useState(anotacoes.length > 0);
+  const [verNotas, setVerNotas] = useState(true);
   const [clis, setClis] = useState<{ id: string; nome: string }[]>([]);
 
   useEffect(() => {

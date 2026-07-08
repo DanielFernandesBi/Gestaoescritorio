@@ -83,6 +83,11 @@ export function Anotacoes({ entidadeTipo, entidadeId, notas }: { entidadeTipo: s
 
   return (
     <div className="audp-notas">
+      {/* Lista primeiro (leitura sem clique); o campo de escrita fica ABAIXO —
+          logo sob o título já se vê o que foi anotado, e escreve-se por último. */}
+      {notas.length === 0
+        ? <div className="audp-empty">Nenhuma anotação ainda. Cada anotação salva vira um card independente.</div>
+        : notas.map((n) => <AnotacaoCard key={n.id} nota={n} />)}
       <div className="audp-novanota">
         <textarea
           className="audp-nota-ta"
@@ -98,9 +103,6 @@ export function Anotacoes({ entidadeTipo, entidadeId, notas }: { entidadeTipo: s
           </button>
         </div>
       </div>
-      {notas.length === 0
-        ? <div className="audp-empty">Nenhuma anotação ainda. Cada anotação salva vira um card independente.</div>
-        : notas.map((n) => <AnotacaoCard key={n.id} nota={n} />)}
     </div>
   );
 }

@@ -2408,6 +2408,9 @@ a.tk-title:hover{text-decoration:underline}
 .audp-nota-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}
 .audp-nota-meta{font-size:11px;color:var(--muted-2)}
 .audp-nota-btns{display:flex;gap:6px}
+/* Tela /notas — lista unificada de anotações (origem + etiqueta). */
+.notas-lista{display:flex;flex-direction:column;gap:10px}
+.nota-orig{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .audp-iconbtn{width:26px;height:26px;display:grid;place-items:center;border-radius:7px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);cursor:pointer;font-size:12px}
 .audp-iconbtn:hover:not(:disabled){color:var(--ink);border-color:var(--muted-2)}
 .audp-iconbtn.danger:hover:not(:disabled){color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,var(--line))}

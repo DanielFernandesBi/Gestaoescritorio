@@ -124,7 +124,7 @@ function EditarTarefa({ t }: { t: TarefaFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function TarefaPainel({ t, lista, anotacoes, mapa = null, socio = null }: { t: TarefaFull; lista: TarefaCard[]; anotacoes: Anotacao[]; mapa?: MapaProvidencia | null; socio?: Socio | null }) {
-  const [verNotas, setVerNotas] = useState(anotacoes.length > 0);
+  const [verNotas, setVerNotas] = useState(true);
   const outro = socio ? oUtroSocio(socio) : null;
   const conferencia = Boolean(t.cadastro_automatico) && t.cadastrado_por === "cowork";
   // Sug. 62 — distingue a sentinela de inércia da conferência de escalonamento.

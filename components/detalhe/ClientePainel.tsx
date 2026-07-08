@@ -332,7 +332,7 @@ export function ClientePainel({
   p: ClienteFull; lista: Cliente[]; anotacoes: Anotacao[]; exec: TExec; documentos: Documento[]; ficha: ClienteFicha; meuId: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("consolidado");
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(true);
 
   const idade = idadeDe(p.data_nascimento);
   const desde = mesAno(p.criado_em);

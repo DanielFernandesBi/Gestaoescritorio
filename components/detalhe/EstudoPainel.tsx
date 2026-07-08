@@ -108,7 +108,7 @@ function CriarPecaBtn({ e, label }: { e: EstudoFull; label: ReactNode }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function EstudoPainel({ e, anotacoes }: { e: EstudoFull; anotacoes: Anotacao[] }) {
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(true);
   const marcoVencido = e.marco_dias != null && e.marco_dias < 0;
   const ativo = e.status !== "concluido" && e.status !== "superado";
 

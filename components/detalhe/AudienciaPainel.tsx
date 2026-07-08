@@ -214,7 +214,7 @@ function Sec({ titulo, extra, children }: { titulo: string; extra?: ReactNode; c
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function AudienciaPainel({ aud, lista, anotacoes }: { aud: Audiencia; lista: AudienciaCard[]; anotacoes: Anotacao[] }) {
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(true);
 
   const provis = !aud.validado && aud.status === "designada";
   const ativa = aud.status === "designada";

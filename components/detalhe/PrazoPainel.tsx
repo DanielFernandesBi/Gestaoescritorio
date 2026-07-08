@@ -164,7 +164,7 @@ export function PrazoMaster({ lista, activeId }: { lista: PrazoCard[]; activeId?
 }
 
 export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: PrazoCard[]; anotacoes: Anotacao[] }) {
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(true);
 
   const tone = urg(p.dias_restantes);
   const ativo = p.status === "aberto";

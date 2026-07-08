@@ -1096,6 +1096,90 @@ export async function getAnotacoes(entidadeTipo: string, entidadeId: string): Pr
   return (data ?? []) as Anotacao[];
 }
 
+/* Notas unificadas (tela /notas) — TODA anotação livre, de qualquer origem
+ * (intimação, processo, movimentação, prazo, cliente…), num só lugar: quem
+ * escreveu, quando, e ONDE (etiqueta + rótulo + link para abrir a origem). */
+
+export type NotaUnificada = {
+  id: string;
+  texto: string;
+  autor: string;
+  criado_em: string;
+  atualizado_em: string;
+  entidade_tipo: string;
+  contexto: string | null; // rótulo curto do registro de origem
+  href: string | null;     // link para abrir a origem
+};
+
+// Config por tipo de origem: onde buscar o rótulo e como montar o link.
+const NOTA_ORIGENS: Record<
+  string,
+  { tabela: string; select: string; rotulo: (r: Record<string, unknown>) => string; href: (id: string) => string }
+> = {
+  processo:  { tabela: "processos", select: "id, numero_cnj, numero_registro_tribunal", rotulo: (r) => (r.numero_cnj as string) || (r.numero_registro_tribunal ? `reg ${r.numero_registro_tribunal}` : "processo"), href: (id) => `/processos/${id}` },
+  cliente:   { tabela: "clientes", select: "id, nome", rotulo: (r) => (r.nome as string) || "cliente", href: (id) => `/clientes/${id}` },
+  intimacao: { tabela: "intimacoes", select: "id, resumo", rotulo: (r) => notaCurto((r.resumo as string) || "intimação"), href: (id) => `/intimacoes/${id}` },
+  prazo:     { tabela: "prazos", select: "id, ato", rotulo: (r) => notaCurto((r.ato as string) || "prazo"), href: (id) => `/prazos/${id}` },
+  tarefa:    { tabela: "tarefas", select: "id, titulo", rotulo: (r) => (r.titulo as string) || "tarefa", href: (id) => `/tarefas/${id}` },
+  audiencia: { tabela: "audiencias", select: "id, tipo, nome", rotulo: (r) => (r.nome as string) || (r.tipo as string) || "audiência", href: (id) => `/audiencias/${id}` },
+  andamento: { tabela: "andamentos", select: "id, tipo, descricao", rotulo: (r) => notaCurto((r.descricao as string) || (r.tipo as string) || "andamento"), href: (id) => `/andamentos/${id}` },
+  peca:      { tabela: "pecas", select: "id, titulo", rotulo: (r) => (r.titulo as string) || "peça", href: (id) => `/producao/${id}` },
+  contrato:  { tabela: "contratos", select: "id, objeto", rotulo: (r) => (r.objeto as string) || "contrato", href: (id) => `/contratos/${id}` },
+  estudo:    { tabela: "estudos_caso", select: "id, titulo", rotulo: (r) => (r.titulo as string) || "estudo", href: (id) => `/estudos/${id}` },
+  varredura: { tabela: "varreduras", select: "id, data_referencia", rotulo: (r) => `ciclo ${(r.data_referencia as string) ?? ""}`.trim(), href: (id) => `/varredura/ciclos/${id}` },
+};
+
+function notaCurto(s: string): string {
+  const t = s.trim();
+  return t.length > 90 ? `${t.slice(0, 90)}…` : t;
+}
+
+export async function getTodasAnotacoes(limit = 500): Promise<NotaUnificada[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("anotacoes")
+    .select("id, texto, autor, criado_em, atualizado_em, entidade_tipo, entidade_id")
+    .order("criado_em", { ascending: false })
+    .limit(limit);
+  const notas = (data ?? []) as Record<string, unknown>[];
+  if (!notas.length) return [];
+
+  // Agrupa ids por tipo → uma consulta por tipo para montar os rótulos de origem.
+  const idsPorTipo = new Map<string, Set<string>>();
+  for (const n of notas) {
+    const tipo = n.entidade_tipo as string;
+    if (!NOTA_ORIGENS[tipo]) continue;
+    if (!idsPorTipo.has(tipo)) idsPorTipo.set(tipo, new Set());
+    idsPorTipo.get(tipo)!.add(n.entidade_id as string);
+  }
+  const rotulos = new Map<string, string>(); // `${tipo}:${id}` → rótulo
+  await Promise.all(
+    [...idsPorTipo.entries()].map(async ([tipo, ids]) => {
+      const cfg = NOTA_ORIGENS[tipo];
+      const { data: rows } = await supabase.from(cfg.tabela).select(cfg.select).in("id", [...ids]);
+      for (const r of (rows ?? []) as unknown as Record<string, unknown>[]) {
+        rotulos.set(`${tipo}:${r.id as string}`, cfg.rotulo(r));
+      }
+    }),
+  );
+
+  return notas.map((n): NotaUnificada => {
+    const tipo = n.entidade_tipo as string;
+    const id = n.entidade_id as string;
+    const cfg = NOTA_ORIGENS[tipo];
+    return {
+      id: n.id as string,
+      texto: n.texto as string,
+      autor: n.autor as string,
+      criado_em: n.criado_em as string,
+      atualizado_em: n.atualizado_em as string,
+      entidade_tipo: tipo,
+      contexto: rotulos.get(`${tipo}:${id}`) ?? null,
+      href: cfg ? cfg.href(id) : null,
+    };
+  });
+}
+
 /* Painel de audiências (tela /audiencias, alvo Plantão) ------------------------
  * Todas as audiências com o flag de réu preso (situação prisional via join) e os
  * dias até a sessão, para a UI separar próxima · provisórias · sessão virtual ·

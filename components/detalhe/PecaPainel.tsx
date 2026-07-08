@@ -206,7 +206,7 @@ export function PecaMaster({ lista, activeId }: { lista: Peca[]; activeId?: stri
 }
 
 export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista: Peca[]; anotacoes: Anotacao[]; acervo: RadarItem[] }) {
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(true);
 
   const tone = urg(p.dias_restantes);
   const ativa = !["protocolada", "cancelada", "prejudicada"].includes(p.status);

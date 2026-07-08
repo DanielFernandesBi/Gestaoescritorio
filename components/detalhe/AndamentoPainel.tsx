@@ -119,7 +119,7 @@ function EditarAndamento({ a }: { a: AndamentoFull }) {
 
 /* ── componente principal ────────────────────────────────────────────────── */
 export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "recentes" }: { a: AndamentoFull; lista: Movimentacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; filtroInicial?: "recentes" | "escalados" }) {
-  const [verNotas, setVerNotas] = useState(anotacoes.length > 0);
+  const [verNotas, setVerNotas] = useState(true);
   const idc = idCurto(a.codigo_movimentacao);
 
   return (

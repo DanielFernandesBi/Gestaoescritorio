@@ -217,7 +217,7 @@ function ReabrirDecisao({ onReabrir }: { onReabrir: () => void }) {
 }
 
 export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: IntimacaoFull; lista: Intimacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; meuId: string | null }) {
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(true);
   const [procs, setProcs] = useState<{ id: string; label: string }[]>([]);
   const [clis, setClis] = useState<{ id: string; nome: string }[]>([]);
 

@@ -62,7 +62,7 @@ export function VarreduraCicloPainel({
   anotacoes: Anotacao[];
 }) {
   const [filtro, setFiltro] = useState<"todos" | "limpos">("todos");
-  const [verNotas, setVerNotas] = useState(false);
+  const [verNotas, setVerNotas] = useState(true);
 
   const limpos = lista.filter((h) => !(h.anomalias?.length));
   const visiveis = filtro === "limpos" ? limpos : lista;
