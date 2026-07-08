@@ -39,7 +39,6 @@ export const NAV: NavGroup[] = [
       { id: "audiencias", label: "Audiências", ico: "gavel", href: "/audiencias", badgeKey: "audiencias" },
       { id: "tarefas", label: "Tarefas", ico: "list", href: "/tarefas", badgeKey: "tarefas" },
       { id: "producao", label: "Produção · peças", ico: "file", href: "/producao", badgeKey: "pecas" },
-      { id: "notas", label: "Notas", ico: "book", href: "/notas" },
     ],
   },
   {

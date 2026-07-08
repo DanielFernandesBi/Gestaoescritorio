@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { criarAnotacao, editarAnotacao, excluirAnotacao } from "@/app/actions";
 import { fmtDate } from "@/lib/format";
-import type { Anotacao } from "@/lib/data";
+import Link from "next/link";
+import type { Anotacao, NotaUnificada } from "@/lib/data";
 
 const PenIco = ({ c = "currentColor" }: { c?: string }) => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
@@ -62,8 +63,8 @@ function AnotacaoCard({ nota }: { nota: Anotacao }) {
   );
 }
 
-/* ── esteira: nova anotação + lista de cards independentes ────────────────── */
-export function Anotacoes({ entidadeTipo, entidadeId, notas }: { entidadeTipo: string; entidadeId: string; notas: Anotacao[] }) {
+/* ── campo de escrever (compartilhado) ───────────────────────────────────── */
+function NovaAnotacao({ entidadeTipo, entidadeId }: { entidadeTipo: string; entidadeId: string }) {
   const router = useRouter();
   const [texto, setTexto] = useState("");
   const [pend, start] = useTransition();
@@ -82,27 +83,95 @@ export function Anotacoes({ entidadeTipo, entidadeId, notas }: { entidadeTipo: s
   };
 
   return (
+    <div className="audp-novanota">
+      <textarea
+        className="audp-nota-ta"
+        placeholder="Escreva uma anotação para controle próprio…"
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        rows={3}
+      />
+      <div className="audp-nota-actions">
+        {erro && <span className="audp-nota-err">{erro}</span>}
+        <button type="button" className="btn primary sm" onClick={adicionar} disabled={pend || !texto.trim()}>
+          {pend ? "Salvando…" : "Nova anotação"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── esteira: lista de cards independentes + campo de escrever (abaixo) ────── */
+export function Anotacoes({ entidadeTipo, entidadeId, notas }: { entidadeTipo: string; entidadeId: string; notas: Anotacao[] }) {
+  return (
     <div className="audp-notas">
       {/* Lista primeiro (leitura sem clique); o campo de escrita fica ABAIXO —
           logo sob o título já se vê o que foi anotado, e escreve-se por último. */}
       {notas.length === 0
         ? <div className="audp-empty">Nenhuma anotação ainda. Cada anotação salva vira um card independente.</div>
         : notas.map((n) => <AnotacaoCard key={n.id} nota={n} />)}
-      <div className="audp-novanota">
-        <textarea
-          className="audp-nota-ta"
-          placeholder="Escreva uma anotação para controle próprio…"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          rows={3}
-        />
-        <div className="audp-nota-actions">
-          {erro && <span className="audp-nota-err">{erro}</span>}
-          <button type="button" className="btn primary sm" onClick={adicionar} disabled={pend || !texto.trim()}>
-            {pend ? "Salvando…" : "Nova anotação"}
-          </button>
-        </div>
+      <NovaAnotacao entidadeTipo={entidadeTipo} entidadeId={entidadeId} />
+    </div>
+  );
+}
+
+/* ── aba Notas do drawer do cliente: unifica TODA anotação do cliente ──────────
+ * Notas escritas em qualquer registro do cliente (intimação, prazo, andamento,
+ * peça…) aparecem aqui com etiqueta da ORIGEM + link. As escritas no próprio
+ * cliente ficam editáveis; as de outros registros são leitura, com "abrir". */
+
+type Tone = "red" | "amber" | "green" | "blue" | "gray" | "brass" | "violet";
+const ETIQUETA: Record<string, { label: string; tone: Tone }> = {
+  intimacao: { label: "intimação", tone: "blue" },
+  processo: { label: "processo", tone: "brass" },
+  andamento: { label: "movimentação", tone: "blue" },
+  prazo: { label: "prazo", tone: "amber" },
+  tarefa: { label: "tarefa", tone: "violet" },
+  cliente: { label: "cliente", tone: "green" },
+  audiencia: { label: "audiência", tone: "brass" },
+  peca: { label: "peça", tone: "blue" },
+  contrato: { label: "contrato", tone: "green" },
+  estudo: { label: "estudo", tone: "violet" },
+  varredura: { label: "varredura", tone: "gray" },
+};
+
+function Etiqueta({ tipo }: { tipo: string }) {
+  const et = ETIQUETA[tipo] ?? { label: tipo, tone: "gray" as Tone };
+  return <span className={`pill ${et.tone}`}>{et.label}</span>;
+}
+
+/* Nota vinda de outro registro do cliente — leitura + link para a origem. */
+function NotaExterna({ nota }: { nota: NotaUnificada }) {
+  const editado = nota.atualizado_em && nota.atualizado_em !== nota.criado_em;
+  return (
+    <div className="audp-nota">
+      <div className="nota-orig">
+        <Etiqueta tipo={nota.entidade_tipo} />
+        {nota.href ? (
+          <Link className="link" href={nota.href}>{nota.contexto ?? "abrir origem"}</Link>
+        ) : (
+          <span className="sub">{nota.contexto ?? "—"}</span>
+        )}
       </div>
+      <div className="audp-nota-txt">{nota.texto}</div>
+      <div className="audp-nota-foot">
+        <span className="audp-nota-meta">{nota.autor} · {fmtDate(nota.criado_em)}{editado ? " · editada" : ""}</span>
+      </div>
+    </div>
+  );
+}
+
+export function NotasCliente({ clienteId, notas }: { clienteId: string; notas: NotaUnificada[] }) {
+  return (
+    <div className="audp-notas">
+      {notas.length === 0
+        ? <div className="audp-empty">Nenhuma anotação ligada a este cliente ainda. Toda nota feita em suas intimações, prazos, peças… aparece aqui.</div>
+        : notas.map((n) =>
+            n.entidade_tipo === "cliente"
+              ? <AnotacaoCard key={n.id} nota={n} />
+              : <NotaExterna key={n.id} nota={n} />,
+          )}
+      <NovaAnotacao entidadeTipo="cliente" entidadeId={clienteId} />
     </div>
   );
 }

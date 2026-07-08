@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getClienteFull, getClientes, getAnotacoes, getExecucaoCliente, getDocumentosCliente, getClienteFicha } from "@/lib/data";
+import { getClienteFull, getClientes, getAnotacoesDoCliente, getExecucaoCliente, getDocumentosCliente, getClienteFicha } from "@/lib/data";
 import { getUserId } from "@/lib/queries";
 import { ClientePainel } from "@/components/detalhe/ClientePainel";
 
@@ -14,7 +14,7 @@ export default async function ClientePage({
   const [p, lista, anotacoes, exec, documentos, ficha, meuId] = await Promise.all([
     getClienteFull(id),
     getClientes(),
-    getAnotacoes("cliente", id),
+    getAnotacoesDoCliente(id),
     getExecucaoCliente(id),
     getDocumentosCliente(id),
     getClienteFicha(id),

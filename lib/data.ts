@@ -1096,9 +1096,10 @@ export async function getAnotacoes(entidadeTipo: string, entidadeId: string): Pr
   return (data ?? []) as Anotacao[];
 }
 
-/* Notas unificadas (tela /notas) — TODA anotação livre, de qualquer origem
- * (intimação, processo, movimentação, prazo, cliente…), num só lugar: quem
- * escreveu, quando, e ONDE (etiqueta + rótulo + link para abrir a origem). */
+/* Notas do cliente (aba Notas do drawer) — TODA anotação livre ligada ao cliente,
+ * não importa onde foi escrita: nota numa intimação/prazo/andamento/peça do cliente
+ * aparece aqui, com etiqueta da ORIGEM, rótulo e link para abrir. Unifica o texto
+ * livre daquele cliente específico num só lugar. */
 
 export type NotaUnificada = {
   id: string;
@@ -1134,48 +1135,91 @@ function notaCurto(s: string): string {
   return t.length > 90 ? `${t.slice(0, 90)}…` : t;
 }
 
-export async function getTodasAnotacoes(limit = 500): Promise<NotaUnificada[]> {
+// Tipos ligados ao cliente SÓ pelo processo (não têm cliente_id).
+const NOTA_LINK_PROCESSO: Record<string, string> = { intimacao: "intimacoes", prazo: "prazos", andamento: "andamentos", audiencia: "audiencias" };
+// Tipos com vínculo DIRETO (cliente_id) além do processo.
+const NOTA_LINK_CLIENTE: Record<string, string> = { tarefa: "tarefas", peca: "pecas", contrato: "contratos", estudo: "estudos_caso" };
+
+export async function getAnotacoesDoCliente(clienteId: string): Promise<NotaUnificada[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+
+  // Tabela pequena: pega tudo e filtra depois pelas que pertencem ao cliente.
+  const { data: raw } = await supabase
     .from("anotacoes")
     .select("id, texto, autor, criado_em, atualizado_em, entidade_tipo, entidade_id")
     .order("criado_em", { ascending: false })
-    .limit(limit);
-  const notas = (data ?? []) as Record<string, unknown>[];
-  if (!notas.length) return [];
+    .limit(2000);
+  const todas = (raw ?? []) as Record<string, unknown>[];
+  if (!todas.length) return [];
 
-  // Agrupa ids por tipo → uma consulta por tipo para montar os rótulos de origem.
-  const idsPorTipo = new Map<string, Set<string>>();
-  for (const n of notas) {
-    const tipo = n.entidade_tipo as string;
-    if (!NOTA_ORIGENS[tipo]) continue;
-    if (!idsPorTipo.has(tipo)) idsPorTipo.set(tipo, new Set());
-    idsPorTipo.get(tipo)!.add(n.entidade_id as string);
+  // Processos do cliente — base para resolver intimação/prazo/andamento/audiência.
+  const { data: cp } = await supabase.from("cliente_processo").select("processo_id").eq("cliente_id", clienteId);
+  const procIds = [...new Set(((cp ?? []) as Record<string, unknown>[]).map((r) => r.processo_id as string).filter(Boolean))];
+  const procSet = new Set(procIds);
+
+  // ids anotados por tipo (só o que tem nota — consultas pequenas e limitadas).
+  const idsPorTipo = new Map<string, string[]>();
+  for (const a of todas) {
+    const t = a.entidade_tipo as string;
+    if (!idsPorTipo.has(t)) idsPorTipo.set(t, []);
+    idsPorTipo.get(t)!.push(a.entidade_id as string);
   }
-  const rotulos = new Map<string, string>(); // `${tipo}:${id}` → rótulo
+
+  // Chaves `${tipo}:${id}` que pertencem a ESTE cliente.
+  const pertence = new Set<string>();
+  for (const id of idsPorTipo.get("cliente") ?? []) if (id === clienteId) pertence.add(`cliente:${id}`);
+  for (const id of idsPorTipo.get("processo") ?? []) if (procSet.has(id)) pertence.add(`processo:${id}`);
+
+  await Promise.all([
+    ...Object.entries(NOTA_LINK_PROCESSO).map(async ([tipo, tabela]) => {
+      const ids = idsPorTipo.get(tipo);
+      if (!ids?.length || !procIds.length) return;
+      const { data } = await supabase.from(tabela).select("id").in("id", ids).in("processo_id", procIds);
+      for (const r of (data ?? []) as unknown as { id: string }[]) pertence.add(`${tipo}:${r.id}`);
+    }),
+    ...Object.entries(NOTA_LINK_CLIENTE).map(async ([tipo, tabela]) => {
+      const ids = idsPorTipo.get(tipo);
+      if (!ids?.length) return;
+      const filtro = procIds.length ? `cliente_id.eq.${clienteId},processo_id.in.(${procIds.join(",")})` : `cliente_id.eq.${clienteId}`;
+      const { data } = await supabase.from(tabela).select("id").in("id", ids).or(filtro);
+      for (const r of (data ?? []) as unknown as { id: string }[]) pertence.add(`${tipo}:${r.id}`);
+    }),
+  ]);
+
+  const doCliente = todas.filter((a) => pertence.has(`${a.entidade_tipo as string}:${a.entidade_id as string}`));
+  if (!doCliente.length) return [];
+
+  // Rótulo da origem (batch por tipo).
+  const idsEnriquecer = new Map<string, Set<string>>();
+  for (const a of doCliente) {
+    const t = a.entidade_tipo as string;
+    if (!NOTA_ORIGENS[t]) continue;
+    if (!idsEnriquecer.has(t)) idsEnriquecer.set(t, new Set());
+    idsEnriquecer.get(t)!.add(a.entidade_id as string);
+  }
+  const rotulos = new Map<string, string>();
   await Promise.all(
-    [...idsPorTipo.entries()].map(async ([tipo, ids]) => {
+    [...idsEnriquecer.entries()].map(async ([tipo, set]) => {
       const cfg = NOTA_ORIGENS[tipo];
-      const { data: rows } = await supabase.from(cfg.tabela).select(cfg.select).in("id", [...ids]);
-      for (const r of (rows ?? []) as unknown as Record<string, unknown>[]) {
-        rotulos.set(`${tipo}:${r.id as string}`, cfg.rotulo(r));
-      }
+      const { data } = await supabase.from(cfg.tabela).select(cfg.select).in("id", [...set]);
+      for (const r of (data ?? []) as unknown as Record<string, unknown>[]) rotulos.set(`${tipo}:${r.id as string}`, cfg.rotulo(r));
     }),
   );
 
-  return notas.map((n): NotaUnificada => {
-    const tipo = n.entidade_tipo as string;
-    const id = n.entidade_id as string;
+  return doCliente.map((a): NotaUnificada => {
+    const tipo = a.entidade_tipo as string;
+    const id = a.entidade_id as string;
     const cfg = NOTA_ORIGENS[tipo];
     return {
-      id: n.id as string,
-      texto: n.texto as string,
-      autor: n.autor as string,
-      criado_em: n.criado_em as string,
-      atualizado_em: n.atualizado_em as string,
+      id: a.id as string,
+      texto: a.texto as string,
+      autor: a.autor as string,
+      criado_em: a.criado_em as string,
+      atualizado_em: a.atualizado_em as string,
       entidade_tipo: tipo,
+      // Nota escrita no próprio cliente não precisa de link (é o drawer atual).
       contexto: rotulos.get(`${tipo}:${id}`) ?? null,
-      href: cfg ? cfg.href(id) : null,
+      href: cfg && tipo !== "cliente" ? cfg.href(id) : null,
     };
   });
 }

@@ -7,7 +7,7 @@ import { ClienteMaster, mascararCpf, sitTone } from "@/components/detalhe/Client
 import { FavoritoStar } from "@/components/FavoritoStar";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
-import { Anotacoes } from "@/components/detalhe/Anotacoes";
+import { NotasCliente } from "@/components/detalhe/Anotacoes";
 import { ExecucaoCliente } from "@/components/detalhe/ExecucaoCliente";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
 import {
@@ -19,7 +19,7 @@ import { SITUACAO_PRISIONAL, PRIORIDADES, RESPONSAVEIS, ESTUDO_TIPO } from "@/li
 import { fmtDate, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type {
-  ClienteFull, Cliente, Anotacao, ClienteProcMini,
+  ClienteFull, Cliente, NotaUnificada, ClienteProcMini,
   ExecucaoCliente as TExec, Documento, ClienteFicha,
 } from "@/lib/data";
 
@@ -329,7 +329,7 @@ function FinanceiroBloco({ p }: { p: ClienteFull }) {
 export function ClientePainel({
   p, lista, anotacoes, exec, documentos, ficha, meuId,
 }: {
-  p: ClienteFull; lista: Cliente[]; anotacoes: Anotacao[]; exec: TExec; documentos: Documento[]; ficha: ClienteFicha; meuId: string | null;
+  p: ClienteFull; lista: Cliente[]; anotacoes: NotaUnificada[]; exec: TExec; documentos: Documento[]; ficha: ClienteFicha; meuId: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("consolidado");
   const [verNotas, setVerNotas] = useState(true);
@@ -573,8 +573,8 @@ export function ClientePainel({
             {/* NOTAS (aba dedicada ou bloco no consolidado via botão) */}
             {(tab === "notas" || (verNotas && tab === "consolidado")) && (
               <div className="proc-card">
-              <Sec titulo="Anotações" extra={<span className="audp-count">{anotacoes.length}</span>}>
-                <Anotacoes entidadeTipo="cliente" entidadeId={p.id} notas={anotacoes} />
+              <Sec titulo="Anotações" sub="tudo o que foi anotado nos registros deste cliente" extra={<span className="audp-count">{anotacoes.length}</span>}>
+                <NotasCliente clienteId={p.id} notas={anotacoes} />
               </Sec>
               </div>
             )}
