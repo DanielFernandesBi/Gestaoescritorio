@@ -829,6 +829,28 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .vr-wm-i{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px}
 .vr-wm-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
 .vr-wm-v{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:600;margin-top:5px}
+/* Sug. 87 — cobertura por OAB (erro/nome/modo), watermark por OAB, chips de origem. */
+.oab.erro .lbl{color:var(--red)}
+.oab.nome .lbl{color:var(--brass)}
+.oab .lbl{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.oab-badge{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--brass);background:var(--brass-soft);border-radius:20px;padding:1px 7px}
+.oab-nome{font-weight:600;text-transform:none;letter-spacing:0;color:var(--text)}
+.oab-modo{font-size:9.5px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:20px;padding:1px 7px;text-transform:none;letter-spacing:0}
+.oab-erro{font-size:12px;color:var(--red);background:var(--red-soft);border-radius:8px;padding:6px 9px;line-height:1.4}
+.vr-wm-alarme{font-size:10px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:20px;padding:1px 7px;margin-left:8px;text-transform:none;letter-spacing:0}
+.vr-wm-djen{grid-column:1 / -1}
+.vr-wm-oabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.vr-wm-oab{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--line-soft);border-radius:7px;padding:2px 8px}
+.vr-wm-oab b{color:var(--text);font-weight:700}
+.vr-wm-oab em{font-style:normal;font-weight:600}
+.vr-wm-oab.parado{color:var(--red);background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 30%,var(--line))}
+.vr-wm-oab.parado b{color:var(--red)}
+.int-origens{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:2px 0 10px}
+.int-origens-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+.oab-chip{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-soft);border-radius:7px;padding:2px 8px}
+.oab-chip.nome{font-family:var(--sans);color:var(--brass);background:var(--brass-soft)}
+.int-origens.homonimo{background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 30%,transparent);border-radius:9px;padding:7px 10px}
+.int-origens-aviso{font-size:11px;font-weight:700;color:var(--amber)}
 @media(max-width:760px){.vr-wm{grid-template-columns:1fr}}
 
 /* Etapas do pipeline */

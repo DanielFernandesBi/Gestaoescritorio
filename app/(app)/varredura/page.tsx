@@ -4,6 +4,7 @@ import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/PageHeader";
 import { Pill } from "@/components/ui";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
+import { CoberturaOab } from "@/components/CoberturaOab";
 import { fmtDate, fmtTime, fmtNum, humano } from "@/lib/format";
 import Link from "next/link";
 
@@ -31,6 +32,7 @@ export default async function VarreduraPage() {
   const radarAcervo = radar.filter((r) => r.candidato_acervo).length;
 
   const minutasRevisar = pecas.filter((p) => p.status === "em_revisao").length;
+  const oabComErro = varredura?.diagnostico_oab?.filter((d) => d.erro).length ?? 0;
   const fonteDJEN = varredura ? ["djen", "ambas"].includes(varredura.fonte) : false;
   const fontePush = varredura ? ["push", "ambas"].includes(varredura.fonte) : false;
 
@@ -104,14 +106,32 @@ export default async function VarreduraPage() {
               </div>
             </div>
 
-            {/* Janela varrida — watermarks */}
+            {/* Janela varrida — watermarks (DJEN agora por OAB, Sug. 87) */}
             <div className="vr-wm">
-              <div className="vr-wm-i">
-                <div className="vr-wm-l">Watermark DJEN</div>
-                <div className="vr-wm-v">{wm.djen ? <>↑ {fmtDate(wm.djen)} {fmtTime(wm.djen)}</> : "—"}</div>
+              <div className="vr-wm-i vr-wm-djen">
+                <div className="vr-wm-l">
+                  Watermark DJEN · por OAB
+                  {wm.djenParado && <span className="vr-wm-alarme">⚠ OAB parada &gt; 3 dias</span>}
+                </div>
+                {wm.djen.length ? (
+                  <div className="vr-wm-oabs">
+                    {wm.djen.map((d) => (
+                      <span
+                        key={d.rotulo}
+                        className={`vr-wm-oab${d.parado ? " parado" : ""}`}
+                        title={d.ts ? `${fmtDate(d.ts)} ${fmtTime(d.ts)}` : "sem marca"}
+                      >
+                        <b>{d.rotulo}</b> {d.ts ? fmtDate(d.ts) : "—"}
+                        {d.parado && d.dias != null && <em> · parada há {d.dias}d</em>}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="vr-wm-v">—</div>
+                )}
               </div>
               <div className="vr-wm-i">
-                <div className="vr-wm-l">Watermark push</div>
+                <div className="vr-wm-l">Watermark push {wm.pushParado && <span className="vr-wm-alarme">⚠ parado</span>}</div>
                 <div className="vr-wm-v">{wm.push ? <>↑ {fmtDate(wm.push)} {fmtTime(wm.push)}</> : "—"}</div>
               </div>
               <div className="vr-wm-i">
@@ -122,23 +142,14 @@ export default async function VarreduraPage() {
 
             <div className="scan-foot">
               <div className="scan-block">
-                <div className="scan-block-h">Cobertura por OAB <span className="vr-ok">fontes saudáveis</span></div>
-                {varredura.diagnostico_oab && varredura.diagnostico_oab.length > 0 ? (
-                  <div className="scan-grid">
-                    {varredura.diagnostico_oab.map((d) => (
-                      <div className="oab" key={d.oab}>
-                        <div className="lbl">{d.oab}</div>
-                        <div className="metrics">
-                          <div className="metric"><b>{fmtNum(d.itens_janela)}</b><span>na janela</span></div>
-                          <div className="metric"><b>{fmtNum(d.acervo_total)}</b><span>no acervo</span></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty sm">Sem diagnóstico por OAB.</div>
-                )}
-                <div className="vr-hint">O <code>diagnostico_oab</code> é o termômetro de fonte vazia/quebrada: janela zerada com acervo cheio acende alerta mesmo sem erro explícito.</div>
+                <div className="scan-block-h">
+                  Cobertura por OAB · sócios
+                  {oabComErro > 0
+                    ? <span className="vr-badge">{oabComErro} com falha</span>
+                    : <span className="vr-ok">fontes saudáveis</span>}
+                </div>
+                <CoberturaOab diag={varredura.diagnostico_oab} />
+                <div className="vr-hint">Seis rótulos: as 4 OABs dos sócios + 2 buscas por <b>nome</b> (Sug. 87). O <code>diagnostico_oab</code> é o termômetro de fonte vazia/quebrada; <code>{`{erro}`}</code> isola a OAB que falhou sem derrubar as demais, e <code>modo: dia-a-dia</code> indica reconsulta em fallback.</div>
               </div>
               <div className="scan-block">
                 <div className="scan-block-h">Anomalias {anomCount > 0 && <span className="vr-badge">{anomCount}</span>}</div>

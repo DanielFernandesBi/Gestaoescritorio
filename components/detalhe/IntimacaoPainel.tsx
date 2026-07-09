@@ -270,6 +270,26 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
                 </span>
               )}
             </div>
+            {/* Sug. 87 — origem DJEN (oab_origem): chips das OABs/nomes que capturaram.
+                Só rótulo "nome:" ⇒ candidato a homônimo (destaque + aviso de triagem). */}
+            {i.oab_origem && i.oab_origem.length > 0 && (() => {
+              const soNome = i.oab_origem.every((o) => o.startsWith("nome:"));
+              return (
+                <div className={`int-origens${soNome ? " homonimo" : ""}`}>
+                  <span className="int-origens-l">origem DJEN</span>
+                  {i.oab_origem.map((o) => (
+                    <span key={o} className={`oab-chip${o.startsWith("nome:") ? " nome" : ""}`}>
+                      {o.startsWith("nome:") ? `por nome · ${o.slice(5)}` : o}
+                    </span>
+                  ))}
+                  {soNome && (
+                    <span className="int-origens-aviso" title="Capturada só por busca de nome — pode ser homônimo; confira antes de vincular processo/cliente">
+                      ⚠ candidato a homônimo · pendente de triagem
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
             <div className="int-ident">
               {i.orfa ? (
                 <b className="int-ident-nome">{resumoCurto(i.resumo)}</b>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Pill } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
+import { CoberturaOab } from "@/components/CoberturaOab";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { atualizarVarredura } from "@/app/actions";
 import { fmtTime, fmtNum } from "@/lib/format";
@@ -135,17 +136,7 @@ export function VarreduraCicloPainel({
               <div className="audp-sech">diagnostico_oab · cobertura por OAB</div>
               {oab.length ? (
                 <div className="vc-oabwrap">
-                  <div className="scan-grid">
-                    {oab.map((d) => (
-                      <div className="oab" key={d.oab}>
-                        <div className="lbl">{d.oab} <Check s={12} /></div>
-                        <div className="metrics">
-                          <div className="metric"><b>{fmtNum(d.acervo_total)}</b><span>no acervo</span></div>
-                          <div className="metric"><b>{fmtNum(d.itens_janela)}</b><span>na janela</span></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <CoberturaOab diag={oab} />
                   <div className="vc-oabnote">
                     OABs com acervo e itens na janela → sem DJEN vazio/quebrado, mesmo sem erro explícito.
                     Cruzado com o Recorte Digital (mesmas OABs): casou em conteúdo, não há buraco de cobertura.

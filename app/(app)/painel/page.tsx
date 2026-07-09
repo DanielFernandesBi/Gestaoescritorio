@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Pill, SegredoTag, DiasBox } from "@/components/ui";
 import { VerMais } from "@/components/VerMais";
 import { AnomaliaRow } from "@/components/AnomaliaRow";
+import { CoberturaOab } from "@/components/CoberturaOab";
 import { FormModal } from "@/components/FormModal";
 import { validarPrazoEditado, validarAudienciaEditada } from "@/app/actions";
 import { TIPO_CONTAGEM, RESPONSAVEIS, AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE } from "@/lib/enums";
@@ -313,22 +314,8 @@ export default async function PainelPage() {
             </div>
             <div className="scan-foot">
               <div className="scan-block">
-                <div className="scan-block-h">Cobertura por OAB</div>
-                {varredura.diagnostico_oab && varredura.diagnostico_oab.length > 0 ? (
-                  <div className="scan-grid">
-                    {varredura.diagnostico_oab.map((d) => (
-                      <div className="oab" key={d.oab}>
-                        <div className="lbl">{d.oab}</div>
-                        <div className="metrics">
-                          <div className="metric"><b>{fmtNum(d.acervo_total)}</b><span>no acervo</span></div>
-                          <div className="metric"><b>{fmtNum(d.itens_janela)}</b><span>na janela</span></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty sm">Sem diagnóstico por OAB.</div>
-                )}
+                <div className="scan-block-h">Cobertura por OAB · sócios</div>
+                <CoberturaOab diag={varredura.diagnostico_oab} />
               </div>
               <div className="scan-block">
                 <div className="scan-block-h">Anomalias</div>

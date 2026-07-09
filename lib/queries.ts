@@ -326,8 +326,49 @@ export async function getPainelData(): Promise<PainelData> {
 
 /* ===== Varredura DJEN/push (ritual matinal: cobertura + anomalias) ===== */
 
-export type DiagnosticoOab = { oab: string; acervo_total: number; itens_janela: number };
+/* Sug. 87 — cobertura por OAB. O buscador passou a varrer 4 OABs + 2 nomes (6
+ * rótulos) e o diagnostico_oab mudou de forma: era array [{oab,acervo_total,
+ * itens_janela}], virou objeto por rótulo { "352447/SP": {acervo_na_janela,
+ * coletadas, modo} | {erro}, ..., "nome:DANIEL…": {…} }. normDiagnosticoOab
+ * aceita as DUAS formas (dados antigos ainda em array até o deploy do buscador)
+ * e entrega uma lista uniforme. `modo: "dia-a-dia"` = fallback (degradação leve);
+ * `isNome` = rótulo "nome:" (candidato a homônimo). */
+export type DiagnosticoOab = {
+  rotulo: string;
+  acervo: number | null;   // acervo_na_janela (novo) | acervo_total (antigo)
+  coletadas: number | null; // coletadas (novo) | itens_janela (antigo)
+  modo: string | null;      // "janela" | "dia-a-dia" | null
+  erro: string | null;
+  isNome: boolean;
+};
 export type Anomalia = { fonte: string; tipo: string; detalhe: string };
+
+function diagItem(rotulo: string, v: Record<string, unknown>): DiagnosticoOab {
+  const n = (x: unknown) => (x == null ? null : Number(x));
+  return {
+    rotulo,
+    acervo: n(v.acervo_na_janela ?? v.acervo_total),
+    coletadas: n(v.coletadas ?? v.itens_janela),
+    modo: (v.modo as string | null) ?? null,
+    erro: (v.erro as string | null) ?? null,
+    isNome: rotulo.startsWith("nome:"),
+  };
+}
+function normDiagnosticoOab(raw: unknown): DiagnosticoOab[] | null {
+  if (raw == null) return null;
+  // Novo: objeto { rótulo: {...} }.
+  if (!Array.isArray(raw) && typeof raw === "object") {
+    return Object.entries(raw as Record<string, unknown>).map(([k, v]) => diagItem(k, (v ?? {}) as Record<string, unknown>));
+  }
+  // Antigo: array [{ oab, acervo_total, itens_janela, erro }].
+  if (Array.isArray(raw)) {
+    return raw.map((e) => {
+      const o = (e ?? {}) as Record<string, unknown>;
+      return diagItem(String(o.oab ?? o.rotulo ?? "—"), o);
+    });
+  }
+  return null;
+}
 
 /** O `detalhe` da anomalia às vezes vem como array/objeto (ex.: minuta_diferida);
  * coage para string legível — render direto de objeto quebra o React. */
@@ -387,7 +428,7 @@ export async function getUltimaVarredura(): Promise<Varredura | null> {
     intimacoes_novas: Number(row.intimacoes_novas ?? 0),
     andamentos_novos: Number(row.andamentos_novos ?? 0),
     prazos_criados: Number(row.prazos_criados ?? 0),
-    diagnostico_oab: (row.diagnostico_oab as DiagnosticoOab[] | null) ?? null,
+    diagnostico_oab: normDiagnosticoOab(row.diagnostico_oab),
     anomalias: normAnomalias(row.anomalias),
   };
 }
@@ -431,7 +472,34 @@ export async function getVarreduras(limit = 8): Promise<VarreduraHist[]> {
   }));
 }
 
-export type Watermarks = { djen: string | null; push: string | null };
+/* Sug. 87 — o watermark DJEN deixou de ser uma marca única e passou a JSON por
+ * OAB ({"352447/SP":ts, "252708/RJ":ts, …}): cada sub-chave avança sozinha, então
+ * uma OAB em HTTP 500 não congela mais as outras. Interpretamos por fonte e
+ * alarmamos a sub-chave parada há mais de 3 dias. Push segue marca única. */
+const WM_LIMIAR_DIAS = 3;
+
+export type WatermarkFonte = { rotulo: string; ts: string | null; dias: number | null; parado: boolean };
+export type Watermarks = {
+  djen: WatermarkFonte[];
+  djenParado: boolean;
+  push: string | null;
+  pushDias: number | null;
+  pushParado: boolean;
+};
+
+const wmIso = (v: unknown): string | null => (v == null ? null : String(v).replace(" ", "T"));
+function wmDias(iso: string | null): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso.slice(0, 10)); // dia (evita parse de offset "+00")
+  if (Number.isNaN(t)) return null;
+  const hoje = Date.parse(new Date().toISOString().slice(0, 10));
+  return Math.floor((hoje - t) / 86_400_000);
+}
+function wmFonte(rotulo: string, ts: unknown): WatermarkFonte {
+  const iso = wmIso(ts);
+  const dias = wmDias(iso);
+  return { rotulo, ts: iso, dias, parado: dias != null && dias > WM_LIMIAR_DIAS };
+}
 
 export async function getWatermarks(): Promise<Watermarks> {
   const supabase = await createClient();
@@ -439,12 +507,28 @@ export async function getWatermarks(): Promise<Watermarks> {
     .from("config_sistema")
     .select("chave, valor")
     .in("chave", ["ultima_varredura_djen", "ultima_varredura_push"]);
-  const norm = (v: unknown): string | null => {
-    if (v == null) return null;
-    return String(v).replace(" ", "T"); // "2026-06-23 13:04..+00" -> ISO parseável
-  };
   const map = new Map((data ?? []).map((r) => [r.chave as string, r.valor]));
-  return { djen: norm(map.get("ultima_varredura_djen")), push: norm(map.get("ultima_varredura_push")) };
+
+  // DJEN: JSON por OAB (novo) ou marca única (retrocompat pré-Sug.87).
+  const djenRaw = map.get("ultima_varredura_djen");
+  let djen: WatermarkFonte[] = [];
+  if (djenRaw != null) {
+    const s = String(djenRaw).trim();
+    let obj: Record<string, unknown> | null = null;
+    if (s.startsWith("{")) { try { obj = JSON.parse(s) as Record<string, unknown>; } catch { obj = null; } }
+    djen = obj
+      ? Object.entries(obj).map(([rotulo, ts]) => wmFonte(rotulo, ts))
+      : [wmFonte("DJEN", djenRaw)];
+  }
+
+  const push = wmFonte("push", map.get("ultima_varredura_push"));
+  return {
+    djen,
+    djenParado: djen.some((d) => d.parado),
+    push: push.ts,
+    pushDias: push.dias,
+    pushParado: push.parado,
+  };
 }
 
 /* Um ciclo completo de varredura (drawer /varredura/ciclos/[id]) — snapshot
@@ -487,7 +571,7 @@ export async function getVarreduraPorId(id: string): Promise<VarreduraCiclo | nu
     prazos_criados: Number(r.prazos_criados ?? 0),
     janela_inicio: (r.janela_inicio as string | null) ?? null,
     janela_fim: (r.janela_fim as string | null) ?? null,
-    diagnostico_oab: (r.diagnostico_oab as DiagnosticoOab[] | null) ?? null,
+    diagnostico_oab: normDiagnosticoOab(r.diagnostico_oab),
     anomalias: normAnomalias(r.anomalias),
     arquivo_drive_id: (r.arquivo_drive_id as string | null) ?? null,
     cadastrado_por: (r.cadastrado_por as string | null) ?? null,

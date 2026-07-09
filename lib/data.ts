@@ -698,6 +698,9 @@ export type Intimacao = {
   segredo: boolean;
   orfa: boolean;
   cliente: string | null;
+  // Sug. 87 — OAB(s)/nome(s) que originaram a captura no DJEN (text[]). Só rótulo
+  // "nome:…" ⇒ candidato a homônimo, pendente de triagem.
+  oab_origem?: string[] | null;
   // Sugestão 56 — cliente(s) em destaque (com papel) e "do que se trata".
   partes?: ParteCliente[];
   contexto?: CasoContexto;
@@ -848,7 +851,7 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
   const { data: r } = await supabase
     .from("intimacoes")
     .select(
-      "id, origem, resumo, teor, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, cadastrado_por, criado_em, atualizado_em, processo_id, tribunal, orgao, instancia, classe, area, prazo_dias, fundamento, data_disponibilizacao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,uf,instancia,area,classe,segredo_justica,cliente_processo(clientes(nome)))",
+      "id, origem, resumo, teor, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, oab_origem, cadastrado_por, criado_em, atualizado_em, processo_id, tribunal, orgao, instancia, classe, area, prazo_dias, fundamento, data_disponibilizacao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,uf,instancia,area,classe,segredo_justica,cliente_processo(clientes(nome)))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -889,6 +892,7 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
     data_ciencia: r.data_ciencia as string | null,
     providencia: r.providencia as string | null,
     codigo_publicacao: r.codigo_publicacao as string | null,
+    oab_origem: (r.oab_origem as string[] | null) ?? null,
     numero_cnj: p?.numero_cnj ?? null,
     numero_registro: p?.numero_registro_tribunal ?? null,
     tribunal: (r.tribunal as string | null) ?? p?.tribunal ?? null,
