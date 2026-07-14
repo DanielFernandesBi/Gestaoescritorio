@@ -247,6 +247,64 @@ export async function criarPrazo(fd: FormData): Promise<Resultado> {
   }
 }
 
+/**
+ * Cria um PRAZO diretamente da tarefa de conferência, mantendo o fluxo UNIFICADO.
+ * O prazo nasce no processo da tarefa (provisório · a validar). Como o schema não
+ * liga prazo↔tarefa direto, a rastreabilidade da baixa em cascata passa pela PEÇA:
+ * amarramos o prazo à peça já existente desta tarefa (quando ainda sem prazo) — e,
+ * se a peça vier depois, o criarPecaDeOrigem("tarefa") herda o prazo aberto do
+ * processo. Nos dois casos, a baixa da peça (fn_baixa_ato) fecha peça + prazo +
+ * tarefa juntos. Nunca DELETE.
+ */
+export async function criarPrazoDeTarefa(tarefaId: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!tarefaId) return { ok: false, message: "Tarefa inválida." };
+    const supabase = await createClient();
+
+    const { data: t } = await supabase.from("tarefas").select("id, processo_id, responsavel").eq("id", tarefaId).maybeSingle();
+    if (!t) return { ok: false, message: "Tarefa não encontrada." };
+    const processo_id = (t.processo_id as string | null) ?? null;
+    if (!processo_id) {
+      return { ok: false, message: "Esta tarefa não tem processo vinculado — o prazo exige processo. Vincule um processo à tarefa antes." };
+    }
+
+    const ato = String(fd.get("ato") || "").trim();
+    const data_fatal = String(fd.get("data_fatal") || "");
+    if (!ato || !data_fatal) return { ok: false, message: "Ato e data fatal são obrigatórios." };
+    const data_interna = String(fd.get("data_interna") || "") || null;
+    const responsavel = String(fd.get("responsavel") || (t.responsavel as string) || "Daniel");
+    const tipo_contagem = String(fd.get("tipo_contagem") || "corridos");
+
+    const { data: novo, error } = await supabase
+      .from("prazos")
+      .insert({ processo_id, ato, data_fatal, data_interna, responsavel, tipo_contagem, status: "aberto", validado: false, cadastrado_por: "manual" })
+      .select("id")
+      .single();
+    if (error) throw error;
+    const prazoId = novo?.id as string;
+
+    // Unificação: amarra o prazo à(s) peça(s) desta tarefa ainda sem prazo — para a
+    // baixa alcançá-lo mesmo quando a peça foi criada ANTES do prazo.
+    const TERMINAIS = ["protocolada", "cancelada", "prejudicada"];
+    let amarradas = 0;
+    const { data: pcs } = await supabase.from("pecas").select("id, status").eq("tarefa_id", tarefaId).is("prazo_id", null);
+    for (const pc of pcs ?? []) {
+      if (TERMINAIS.includes(pc.status as string)) continue;
+      const { error: upErr } = await supabase.from("pecas").update({ prazo_id: prazoId }).eq("id", pc.id as string);
+      if (!upErr) amarradas++;
+    }
+
+    revalidarTudo();
+    const nota = amarradas > 0
+      ? " Amarrado à peça desta tarefa — dar baixa na peça fecha prazo, tarefa e peça juntos."
+      : " Ao criar a peça desta tarefa, ela herda este prazo — a baixa fecha os três juntos.";
+    return { ok: true, message: `Prazo criado (provisório · a validar).${nota}` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 /* ============================ AUDIÊNCIAS ============================ */
 
 /** Cadastro manual de audiência. Nasce status='designada', validado=false

@@ -8,8 +8,8 @@ import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
-import { moverTarefa, atualizarTarefa, assumirTarefa, reatribuirTarefa } from "@/app/actions";
-import { PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
+import { moverTarefa, atualizarTarefa, assumirTarefa, reatribuirTarefa, criarPrazoDeTarefa } from "@/app/actions";
+import { PRIORIDADES, RESPONSAVEIS, TIPO_CONTAGEM } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { TarefaFull, TarefaCard, Anotacao } from "@/lib/data";
@@ -118,6 +118,35 @@ function EditarTarefa({ t }: { t: TarefaFull }) {
         <div><label>Responsável</label><select name="responsavel" defaultValue={t.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
       </div>
       <div><label>Data limite</label><input type="date" name="data_limite" defaultValue={t.data_limite?.slice(0, 10) ?? ""} /></div>
+    </FormModal>
+  );
+}
+
+/* ── criar prazo a partir da conferência (fluxo unificado) ───────────────────
+ * O prazo nasce no processo da tarefa; a baixa da peça fecha prazo + tarefa +
+ * peça juntos (criarPrazoDeTarefa amarra o prazo à peça existente, se houver). */
+const ClockIco = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+);
+function CriarPrazoDaTarefa({ t }: { t: TarefaFull }) {
+  return (
+    <FormModal
+      label={<><ClockIco /> Criar prazo</>}
+      titulo="Criar prazo desta conferência"
+      descricao="Nasce provisório (a validar), vinculado ao processo. Ao dar baixa na peça, o prazo e a tarefa fecham juntos — fluxo unificado."
+      acao={criarPrazoDeTarefa.bind(null, t.id)}
+      enviarLabel="Criar prazo"
+      variant="default"
+    >
+      <div><label>Ato / providência</label><input name="ato" required defaultValue={t.titulo} /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div><label>Data fatal</label><input type="date" name="data_fatal" required /></div>
+        <div><label>Data interna</label><input type="date" name="data_interna" /></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div><label>Contagem</label><select name="tipo_contagem" defaultValue="corridos">{TIPO_CONTAGEM.map((x) => <option key={x} value={x}>{x}</option>)}</select></div>
+        <div><label>Responsável</label><select name="responsavel" defaultValue={t.responsavel ?? "Daniel"}>{RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
+      </div>
     </FormModal>
   );
 }
@@ -245,12 +274,19 @@ export function TarefaPainel({ t, lista, anotacoes, mapa = null, socio = null }:
               )}
             </Sec>
 
-            {/* PRAZOS do processo — contexto */}
-            {t.prazos.length > 0 && (
-              <Sec titulo="Prazos abertos" sub="do processo vinculado" extra={<span className="audp-count">{t.prazos.length}</span>}>
-                <div className="przp-stack">{t.prazos.map((pr) => (
-                  <Item key={pr.id} tag={pr.validado ? "prazo" : "provisório"} tagTone={pr.validado ? "cat-slate" : "tang"} titulo={curto(pr.ato)} sub={<span className="mono">fatal {ddmm(pr.data_fatal)}</span>} dias={pr.dias} href={linkPara("prazo", pr.id)} />
-                ))}</div>
+            {/* PRAZOS — contexto do processo + criar a partir desta conferência */}
+            {t.processo_id && (
+              <Sec titulo="Prazos" sub="do processo vinculado" extra={<span className="audp-count">{t.prazos.length}</span>}>
+                {t.prazos.length === 0 ? (
+                  <div className="przp-empty-row">
+                    <span>Nenhum prazo aberto neste processo.</span>
+                    <CriarPrazoDaTarefa t={t} />
+                  </div>
+                ) : (
+                  <div className="przp-stack">{t.prazos.map((pr) => (
+                    <Item key={pr.id} tag={pr.validado ? "prazo" : "provisório"} tagTone={pr.validado ? "cat-slate" : "tang"} titulo={curto(pr.ato)} sub={<span className="mono">fatal {ddmm(pr.data_fatal)}</span>} dias={pr.dias} href={linkPara("prazo", pr.id)} />
+                  ))}</div>
+                )}
               </Sec>
             )}
 
@@ -305,6 +341,7 @@ export function TarefaPainel({ t, lista, anotacoes, mapa = null, socio = null }:
           {t.status !== "concluida" && (
             <Acao label="✓ Concluir" variant="primary" size="md" titulo="Concluir tarefa" confirmarLabel="Concluir" resumo={<>Marcar <b>{t.titulo}</b> como <b>concluída</b>?</>} acao={() => moverTarefa(t.id, "concluida")} />
           )}
+          {t.processo_id && <CriarPrazoDaTarefa t={t} />}
           <CriarPecaPendente tipoOrigem="tarefa" origemId={t.id} texto={[t.titulo, t.descricao].filter(Boolean).join(" — ")} baseTitulo={t.titulo} mapa={mapa} />
           <CriarCompromisso tituloPadrao={t.titulo} descricaoPadrao={t.descricao ?? ""} dataPadrao={t.data_limite} responsavelPadrao={t.responsavel} tarefaId={t.id} processoId={t.processo_id} clienteId={t.cliente_id} />
           {aberta(t.status) && (
