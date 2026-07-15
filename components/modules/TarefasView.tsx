@@ -7,7 +7,7 @@ import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { PageHeader } from "@/components/PageHeader";
 import { moverTarefa, assumirTarefa, reatribuirTarefa, type Resultado } from "@/app/actions";
 import { linkPara } from "@/lib/links";
-import { fmtDate, humano } from "@/lib/format";
+import { fmtDate, humano, diasAte } from "@/lib/format";
 import type { TarefaCard } from "@/lib/data";
 import type { MapaProvidencia } from "@/lib/pecas";
 
@@ -15,9 +15,6 @@ type Socio = "Daniel" | "Rodolfo";
 const outroSocio = (s: Socio): Socio => (s === "Daniel" ? "Rodolfo" : "Daniel");
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
-const Person = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" strokeWidth="1.9" strokeLinecap="round" aria-hidden><circle cx="12" cy="8" r="3.4" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>
-);
 const Spark = ({ c = "var(--accent)" }: { c?: string }) => (
   <svg width="9" height="9" viewBox="0 0 24 24" style={{ fill: c }} aria-hidden><path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z" /></svg>
 );
@@ -32,6 +29,9 @@ const Arrow = () => (
 );
 const X = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+);
+const Clock = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
 );
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
@@ -50,12 +50,54 @@ const motivo = (p: string | null) =>
       : "conferência humana.";
 const procNum = (t: TarefaCard) => t.numero_cnj ?? (t.numero_registro ? `reg ${t.numero_registro}` : null);
 
+/* ── prazo (semáforo por data limite) ───────────────────────────────────────
+ * Reaproveita a doutrina dos prazos: negativo = vencido; hoje; ≤2 crítico;
+ * ≤5 atenção; senão no prazo. `sem prazo` fica neutro e discreto. */
+type PrazoClasse = "atras" | "hoje" | "crit" | "warn" | "ok" | "none";
+function prazoClasse(data: string | null): PrazoClasse {
+  if (!data) return "none";
+  const d = diasAte(data);
+  return d < 0 ? "atras" : d === 0 ? "hoje" : d <= 2 ? "crit" : d <= 5 ? "warn" : "ok";
+}
+function prazoTexto(data: string | null): string {
+  if (!data) return "sem prazo";
+  const d = diasAte(data);
+  if (d < 0) return `atrasada · ${Math.abs(d)}d`;
+  if (d === 0) return "vence hoje";
+  if (d === 1) return "vence amanhã";
+  return `em ${d} dias`;
+}
+const atrasada = (t: TarefaCard) => prazoClasse(t.data_limite) === "atras";
+
+function PrazoChip({ data }: { data: string | null }) {
+  const cls = prazoClasse(data);
+  return (
+    <span className={`tk-prazo ${cls}`} title={data ? `Data limite: ${fmtDate(data)}` : "Sem data limite definida"}>
+      <Clock />
+      <span className="tk-prazo-t">{prazoTexto(data)}</span>
+      {data && <span className="tk-prazo-dt">{fmtDate(data)}</span>}
+    </span>
+  );
+}
+
+/* ── responsável como avatar (iniciais, cor por sócio) ─────────────────────── */
+const iniciais = (n: string) => {
+  const p = n.trim().split(/\s+/).filter(Boolean);
+  return ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase() || "?";
+};
+function RespAvatar({ nome }: { nome: string | null }) {
+  if (!nome) return <span className="tk-av vazio" title="Sem responsável">?</span>;
+  if (nome === "Ambos") return <span className="tk-av ambos" title="A distribuir entre os sócios">AD</span>;
+  const tone = nome === "Daniel" ? "d" : nome === "Rodolfo" ? "r" : "x";
+  return <span className={`tk-av ${tone}`} title={nome}>{iniciais(nome)}</span>;
+}
+
 /* Corta do título os segmentos finais que só repetem o que o card já mostra em
  * campo próprio: nº/identificador de processo e o nome do cliente. Só age sobre
  * segmentos separados por travessão (— / –) — o padrão dos títulos automáticos
  * "[CONFERIR] … — CLIENTE — 0000000-00.0000…". Texto descritivo é preservado. */
 const norm = (s: string) =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
 const CNJ_RE = /\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}/;
 const PROC_PREFIX = /^(hc|rhc|ap|re|are|resp|aresp|agrg|rvcr|ms|ed|edcl|rese|ac|apn)\b/i;
 
@@ -97,21 +139,21 @@ function AcaoBtn({ run, children, className = "tk-fbtn" }: { run: () => Promise<
   );
 }
 
-/* ── card PENDENTE (mostra como entrou: prioridade + escalonamento) ──────── */
+/* ── card PENDENTE (mostra como entrou: prioridade + escalonamento + prazo) ── */
 function PendenteCard({ t, mapa, outro }: { t: TarefaCard; mapa: MapaProvidencia | null; outro: Socio | null }) {
   const conf = ehConferencia(t);
   const sent = ehSentinela(t);
   const pk = priKey(t.prioridade);
   return (
-    <article className={`tk-card p-${pk}${conf ? " conf" : ""}${sent ? " sent" : ""}`}>
+    <article className={`tk-card p-${pk}${conf ? " conf" : ""}${sent ? " sent" : ""}${atrasada(t) ? " atrasada" : ""}`}>
       <span className="tk-bar" />
       <div className="tk-in">
         <div className="tk-body">
           <div className="tk-tags">
             <span className={`tk-pri ${pk}`}>{humano(t.prioridade)}</span>
+            <PrazoChip data={t.data_limite} />
             {conf && <span className="tk-conf"><Spark c="#fff" />conferência · IA</span>}
             {sent && <span className="tk-conf sentinela"><Spark c="#fff" />silêncio · IA</span>}
-            {!conf && !sent && t.responsavel === "Ambos" && <span className="tk-dist">a distribuir · Ambos</span>}
             {t.segredo && <span className="pz-tag segredo">🔒 segredo</span>}
           </div>
           <Link className="tk-title" href={linkPara("tarefa", t.id)} title={t.titulo}>{tituloLimpo(t)}</Link>
@@ -128,7 +170,8 @@ function PendenteCard({ t, mapa, outro }: { t: TarefaCard; mapa: MapaProvidencia
               <div><b>Sentinela de inércia · {(t.prioridade ?? "media").toUpperCase()}</b> — silêncio anômalo: peticionar andamento ou avaliar status.</div>
             </div>
           )}
-          {t.cliente && <div className="tk-cli"><Person /><b>{t.cliente}</b></div>}
+          {t.cliente && <div className="tk-cli"><RespAvatar nome={t.responsavel} /><b>{t.cliente}</b></div>}
+          {!t.cliente && <div className="tk-cli"><RespAvatar nome={t.responsavel} /><span className="tk-resp-nome">{t.responsavel === "Ambos" ? "A distribuir" : (t.responsavel ?? "sem responsável")}</span></div>}
           {procNum(t) && <div className="tk-num mono">{procNum(t)}</div>}
           {conf && t.andamento_id && (
             <Link className="tk-link" href="/andamentos">ver movimentação de origem <Arrow /></Link>
@@ -167,23 +210,26 @@ function PendenteCard({ t, mapa, outro }: { t: TarefaCard; mapa: MapaProvidencia
   );
 }
 
-/* ── card EM ANDAMENTO (já lido/atribuído: evento, cliente, resp., data) ─── */
+/* ── card EM ANDAMENTO (já atribuído: responsável, prazo, cliente) ────────── */
 function AndamentoCard({ t }: { t: TarefaCard }) {
   const pk = priKey(t.prioridade);
   return (
-    <article className={`tk-card p-${pk}`}>
+    <article className={`tk-card p-${pk}${atrasada(t) ? " atrasada" : ""}`}>
       <span className="tk-bar" />
       <div className="tk-in">
         <div className="tk-body">
           <div className="tk-tags">
             <span className={`tk-pri ${pk}`}>{humano(t.prioridade)}</span>
-            {t.responsavel && t.responsavel !== "Ambos" && <span className="tk-resp">{t.responsavel}</span>}
+            <PrazoChip data={t.data_limite} />
             {t.segredo && <span className="pz-tag segredo">🔒 segredo</span>}
           </div>
           <Link className="tk-title" href={linkPara("tarefa", t.id)} title={t.titulo}>{tituloLimpo(t)}</Link>
           {t.descricao && <div className="tk-desc">{t.descricao}</div>}
-          {t.cliente && <div className="tk-cli"><Person /><b>{t.cliente}</b></div>}
-          <div className="tk-num mono">{[t.responsavel ?? "—", t.data_limite ? `limite ${fmtDate(t.data_limite)}` : null].filter(Boolean).join(" · ")}</div>
+          <div className="tk-cli">
+            <RespAvatar nome={t.responsavel} />
+            {t.cliente ? <b>{t.cliente}</b> : <span className="tk-resp-nome">{t.responsavel ?? "sem responsável"}</span>}
+          </div>
+          {procNum(t) && <div className="tk-num mono">{procNum(t)}</div>}
         </div>
         <div className="tk-foot">
           <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>
@@ -208,25 +254,49 @@ function ConcluidaCard({ t }: { t: TarefaCard }) {
           {sent && <span className="tk-conf soft"><Spark />era inércia</span>}
         </div>
         <Link className="tk-title sm" href={linkPara("tarefa", t.id)} title={t.titulo}>{tituloLimpo(t)}</Link>
-        {t.cliente && <div className="tk-cli done"><b>{t.cliente}</b></div>}
+        {t.cliente && <div className="tk-cli done"><RespAvatar nome={t.responsavel} /><b>{t.cliente}</b></div>}
         <div className="tk-when mono">
           {t.concluida_em ? <><Check />{fmtDate(t.concluida_em)}</> : (t.data_limite ? fmtDate(t.data_limite) : "concluída")}
-          {t.responsavel ? ` · ${t.responsavel}` : ""}
         </div>
       </div>
     </article>
   );
 }
 
-/* ── coluna do kanban (teto de 10 cards, "ver mais" revela o resto) ──────── */
+/* ── faixas por data limite (organização dentro da coluna) ─────────────────── */
+type BucketKey = "atras" | "hoje" | "semana" | "depois" | "sem";
+const BUCKETS: { key: BucketKey; label: string; tone: string }[] = [
+  { key: "atras", label: "Atrasadas", tone: "atras" },
+  { key: "hoje", label: "Hoje", tone: "hoje" },
+  { key: "semana", label: "Esta semana", tone: "warn" },
+  { key: "depois", label: "Depois", tone: "ok" },
+  { key: "sem", label: "Sem prazo", tone: "none" },
+];
+function bucketDe(t: TarefaCard): BucketKey {
+  if (!t.data_limite) return "sem";
+  const d = diasAte(t.data_limite);
+  return d < 0 ? "atras" : d === 0 ? "hoje" : d <= 7 ? "semana" : "depois";
+}
+function agrupaPorPrazo(itens: TarefaCard[]) {
+  const map = new Map<BucketKey, TarefaCard[]>();
+  for (const t of itens) {
+    const b = bucketDe(t);
+    if (!map.has(b)) map.set(b, []);
+    map.get(b)!.push(t);
+  }
+  return BUCKETS.filter((b) => map.get(b.key)?.length).map((b) => ({ ...b, itens: map.get(b.key)! }));
+}
+
+/* ── coluna do kanban (teto de 10 cards; opcionalmente agrupada por prazo) ── */
 const TETO_COLUNA = 10;
 function Coluna({ c }: {
-  c: { key: string; label: string; dot: string; itens: TarefaCard[]; render: (t: TarefaCard) => ReactNode; extra?: ReactNode };
+  c: { key: string; label: string; dot: string; itens: TarefaCard[]; render: (t: TarefaCard) => ReactNode; extra?: ReactNode; buckets?: boolean };
 }) {
   const [aberta, setAberta] = useState(false);
   const total = c.itens.length;
   const excedente = Math.max(0, total - TETO_COLUNA);
   const visiveis = aberta ? c.itens : c.itens.slice(0, TETO_COLUNA);
+  const grupos = c.buckets ? agrupaPorPrazo(visiveis) : null;
   return (
     <section className="tk-col" key={c.key}>
       <div className="tk-col-h">
@@ -236,7 +306,20 @@ function Coluna({ c }: {
         {c.extra && <span className="tk-col-end">{c.extra}</span>}
       </div>
       <div className="tk-col-b">
-        {total ? visiveis.map(c.render) : <div className="tk-col-empty">—</div>}
+        {total === 0 ? (
+          <div className="tk-col-empty">—</div>
+        ) : grupos ? (
+          grupos.map((g) => (
+            <div className="tk-bucket" key={g.key}>
+              <div className={`tk-bucket-h ${g.tone}`}>
+                <span className="tk-bucket-dot" />{g.label}<span className="tk-bucket-n">{g.itens.length}</span>
+              </div>
+              {g.itens.map(c.render)}
+            </div>
+          ))
+        ) : (
+          visiveis.map(c.render)
+        )}
       </div>
       {excedente > 0 && (
         <button type="button" className="tk-col-more" onClick={() => setAberta((v) => !v)}>
@@ -261,14 +344,20 @@ export function TarefasView({
 }) {
   const [atr, setAtr] = useState("todas");
   const [pri, setPri] = useState("todas");
+  const [prz, setPrz] = useState("todas");
   const outro = socio ? outroSocio(socio) : null;
 
   // contadores (sobre o conjunto bruto)
   const abertas = tarefas.filter((t) => t.status !== "concluida" && t.status !== "cancelada");
   const cPend = tarefas.filter((t) => t.status === "pendente").length;
   const cConf = tarefas.filter(ehAutoCowork).length;
-  const cUrgente = abertas.filter((t) => t.prioridade === "urgente").length;
   const cDistribuir = abertas.filter((t) => t.responsavel === "Ambos").length;
+  // Prazo (sobre tarefas abertas): atrasadas e "no limite" ≤5 dias.
+  const cAtrasadas = abertas.filter((t) => prazoClasse(t.data_limite) === "atras").length;
+  const cLimite = abertas.filter((t) => {
+    const c = prazoClasse(t.data_limite);
+    return c === "hoje" || c === "crit" || c === "warn";
+  }).length;
 
   const filtradas = useMemo(() => tarefas.filter((t) => {
     const okAtr =
@@ -278,8 +367,13 @@ export function TarefasView({
             : atr === "conferencias" ? ehAutoCowork(t)
               : true;
     const okPri = pri === "todas" ? true : t.prioridade === pri;
-    return okAtr && okPri;
-  }), [tarefas, atr, pri, socio, outro]);
+    const cp = prazoClasse(t.data_limite);
+    const okPrz =
+      prz === "atrasadas" ? cp === "atras"
+        : prz === "limite" ? (cp === "hoje" || cp === "crit" || cp === "warn")
+          : true;
+    return okAtr && okPri && okPrz;
+  }), [tarefas, atr, pri, prz, socio, outro]);
 
   const nMinhas = socio ? tarefas.filter((t) => t.responsavel === socio).length : 0;
   const nSocio = outro ? tarefas.filter((t) => t.responsavel === outro).length : 0;
@@ -297,6 +391,11 @@ export function TarefasView({
     { id: "alta", label: "Alta", tone: "amber" },
     { id: "media", label: "Média", tone: "" },
   ];
+  const prazosFiltro = [
+    { id: "todas", label: "Todo prazo", tone: "" },
+    { id: "atrasadas", label: `Atrasadas (${cAtrasadas})`, tone: "red" },
+    { id: "limite", label: `No limite · ≤5d (${cLimite})`, tone: "amber" },
+  ];
 
   const pendentes = filtradas.filter((t) => t.status === "pendente");
   const andamento = filtradas.filter((t) => t.status === "em_andamento");
@@ -304,15 +403,15 @@ export function TarefasView({
     .filter((t) => t.status === "concluida")
     .sort((a, b) => (b.concluida_em ?? "").localeCompare(a.concluida_em ?? ""));
 
-  const cols: { key: string; label: string; dot: string; itens: TarefaCard[]; render: (t: TarefaCard) => ReactNode; extra?: ReactNode }[] = [
-    { key: "pendente", label: "Pendente", dot: "slate", itens: pendentes, render: (t) => <PendenteCard key={t.id} t={t} mapa={mapa} outro={outro} /> },
-    { key: "andamento", label: "Em andamento", dot: "blue", itens: andamento, render: (t) => <AndamentoCard key={t.id} t={t} /> },
+  const cols: { key: string; label: string; dot: string; itens: TarefaCard[]; render: (t: TarefaCard) => ReactNode; extra?: ReactNode; buckets?: boolean }[] = [
+    { key: "pendente", label: "Pendente", dot: "slate", itens: pendentes, buckets: true, render: (t) => <PendenteCard key={t.id} t={t} mapa={mapa} outro={outro} /> },
+    { key: "andamento", label: "Em andamento", dot: "blue", itens: andamento, buckets: true, render: (t) => <AndamentoCard key={t.id} t={t} /> },
     { key: "concluida", label: "Concluída", dot: "green", itens: concluidas, render: (t) => <ConcluidaCard key={t.id} t={t} />, extra: <span className="tk-col-hint">recentes</span> },
   ];
 
   return (
     <div className="pz-page">
-      {/* cabeçalho heritage + KPIs */}
+      {/* cabeçalho heritage + KPIs (prazo em destaque) */}
       <PageHeader
         breadcrumb={["Trabalho", "Tarefas"]}
         eyebrow="Fluxo de trabalho · conferências da triagem"
@@ -326,10 +425,10 @@ export function TarefasView({
         }
         acoes={novaTarefa}
         kpis={[
-          { valor: cPend, label: "pendentes", tone: "neutral" },
+          { valor: cAtrasadas, label: "atrasadas · fora do prazo", tone: "red" },
+          { valor: cLimite, label: "no limite · ≤5 dias", tone: "amber" },
           { valor: cConf, label: "conferências Cowork", tone: "accent" },
-          { valor: cUrgente, label: "urgente · liberdade", tone: "red" },
-          { valor: cDistribuir, label: "a distribuir", tone: "amber" },
+          { valor: cPend, label: "pendentes", tone: "neutral" },
         ]}
       />
 
@@ -345,6 +444,12 @@ export function TarefasView({
         <div className="tk-chips">
           {prioridades.map((o) => (
             <button key={o.id} type="button" className={`tk-chip sm${pri === o.id ? " on" : ""}${o.tone ? ` tone-${o.tone}` : ""}`} onClick={() => setPri(o.id)}>
+              {o.label}
+            </button>
+          ))}
+          <span className="tk-chip-sep" aria-hidden />
+          {prazosFiltro.map((o) => (
+            <button key={o.id} type="button" className={`tk-chip sm${prz === o.id ? " on" : ""}${o.tone ? ` tone-${o.tone}` : ""}`} onClick={() => setPrz(o.id)}>
               {o.label}
             </button>
           ))}
