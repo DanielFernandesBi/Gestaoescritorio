@@ -34,7 +34,11 @@ export async function getBadges(): Promise<Badges> {
     supabase.from("tarefas").select("*", { count: "exact", head: true }).in("status", ["pendente", "em_andamento"]),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("clientes").select("*", { count: "exact", head: true }).eq("ativo", true),
-    supabase.from("vw_processos_movimentacao").select("*", { count: "exact", head: true }).gte("dias_parado", 30),
+    // Alertas: badge = MESMA fonte do sino do topo e da "Central" da tela — vw_alertas
+    // (prazos/audiências no limite, benefícios, etc.). Antes contava processos parados
+    // ≥30d (vw_processos_movimentacao), limiar frouxo que inflava o badge (≈2/3 do
+    // acervo cruza 30d de silêncio naturalmente) e não batia com o radar acionável.
+    supabase.from("vw_alertas").select("*", { count: "exact", head: true }),
     supabase.from("vw_clientes_duplicados").select("*", { count: "exact", head: true }),
     // Sug. 54: o badge reflete a FILA REAL de merge (stub inerte × CNJ posterior do
     // mesmo cliente), não o legado só-registro (vw_reconciliacao_registro = backlog
