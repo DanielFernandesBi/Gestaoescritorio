@@ -779,17 +779,20 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .ag-month-nav{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .ag-month-t{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);text-transform:capitalize}
 .ag-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.ag-grid-dow{background:var(--surface-2);padding:8px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.ag-grid-dow{background:var(--surface-3);padding:9px 8px;text-align:center;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text)}
 /* Célula de ALTURA FIXA (Google Calendar): o excedente vira "+N mais" (popover) */
 .ag-cell{background:var(--surface);height:184px;min-width:0;padding:6px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
 .ag-cell.fora{background:var(--surface-2)}
 .ag-cell.fora .ag-cell-n{color:var(--muted-2)}
-.ag-cell.ag-hoje{box-shadow:inset 0 0 0 2px var(--accent)}
-.ag-cell-n{font-size:12px;font-weight:700;color:var(--ink);flex:none}
-.ag-cell-evs{display:flex;flex-direction:column;gap:3px;min-width:0}
-.ag-chip{display:block;min-width:0;font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--evs);color:var(--ev);border-left:3px solid var(--ev);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
-.ag-chip-mais{align-self:flex-start;font-size:10px;color:var(--muted);font-weight:700;padding:1px 4px;background:none;border:none;cursor:pointer;border-radius:5px}
-.ag-chip-mais:hover{background:var(--surface-2);color:var(--text)}
+.ag-cell.ag-hoje{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.ag-cell-n{font-size:13px;font-weight:800;color:var(--ink);flex:none;align-self:flex-start}
+/* Dia atual: número vira selo preenchido (destaque forte). */
+.ag-cell.ag-hoje .ag-cell-n{background:var(--accent);color:#fff;border-radius:7px;padding:0 7px;min-width:22px;text-align:center;line-height:21px}
+.ag-cell-evs{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;min-height:0}
+.ag-chip{display:block;min-width:0;font-size:11px;font-weight:600;padding:3px 7px;border-radius:6px;background:var(--evs);color:var(--ev);border-left:3px solid var(--ev);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
+/* "+N mais" empurrado para a base da célula (usa o espaço morto abaixo). */
+.ag-chip-mais{align-self:flex-start;margin-top:auto;font-size:10.5px;color:var(--muted);font-weight:700;padding:2px 7px;background:var(--surface-2);border:1px solid var(--line-soft);cursor:pointer;border-radius:6px}
+.ag-chip-mais:hover{background:var(--surface-3);color:var(--text);border-color:var(--muted-2)}
 
 /* Popover do dia (abre pelo "+N mais") — dia inteiro sem esticar a grade */
 .ag-daypop-ov{position:fixed;inset:0;background:rgba(16,24,40,.35);display:grid;place-items:center;z-index:70;padding:20px}

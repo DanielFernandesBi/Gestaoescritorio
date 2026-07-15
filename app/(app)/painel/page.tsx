@@ -277,87 +277,6 @@ export default async function PainelPage() {
         )}
       </div>
 
-      {/* VARREDURA AUTÔNOMA — fontes → extração → métricas + OAB + anomalias */}
-      <div className="scan">
-        <div className="scan-h">
-          <h3><Icon name="shield" /> Varredura autônoma</h3>
-          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
-        </div>
-        {!varredura ? (
-          <div className="empty">Nenhuma varredura registrada ainda.</div>
-        ) : (
-          <>
-            <div className="scan-sub">
-              Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
-              {fmtDate(varredura.data_referencia)} · fonte {fonteLabel(varredura.fonte)}
-            </div>
-            <div className="scan-flow">
-              <div className="flow-src">
-                <span className={`fonte ${fonteDJEN ? "on" : "off"}`}><span className="dot" /> DJEN / CNJ</span>
-                <span className={`fonte ${fontePush ? "on" : "off"}`}><span className="dot" /> Push e-mail</span>
-                <span className={`fonte ${fontePush ? "on" : "off"}`} title="Conferência cruzada por conteúdo — roda na perna push, não é porta de ingestão">
-                  <span className="dot" /> Recorte Digital <em>· conferência cruzada</em>
-                </span>
-              </div>
-              <div className="flow-mid">
-                <span className="flow-seal">Cowork · Claude</span>
-                <div className="flow-mid-t">Extração &amp; cruzamento</div>
-                <div className="flow-mid-s">CNJ · partes · prazo · fundamento · providência</div>
-                <div className="flow-mid-n">{fmtNum(varredura.itens_processados)} itens lidos</div>
-              </div>
-              <div className="flow-metrics">
-                <Link className="metric metric-link" href="/varredura/intimacoes"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações</span></Link>
-                <Link className="metric metric-link" href="/varredura/andamentos"><b>{fmtNum(varredura.andamentos_novos)}</b><span>andamentos</span></Link>
-                <Link className="metric metric-link" href="/varredura/prazos"><b>{fmtNum(varredura.prazos_criados)}</b><span>prazos</span></Link>
-                <Link className="metric metric-link" href="/varredura/minutas"><b>{fmtNum(minutasRevisar)}</b><span>minutas</span></Link>
-              </div>
-            </div>
-            <div className="scan-foot">
-              <div className="scan-block">
-                <div className="scan-block-h">Cobertura por OAB · sócios</div>
-                <CoberturaOab diag={varredura.diagnostico_oab} />
-              </div>
-              <div className="scan-block">
-                <div className="scan-block-h">Anomalias</div>
-                {varredura.anomalias && varredura.anomalias.length ? (
-                  <div className="anom-list">
-                    {varredura.anomalias.map((a, idx) => (
-                      <AnomaliaRow key={idx} a={a} critico={varredura.status !== "concluida"} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty sm">Sem anomalias. 🎉</div>
-                )}
-                {/* Sug. 64 — possível cobertura perdida (gatilho sem desfecho na janela) */}
-                {expectativa.length > 0 && (
-                  <div className="exp-block">
-                    <div className="exp-h">
-                      <span className="ico">⚠</span> Possível cobertura perdida
-                      <span className="exp-n">{expectativa.length}</span>
-                    </div>
-                    <div className="exp-list">
-                      {expectativa.slice(0, 6).map((e) => (
-                        <Link className="exp-row" key={`${e.processo_id}-${e.tipo}`} href={linkPara("processo", e.processo_id)}>
-                          <div className="exp-main">
-                            <div className="exp-t">{e.tipo === "hc_impetrado" ? "HC impetrado" : humano(e.tipo)} · sem desfecho há {dl(e.dias_desde_gatilho)}</div>
-                            <div className="exp-s">
-                              <span>{e.segredo ? <SegredoTag on /> : (e.numero_cnj ?? (e.numero_registro ? `reg ${e.numero_registro}` : "sem nº"))}</span>
-                              {e.instancia ? ` · ${e.instancia.toUpperCase()}` : ""}
-                            </div>
-                          </div>
-                          <span className="exp-cta">conferir nos autos →</span>
-                        </Link>
-                      ))}
-                    </div>
-                    <div className="exp-foot">Ato nosso que deveria ter resposta e não veio — possível intimação não capturada.</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
       {/* SENTINELA DE ATOS (Sug. 75 · F5) — saúde da conciliação de atos gêmeos */}
       {sentinela && (sentinela.clusters_status_divergente > 0 || sentinela.pecas_orfas > 0 || sentinela.clusters_intimacao_gemea > 0 || sentinela.clusters_andamento_gemeo > 0) && (
         <div className={`sentinela${sentinela.clusters_status_divergente > 0 || sentinela.pecas_orfas >= 10 ? " alerta" : ""}`}>
@@ -712,6 +631,87 @@ export default async function PainelPage() {
           <div className="empty">Todo cliente de execução tem atestado lançado. 🎉</div>
         )}
         <div className="cov-foot">Universo: condenação ativa, snapshot de execução ou processo de execução ativo. Benefícios correm no escuro sem atestado vigente.</div>
+      </div>
+
+      {/* VARREDURA AUTÔNOMA — fontes → extração → métricas + OAB + anomalias */}
+      <div className="scan">
+        <div className="scan-h">
+          <h3><Icon name="shield" /> Varredura autônoma</h3>
+          {varredura && <Pill tone={statusTone(varredura.status)}>{varredura.status}</Pill>}
+        </div>
+        {!varredura ? (
+          <div className="empty">Nenhuma varredura registrada ainda.</div>
+        ) : (
+          <>
+            <div className="scan-sub">
+              Rodou em {fmtDate(varredura.criado_em)} {fmtTime(varredura.criado_em)} · referência{" "}
+              {fmtDate(varredura.data_referencia)} · fonte {fonteLabel(varredura.fonte)}
+            </div>
+            <div className="scan-flow">
+              <div className="flow-src">
+                <span className={`fonte ${fonteDJEN ? "on" : "off"}`}><span className="dot" /> DJEN / CNJ</span>
+                <span className={`fonte ${fontePush ? "on" : "off"}`}><span className="dot" /> Push e-mail</span>
+                <span className={`fonte ${fontePush ? "on" : "off"}`} title="Conferência cruzada por conteúdo — roda na perna push, não é porta de ingestão">
+                  <span className="dot" /> Recorte Digital <em>· conferência cruzada</em>
+                </span>
+              </div>
+              <div className="flow-mid">
+                <span className="flow-seal">Cowork · Claude</span>
+                <div className="flow-mid-t">Extração &amp; cruzamento</div>
+                <div className="flow-mid-s">CNJ · partes · prazo · fundamento · providência</div>
+                <div className="flow-mid-n">{fmtNum(varredura.itens_processados)} itens lidos</div>
+              </div>
+              <div className="flow-metrics">
+                <Link className="metric metric-link" href="/varredura/intimacoes"><b>{fmtNum(varredura.intimacoes_novas)}</b><span>intimações</span></Link>
+                <Link className="metric metric-link" href="/varredura/andamentos"><b>{fmtNum(varredura.andamentos_novos)}</b><span>andamentos</span></Link>
+                <Link className="metric metric-link" href="/varredura/prazos"><b>{fmtNum(varredura.prazos_criados)}</b><span>prazos</span></Link>
+                <Link className="metric metric-link" href="/varredura/minutas"><b>{fmtNum(minutasRevisar)}</b><span>minutas</span></Link>
+              </div>
+            </div>
+            <div className="scan-foot">
+              <div className="scan-block">
+                <div className="scan-block-h">Cobertura por OAB · sócios</div>
+                <CoberturaOab diag={varredura.diagnostico_oab} />
+              </div>
+              <div className="scan-block">
+                <div className="scan-block-h">Anomalias</div>
+                {varredura.anomalias && varredura.anomalias.length ? (
+                  <div className="anom-list">
+                    {varredura.anomalias.map((a, idx) => (
+                      <AnomaliaRow key={idx} a={a} critico={varredura.status !== "concluida"} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty sm">Sem anomalias. 🎉</div>
+                )}
+                {/* Sug. 64 — possível cobertura perdida (gatilho sem desfecho na janela) */}
+                {expectativa.length > 0 && (
+                  <div className="exp-block">
+                    <div className="exp-h">
+                      <span className="ico">⚠</span> Possível cobertura perdida
+                      <span className="exp-n">{expectativa.length}</span>
+                    </div>
+                    <div className="exp-list">
+                      {expectativa.slice(0, 6).map((e) => (
+                        <Link className="exp-row" key={`${e.processo_id}-${e.tipo}`} href={linkPara("processo", e.processo_id)}>
+                          <div className="exp-main">
+                            <div className="exp-t">{e.tipo === "hc_impetrado" ? "HC impetrado" : humano(e.tipo)} · sem desfecho há {dl(e.dias_desde_gatilho)}</div>
+                            <div className="exp-s">
+                              <span>{e.segredo ? <SegredoTag on /> : (e.numero_cnj ?? (e.numero_registro ? `reg ${e.numero_registro}` : "sem nº"))}</span>
+                              {e.instancia ? ` · ${e.instancia.toUpperCase()}` : ""}
+                            </div>
+                          </div>
+                          <span className="exp-cta">conferir nos autos →</span>
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="exp-foot">Ato nosso que deveria ter resposta e não veio — possível intimação não capturada.</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
