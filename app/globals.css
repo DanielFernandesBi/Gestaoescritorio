@@ -2433,6 +2433,10 @@ a.tk-title:hover{text-decoration:underline}
 .proc-sdot.st-suspenso{background:var(--amber)}
 .proc-sdot.st-transitado{background:var(--blue)}
 .proc-sdot.st-encerrado{background:var(--muted-2)}
+/* linha do índice para processos NÃO-ativos: leve esmaecida + selo do status */
+.audp-mcard.inativo .cli-mnome{color:var(--muted)}
+.audp-mcard.inativo:not(.on){opacity:.82}
+.proc-mstatus{flex:none;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);background:var(--surface-2);border:1px solid var(--line-soft);border-radius:5px;padding:1px 5px;margin-top:2px;white-space:nowrap}
 .audp-h2{font-family:var(--serif);font-size:30px;font-weight:600;line-height:1.08;color:var(--ink);margin:9px 0 0}
 .audp-cliline{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
 .audp-cli{color:var(--name);font-size:14px;font-weight:800}

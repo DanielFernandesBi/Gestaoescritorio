@@ -1313,18 +1313,21 @@ export type Processo = {
 // Índice do drawer de /processos: a busca é client-side sobre ESTA lista, então ela
 // precisa conter TODO o acervo ativo — senão um processo fora da janela some da busca
 // (o acervo passou de 250 e processos além do corte ficavam invisíveis no drawer).
-export async function getProcessos(limit = 1000): Promise<Processo[]> {
+export async function getProcessos(limit = 2000): Promise<Processo[]> {
   const supabase = await createClient();
+  // Índice-navegador (rail de /processos e do drawer): traz o acervo INTEIRO —
+  // todos os status — para o ponto de status ter sentido. Ativos primeiro (a
+  // frente de trabalho), depois os não-ativos; dentro de cada grupo, mais
+  // recentes no topo.
   const { data } = await supabase
     .from("processos")
     .select(
       "id, numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, uf, instancia, area, classe, status, responsavel, segredo_justica, cadastro_automatico, cliente_processo(papel,clientes(nome))",
     )
-    .eq("status", "ativo")
     .order("criado_em", { ascending: false })
     .limit(limit);
 
-  return (data ?? []).map((r): Processo => {
+  const mapeado = (data ?? []).map((r): Processo => {
     const cp = r.cliente_processo as unknown as (NestedCliente & { papel: string | null })[] | null;
     return {
       id: r.id as string,
@@ -1344,6 +1347,12 @@ export async function getProcessos(limit = 1000): Promise<Processo[]> {
       papel: cp?.[0]?.papel ?? null,
     };
   });
+
+  // Partição estável: ativos no topo (preservando a ordem por recência), demais logo abaixo.
+  return [
+    ...mapeado.filter((p) => p.status === "ativo"),
+    ...mapeado.filter((p) => p.status !== "ativo"),
+  ];
 }
 
 /* Acervo de processos — cards com grade de "saúde" (redesign /processos) -----

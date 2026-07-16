@@ -164,11 +164,13 @@ function AtoLinha({ a }: { a: AtoCanonico }) {
 
 /* ── master ──────────────────────────────────────────────────────────────── */
 function MasterCard({ p, ativo }: { p: Processo; ativo: boolean }) {
+  const inativo = p.status !== "ativo";
   return (
-    <Link className={`audp-mcard cli-mcard${ativo ? " on" : ""}`} href={linkPara("processo", p.id)}>
+    <Link className={`audp-mcard cli-mcard${ativo ? " on" : ""}${inativo ? " inativo" : ""}`} href={linkPara("processo", p.id)}>
       <div className="cli-mnome-row">
         <span className={`proc-sdot ${statusCls(p.status)}`} title={`Status: ${humano(p.status)}`} aria-hidden />
         <div className="cli-mnome">{p.segredo ? "Segredo de justiça" : (p.clientes || "Processo")}</div>
+        {inativo && <span className="proc-mstatus">{humano(p.status)}</span>}
       </div>
       {num(p) && <div className="cli-mcpf mono">{num(p)}</div>}
       <div className="cli-mmeta">{[p.classe ? humano(p.classe) : (p.area ? humano(p.area) : null), p.tribunal].filter(Boolean).join(" · ") || "—"}</div>
