@@ -58,6 +58,9 @@ function CaixaCard({ p, defaultAberto = false }: { p: CaixaProcesso; defaultAber
   const visiveis = aberto ? linhas : linhas.slice(0, CARD_ITENS);
   const extra = linhas.length - visiveis.length;
   const contexto = p.classe ? humano(p.classe) : p.area ? humano(p.area) : null;
+  // Conferências pendentes = tarefas automáticas (cadastro_automatico) ainda abertas
+  // no processo. É o que a cascata da baixa pode escalar/pedir confirmação.
+  const confPend = p.tarefas.filter((t) => t.cadastro_automatico).length;
   return (
     <article className={`cx-card${p.prox_fatal != null && p.prox_fatal <= 2 ? " urg" : ""}`}>
       <div className="cx-card-h">
@@ -69,6 +72,11 @@ function CaixaCard({ p, defaultAberto = false }: { p: CaixaProcesso; defaultAber
           <div className="cx-cli">{p.segredo ? "🔒 segredo de justiça" : (p.clientes || "sem cliente vinculado")}{contexto ? ` · ${contexto}` : ""}</div>
         </div>
         <div className="cx-card-badges">
+          {confPend > 0 && (
+            <span className="cx-conf" title={`${confPend} conferência(s) automática(s) pendente(s) neste processo`}>
+              <Icon name="inbox" size={11} /> {confPend} conf.
+            </span>
+          )}
           {p.prox_fatal != null && (
             <span className={`cx-fatal ${diasTone(p.prox_fatal)}`}>{p.prox_fatal < 0 ? `−${Math.abs(p.prox_fatal)}d` : `${p.prox_fatal}d`}</span>
           )}

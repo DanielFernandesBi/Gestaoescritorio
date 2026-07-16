@@ -21,6 +21,27 @@ import { soDigitos, humano, fmtDate, hojeSP } from "@/lib/format";
 
 export type Resultado = { ok: boolean; message: string };
 
+/* Sugestão 93 / Migração 70 — cascata em dois níveis da fn_baixa_ato v2.
+ * A fonte destes dados é EXCLUSIVAMENTE o JSON devolvido pela função (nada da
+ * janela/cascata é reimplementado no cliente). */
+export type TarefaPendenteRelacionada = {
+  tarefa_id: string;
+  titulo: string;
+  prioridade: string | null;
+  data_andamento: string | null;
+  tipo_andamento: string | null;
+};
+export type CascataBaixa = {
+  /** Nível 1 — conferências do MESMO ATO concluídas automaticamente pela função. */
+  tarefasAtoConcluidas: string[];
+  /** Eco do p_tarefas_extra confirmado pelo humano nesta chamada. */
+  tarefasExtraConcluidas: string[];
+  /** Nível 2 — pendentes automáticas do mesmo processo (janela) que a função NÃO fechou;
+   *  só podem ser concluídas com confirmação humana explícita (modal). */
+  tarefasPendentesRelacionadas: TarefaPendenteRelacionada[];
+};
+export type ResultadoBaixa = Resultado & { cascata?: CascataBaixa };
+
 function falha(e: unknown): Resultado {
   const m = e instanceof Error ? e.message : "Falha na gravação.";
   return { ok: false, message: m };
@@ -713,42 +734,75 @@ export async function baixarAtoPeca(
   pecaId: string,
   intimacoesExtra: string[] = [],
   dataProtocolo?: string,
-): Promise<Resultado> {
+  tarefasExtra: string[] = [],
+): Promise<ResultadoBaixa> {
   try {
     await requireUser();
     if (!pecaId) return { ok: false, message: "Peça inválida." };
     const supabase = await createClient();
     const extra = [...new Set((intimacoesExtra ?? []).filter(Boolean))];
+    const tExtra = [...new Set((tarefasExtra ?? []).filter(Boolean))];
     const { data, error } = await supabase.rpc("fn_baixa_ato", {
       p_peca_id: pecaId,
       p_intimacoes_extra: extra,
       p_data_protocolo: dataProtocolo || hoje(),
       p_cadastrado_por: "manual",
+      p_tarefas_extra: tExtra,
     });
     if (error) throw error;
 
     const r = (data ?? {}) as {
       peca?: unknown; andamento?: unknown; prazo?: unknown; tarefa?: unknown;
       intimacao?: unknown; intimacoes_extra?: unknown[]; avisos?: string[];
+      tarefas_ato_concluidas?: unknown[]; tarefas_extra?: unknown[];
+      tarefas_pendentes_relacionadas?: Record<string, unknown>[];
     };
     const nExtra = Array.isArray(r.intimacoes_extra) ? r.intimacoes_extra.length : 0;
     const nIntim = (r.intimacao ? 1 : 0) + nExtra;
+
+    // Chaves novas da v2 (Nível 1 / eco / Nível 2). Fonte única = JSON da função.
+    const idsDe = (a: unknown[] | undefined) => (Array.isArray(a) ? a : []).filter(Boolean).map(String);
+    const atoConcl = idsDe(r.tarefas_ato_concluidas);
+    const extraConcl = idsDe(r.tarefas_extra);
+    const pendRel: TarefaPendenteRelacionada[] = (Array.isArray(r.tarefas_pendentes_relacionadas) ? r.tarefas_pendentes_relacionadas : [])
+      .map((t) => ({
+        tarefa_id: String(t.tarefa_id ?? ""),
+        titulo: (t.titulo as string | null) ?? "Tarefa",
+        prioridade: (t.prioridade as string | null) ?? null,
+        data_andamento: (t.data_andamento as string | null) ?? null,
+        tipo_andamento: (t.tipo_andamento as string | null) ?? null,
+      }))
+      .filter((t) => t.tarefa_id);
+
+    // Contagem de tarefas concluídas (dedup): a do próprio ato + escaladas + extras.
+    const idOf = (v: unknown): string | null =>
+      typeof v === "string" ? v : (v && typeof v === "object" ? (String((v as Record<string, unknown>).tarefa_id ?? (v as Record<string, unknown>).id ?? "") || null) : null);
+    const tarefasFechadas = new Set<string>([...atoConcl, ...extraConcl]);
+    const idPrinc = idOf(r.tarefa); if (idPrinc) tarefasFechadas.add(idPrinc);
+    const nTarefas = tarefasFechadas.size || (r.tarefa ? 1 : 0);
+
     const partes: string[] = ["andamento registrado"];
     if (r.prazo) partes.push("prazo cumprido");
-    if (r.tarefa) partes.push("tarefa concluída");
+    if (nTarefas) partes.push(`${nTarefas} tarefa${nTarefas === 1 ? "" : "s"} concluída${nTarefas === 1 ? "" : "s"}`);
     if (nIntim) partes.push(`${nIntim} intimação${nIntim === 1 ? "" : "s"} resolvida${nIntim === 1 ? "" : "s"}`);
     const avisos = Array.isArray(r.avisos) ? r.avisos.filter(Boolean) : [];
     let message = `Baixa concluída — ${partes.join(", ")}.`;
+    // Nível 1 — toast informativo (mesmo ato, sem interação).
+    if (atoConcl.length) message += ` ${atoConcl.length} conferência${atoConcl.length === 1 ? "" : "s"} do mesmo ato concluída${atoConcl.length === 1 ? "" : "s"} automaticamente.`;
     if (avisos.length) message += ` ⚠ Vínculos incompletos: ${avisos.join("; ")} — confira manualmente e rebaixe (é seguro, não duplica).`;
 
     revalidarTudo();
-    return { ok: true, message };
+    return {
+      ok: true,
+      message,
+      cascata: { tarefasAtoConcluidas: atoConcl, tarefasExtraConcluidas: extraConcl, tarefasPendentesRelacionadas: pendRel },
+    };
   } catch (e) {
     return falha(e);
   }
 }
 
-export type BaixaOpts = { pularPrazo?: boolean; pularTarefa?: boolean; pularIntimacao?: boolean; dataProtocolo?: string };
+export type BaixaOpts = { pularPrazo?: boolean; pularTarefa?: boolean; pularIntimacao?: boolean; dataProtocolo?: string; tarefasExtra?: string[] };
 
 /**
  * Sugestão 51 — Baixa de protocolo pela PORTA DA PEÇA. Caminho PADRÃO (nada
@@ -756,9 +810,10 @@ export type BaixaOpts = { pularPrazo?: boolean; pularTarefa?: boolean; pularInti
  * usuário desmarca algum vínculo no modal (item 4): aí o app fecha só o que foi
  * marcado, deixando o desmarcado aberto de propósito. Nunca DELETE.
  */
-export async function baixarProtocoloPeca(id: string, descricao?: string, opts?: BaixaOpts): Promise<Resultado> {
+export async function baixarProtocoloPeca(id: string, descricao?: string, opts?: BaixaOpts): Promise<ResultadoBaixa> {
   const granular = Boolean(opts && (opts.pularPrazo || opts.pularTarefa || opts.pularIntimacao));
-  if (!granular) return baixarAtoPeca(id, [], opts?.dataProtocolo);
+  // Caminho padrão (e o de reconfirmação de conferências extras) delega à fn_baixa_ato.
+  if (!granular) return baixarAtoPeca(id, [], opts?.dataProtocolo, opts?.tarefasExtra ?? []);
   try {
     await requireUser();
     const supabase = await createClient();
@@ -853,8 +908,9 @@ export async function baixarProtocoloPeca(id: string, descricao?: string, opts?:
   }
 }
 
-/** Move a peça pelo kanban (inclui cancelar/prejudicar = troca de status; nunca DELETE). */
-export async function moverPeca(id: string, status: string, descricao?: string): Promise<Resultado> {
+/** Move a peça pelo kanban (inclui cancelar/prejudicar = troca de status; nunca DELETE).
+ *  Ao protocolar, propaga a cascata da fn_baixa_ato (inclui as chaves da v2). */
+export async function moverPeca(id: string, status: string, descricao?: string): Promise<ResultadoBaixa> {
   try {
     await requireUser();
     if (!(PECA_STATUS as readonly string[]).includes(status)) {

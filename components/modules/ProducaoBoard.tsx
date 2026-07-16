@@ -8,6 +8,7 @@ import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { BuscaSelect } from "@/components/BuscaSelect";
 import { BaixaAtoModal } from "@/components/modules/BaixaAtoModal";
+import { useBaixaCascata } from "@/components/modules/BaixaCascata";
 import { CaixaBtn } from "@/components/CaixaBtn";
 import {
   criarPeca,
@@ -55,25 +56,29 @@ const MOVE_OPTS: { k: string; l: string }[] = [
 function MoverEtapa({ p }: { p: Peca }) {
   const router = useRouter();
   const [pend, setPend] = useState(false);
+  const { raise, node } = useBaixaCascata();
   return (
-    <select
-      className="prd-mover"
-      value=""
-      disabled={pend}
-      title="Mover de etapa"
-      onClick={(e) => e.stopPropagation()}
-      onChange={async (e) => {
-        const v = e.target.value;
-        if (!v) return;
-        setPend(true);
-        const r = await moverPeca(p.id, v);
-        setPend(false);
-        if (r.ok) router.refresh();
-      }}
-    >
-      <option value="">{pend ? "Movendo…" : "Mover ▾"}</option>
-      {MOVE_OPTS.filter((o) => o.k !== p.status).map((o) => <option key={o.k} value={o.k}>{o.l}</option>)}
-    </select>
+    <>
+      <select
+        className="prd-mover"
+        value=""
+        disabled={pend}
+        title="Mover de etapa"
+        onClick={(e) => e.stopPropagation()}
+        onChange={async (e) => {
+          const v = e.target.value;
+          if (!v) return;
+          setPend(true);
+          const r = await moverPeca(p.id, v);
+          setPend(false);
+          if (r.ok) { router.refresh(); raise(p.id, r.cascata); }
+        }}
+      >
+        <option value="">{pend ? "Movendo…" : "Mover ▾"}</option>
+        {MOVE_OPTS.filter((o) => o.k !== p.status).map((o) => <option key={o.k} value={o.k}>{o.l}</option>)}
+      </select>
+      {node}
+    </>
   );
 }
 
@@ -341,6 +346,7 @@ export function ProducaoBoard({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const { raise: raiseCascata, node: cascataNode } = useBaixaCascata();
   const [dragCol, setDragCol] = useState<string | null>(null);
   const [filtro, setFiltro] = useState("todas");
   const [soIA, setSoIA] = useState(false);
@@ -394,7 +400,7 @@ export function ProducaoBoard({
       const { id, status } = JSON.parse(raw) as { id: string; status: string };
       if (!id || status === colKey) return;
       const r = await moverPeca(id, colKey);
-      if (r.ok) router.refresh();
+      if (r.ok) { router.refresh(); raiseCascata(id, r.cascata); }
     } catch {
       /* payload inválido — ignora */
     }
@@ -507,6 +513,7 @@ export function ProducaoBoard({
 
   return (
     <div className="prd-shell">
+      {cascataNode}
       {/* toolbar: atribuição + só minutas IA + contador */}
       <div className="prd-toolbar">
         <div className="prd-chips">

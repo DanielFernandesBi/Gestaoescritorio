@@ -1774,7 +1774,7 @@ export async function getProcessoFull(id: string): Promise<ProcessoFull | null> 
 export type CaixaIntim = { id: string; resumo: string | null; status: string; data: string | null };
 export type CaixaPrazo = { id: string; ato: string; data_fatal: string; data_interna: string | null; validado: boolean; dias: number };
 export type CaixaPeca = { id: string; titulo: string; tipo: string; subtipo: string | null; status: string };
-export type CaixaTarefa = { id: string; titulo: string; status: string; prioridade: string | null; responsavel: string | null; data_limite: string | null };
+export type CaixaTarefa = { id: string; titulo: string; status: string; prioridade: string | null; responsavel: string | null; data_limite: string | null; cadastro_automatico: boolean };
 export type CaixaAud = { id: string; tipo: string; nome: string | null; data_hora: string; modalidade: string | null; status: string };
 export type CaixaProcesso = {
   processo_id: string;
@@ -1793,7 +1793,7 @@ export async function getCaixaTrabalho(): Promise<CaixaProcesso[]> {
     // aguardando_insumo, em_revisao, pronta). Casa com o texto da tela e o manual
     // ("tem peça? cai sozinha") — só sai da caixa ao protocolar/cancelar/prejudicar.
     supabase.from("pecas").select("id, titulo, tipo, subtipo, status, processo_id").not("status", "in", "(protocolada,cancelada,prejudicada)").not("processo_id", "is", null),
-    supabase.from("tarefas").select("id, titulo, status, prioridade, responsavel, data_limite, processo_id").in("status", ["pendente", "em_andamento"]).not("processo_id", "is", null).order("data_limite", { ascending: true, nullsFirst: false }),
+    supabase.from("tarefas").select("id, titulo, status, prioridade, responsavel, data_limite, cadastro_automatico, processo_id").in("status", ["pendente", "em_andamento"]).not("processo_id", "is", null).order("data_limite", { ascending: true, nullsFirst: false }),
     // Audiências designadas = trabalho pendente do processo (preparo, deslocamento).
     supabase.from("audiencias").select("id, tipo, nome, data_hora, modalidade, status, processo_id").eq("status", "designada").not("processo_id", "is", null).order("data_hora", { ascending: true }),
   ]);
@@ -1821,7 +1821,7 @@ export async function getCaixaTrabalho(): Promise<CaixaProcesso[]> {
     grupo(r.processo_id as string).pecas.push({ id: r.id as string, titulo: r.titulo as string, tipo: r.tipo as string, subtipo: (r.subtipo as string | null) ?? null, status: r.status as string });
   }
   for (const r of (tar.data ?? []) as Record<string, unknown>[]) {
-    grupo(r.processo_id as string).tarefas.push({ id: r.id as string, titulo: r.titulo as string, status: r.status as string, prioridade: (r.prioridade as string | null) ?? null, responsavel: (r.responsavel as string | null) ?? null, data_limite: (r.data_limite as string | null) ?? null });
+    grupo(r.processo_id as string).tarefas.push({ id: r.id as string, titulo: r.titulo as string, status: r.status as string, prioridade: (r.prioridade as string | null) ?? null, responsavel: (r.responsavel as string | null) ?? null, data_limite: (r.data_limite as string | null) ?? null, cadastro_automatico: Boolean(r.cadastro_automatico) });
   }
   for (const r of (aud.data ?? []) as Record<string, unknown>[]) {
     grupo(r.processo_id as string).audiencias.push({ id: r.id as string, tipo: r.tipo as string, nome: (r.nome as string | null) ?? null, data_hora: r.data_hora as string, modalidade: (r.modalidade as string | null) ?? null, status: r.status as string });

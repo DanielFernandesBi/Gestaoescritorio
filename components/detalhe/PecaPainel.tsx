@@ -8,6 +8,7 @@ import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { BaixaAtoModal } from "@/components/modules/BaixaAtoModal";
+import { useBaixaCascata } from "@/components/modules/BaixaCascata";
 import { atualizarPeca, moverPeca, validarMinuta, anexarInsumoPeca } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
@@ -67,15 +68,17 @@ function MasterCard({ p, ativo }: { p: Peca; ativo: boolean }) {
 function KanbanRuler({ status, pecaId }: { status: string; pecaId: string }) {
   const router = useRouter();
   const [pend, start] = useTransition();
+  const { raise, node } = useBaixaCascata();
   const idx = FASES.indexOf(status as (typeof FASES)[number]);
   const excecao = status === "aguardando_insumo";
   const terminal = status === "cancelada" || status === "prejudicada";
   const mover = (f: string) => {
     if (f === status || pend) return;
-    start(async () => { const r = await moverPeca(pecaId, f); if (r.ok) router.refresh(); });
+    start(async () => { const r = await moverPeca(pecaId, f); if (r.ok) { router.refresh(); raise(pecaId, r.cascata); } });
   };
   return (
     <div className="pkb">
+      {node}
       {FASES.map((f, i) => (
         <button type="button" key={f} disabled={pend} onClick={() => mover(f)}
           className={`pkb-step${i === idx ? " on" : ""}${idx >= 0 && i < idx ? " done" : ""}`}>

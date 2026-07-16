@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { baixarAtoPeca, baixarProtocoloPeca, type Resultado } from "@/app/actions";
+import { baixarAtoPeca, baixarProtocoloPeca, type ResultadoBaixa } from "@/app/actions";
+import { useBaixaCascata } from "@/components/modules/BaixaCascata";
 import { humano } from "@/lib/format";
 
 type Ctx = {
@@ -42,7 +43,8 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
   const [extras, setExtras] = useState<Set<string>>(new Set());
   const [data, setData] = useState(hojeISO());
   const [pend, setPend] = useState(false);
-  const [res, setRes] = useState<Resultado | null>(null);
+  const [res, setRes] = useState<ResultadoBaixa | null>(null);
+  const { raise, node: cascataNode } = useBaixaCascata();
 
   async function abrir() {
     setAberto(true); setRes(null); setCarregando(true);
@@ -61,7 +63,7 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
 
   async function confirmar() {
     setPend(true);
-    let r: Resultado;
+    let r: ResultadoBaixa;
     if (granular) {
       r = await baixarProtocoloPeca(pecaId, undefined, {
         pularPrazo: temPrazo && !fecharPrazo,
@@ -73,7 +75,12 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
       r = await baixarAtoPeca(pecaId, [...extras], data);
     }
     setPend(false); setRes(r);
-    if (r.ok) router.refresh();
+    if (r.ok) {
+      router.refresh();
+      // Nível 2: se a função apontou conferências pendentes do mesmo processo,
+      // pede confirmação humana explícita (nunca conclui em silêncio).
+      raise(pecaId, r.cascata, data);
+    }
   }
 
   const toggleExtra = (id: string) => setExtras((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -177,6 +184,7 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
           </div>
         </div>
       )}
+      {cascataNode}
     </>
   );
 }
