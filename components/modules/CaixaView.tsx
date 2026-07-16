@@ -21,7 +21,7 @@ const CARDS_INICIAIS = 18; // cards visíveis antes de "mostrar mais"
 
 /* Uma "linha de trabalho" achatada (prazo, audiência, intimação, peça ou tarefa) —
  * para o card mostrar sempre os N primeiros e esconder o resto atrás de "expandir". */
-type Linha = { key: string; href: string; tag: string; tone: string; texto: string; dias?: number | null; right?: string };
+type Linha = { key: string; href: string; tag: string; tone: string; texto: string; dias?: number | null; right?: string; conf?: boolean };
 
 function linhasDe(p: CaixaProcesso): Linha[] {
   const L: Linha[] = [];
@@ -35,7 +35,7 @@ function linhasDe(p: CaixaProcesso): Linha[] {
   for (const pc of p.pecas)
     L.push({ key: `pc${pc.id}`, href: linkPara("peca", pc.id), tag: humano(pc.status), tone: pc.status === "aguardando_insumo" ? "tang" : "cat-neutral", texto: [humano(pc.tipo), pc.subtipo ? humano(pc.subtipo) : null].filter(Boolean).join(" · ") || curto(pc.titulo, 60) });
   for (const t of p.tarefas)
-    L.push({ key: `ta${t.id}`, href: linkPara("tarefa", t.id), tag: humano(t.status), tone: "cat-slate", texto: curto(t.titulo, 60), right: t.data_limite ? `limite ${ddmm(t.data_limite)}` : undefined });
+    L.push({ key: `ta${t.id}`, href: linkPara("tarefa", t.id), tag: humano(t.status), tone: "cat-slate", texto: curto(t.titulo, 60), right: t.data_limite ? `limite ${ddmm(t.data_limite)}` : undefined, conf: t.cadastro_automatico });
   return L;
 }
 
@@ -43,6 +43,7 @@ function LinhaItem({ l }: { l: Linha }) {
   return (
     <Link className="cx-item" href={l.href}>
       <span className={`pz-tag ${l.tone}`}>{l.tag}</span>
+      {l.conf && <span className="cx-conf-tag" title="tarefa de conferência (cadastro automático)"><Icon name="inbox" size={10} /> conferência</span>}
       <span className="cx-item-t">{l.texto}</span>
       {l.dias != null && <span className={`cx-item-dias ${diasTone(l.dias)}`}>{l.dias < 0 ? `−${Math.abs(l.dias)}d` : `${l.dias}d`}</span>}
       {l.right && <span className="cx-item-d mono">{l.right}</span>}

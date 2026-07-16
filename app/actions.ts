@@ -131,6 +131,20 @@ export async function baixarPrazo(id: string, descricao?: string): Promise<Resul
     if (error || !pr) throw new Error("Prazo não encontrado.");
     if (pr.status !== "aberto") return { ok: false, message: `Prazo não está aberto (${pr.status}).` };
 
+    // Sug. 93 · item 4 — se há PEÇA VIVA vinculada a este prazo, a baixa correta é
+    // pela PORTA DA PEÇA: fn_baixa_ato fecha peça + prazo + tarefas numa cascata só
+    // (com andamento canônico, intimação e Nível 1). Fecha a rota paralela que
+    // marcava o prazo cumprido por fora da função. Prazo sem peça viva segue o fluxo
+    // atual abaixo (fluxo legítimo; não se reimplementa cascata aqui).
+    const { data: pecaViva } = await supabase
+      .from("pecas")
+      .select("id")
+      .eq("prazo_id", id)
+      .not("status", "in", "(protocolada,cancelada,prejudicada)")
+      .limit(1)
+      .maybeSingle();
+    if (pecaViva?.id) return baixarProtocoloPeca(pecaViva.id as string, descricao);
+
     const { error: upErr } = await supabase
       .from("prazos")
       .update({ status: "cumprido", cumprido_em: hoje() })

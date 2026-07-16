@@ -3163,6 +3163,8 @@ h4 .xp-frescor{margin-left:8px;text-transform:none;letter-spacing:0}
 .cx-total{flex:none;min-width:24px;text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:2px 8px}
 .cx-conf{flex:none;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--accent-strong);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 28%,transparent);border-radius:20px;padding:2px 9px;white-space:nowrap}
 .cx-conf svg{flex:none}
+.cx-conf-tag{flex:none;display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--accent-strong);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.cx-conf-tag svg{flex:none}
 .cx-card-body{flex:1;padding:10px 14px;display:flex;flex-direction:column;gap:6px}
 .cx-item{display:flex;align-items:center;gap:9px;padding:6px 9px;border:1px solid var(--line);border-radius:9px;text-decoration:none;background:var(--surface)}
 .cx-item:hover{border-color:var(--accent)}
