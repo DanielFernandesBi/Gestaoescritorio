@@ -110,9 +110,9 @@ function EditarAndamento({ a }: { a: AndamentoFull }) {
         <div><label>Autor / juízo</label><input name="autor" defaultValue={a.autor ?? ""} placeholder="Ex.: Juízo da VEP · São Luís/MA" /></div>
         <div><label>Origem</label><select name="origem" defaultValue={a.origem ?? ""}><option value="">—</option>{ANDAMENTO_ORIGEM.map((o) => <option key={o} value={o}>{o.toUpperCase()}</option>)}</select></div>
       </div>
-      <div><label>Código de movimentação</label><input name="codigo_movimentacao" defaultValue={a.codigo_movimentacao ?? ""} placeholder="Ex.: seeu:mov-4471" /></div>
+      <div><label>Código de movimentação</label><input name="codigo_movimentacao" defaultValue={a.codigo_movimentacao ?? ""} placeholder="Ex.: djen-1837465  ·  seeu-4471  (vazio p/ cadastro manual)" /></div>
       <div><label>Teor / descrição</label><textarea name="descricao" rows={5} defaultValue={a.descricao} /></div>
-      <p className="sub" style={{ margin: 0 }}>Dedup pela chave natural <span className="mono">codigo_movimentacao</span> — alterar o código pode reabrir duplicidade. Andamento é informativo, nasce sem validação.</p>
+      <p className="sub" style={{ margin: 0 }}>Chave natural (Sug. 90): identificador <b>CRU</b> da fonte com prefixo fixo em hífen — <span className="mono">djen-</span>, <span className="mono">push-</span>, <span className="mono">seeu-</span>, <span className="mono">datajud-</span>. Nunca embuta CNJ, data ou tipo, nem re-envelope um código já gravado. Sem identificador de origem (cadastro manual)? Deixe <b>vazio</b> — o dedup por conteúdo cobre. Andamento é informativo, nasce sem validação.</p>
     </FormModal>
   );
 }

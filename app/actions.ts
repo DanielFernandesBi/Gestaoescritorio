@@ -788,9 +788,14 @@ export async function baixarProtocoloPeca(id: string, descricao?: string, opts?:
     let msg = "";
 
     // 1) Andamento do protocolo (dedup idempotente por codigo_movimentacao).
+    // Sug. 90 — chave alinhada à fn_baixa_ato do banco (`baixa-peca-<id>`): os DOIS
+    // caminhos de baixa (RPC canônica e este granular) passam a compartilhar a mesma
+    // chave de dedup, evitando andamento de protocolo duplicado se um mesmo item for
+    // baixado pelos dois. Não é chave de FONTE (ato interno, sem id de origem) — é
+    // idempotência do protocolo; segue o prefixo determinístico da função do banco.
     let andamentoId: string | null = (pc.andamento_id as string | null) ?? null;
     if (processoId && !andamentoId) {
-      const codigoDedup = `protocolo-peca:${pc.id}`;
+      const codigoDedup = `baixa-peca-${pc.id}`;
       const { data: existente } = await supabase.from("andamentos").select("id").eq("codigo_movimentacao", codigoDedup).maybeSingle();
       if (existente?.id) {
         andamentoId = existente.id as string;
