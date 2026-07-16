@@ -40,7 +40,23 @@ const ClockIco = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="no
 const ddmm = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "—");
 const curto = (s: string) => { const t = (s ?? "").split(/\s*[—–[]| · |\. /)[0].trim(); return t.length > 64 ? t.slice(0, 62) + "…" : t; };
 const num = (p: { numero_cnj: string | null; numero_registro: string | null }) => p.numero_cnj ?? (p.numero_registro ? `reg ${p.numero_registro}` : null);
-const statusTone = (s: string) => s === "ativo" ? "val" : s === "arquivado" || s === "baixado" ? "cat-neutral" : "tone-amber";
+/** Classe de status do processo — base para pílula, faixa do card e ponto do índice.
+ *  ativo = verde (único positivo); os demais são visivelmente "não-ativo". */
+const statusCls = (s: string) =>
+  s === "ativo" ? "st-ativo"
+    : s === "suspenso" ? "st-suspenso"
+      : s === "transitado_em_julgado" ? "st-transitado"
+        : "st-encerrado"; // arquivado, baixado e quaisquer outros
+
+/** Pílula de status destacada — identifica de imediato ativo × não-ativo. */
+function ProcStatus({ status }: { status: string }) {
+  return (
+    <span className={`proc-status ${statusCls(status)}`} title={`Status do processo: ${humano(status)}`}>
+      <span className="dot" aria-hidden />
+      {humano(status)}
+    </span>
+  );
+}
 
 /* ── seção rotulada ──────────────────────────────────────────────────────── */
 function Sec({ titulo, sub, extra, children }: { titulo: string; sub?: string; extra?: ReactNode; children: ReactNode }) {
@@ -150,7 +166,10 @@ function AtoLinha({ a }: { a: AtoCanonico }) {
 function MasterCard({ p, ativo }: { p: Processo; ativo: boolean }) {
   return (
     <Link className={`audp-mcard cli-mcard${ativo ? " on" : ""}`} href={linkPara("processo", p.id)}>
-      <div className="cli-mnome">{p.segredo ? "Segredo de justiça" : (p.clientes || "Processo")}</div>
+      <div className="cli-mnome-row">
+        <span className={`proc-sdot ${statusCls(p.status)}`} title={`Status: ${humano(p.status)}`} aria-hidden />
+        <div className="cli-mnome">{p.segredo ? "Segredo de justiça" : (p.clientes || "Processo")}</div>
+      </div>
       {num(p) && <div className="cli-mcpf mono">{num(p)}</div>}
       <div className="cli-mmeta">{[p.classe ? humano(p.classe) : (p.area ? humano(p.area) : null), p.tribunal].filter(Boolean).join(" · ") || "—"}</div>
     </Link>
@@ -279,11 +298,11 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
         <div className="audp-scroll">
           <div className="audp-inner proc-fichas">
             {/* CARD 1 — cabeçalho + dados + identidade IA + ações de gestão */}
-            <div className="proc-card proc-card-head">
+            <div className={`proc-card proc-card-head ${statusCls(p.status)}`}>
             <div className="audp-title-row">
               <div className="audp-title-l">
                 <div className="audp-tags">
-                  <span className={`pz-tag ${statusTone(p.status)}`}>{humano(p.status)}</span>
+                  <ProcStatus status={p.status} />
                   {p.classe && <span className="pz-tag cat-blue">{humano(p.classe)}</span>}
                   {p.segredo && <span className="pz-tag segredo">🔒 segredo de justiça</span>}
                   {p.cadastro_automatico && <span className="pz-tag cowork"><Spark s={9} />cadastro automático</span>}
