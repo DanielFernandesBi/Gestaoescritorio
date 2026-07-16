@@ -102,8 +102,8 @@ function ProvisorioCard({ p }: { p: PrazoCard }) {
         </div>
         <Link className="pz-foot-link" href="/agenda"><CalIco />Agenda</Link>
         <Link className="pz-foot-link" href="/producao"><Doc />Criar peça</Link>
-        {p.processo_id && <CaixaBtn processoId={p.processo_id} />}
       </div>
+      {p.processo_id && <div className="pz-caixa-row"><CaixaBtn processoId={p.processo_id} className="block" /></div>}
     </article>
   );
 }
@@ -166,8 +166,8 @@ function ValidadoRico({ p }: { p: PrazoCard }) {
         <div className="grow"><DarBaixa p={p} label={<><Check c="var(--text)" /> Dar baixa (protocolada)</>} /></div>
         <Link className="pz-foot-link" href="/producao"><Doc />Abrir peça</Link>
         <Link className="pz-foot-link" href="/agenda"><CalIco />Agenda</Link>
-        {p.processo_id && <CaixaBtn processoId={p.processo_id} />}
       </div>
+      {p.processo_id && <div className="pz-caixa-row"><CaixaBtn processoId={p.processo_id} className="block" /></div>}
     </article>
   );
 }

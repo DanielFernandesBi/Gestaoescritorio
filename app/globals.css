@@ -1645,10 +1645,11 @@ a.pz-title:hover{text-decoration:underline}
 .pz-foot .grow .btn:not(.primary):hover{background:var(--surface-2)}
 .pz-foot-link{flex:none;display:inline-flex;align-items:center;gap:6px;padding:11px 16px;font-size:12px;font-weight:600;color:var(--text);background:var(--surface);border-left:1px solid var(--line-soft);text-decoration:none}
 .pz-foot-link:hover{background:var(--surface-2)}
+.pz-caixa-row{padding:10px 14px;border-top:1px solid var(--line-soft);background:color-mix(in srgb,var(--accent) 4%,var(--surface))}
 
 /* layout compacto (validado com folga) */
 .pz-card.compact .pz-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 20px 14px 22px}
-.pz-actions{flex:none;display:flex;gap:8px;align-items:center}
+.pz-actions{flex:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 
 .pz-empty{padding:16px;text-align:center;color:var(--muted-2);font-size:12.5px;background:var(--surface);border:1px dashed var(--line);border-radius:12px}
 
