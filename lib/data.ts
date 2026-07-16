@@ -1766,17 +1766,18 @@ export type CaixaIntim = { id: string; resumo: string | null; status: string; da
 export type CaixaPrazo = { id: string; ato: string; data_fatal: string; data_interna: string | null; validado: boolean; dias: number };
 export type CaixaPeca = { id: string; titulo: string; tipo: string; subtipo: string | null; status: string };
 export type CaixaTarefa = { id: string; titulo: string; status: string; prioridade: string | null; responsavel: string | null; data_limite: string | null };
+export type CaixaAud = { id: string; tipo: string; nome: string | null; data_hora: string; modalidade: string | null; status: string };
 export type CaixaProcesso = {
   processo_id: string;
   numero_cnj: string | null; numero_registro: string | null; numero_classe: string | null;
   segredo: boolean; area: string | null; classe: string | null; clientes: string;
-  intimacoes: CaixaIntim[]; prazos: CaixaPrazo[]; pecas: CaixaPeca[]; tarefas: CaixaTarefa[];
+  intimacoes: CaixaIntim[]; prazos: CaixaPrazo[]; pecas: CaixaPeca[]; tarefas: CaixaTarefa[]; audiencias: CaixaAud[];
   total: number; prox_fatal: number | null;
 };
 
 export async function getCaixaTrabalho(): Promise<CaixaProcesso[]> {
   const supabase = await createClient();
-  const [intim, prz, pec, tar] = await Promise.all([
+  const [intim, prz, pec, tar, aud] = await Promise.all([
     supabase.from("intimacoes").select("id, resumo, status, data_publicacao, processo_id").in("status", ["sem_providencia", "em_analise"]).not("processo_id", "is", null).order("data_publicacao", { ascending: false, nullsFirst: false }),
     supabase.from("prazos").select("id, ato, data_fatal, data_interna, validado, processo_id").eq("status", "aberto").not("processo_id", "is", null).order("data_fatal", { ascending: true }),
     // "Peças na produção" = tudo que ainda não é terminal (a_fazer, em_elaboracao,
@@ -1784,13 +1785,15 @@ export async function getCaixaTrabalho(): Promise<CaixaProcesso[]> {
     // ("tem peça? cai sozinha") — só sai da caixa ao protocolar/cancelar/prejudicar.
     supabase.from("pecas").select("id, titulo, tipo, subtipo, status, processo_id").not("status", "in", "(protocolada,cancelada,prejudicada)").not("processo_id", "is", null),
     supabase.from("tarefas").select("id, titulo, status, prioridade, responsavel, data_limite, processo_id").in("status", ["pendente", "em_andamento"]).not("processo_id", "is", null).order("data_limite", { ascending: true, nullsFirst: false }),
+    // Audiências designadas = trabalho pendente do processo (preparo, deslocamento).
+    supabase.from("audiencias").select("id, tipo, nome, data_hora, modalidade, status, processo_id").eq("status", "designada").not("processo_id", "is", null).order("data_hora", { ascending: true }),
   ]);
 
   const grupos = new Map<string, CaixaProcesso>();
   const grupo = (pid: string): CaixaProcesso => {
     let g = grupos.get(pid);
     if (!g) {
-      g = { processo_id: pid, numero_cnj: null, numero_registro: null, numero_classe: null, segredo: false, area: null, classe: null, clientes: "", intimacoes: [], prazos: [], pecas: [], tarefas: [], total: 0, prox_fatal: null };
+      g = { processo_id: pid, numero_cnj: null, numero_registro: null, numero_classe: null, segredo: false, area: null, classe: null, clientes: "", intimacoes: [], prazos: [], pecas: [], tarefas: [], audiencias: [], total: 0, prox_fatal: null };
       grupos.set(pid, g);
     }
     return g;
@@ -1810,6 +1813,9 @@ export async function getCaixaTrabalho(): Promise<CaixaProcesso[]> {
   }
   for (const r of (tar.data ?? []) as Record<string, unknown>[]) {
     grupo(r.processo_id as string).tarefas.push({ id: r.id as string, titulo: r.titulo as string, status: r.status as string, prioridade: (r.prioridade as string | null) ?? null, responsavel: (r.responsavel as string | null) ?? null, data_limite: (r.data_limite as string | null) ?? null });
+  }
+  for (const r of (aud.data ?? []) as Record<string, unknown>[]) {
+    grupo(r.processo_id as string).audiencias.push({ id: r.id as string, tipo: r.tipo as string, nome: (r.nome as string | null) ?? null, data_hora: r.data_hora as string, modalidade: (r.modalidade as string | null) ?? null, status: r.status as string });
   }
 
   const ids = [...grupos.keys()];
@@ -1832,7 +1838,7 @@ export async function getCaixaTrabalho(): Promise<CaixaProcesso[]> {
   }
 
   const lista = [...grupos.values()];
-  for (const g of lista) g.total = g.intimacoes.length + g.prazos.length + g.pecas.length + g.tarefas.length;
+  for (const g of lista) g.total = g.intimacoes.length + g.prazos.length + g.pecas.length + g.tarefas.length + g.audiencias.length;
   // Ordena: quem tem fatal mais próximo primeiro; sem prazo, por volume de trabalho.
   lista.sort((a, b) => {
     const fa = a.prox_fatal, fb = b.prox_fatal;

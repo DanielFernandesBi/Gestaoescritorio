@@ -3,7 +3,12 @@ import { CaixaView } from "@/components/modules/CaixaView";
 
 export const dynamic = "force-dynamic";
 
-export default async function CaixaPage() {
+export default async function CaixaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ foco?: string }>;
+}) {
+  const { foco } = await searchParams;
   const processos = await getCaixaTrabalho();
-  return <CaixaView processos={processos} />;
+  return <CaixaView processos={processos} foco={foco ?? null} />;
 }

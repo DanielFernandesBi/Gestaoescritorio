@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { CadastrarAudiencia } from "@/components/CadastrarAudiencia";
+import { CaixaBtn } from "@/components/CaixaBtn";
 import { PageHeader } from "@/components/PageHeader";
 import { validarAudiencia, redesignarAudiencia, cancelarAudiencia, baixarAudiencia, atualizarAudiencia } from "@/app/actions";
 import { AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE, RESPONSAVEIS } from "@/lib/enums";
@@ -215,6 +216,7 @@ function AudienciaCardView({ a, variant, hero = false }: { a: AudienciaCard; var
             {variant === "conf" && <RealizadaBtn a={a} />}
             <Redesignar a={a} />
             {variant === "conf" && <CancelarBtn a={a} />}
+            <CaixaBtn processoId={a.processo_id} />
             <Link className="btn sm" href="/agenda"><CalIco />Agenda</Link>
           </div>
         </div>
@@ -257,6 +259,7 @@ function VirtualCard({ a }: { a: AudienciaCard }) {
           <span className="aud-resp">Acompanhar o placar pelo portal — não há comparecimento. O resultado vira <span className="mono">andamento</span> ao fim da janela.</span>
           <AlterarModalidade a={a} />
           <Link className="btn sm" href={linkPara("audiencia", a.id)}>Acompanhar pauta</Link>
+          <CaixaBtn processoId={a.processo_id} />
           <Link className="btn sm" href="/agenda"><CalIco />Agenda</Link>
         </div>
       </div>

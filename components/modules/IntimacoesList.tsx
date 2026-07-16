@@ -6,6 +6,7 @@ import { ProcRef, SegredoTag, Pill, ContextoCaso, PartesCliente } from "@/compon
 import { Chips } from "@/components/Chips";
 import { Icon } from "@/components/Icon";
 import { MarcarLido } from "@/components/MarcarLido";
+import { CaixaBtn } from "@/components/CaixaBtn";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
 import { lidaPorMim, seloCiencia } from "@/lib/ciencia";
@@ -179,6 +180,7 @@ export function IntimacoesList({ intimacoes, meuId }: { intimacoes: Intimacao[];
                     ) : i.tem_peca ? (
                       <Link className="btn sm" href="/producao">Ver minuta</Link>
                     ) : null}
+                    {!i.orfa && i.processo_id && <CaixaBtn processoId={i.processo_id} />}
                     <MarcarLido id={i.id} lida={selo.lida} />
                     <Link className="btn sm abrir" href={abrir}>Abrir</Link>
                   </div>

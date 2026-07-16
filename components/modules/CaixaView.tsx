@@ -19,15 +19,17 @@ const curto = (s: string | null, n = 64) => {
 const CARD_ITENS = 3; // itens visíveis por card antes de expandir
 const CARDS_INICIAIS = 18; // cards visíveis antes de "mostrar mais"
 
-/* Uma "linha de trabalho" achatada (prazo, intimação, peça ou tarefa) — para o
- * card mostrar sempre os N primeiros e esconder o resto atrás de "expandir". */
+/* Uma "linha de trabalho" achatada (prazo, audiência, intimação, peça ou tarefa) —
+ * para o card mostrar sempre os N primeiros e esconder o resto atrás de "expandir". */
 type Linha = { key: string; href: string; tag: string; tone: string; texto: string; dias?: number | null; right?: string };
 
 function linhasDe(p: CaixaProcesso): Linha[] {
   const L: Linha[] = [];
-  // Ordem dentro do card: prazos (mais urgentes) → intimações → peças → tarefas.
+  // Ordem: prazos (fatais) → audiências → intimações → peças → tarefas.
   for (const pr of p.prazos)
     L.push({ key: `pz${pr.id}`, href: linkPara("prazo", pr.id), tag: pr.validado ? "prazo" : "prazo prov.", tone: pr.validado ? "val" : "tang", texto: pr.ato.split(/\s*[—–[]/)[0].trim(), dias: pr.dias, right: `fatal ${ddmm(pr.data_fatal)}` });
+  for (const a of p.audiencias)
+    L.push({ key: `au${a.id}`, href: linkPara("audiencia", a.id), tag: "audiência", tone: "cat-slate", texto: a.nome?.trim() || humano(a.tipo), right: `${ddmm(a.data_hora)}${a.modalidade ? ` · ${humano(a.modalidade)}` : ""}` });
   for (const i of p.intimacoes)
     L.push({ key: `in${i.id}`, href: linkPara("intimacao", i.id), tag: humano(i.status), tone: "cat-blue", texto: curto(i.resumo, 60), right: ddmm(i.data) });
   for (const pc of p.pecas)
@@ -49,9 +51,9 @@ function LinhaItem({ l }: { l: Linha }) {
 }
 
 /* Card de tamanho fixo por processo: mostra até CARD_ITENS linhas; o excedente
- * fica atrás de "expandir". Cards com menos itens mantêm a altura padrão. */
-function CaixaCard({ p }: { p: CaixaProcesso }) {
-  const [aberto, setAberto] = useState(false);
+ * fica atrás de "expandir". No modo foco (aberto de outra área), já vem expandido. */
+function CaixaCard({ p, defaultAberto = false }: { p: CaixaProcesso; defaultAberto?: boolean }) {
+  const [aberto, setAberto] = useState(defaultAberto);
   const linhas = linhasDe(p);
   const visiveis = aberto ? linhas : linhas.slice(0, CARD_ITENS);
   const extra = linhas.length - visiveis.length;
@@ -91,17 +93,52 @@ function CaixaCard({ p }: { p: CaixaProcesso }) {
   );
 }
 
-export function CaixaView({ processos }: { processos: CaixaProcesso[] }) {
-  const [f, setF] = useState<"todos" | "prazo" | "pecas">("todos");
+export function CaixaView({ processos, foco = null }: { processos: CaixaProcesso[]; foco?: string | null }) {
+  const [f, setF] = useState<"todos" | "prazo" | "audiencia" | "pecas">("todos");
   const [limite, setLimite] = useState(CARDS_INICIAIS);
 
   const totIntim = processos.reduce((s, p) => s + p.intimacoes.length, 0);
   const totPrazo = processos.reduce((s, p) => s + p.prazos.length, 0);
+  const totAud = processos.reduce((s, p) => s + p.audiencias.length, 0);
   const totPeca = processos.reduce((s, p) => s + p.pecas.length, 0);
   const totTar = processos.reduce((s, p) => s + p.tarefas.length, 0);
 
+  // Modo FOCO (aberto a partir de um card de outra área via /caixa?foco=<processo_id>):
+  // mostra só a caixa daquele processo, já expandida.
+  const focado = foco ? processos.find((p) => p.processo_id === foco) ?? null : null;
+  if (foco) {
+    return (
+      <div className="caixa-page">
+        <PageHeader
+          breadcrumb={["Trabalho", "Caixa de trabalho", "Processo"]}
+          eyebrow="Trabalho · caixa deste processo"
+          titulo="Caixa do processo"
+          descricao={<>Tudo o que está <b>em aberto</b> neste processo — prazos, audiências, intimações, peças e tarefas — reunido em um lugar.</>}
+        />
+        <div className="cx-foco-bar">
+          <span className="cx-foco-l"><Icon name="inbox" size={15} /> Caixa de <b>um processo</b></span>
+          <Link className="btn sm" href="/caixa"><Icon name="inbox" size={13} /> Ver todos os processos</Link>
+        </div>
+        {focado ? (
+          <div className="cx-grid one">
+            <CaixaCard p={focado} defaultAberto />
+          </div>
+        ) : (
+          <div className="cx-empty sm">
+            <h3>Este processo não tem itens em aberto na caixa. 🎉</h3>
+            <p>Sem prazo, audiência, intimação pendente, peça na produção ou tarefa aberta agora.</p>
+            <div className="cx-foco-acoes">
+              <Link className="btn sm abrir" href={linkPara("processo", foco)}>Abrir processo ↗</Link>
+              <Link className="btn sm" href="/caixa">Ver todos os processos</Link>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const filtrados = processos.filter((p) =>
-    f === "prazo" ? p.prazos.length > 0 : f === "pecas" ? p.pecas.length > 0 : true,
+    f === "prazo" ? p.prazos.length > 0 : f === "audiencia" ? p.audiencias.length > 0 : f === "pecas" ? p.pecas.length > 0 : true,
   );
   const visiveis = filtrados.slice(0, limite);
   const restam = filtrados.length - visiveis.length;
@@ -118,15 +155,16 @@ export function CaixaView({ processos }: { processos: CaixaProcesso[] }) {
         titulo="Caixa de trabalho"
         descricao={
           <>
-            Um card por <b>processo</b> com trabalho em aberto: intimações, prazos, peças na produção e tarefas
-            pendentes. Cada card mostra os <b>{CARD_ITENS} itens mais urgentes</b> — o restante fica em “expandir”.
-            Ordenado pelo <b>fatal mais próximo</b>.
+            Um card por <b>processo</b> com trabalho em aberto: prazos, audiências, intimações, peças na produção e
+            tarefas pendentes. Cada card mostra os <b>{CARD_ITENS} itens mais urgentes</b> — o restante fica em
+            “expandir”. Ordenado pelo <b>fatal mais próximo</b>.
           </>
         }
         kpis={[
           { valor: fmtNum(processos.length), label: "processos com trabalho", tone: "accent" },
-          { valor: fmtNum(totIntim), label: "intimações em aberto", tone: "neutral" },
           { valor: fmtNum(totPrazo), label: "prazos abertos", tone: "red" },
+          { valor: fmtNum(totAud), label: "audiências designadas", tone: "neutral" },
+          { valor: fmtNum(totIntim), label: "intimações em aberto", tone: "neutral" },
           { valor: fmtNum(totPeca), label: "peças na produção", tone: "neutral" },
           { valor: fmtNum(totTar), label: "tarefas pendentes", tone: "amber" },
         ]}
@@ -136,6 +174,7 @@ export function CaixaView({ processos }: { processos: CaixaProcesso[] }) {
         <div className="cx-filters">
           {chip("todos", `Todos (${processos.length})`)}
           {chip("prazo", `Com prazo aberto (${processos.filter((p) => p.prazos.length > 0).length})`)}
+          {chip("audiencia", `Com audiência (${processos.filter((p) => p.audiencias.length > 0).length})`)}
           {chip("pecas", `Com peça a fazer (${processos.filter((p) => p.pecas.length > 0).length})`)}
           <span className="tk-filter-count mono">{filtrados.length} no filtro</span>
         </div>
@@ -145,7 +184,7 @@ export function CaixaView({ processos }: { processos: CaixaProcesso[] }) {
         <div className="cx-empty">
           <div className="cx-empty-ico"><Icon name="inbox" size={26} /></div>
           <h3>Nenhum processo com trabalho em aberto. 🎉</h3>
-          <p>Sem intimações pendentes, prazos abertos, peças na fila ou tarefas em andamento agora.</p>
+          <p>Sem intimações pendentes, prazos abertos, audiências designadas, peças na fila ou tarefas em andamento agora.</p>
         </div>
       ) : filtrados.length === 0 ? (
         <div className="cx-empty sm">Nenhum processo neste filtro.</div>
@@ -165,8 +204,9 @@ export function CaixaView({ processos }: { processos: CaixaProcesso[] }) {
       <div className="cx-note">
         <span className="ico"><Icon name="shield" size={14} /></span>
         <div>
-          Só leitura — a Caixa espelha o estado das tabelas (intimações, prazos, peças, tarefas). Número do processo
-          sempre por extenso; processos sob <b>segredo de justiça</b> aparecem com o selo e sem dados sensíveis.
+          Só leitura — a Caixa espelha o estado das tabelas (prazos, audiências, intimações, peças, tarefas). Número
+          do processo sempre por extenso; processos sob <b>segredo de justiça</b> aparecem com o selo e sem dados
+          sensíveis.
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { Acao } from "@/components/Acao";
 import { CadastrarPrazo } from "@/components/CadastrarPrazo";
 import { PageHeader } from "@/components/PageHeader";
 import { PromoverOrfao, type ProcLite, type CliLite } from "@/components/PromoverOrfao";
+import { CaixaBtn } from "@/components/CaixaBtn";
 import { validarPrazo, baixarPrazo } from "@/app/actions";
 import { linkPara } from "@/lib/links";
 import { fmtDate, ddClass, dividirAto, categoriaAto } from "@/lib/format";
@@ -101,6 +102,7 @@ function ProvisorioCard({ p }: { p: PrazoCard }) {
         </div>
         <Link className="pz-foot-link" href="/agenda"><CalIco />Agenda</Link>
         <Link className="pz-foot-link" href="/producao"><Doc />Criar peça</Link>
+        {p.processo_id && <CaixaBtn processoId={p.processo_id} />}
       </div>
     </article>
   );
@@ -164,6 +166,7 @@ function ValidadoRico({ p }: { p: PrazoCard }) {
         <div className="grow"><DarBaixa p={p} label={<><Check c="var(--text)" /> Dar baixa (protocolada)</>} /></div>
         <Link className="pz-foot-link" href="/producao"><Doc />Abrir peça</Link>
         <Link className="pz-foot-link" href="/agenda"><CalIco />Agenda</Link>
+        {p.processo_id && <CaixaBtn processoId={p.processo_id} />}
       </div>
     </article>
   );
@@ -198,6 +201,7 @@ function ValidadoCompacto({ p }: { p: PrazoCard }) {
         </div>
         <div className="pz-actions">
           <DarBaixa p={p} label="Dar baixa" />
+          {p.processo_id && <CaixaBtn processoId={p.processo_id} />}
           <Link className="btn sm" href="/agenda"><CalIco />Agenda</Link>
         </div>
       </div>

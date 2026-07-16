@@ -8,6 +8,7 @@ import { Acao } from "@/components/Acao";
 import { FormModal } from "@/components/FormModal";
 import { BuscaSelect } from "@/components/BuscaSelect";
 import { BaixaAtoModal } from "@/components/modules/BaixaAtoModal";
+import { CaixaBtn } from "@/components/CaixaBtn";
 import {
   criarPeca,
   moverPeca,
@@ -485,6 +486,7 @@ export function ProducaoBoard({
               : <button type="button" className="prd-fbtn" onClick={() => abrir(p)}>Baixar .docx</button>}
             <span className="prd-fwrap"><BaixaAtoModal pecaId={p.id} titulo={p.titulo} className="prd-fbtn primary" label="Protocolei / dar baixa" /></span>
           </>}
+          {p.processo_id && <CaixaBtn processoId={p.processo_id} />}
         </div>
       </article>
     );

@@ -1881,6 +1881,20 @@ a.tk-title:hover{text-decoration:underline}
 /* separador entre grupos de chips (prioridade | prazo) */
 .tk-chip-sep{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
 
+/* Atalho para a Caixa de trabalho do processo — botão chamativo (símbolo de caixa),
+   presente em cards de andamento, intimação, prazo, peça, tarefa e audiência. */
+.caixa-btn{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--accent-strong);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:8px;padding:5px 10px;text-decoration:none;line-height:1;transition:background .12s,border-color .12s,box-shadow .12s;white-space:nowrap}
+.caixa-btn:hover{background:color-mix(in srgb,var(--accent) 16%,var(--surface));border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.caixa-btn svg{flex:none}
+.caixa-btn.block{width:100%;justify-content:center}
+.tk-caixa-row{margin-top:9px}
+/* barra de foco (caixa de um processo só) */
+.cx-foco-bar{display:flex;align-items:center;gap:12px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);border-radius:12px;padding:11px 15px;margin-bottom:16px}
+.cx-foco-l{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--accent-strong)}
+.cx-foco-bar .btn{margin-left:auto}
+.cx-foco-acoes{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.cx-grid.one{grid-template-columns:minmax(0,560px)}
+
 /* rodapé de ações (flat, encaixado) */
 .tk-foot{display:flex;border-top:1px solid var(--line-soft)}
 .tk-fbtn{flex:1;padding:8px;font-size:11px;font-weight:700;color:var(--text);background:var(--surface);border:none;display:inline-flex;align-items:center;justify-content:center;gap:5px}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { SegredoTag, ContextoCaso, PartesCliente } from "@/components/ui";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
+import { CaixaBtn } from "@/components/CaixaBtn";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano } from "@/lib/format";
 import type { Movimentacao } from "@/lib/data";
@@ -102,6 +103,7 @@ export function AndamentosTimeline({
                 <div className="and-acoes">
                   {m.escalado && <Link className="btn sm primary" href={m.tarefa_id ? linkPara("tarefa", m.tarefa_id) : "/tarefas"}>Ver conferência</Link>}
                   <CriarPecaPendente tipoOrigem="andamento" origemId={m.id} texto={m.descricao} mapa={mapa} />
+                  {m.processo_id && <CaixaBtn processoId={m.processo_id} />}
                   {m.processo_id && <Link className="btn sm" href={linkPara("processo", m.processo_id)}>Abrir processo</Link>}
                   <Link className="btn sm abrir" href={hrefDet(m.id)}>Abrir</Link>
                 </div>

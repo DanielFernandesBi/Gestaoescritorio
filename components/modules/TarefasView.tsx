@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
+import { CaixaBtn } from "@/components/CaixaBtn";
 import { PageHeader } from "@/components/PageHeader";
 import { moverTarefa, assumirTarefa, reatribuirTarefa, type Resultado } from "@/app/actions";
 import { linkPara } from "@/lib/links";
@@ -173,6 +174,7 @@ function PendenteCard({ t, mapa, outro }: { t: TarefaCard; mapa: MapaProvidencia
           {t.cliente && <div className="tk-cli"><RespAvatar nome={t.responsavel} /><b>{t.cliente}</b></div>}
           {!t.cliente && <div className="tk-cli"><RespAvatar nome={t.responsavel} /><span className="tk-resp-nome">{t.responsavel === "Ambos" ? "A distribuir" : (t.responsavel ?? "sem responsável")}</span></div>}
           {procNum(t) && <div className="tk-num mono">{procNum(t)}</div>}
+          {t.processo_id && <div className="tk-caixa-row"><CaixaBtn processoId={t.processo_id} /></div>}
           {conf && t.andamento_id && (
             <Link className="tk-link" href="/andamentos">ver movimentação de origem <Arrow /></Link>
           )}
@@ -230,6 +232,7 @@ function AndamentoCard({ t }: { t: TarefaCard }) {
             {t.cliente ? <b>{t.cliente}</b> : <span className="tk-resp-nome">{t.responsavel ?? "sem responsável"}</span>}
           </div>
           {procNum(t) && <div className="tk-num mono">{procNum(t)}</div>}
+          {t.processo_id && <div className="tk-caixa-row"><CaixaBtn processoId={t.processo_id} /></div>}
         </div>
         <div className="tk-foot">
           <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>

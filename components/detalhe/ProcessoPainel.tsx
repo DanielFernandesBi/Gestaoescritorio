@@ -9,6 +9,7 @@ import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
+import { CaixaBtn } from "@/components/CaixaBtn";
 import { ConfirmarAto } from "@/components/detalhe/ConfirmarAto";
 import { CriarPecaNoProcesso } from "@/components/modules/ProducaoBoard";
 import {
@@ -295,6 +296,7 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
               </div>
               <div className="proc-head-actions">
                 <div className="proc-head-row">
+                  <CaixaBtn processoId={p.id} label="Caixa de trabalho" stop={false} />
                   <RegistrarAndamento p={p} />
                   <NovoPrazo p={p} />
                   <CriarCompromisso processoId={p.id} />
