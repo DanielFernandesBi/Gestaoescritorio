@@ -1154,7 +1154,6 @@ export async function getAnotacoesDoCliente(clienteId: string): Promise<NotaUnif
     .order("criado_em", { ascending: false })
     .limit(2000);
   const todas = (raw ?? []) as Record<string, unknown>[];
-  if (!todas.length) return [];
 
   // Processos do cliente — base para resolver intimação/prazo/andamento/audiência.
   const { data: cp } = await supabase.from("cliente_processo").select("processo_id").eq("cliente_id", clienteId);
@@ -1191,7 +1190,6 @@ export async function getAnotacoesDoCliente(clienteId: string): Promise<NotaUnif
   ]);
 
   const doCliente = todas.filter((a) => pertence.has(`${a.entidade_tipo as string}:${a.entidade_id as string}`));
-  if (!doCliente.length) return [];
 
   // Rótulo da origem (batch por tipo).
   const idsEnriquecer = new Map<string, Set<string>>();
@@ -1210,7 +1208,7 @@ export async function getAnotacoesDoCliente(clienteId: string): Promise<NotaUnif
     }),
   );
 
-  return doCliente.map((a): NotaUnificada => {
+  const notasReais = doCliente.map((a): NotaUnificada => {
     const tipo = a.entidade_tipo as string;
     const id = a.entidade_id as string;
     const cfg = NOTA_ORIGENS[tipo];
@@ -1226,6 +1224,37 @@ export async function getAnotacoesDoCliente(clienteId: string): Promise<NotaUnif
       href: cfg && tipo !== "cliente" ? cfg.href(id) : null,
     };
   });
+
+  // Providências das intimações do cliente: o campo `intimacoes.providencia` é texto
+  // livre que funciona como anotação da intimação (triagem, "conferido no SEEU…" etc.).
+  // Historicamente ficava só na intimação e não subia para as Notas do cliente — aqui
+  // é espelhado como nota (leitura), com etiqueta "providência" e link para a origem.
+  const notasProv: NotaUnificada[] = [];
+  if (procIds.length) {
+    const { data: intims } = await supabase
+      .from("intimacoes")
+      .select("id, resumo, providencia, criado_em, atualizado_em")
+      .in("processo_id", procIds)
+      .not("providencia", "is", null);
+    for (const r of (intims ?? []) as Record<string, unknown>[]) {
+      const texto = ((r.providencia as string | null) ?? "").trim();
+      if (!texto) continue;
+      const quando = (r.atualizado_em as string | null) || (r.criado_em as string | null) || "";
+      notasProv.push({
+        id: `prov-${r.id as string}`,
+        texto,
+        autor: "providência",
+        criado_em: quando,
+        atualizado_em: quando,
+        entidade_tipo: "providencia",
+        contexto: notaCurto((r.resumo as string) || "intimação"),
+        href: `/intimacoes/${r.id as string}`,
+      });
+    }
+  }
+
+  // Une anotações livres + providências e ordena por data (mais recente primeiro).
+  return [...notasReais, ...notasProv].sort((a, b) => (b.criado_em || "").localeCompare(a.criado_em || ""));
 }
 
 /* Painel de audiências (tela /audiencias, alvo Plantão) ------------------------

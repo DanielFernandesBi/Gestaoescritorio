@@ -413,6 +413,12 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
             {/* NOTAS */}
             {verNotas && (
               <Sec titulo="Anotações" extra={<span className="audp-count">{anotacoes.length}</span>}>
+                {i.providencia?.trim() && (
+                  <div className="audp-nota prov">
+                    <div className="nota-orig"><span className="pill amber">providência</span></div>
+                    <div className="audp-nota-txt">{i.providencia}</div>
+                  </div>
+                )}
                 <Anotacoes entidadeTipo="intimacao" entidadeId={i.id} notas={anotacoes} />
               </Sec>
             )}

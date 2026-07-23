@@ -123,6 +123,7 @@ export function Anotacoes({ entidadeTipo, entidadeId, notas }: { entidadeTipo: s
 type Tone = "red" | "amber" | "green" | "blue" | "gray" | "brass" | "violet";
 const ETIQUETA: Record<string, { label: string; tone: Tone }> = {
   intimacao: { label: "intimação", tone: "blue" },
+  providencia: { label: "providência", tone: "amber" },
   processo: { label: "processo", tone: "brass" },
   andamento: { label: "movimentação", tone: "blue" },
   prazo: { label: "prazo", tone: "amber" },
