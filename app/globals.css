@@ -124,6 +124,11 @@ body.nav-locked{overflow:hidden}
 .topbar .search .si{color:rgba(255,255,255,.6)}
 .topbar .sino,.topbar .theme-toggle,.topbar .nav-menu-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:rgba(255,255,255,.85)}
 .topbar .sino:hover,.topbar .theme-toggle:hover,.topbar .nav-menu-btn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);color:#fff}
+/* Voltar global (histórico) — leva à última tela sem refazer o caminho */
+.topbar-back{display:inline-flex;align-items:center;gap:6px;flex:none;height:38px;padding:0 14px 0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:rgba(255,255,255,.9);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.topbar-back:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.30);color:#fff}
+.topbar-back .ico{width:16px;height:16px;flex:none}
+@media (max-width:640px){.topbar-back{padding:0;width:38px;justify-content:center}.topbar-back span{display:none}}
 .topbar .sino-badge{border-color:color-mix(in srgb,var(--blue) 26%,var(--rail))}
 .topbar .today{color:rgba(255,255,255,.62)}
 .topbar .today b{color:#fff}

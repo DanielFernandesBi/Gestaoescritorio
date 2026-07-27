@@ -3,6 +3,7 @@
 import { Icon } from "./Icon";
 import { ThemeToggle } from "./ThemeToggle";
 import { SinoAlertas } from "./SinoAlertas";
+import { VoltarBtn } from "./VoltarBtn";
 
 export function Topbar({
   iniciais,
@@ -35,6 +36,7 @@ export function Topbar({
       >
         <Icon name="menu" className="" />
       </button>
+      <VoltarBtn />
       <form className="search" action="/busca" method="get">
         <span className="si">
           <Icon name="search" className="" />
