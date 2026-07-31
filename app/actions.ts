@@ -587,9 +587,10 @@ export async function promoverAndamentoParaIntimacao(
     if (!andamentoId) return { ok: false, message: "Andamento inválido." };
     const supabase = await createClient();
 
+    // andamentos NÃO tem coluna tribunal (a view a herda do processo) — não selecionar aqui.
     const { data: mov } = await supabase
       .from("andamentos")
-      .select("id, processo_id, descricao, tipo, data, tribunal, origem")
+      .select("id, processo_id, descricao, tipo, data, origem")
       .eq("id", andamentoId)
       .maybeSingle();
     if (!mov) return { ok: false, message: "Andamento não encontrado." };
@@ -601,6 +602,10 @@ export async function promoverAndamentoParaIntimacao(
 
     const teor = String(mov.descricao ?? "").trim();
     if (!teor) return { ok: false, message: "Andamento sem descrição para virar teor da intimação." };
+
+    // Tribunal vem do processo (não do andamento).
+    const { data: proc } = await supabase.from("processos").select("tribunal").eq("id", processo_id).maybeSingle();
+    const tribunal = (proc?.tribunal as string | null) ?? null;
 
     // Dedup best-effort (sem forjar chave): já promovido? mesma descrição no mesmo processo.
     const { data: jaExiste } = await supabase
@@ -622,7 +627,7 @@ export async function promoverAndamentoParaIntimacao(
         origem: (mov.origem as string | null) ?? "push",
         resumo,
         teor,
-        tribunal: (mov.tribunal as string | null) ?? null,
+        tribunal,
         data_publicacao: (mov.data as string | null) ?? null,
         status: "pendente",
         cadastrado_por: "manual",
