@@ -283,6 +283,61 @@ export async function criarPrazo(fd: FormData): Promise<Resultado> {
 }
 
 /**
+ * Transforma um ANDAMENTO (movimentação capturada, tipicamente por push) em PRAZO.
+ * A maioria das capturas por push vira andamento; quando a automação NÃO promoveu a
+ * intimação/prazo (ou o ato é da defesa e exige controle de prazo), o humano lança o
+ * prazo daqui. Nasce PROVISÓRIO (validado=false · a validar), no processo do próprio
+ * andamento. Exige processo cadastrado (prazo sem processo não existe) — andamento
+ * órfão precisa antes passar pela triagem. Como `prazos` não tem coluna andamento_id
+ * (sem DDL), a origem fica rastreada em `observacoes`. Nunca DELETE; nada às cegas.
+ */
+export async function criarPrazoDeAndamento(andamentoId: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!andamentoId) return { ok: false, message: "Andamento inválido." };
+    const supabase = await createClient();
+
+    const { data: mov } = await supabase
+      .from("andamentos")
+      .select("id, processo_id, tipo, data")
+      .eq("id", andamentoId)
+      .maybeSingle();
+    if (!mov) return { ok: false, message: "Andamento não encontrado." };
+
+    const processo_id = (mov.processo_id as string | null) ?? (String(fd.get("processo_id") || "").trim() || null);
+    if (!processo_id) {
+      return { ok: false, message: "Este andamento não tem processo cadastrado — cadastre/vincule na triagem antes de lançar o prazo." };
+    }
+
+    const ato = String(fd.get("ato") || "").trim();
+    const data_fatal = String(fd.get("data_fatal") || "");
+    const data_interna = String(fd.get("data_interna") || "") || null;
+    const responsavel = String(fd.get("responsavel") || "Daniel");
+    const tipo_contagem = String(fd.get("tipo_contagem") || "corridos");
+    if (!ato || !data_fatal) return { ok: false, message: "Ato e data fatal são obrigatórios." };
+
+    // Rastreabilidade da origem sem coluna própria: carimba em observacoes (COALESCE com o que o usuário digitou).
+    const origem = `Origem: andamento ${andamentoId}${mov.tipo ? ` (${humano(mov.tipo as string)})` : ""}${mov.data ? ` de ${String(mov.data).slice(0, 10)}` : ""}.`;
+    const obsUser = String(fd.get("observacoes") || "").trim();
+    const observacoes = [obsUser, origem].filter(Boolean).join(" ");
+
+    const { error } = await supabase
+      .from("prazos")
+      .insert({
+        processo_id, ato, data_fatal, data_interna,
+        responsavel, tipo_contagem, status: "aberto",
+        validado: false, cadastrado_por: "manual", observacoes,
+      });
+    if (error) throw error;
+
+    revalidarTudo();
+    return { ok: true, message: "Prazo criado (provisório · a validar) a partir do andamento. Aparece na fila de validação e na /agenda." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
  * Cria um PRAZO diretamente da tarefa de conferência, mantendo o fluxo UNIFICADO.
  * O prazo nasce no processo da tarefa (provisório · a validar). Como o schema não
  * liga prazo↔tarefa direto, a rastreabilidade da baixa em cascata passa pela PEÇA:

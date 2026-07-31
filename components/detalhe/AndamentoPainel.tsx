@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormModal } from "@/components/FormModal";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
+import { CriarPrazoDeAndamento } from "@/components/modules/CriarPrazoDeAndamento";
 import { atualizarAndamento } from "@/app/actions";
 import { ANDAMENTO_TIPO, ANDAMENTO_ORIGEM } from "@/lib/enums";
 import { type MapaProvidencia } from "@/lib/pecas";
@@ -277,6 +278,7 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
         <div className="audp-actionbar">
           {a.tarefa && <Link className="btn primary" href={linkPara("tarefa", a.tarefa.id)}><CheckSq /> Abrir conferência</Link>}
           <CriarPecaPendente tipoOrigem="andamento" origemId={a.id} texto={a.descricao} mapa={mapa} />
+          {a.processo_id && <CriarPrazoDeAndamento andamentoId={a.id} atoSugerido={a.descricao.split(/ — | · |\. |; |\n/)[0].trim().slice(0, 72)} className="btn default" label="⏱ Transformar em prazo" />}
           {a.processo_id && <Link className="btn default" href={linkPara("processo", a.processo_id)}>Ver processo</Link>}
         </div>
       </section>
