@@ -569,6 +569,80 @@ export async function criarIntimacao(fd: FormData): Promise<Resultado> {
 }
 
 /**
+ * Promove um ANDAMENTO à INTIMAÇÃO (porta de entrada canônica). Fiel ao manual
+ * (§Captura): "movimentação COM prazo entra como intimacao; sem prazo vira andamento".
+ * Quando o push classificou como andamento algo que, na verdade, abre prazo, o humano
+ * promove aqui — e daí segue o pipeline intimação → prazo (botão "Encaminhar → prazo"
+ * da intimação). A intimação nasce `pendente`, cadastrado_por='manual',
+ * codigo_publicacao=NULL (Sug 90: cadastro manual não forja chave de captura),
+ * teor = descrição do andamento, origem/tribunal herdados. O andamento é PRESERVADO
+ * (nunca DELETE); a criação é auditada por fn_auditar. Dedup best-effort por
+ * processo+teor evita duplicar em clique repetido.
+ */
+export async function promoverAndamentoParaIntimacao(
+  andamentoId: string,
+): Promise<Resultado & { intimacaoId?: string }> {
+  try {
+    await requireUser();
+    if (!andamentoId) return { ok: false, message: "Andamento inválido." };
+    const supabase = await createClient();
+
+    const { data: mov } = await supabase
+      .from("andamentos")
+      .select("id, processo_id, descricao, tipo, data, tribunal, origem")
+      .eq("id", andamentoId)
+      .maybeSingle();
+    if (!mov) return { ok: false, message: "Andamento não encontrado." };
+
+    const processo_id = (mov.processo_id as string | null) ?? null;
+    if (!processo_id) {
+      return { ok: false, message: "Este andamento não tem processo cadastrado — cadastre/vincule na triagem antes de promover a intimação." };
+    }
+
+    const teor = String(mov.descricao ?? "").trim();
+    if (!teor) return { ok: false, message: "Andamento sem descrição para virar teor da intimação." };
+
+    // Dedup best-effort (sem forjar chave): já promovido? mesma descrição no mesmo processo.
+    const { data: jaExiste } = await supabase
+      .from("intimacoes")
+      .select("id")
+      .eq("processo_id", processo_id)
+      .eq("teor", teor)
+      .limit(1)
+      .maybeSingle();
+    if (jaExiste?.id) {
+      return { ok: true, message: "Já existe uma intimação com este teor neste processo — abrindo a existente (não dupliquei).", intimacaoId: jaExiste.id as string };
+    }
+
+    const resumo = (teor.split(/ — | · |\. |; |\n/)[0].trim() || teor).slice(0, 140);
+    const { data: nova, error } = await supabase
+      .from("intimacoes")
+      .insert({
+        processo_id,
+        origem: (mov.origem as string | null) ?? "push",
+        resumo,
+        teor,
+        tribunal: (mov.tribunal as string | null) ?? null,
+        data_publicacao: (mov.data as string | null) ?? null,
+        status: "pendente",
+        cadastrado_por: "manual",
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    revalidarTudo();
+    return {
+      ok: true,
+      message: 'Andamento promovido a intimação (pendente). Use "Encaminhar → prazo" na intimação para lançar o prazo.',
+      intimacaoId: (nova?.id as string) ?? undefined,
+    };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
  * Sugestão 75 · etapa 4 — Confirma que um CLUSTER de intimações gêmeas
  * (vw_intimacoes_atos_candidatos, mesmo ato_cluster_id) descreve o MESMO ato.
  * Grava ato_canonico_id = <canônica> em TODAS as intimações do cluster (inclusive
