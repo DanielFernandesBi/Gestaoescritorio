@@ -18,6 +18,7 @@ import {
   AUDIENCIA_MODALIDADE,
 } from "@/lib/enums";
 import { soDigitos, humano, fmtDate, hojeSP } from "@/lib/format";
+import { TAG_PENDENTE_ARQ, TAG_PENDENTE_ARQ_PREFIXO, pendenteArquivamento } from "@/lib/arquivamento";
 
 export type Resultado = { ok: boolean; message: string };
 
@@ -1072,6 +1073,134 @@ export async function moverPeca(id: string, status: string, descricao?: string):
     if (error) throw error;
     revalidarTudo();
     return { ok: true, message: "Peça atualizada." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* ===== Sugestão 96 — protocolo = arquivamento (só frontend; fn_baixa_ato intacta) ===== */
+
+/** Troca a LINHA da tag pendente pela marca "[ARQUIVADA dd/mm/aaaa]", preservando o resto. */
+function completarTagArquivada(desc: string): string {
+  const [y, m, d] = hojeSP().split("-");
+  const marca = `[ARQUIVADA ${d}/${m}/${y}]`;
+  return desc
+    .split("\n")
+    .map((linha) => (linha.includes(TAG_PENDENTE_ARQ_PREFIXO) ? marca : linha))
+    .join("\n");
+}
+
+/**
+ * Marca a peça como ARQUIVAMENTO PENDENTE (baixa sem PDF anexado). Anexa a tag da
+ * Sug. 96 em nova linha na descrição — COALESCE: nunca sobrescreve o conteúdo
+ * existente; idempotente (não repete a tag). Chamada depois da baixa; jamais bloqueia.
+ */
+export async function marcarPendenteArquivamento(pecaId: string): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!pecaId) return { ok: false, message: "Peça inválida." };
+    const supabase = await createClient();
+    const { data: pc } = await supabase.from("pecas").select("id, descricao").eq("id", pecaId).maybeSingle();
+    if (!pc) return { ok: false, message: "Peça não encontrada." };
+    const desc = (pc.descricao as string | null) ?? "";
+    if (pendenteArquivamento(desc)) { return { ok: true, message: "Já marcada como arquivamento pendente." }; }
+    const nova = desc.trim() ? `${desc.trim()}\n${TAG_PENDENTE_ARQ}` : TAG_PENDENTE_ARQ;
+    const { error } = await supabase.from("pecas").update({ descricao: nova }).eq("id", pecaId);
+    if (error) throw error;
+    revalidarTudo();
+    return { ok: true, message: "Peça marcada como arquivamento pendente." };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Sobe o PDF protocolado da peça ao Drive (subpasta do processo em Sistema/Clientes)
+ * e registra em `documentos`. Chamada DEPOIS da baixa (fn_baixa_ato intacta) — anexar
+ * nunca é condição de baixar. Serve também para completar o arquivamento de uma peça
+ * já protocolada com a tag pendente. Doutrina: Drive é a única casa de arquivos (não
+ * troca de destino em falta de credencial); dedup por drive_file_id; grava
+ * pecas.drive_file_id só se vazio (COALESCE); nunca DELETE.
+ */
+export async function arquivarProtocoloPeca(pecaId: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    if (!pecaId) return { ok: false, message: "Peça inválida." };
+    const arquivo = fd.get("arquivo");
+    if (!(arquivo instanceof File) || arquivo.size === 0) {
+      return { ok: false, message: "Nenhum arquivo para arquivar." };
+    }
+    if (!driveConfigurado()) {
+      return { ok: false, message: "Upload ao Drive não configurado (GOOGLE_OAUTH_*). O Drive é a única casa de arquivos — a peça segue protocolada e marcada como arquivamento pendente; anexe quando as credenciais estiverem no ar." };
+    }
+    const supabase = await createClient();
+
+    const { data: pc } = await supabase
+      .from("pecas")
+      .select("id, titulo, processo_id, intimacao_id, drive_file_id, descricao")
+      .eq("id", pecaId)
+      .maybeSingle();
+    if (!pc) return { ok: false, message: "Peça não encontrada." };
+
+    const processo_id = (pc.processo_id as string | null) ?? null;
+    if (!processo_id) {
+      return { ok: false, message: "Peça sem processo — arquivamento por processo indisponível. Vincule o processo e tente de novo." };
+    }
+
+    // Cliente (via cliente_processo) + rótulos da pasta no Drive.
+    let cliente_id: string | null = null;
+    const { data: cp } = await supabase.from("cliente_processo").select("cliente_id").eq("processo_id", processo_id).limit(1).maybeSingle();
+    if (cp?.cliente_id) cliente_id = cp.cliente_id as string;
+    let nomeCliente = "";
+    if (cliente_id) {
+      const { data: cl } = await supabase.from("clientes").select("nome").eq("id", cliente_id).maybeSingle();
+      nomeCliente = (cl?.nome as string) || "";
+    }
+    const { data: pr } = await supabase.from("processos").select("numero_cnj, numero_registro_tribunal, segredo_justica").eq("id", processo_id).maybeSingle();
+    const procLabel = (pr?.numero_cnj as string) || (pr?.numero_registro_tribunal ? `reg ${pr.numero_registro_tribunal}` : "") || "Processo";
+
+    const caminho: string[] = [];
+    if (nomeCliente) caminho.push(nomeCliente);
+    caminho.push(procLabel);
+
+    const file = arquivo as File;
+    const buf = Buffer.from(await file.arrayBuffer());
+    const tituloPeca = (pc.titulo as string | null)?.trim();
+    const nomeArquivo = tituloPeca ? `${tituloPeca} — protocolado.pdf` : file.name;
+    const up = await uploadParaDrive({ caminho, nome: nomeArquivo, mimeType: file.type || null, bytes: buf });
+    if (!up) return { ok: false, message: "Falha ao enviar o PDF ao Drive. A peça segue protocolada; tente arquivar novamente." };
+
+    // Dedup: já existe documento ativo com este drive_file_id? (índice ux_documentos_drive_processo é o backstop)
+    const { data: jaDoc } = await supabase.from("documentos").select("id").eq("drive_file_id", up.drive_file_id).eq("ativo", true).limit(1).maybeSingle();
+    if (!jaDoc?.id) {
+      const { error: docErr } = await supabase.from("documentos").insert({
+        processo_id,
+        cliente_id,
+        intimacao_id: (pc.intimacao_id as string | null) ?? null,
+        drive_file_id: up.drive_file_id,
+        drive_url: up.drive_url,
+        nome: up.nome,
+        tipo: "peca",
+        origem: "peca_protocolada",
+        mime_type: up.mime_type,
+        tamanho_bytes: up.tamanho_bytes,
+        ativo: true,
+        cadastro_automatico: false,
+        cadastrado_por: "manual",
+      });
+      if (docErr && (docErr as { code?: string }).code !== "23505") throw docErr;
+    }
+
+    // pecas.drive_file_id só se vazio (COALESCE) + completa a tag pendente na descrição.
+    const patch: Record<string, unknown> = {};
+    if (!(pc.drive_file_id as string | null)) patch.drive_file_id = up.drive_file_id;
+    const desc = (pc.descricao as string | null) ?? null;
+    if (desc && pendenteArquivamento(desc)) patch.descricao = completarTagArquivada(desc);
+    if (Object.keys(patch).length) await supabase.from("pecas").update(patch).eq("id", pecaId);
+
+    revalidarTudo();
+    const segredoAviso = pr?.segredo_justica ? " 🔒 Processo em segredo de justiça — confira a pasta e as permissões." : "";
+    return { ok: true, message: `PDF arquivado no Drive e registrado no acervo do processo.${segredoAviso}` };
   } catch (e) {
     return falha(e);
   }

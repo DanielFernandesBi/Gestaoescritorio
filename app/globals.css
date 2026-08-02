@@ -3140,6 +3140,14 @@ h4 .xp-frescor{margin-left:8px;text-transform:none;letter-spacing:0}
 .bx-data input{max-width:200px}
 .bx-recibo{padding:4px 0}
 .bx-recibo-h{font-size:13px;font-weight:700;color:var(--green);line-height:1.5;margin-bottom:8px}
+.bx-arq{font-size:12px;color:var(--text);background:var(--surface-2);border:1px solid var(--line-soft);border-radius:8px;padding:7px 10px;margin-bottom:8px;line-height:1.5}
+/* Sug. 96 — anexo de PDF protocolado no modal de baixa */
+.bx-anexo{display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)}
+.bx-anexo label{font-size:11px;font-weight:600;color:var(--muted)}
+.bx-anexo input[type=file]{font-size:12px;color:var(--text)}
+.bx-anexo-hint{font-size:11px;color:var(--muted);line-height:1.5}
+.pz-tag.arq-pend,.prd-tag.arq-pend{color:var(--amber);background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 30%,transparent)}
+.prd-proto-arq{margin-top:8px}
 
 /* ===== Caixa de trabalho (Sug. 75 · F2) — um card por processo ===== */
 .cx-counters{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:16px 0}

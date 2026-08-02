@@ -9,7 +9,9 @@ import { FormModal } from "@/components/FormModal";
 import { BuscaSelect } from "@/components/BuscaSelect";
 import { BaixaAtoModal } from "@/components/modules/BaixaAtoModal";
 import { useBaixaCascata } from "@/components/modules/BaixaCascata";
+import { AnexarArquivamento } from "@/components/modules/AnexarArquivamento";
 import { CaixaBtn } from "@/components/CaixaBtn";
+import { pendenteArquivamento } from "@/lib/arquivamento";
 import {
   criarPeca,
   moverPeca,
@@ -499,13 +501,20 @@ export function ProducaoBoard({
   }
 
   function cartaoProto(p: Peca) {
+    const arqPend = pendenteArquivamento(p.descricao);
     return (
       <article key={p.id} className="prd-card proto" onClick={() => abrir(p)}>
         <div className="prd-body">
-          <div className="prd-tags"><span className={`prd-tag ${tipoTone(p.tipo)}`}>{catLabel(p)}</span></div>
+          <div className="prd-tags">
+            <span className={`prd-tag ${tipoTone(p.tipo)}`}>{catLabel(p)}</span>
+            {arqPend && <span className="prd-tag arq-pend" title="Protocolada sem PDF salvo — anexe o arquivo para arquivar">arquivamento pendente</span>}
+          </div>
           <div className="prd-title sm" title={p.titulo}>{encurtarTitulo(p.titulo, p.cliente, p.numero_cnj, p.numero_registro)}</div>
           <div className="prd-cli sm"><b>{p.cliente ?? "—"}</b></div>
           <div className="prd-proto-when mono"><Check />protocolada {fmtDate(p.protocolada_em)}</div>
+          {arqPend && p.processo_id && (
+            <div className="prd-proto-arq"><AnexarArquivamento pecaId={p.id} segredo={p.segredo} /></div>
+          )}
         </div>
       </article>
     );

@@ -9,6 +9,8 @@ import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { BaixaAtoModal } from "@/components/modules/BaixaAtoModal";
 import { useBaixaCascata } from "@/components/modules/BaixaCascata";
+import { AnexarArquivamento } from "@/components/modules/AnexarArquivamento";
+import { pendenteArquivamento } from "@/lib/arquivamento";
 import { atualizarPeca, moverPeca, validarMinuta, anexarInsumoPeca } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
@@ -215,6 +217,7 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
   const ativa = !["protocolada", "cancelada", "prejudicada"].includes(p.status);
   const minuta = temMinuta(p);
   const dvUrl = driveUrl(p.drive_file_id);
+  const arqPend = pendenteArquivamento(p.descricao);
 
   return (
     <div className="audp">
@@ -240,6 +243,7 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
                   {p.cadastro_automatico && !p.validado && <span className="pz-tag cowork"><Spark s={9} />minuta IA · revisar</span>}
                   {p.validado && <span className="pz-tag val"><Check s={9} c="var(--green)" />validada</span>}
                   {p.reflexo_execucao && <span className="pz-tag reflexo">⚖ reflexo na execução{p.reflexo_execucao_tipo ? ` · ${humano(p.reflexo_execucao_tipo)}` : ""}</span>}
+                  {arqPend && <span className="pz-tag arq-pend" title="Protocolada sem PDF salvo — anexe o arquivo para arquivar">arquivamento pendente</span>}
                 </div>
                 <h2 className="audp-h2">{p.titulo}</h2>
                 <div className="audp-cliline">
@@ -374,6 +378,7 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
             <Acao label={<><Check /> Validar</>} variant="ok" size="md" titulo="Validar minuta" confirmarLabel="Validar" resumo={<>Validar <b>{p.titulo}</b> e mover para <b>pronta</b>? O sistema nunca protocola sozinho.</>} acao={() => validarMinuta(p.id)} />
           )}
           {p.status === "aguardando_insumo" && <AnexarInsumo p={p} label="Anexar insumo" />}
+          {arqPend && p.processo_id && <AnexarArquivamento pecaId={p.id} segredo={p.segredo} className="btn default" label="📎 Anexar PDF protocolado" />}
           {p.cliente_id && <Link className="btn default" href={`/estudos?cliente=${p.cliente_id}`}>Acervo de teses</Link>}
         </div>
       </section>

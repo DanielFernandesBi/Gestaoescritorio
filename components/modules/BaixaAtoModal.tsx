@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { baixarAtoPeca, baixarProtocoloPeca, type ResultadoBaixa } from "@/app/actions";
+import { baixarAtoPeca, baixarProtocoloPeca, arquivarProtocoloPeca, marcarPendenteArquivamento, type ResultadoBaixa } from "@/app/actions";
 import { useBaixaCascata } from "@/components/modules/BaixaCascata";
 import { humano } from "@/lib/format";
 
@@ -44,10 +44,12 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
   const [data, setData] = useState(hojeISO());
   const [pend, setPend] = useState(false);
   const [res, setRes] = useState<ResultadoBaixa | null>(null);
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arqMsg, setArqMsg] = useState<string | null>(null);
   const { raise, node: cascataNode } = useBaixaCascata();
 
   async function abrir() {
-    setAberto(true); setRes(null); setCarregando(true);
+    setAberto(true); setRes(null); setCarregando(true); setArquivo(null); setArqMsg(null);
     setFecharPrazo(true); setFecharTarefa(true); setFecharIntim(true); setExtras(new Set()); setData(hojeISO());
     try {
       const c = await fetch(`/api/peca-baixa/${pecaId}`).then((r) => r.json()).catch(() => null);
@@ -74,7 +76,28 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
     } else {
       r = await baixarAtoPeca(pecaId, [...extras], data);
     }
-    setPend(false); setRes(r);
+    // Sug. 96 — protocolo = arquivamento. Depois da baixa (nunca antes; anexar não é
+    // condição de baixar): com PDF → sobe ao Drive + registra; sem PDF → marca pendência.
+    let arq: string | null = null;
+    if (r.ok) {
+      if (arquivo) {
+        const afd = new FormData();
+        afd.append("arquivo", arquivo);
+        const ra = await arquivarProtocoloPeca(pecaId, afd);
+        if (ra.ok) {
+          arq = `📎 ${ra.message}`;
+        } else {
+          // Upload indisponível/falhou — não perder o arquivamento: marca pendência
+          // para anexar depois (o Drive é a única casa de arquivos; não trocamos destino).
+          await marcarPendenteArquivamento(pecaId);
+          arq = `⚠ Arquivamento: ${ra.message} — marcada como arquivamento pendente.`;
+        }
+      } else {
+        const rp = await marcarPendenteArquivamento(pecaId);
+        arq = rp.ok ? "📎 Sem PDF anexado — marcada como arquivamento pendente." : null;
+      }
+    }
+    setPend(false); setRes(r); setArqMsg(arq);
     if (r.ok) {
       router.refresh();
       // Nível 2: se a função apontou conferências pendentes do mesmo processo,
@@ -103,6 +126,7 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
               ) : res?.ok ? (
                 <div className="bx-recibo">
                   <div className="bx-recibo-h">✓ {res.message}</div>
+                  {arqMsg && <div className="bx-arq">{arqMsg}</div>}
                   {ctx.peca.processo_id && <Link className="link" href={`/producao?peca=${pecaId}`}>Abrir a peça no módulo Produção</Link>}
                 </div>
               ) : (
@@ -169,6 +193,19 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
                     <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
                   </div>
 
+                  <div className="bx-anexo">
+                    <label>Anexar PDF protocolado (opcional)</label>
+                    <input type="file" accept="application/pdf" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
+                    <div className="bx-anexo-hint">
+                      {arquivo
+                        ? <>Será arquivado no Drive (subpasta do processo) e registrado no acervo, após a baixa.</>
+                        : <>Sem anexo, a baixa segue normal e a peça fica marcada como <b>arquivamento pendente</b> — dá para anexar o PDF depois.</>}
+                    </div>
+                    {ctx.peca.segredo && (
+                      <div className="bx-info amber">🔒 Processo em <b>segredo de justiça</b> — o PDF vai para a pasta do processo no Drive; confira permissões antes de subir.</div>
+                    )}
+                  </div>
+
                   {res && !res.ok && <div className="modal-msg err">{res.message}</div>}
                 </>
               )}
@@ -177,7 +214,7 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
               <button className="btn ghost" type="button" onClick={() => setAberto(false)} disabled={pend}>{res?.ok ? "Fechar" : "Cancelar"}</button>
               {!carregando && ctx?.peca && !res?.ok && (
                 <button className="btn primary" type="button" onClick={confirmar} disabled={pend}>
-                  {pend ? "Dando baixa…" : "Confirmar baixa"}
+                  {pend ? (arquivo ? "Baixando e arquivando…" : "Dando baixa…") : "Confirmar baixa"}
                 </button>
               )}
             </div>
