@@ -95,6 +95,27 @@ export function ContextoCaso({ ctx }: { ctx?: CasoContexto | null }) {
 }
 
 /**
+ * Bloco de texto livre do próprio registro (`observacoes` e afins).
+ *
+ * Padrão único da casa (`.cli-obs`), até aqui repetido à mão só em cliente e
+ * processo e escrito de três outras formas em contrato, atestado e cenário.
+ * O texto preserva quebras de linha, pois as notas do chat e do Cowork são
+ * datadas e aditivas — cada passada acrescenta um parágrafo sem apagar o anterior.
+ *
+ * Não confundir com `anotacoes` (componente `Anotacoes`), que é a nota humana
+ * avulsa por entidade. Aqui é o campo descritivo do registro.
+ */
+export function Observacoes({ texto, rotulo = "Observações" }: { texto?: string | null; rotulo?: string }) {
+  if (!texto?.trim()) return null;
+  return (
+    <div className="cli-obs">
+      <div className="k">{rotulo}</div>
+      <p>{texto}</p>
+    </div>
+  );
+}
+
+/**
  * Sugestão 56 — cliente(s) em destaque com o papel no processo
  * (réu/paciente/executado/recorrente…). Usado no topo do card de intimação.
  */

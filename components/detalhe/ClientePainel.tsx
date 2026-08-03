@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ProcRef, SegredoTag } from "@/components/ui";
+import { ProcRef, SegredoTag, Observacoes } from "@/components/ui";
 import { ClienteMaster, mascararCpf, sitTone } from "@/components/detalhe/ClienteMaster";
 import { FavoritoStar } from "@/components/FavoritoStar";
 import { FormModal } from "@/components/FormModal";
@@ -450,12 +450,7 @@ export function ClientePainel({
                   <div className="fld"><div className="k">Contato da família</div><div className="v">{p.contato_familia ? <Telefonavel texto={p.contato_familia} /> : "—"}</div></div>
                   <div className="fld"><div className="k">Responsável</div><div className="v">{p.responsavel ?? "—"}</div></div>
                 </div>
-                {p.observacoes && (
-                  <div className="cli-obs">
-                    <div className="k">Observações</div>
-                    <p>{p.observacoes}</p>
-                  </div>
-                )}
+                <Observacoes texto={p.observacoes} />
               </Sec>
               </div>
             )}

@@ -312,7 +312,11 @@ export function FinanceiroView({
               {parcelas.map((p) => (
                 <tr key={p.id}>
                   <td><b className="nm">{p.cliente}</b></td>
-                  <td className="obj">{p.objeto ?? "—"}</td>
+                  {/* A observação da parcela explica desdobramento, pagamento parcial e
+                      renegociação — sem ela a linha "R$ 3.500" fica sem history. Vai como
+                      subtítulo da célula, no mesmo padrão .sub da célula de vencimento,
+                      para não quebrar a grade da tabela. */}
+                  <td className="obj">{p.objeto ?? "—"}{p.observacoes && <div className="sub">{p.observacoes}</div>}</td>
                   <td className="c mono">{p.numero_parcela}{p.contrato_id && totalPorContrato.has(p.contrato_id) ? `/${totalPorContrato.get(p.contrato_id)}` : ""}</td>
                   <td className="r mono money">{kBRL(p.valor)}</td>
                   <td className="mono">{fmtDate(p.vencimento)}<div className={`sub ${p.status === "atrasado" ? "red" : "amber"}`}>{p.status === "atrasado" ? `${p.dias_atraso} dias` : "a vencer"}</div></td>

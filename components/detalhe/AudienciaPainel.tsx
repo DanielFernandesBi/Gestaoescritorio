@@ -3,7 +3,7 @@
 import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ProcRef } from "@/components/ui";
+import { ProcRef, Observacoes } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import {
@@ -66,8 +66,16 @@ function tipoTone(t: string) {
   if (t === "instrucao" || t === "interrogatorio") return "tone-blue";
   return "tone-slate";
 }
-const tituloDe = (a: { nome?: string | null; observacoes: string | null; tipo: string }) =>
-  a.nome?.trim() || a.observacoes?.trim() || humano(a.tipo);
+/**
+ * Título da audiência: `nome` próprio ou, na falta, o tipo humanizado.
+ *
+ * `observacoes` NÃO entra aqui. Era o fallback anterior, e como o Cowork e o chat
+ * gravam ali notas longas e datadas (pauta, link de sustentação, quem responde
+ * pela sessão), a nota inteira virava o título e aparecia truncada — a audiência
+ * perdia o nome e a nota nunca era lida por inteiro. A nota agora tem bloco próprio.
+ */
+const tituloDe = (a: { nome?: string | null; tipo: string }) =>
+  a.nome?.trim() || humano(a.tipo);
 const procNum = (a: { numero_cnj: string | null; numero_registro: string | null }) =>
   a.numero_cnj ?? (a.numero_registro ? `reg ${a.numero_registro}` : null);
 
@@ -275,6 +283,10 @@ export function AudienciaPainel({ aud, lista, anotacoes }: { aud: Audiencia; lis
                 <div className="fld"><div className="k">Validado</div><div className="v" style={{ color: aud.validado ? "var(--green)" : "var(--tang)", fontWeight: 600 }}>{aud.validado ? "validada" : "false · provisória"}</div></div>
                 <div className="fld"><div className="k">Responsável</div><div className="v">{aud.responsavel ?? "—"}</div></div>
               </div>
+              {/* Nota da sessão: pauta, condição de sustentação oral, prazo de cadastro
+                  para videoconferência, quem responde pela sessão. Antes só existia
+                  como título truncado do card (ver tituloDe). */}
+              <Observacoes texto={aud.observacoes} rotulo="Observações · sessão" />
             </Sec>
 
             {/* local */}

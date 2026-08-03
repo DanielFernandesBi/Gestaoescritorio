@@ -2558,6 +2558,7 @@ export type Parcela = {
   vencimento: string;
   dias_atraso: number;
   status: string;
+  observacoes: string | null;
 };
 
 export async function getFinanceiro(): Promise<{
@@ -2571,7 +2572,7 @@ export async function getFinanceiro(): Promise<{
   const [fin, contratosVig, contratosAll] = await Promise.all([
     supabase
       .from("pagamentos")
-      .select("id, contrato_id, numero_parcela, valor, vencimento, status, contratos(objeto, clientes(nome))")
+      .select("id, contrato_id, numero_parcela, valor, vencimento, status, observacoes, contratos(objeto, clientes(nome))")
       .in("status", ["a_vencer", "atrasado"])
       .order("vencimento", { ascending: true }),
     supabase.from("contratos").select("*", { count: "exact", head: true }).eq("status", "vigente"),
@@ -2591,6 +2592,7 @@ export async function getFinanceiro(): Promise<{
       vencimento: r.vencimento as string,
       dias_atraso: dias < 0 ? -dias : 0,
       status: r.status as string,
+      observacoes: (r.observacoes as string | null) ?? null,
     };
   });
   const totalReceber = parcelas.reduce((s, p) => s + Number(p.valor ?? 0), 0);
@@ -4456,6 +4458,7 @@ export type Documento = {
   cadastro_automatico: boolean;
   cadastrado_por: string | null;
   criado_em: string | null;
+  observacoes: string | null;
 };
 
 function mapDocumento(r: Record<string, unknown>): Documento {
@@ -4480,7 +4483,23 @@ function mapDocumento(r: Record<string, unknown>): Documento {
     cadastro_automatico: Boolean(r.cadastro_automatico),
     cadastrado_por: (r.cadastrado_por as string) ?? null,
     criado_em: (r.criado_em as string) ?? null,
+    observacoes: (r.observacoes as string | null) ?? null,
   };
+}
+
+/**
+ * `vw_documentos_processo` não expõe `observacoes` — é onde o chat e o Cowork
+ * registram o que o arquivo é ("Protocolada em 17/07. Insumo para T2.", "RASCUNHO —
+ * não protocolada", "SEGREDO DE JUSTIÇA"). Buscar na tabela-base e costurar por id
+ * evita mexer na view, que é DDL e depende de autorização (sugestão 112).
+ */
+async function comObservacoes(docs: Documento[]): Promise<Documento[]> {
+  if (!docs.length) return docs;
+  const supabase = await createClient();
+  const { data } = await supabase.from("documentos").select("id, observacoes").in("id", docs.map((d) => d.id));
+  if (!data?.length) return docs;
+  const obs = new Map((data as { id: string; observacoes: string | null }[]).map((r) => [r.id, r.observacoes]));
+  return docs.map((d) => ({ ...d, observacoes: obs.get(d.id) ?? d.observacoes }));
 }
 
 /** Documentos do Drive vinculados a um processo (registro/auditoria do acervo). */
@@ -4491,7 +4510,7 @@ export async function getDocumentosProcesso(processo_id: string): Promise<Docume
     .select("*")
     .eq("processo_id", processo_id)
     .order("criado_em", { ascending: false });
-  return (data ?? []).map((r) => mapDocumento(r as Record<string, unknown>));
+  return comObservacoes((data ?? []).map((r) => mapDocumento(r as Record<string, unknown>)));
 }
 
 /** Documentos do Drive vinculados diretamente a um cliente. */
@@ -4502,7 +4521,7 @@ export async function getDocumentosCliente(cliente_id: string): Promise<Document
     .select("*")
     .eq("cliente_id", cliente_id)
     .order("criado_em", { ascending: false });
-  return (data ?? []).map((r) => mapDocumento(r as Record<string, unknown>));
+  return comObservacoes((data ?? []).map((r) => mapDocumento(r as Record<string, unknown>)));
 }
 
 /** Documentos financeiros do Drive vinculados a um contrato (recibos, comprovantes…). */
@@ -4513,7 +4532,7 @@ export async function getDocumentosContrato(contrato_id: string): Promise<Docume
     .select("*")
     .eq("contrato_id", contrato_id)
     .order("criado_em", { ascending: false });
-  return (data ?? []).map((r) => mapDocumento(r as Record<string, unknown>));
+  return comObservacoes((data ?? []).map((r) => mapDocumento(r as Record<string, unknown>)));
 }
 
 /* Merge / duplicados ----------------------------------------------------- */

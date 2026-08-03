@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ProcRef } from "@/components/ui";
+import { ProcRef, Observacoes } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
@@ -238,6 +238,10 @@ export function PrazoPainel({ p, lista, anotacoes }: { p: PrazoFull; lista: Praz
                 <div className="fld"><div className="k">Validado</div><div className="v" style={{ color: p.validado ? "var(--green)" : "var(--tang)", fontWeight: 600 }}>{p.validado ? "validado" : "false · provisório"}</div></div>
                 <div className="fld"><div className="k">Responsável</div><div className="v">{p.responsavel ?? "—"}{p.cadastrado_por ? ` · cadastrado por ${p.cadastrado_por}` : ""}</div></div>
               </div>
+              {/* Memória de cálculo da fatal: é aqui que o Cowork registra por que a
+                  data é provisória (disponibilização, prorrogação de fim de semana,
+                  ciência a confirmar). Ficava gravado e sem nenhuma tela que o lesse. */}
+              <Observacoes texto={p.observacoes} rotulo="Observações · memória do prazo" />
             </Sec>
 
             {/* ORIGEM E HERANÇA */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ProcRef } from "@/components/ui";
+import { ProcRef, Observacoes } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { BuscaSelect } from "@/components/BuscaSelect";
 import { Acao } from "@/components/Acao";
@@ -353,7 +353,7 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
                   <div className="fld"><div className="k">Origem · vínculo</div><div className="v">{p.processo_origem ? <Link className="proc-link" href={linkPara("processo", p.processo_origem)}>processo de origem →</Link> : p.link_tribunal ? <a className="proc-link" href={p.link_tribunal} target="_blank" rel="noreferrer">portal do tribunal ↗</a> : "—"}</div></div>
                 </>}
               </div>
-              {p.observacoes && <div className="cli-obs"><div className="k">Observações</div><p>{p.observacoes}</p></div>}
+              <Observacoes texto={p.observacoes} />
             </Sec>
 
             {/* BLOCO 2 · IDENTIDADE IA */}

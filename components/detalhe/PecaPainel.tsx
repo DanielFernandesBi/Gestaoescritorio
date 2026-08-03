@@ -3,7 +3,7 @@
 import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ProcRef } from "@/components/ui";
+import { ProcRef, Observacoes } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { Anotacoes } from "@/components/detalhe/Anotacoes";
@@ -295,6 +295,10 @@ export function PecaPainel({ p, lista, anotacoes, acervo }: { p: PecaFull; lista
                 <div className="fld"><div className="k">Cadastrado por</div><div className="v">{p.cadastrado_por ?? "—"}{p.cadastro_automatico ? " (automático)" : ""}</div></div>
                 <div className="fld"><div className="k">Drive file</div><div className="v mono" style={{ fontSize: 11.5 }}>{p.drive_file_id ?? "—"}</div></div>
               </div>
+              {/* A nota interna traz instrução operacional sobre a peça (ex.: "não dar
+                  baixa em cascata antes de confirmar o protocolo"). O bloco da minuta
+                  apenas sinalizava que ela existia, sem nunca mostrar o texto. */}
+              <Observacoes texto={p.observacoes} rotulo="Nota interna" />
             </Sec>
 
             {/* BLOCO 4 · VÍNCULOS */}

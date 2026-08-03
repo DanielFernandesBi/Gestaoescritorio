@@ -1,6 +1,6 @@
 "use client";
 
-import { Pill } from "@/components/ui";
+import { Pill, Observacoes } from "@/components/ui";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
@@ -20,7 +20,7 @@ export function ContratoDetalhe({ contrato: c, documentos = [] }: { contrato: Co
       <div className="dsec">
         <h4>Objeto da contratação</h4>
         <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--text)" }}>{c.objeto}</p>
-        {c.observacoes && <p className="sub" style={{ marginTop: 8 }}>{c.observacoes}</p>}
+        <Observacoes texto={c.observacoes} />
       </div>
 
       <div className="dsec">

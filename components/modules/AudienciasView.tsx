@@ -175,8 +175,8 @@ function CancelarBtn({ a }: { a: AudienciaCard }) {
 /* ── card de audiência (próxima/confirmada e provisória) ─────────────────── */
 function AudienciaCardView({ a, variant, hero = false }: { a: AudienciaCard; variant: "conf" | "prov"; hero?: boolean }) {
   const { dow, dia, my, hora } = partesData(a.data_hora);
-  const titulo = a.nome?.trim() || a.observacoes?.trim() || humano(a.tipo);
-  const mostrarTipoTag = Boolean(a.nome?.trim() || a.observacoes?.trim());
+  const titulo = a.nome?.trim() || humano(a.tipo);
+  const mostrarTipoTag = Boolean(a.nome?.trim());
   return (
     <article className={`aud-card ${variant}`}>
       <span className={`aud-stripe ${variant === "prov" ? "accent" : "blue"}`} />
@@ -228,7 +228,7 @@ function AudienciaCardView({ a, variant, hero = false }: { a: AudienciaCard; var
 /* ── card de sessão de julgamento virtual (sem placar — não factível) ────── */
 function VirtualCard({ a }: { a: AudienciaCard }) {
   const { dia, my, hora } = partesData(a.data_hora);
-  const titulo = a.nome?.trim() || a.observacoes?.trim() || humano(a.tipo);
+  const titulo = a.nome?.trim() || humano(a.tipo);
   return (
     <article className="aud-card virtual">
       <span className="aud-stripe slate" />
@@ -311,7 +311,7 @@ function RealizadaRow({ a }: { a: AudienciaCard }) {
       {ico}
       <div className="mid">
         <div className="top">
-          <b>{a.nome?.trim() || a.observacoes?.trim() || humano(a.tipo)}</b>
+          <b>{a.nome?.trim() || humano(a.tipo)}</b>
           <span className={`pz-tag ${tagTone}`}>{humano(a.status)}</span>
           {a.segredo && <span className="pz-tag segredo">🔒 segredo de justiça</span>}
         </div>

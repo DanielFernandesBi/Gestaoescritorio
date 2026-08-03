@@ -73,6 +73,9 @@ export function DocumentosCaso({
                     <span>· {fmtDate(d.criado_em)}</span>
                     {href && <a className="link" href={href} target="_blank" rel="noreferrer">abrir no Drive</a>}
                   </div>
+                  {/* O que o arquivo é, em uma linha: data de protocolo, "insumo para T2",
+                      "RASCUNHO — não protocolada", aviso de sigilo. Ficava só no banco. */}
+                  {d.observacoes && <div className="ms" style={{ marginTop: 5, whiteSpace: "pre-wrap" }}>{d.observacoes}</div>}
                 </div>
                 <Acao
                   label="Remover"
