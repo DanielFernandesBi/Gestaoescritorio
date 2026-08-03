@@ -7,7 +7,7 @@ import { ClienteMaster, mascararCpf, sitTone } from "@/components/detalhe/Client
 import { FavoritoStar } from "@/components/FavoritoStar";
 import { FormModal } from "@/components/FormModal";
 import { Acao } from "@/components/Acao";
-import { NotasCliente } from "@/components/detalhe/Anotacoes";
+import { NotasCliente, contarNotas } from "@/components/detalhe/Anotacoes";
 import { ExecucaoCliente } from "@/components/detalhe/ExecucaoCliente";
 import { DocumentosCaso } from "@/components/detalhe/DocumentosCaso";
 import {
@@ -339,6 +339,9 @@ export function ClientePainel({
   const ver = (t: Tab) => tab === "consolidado" || tab === t;
   const abrirNotas = () => setTab("notas");
 
+  // Anotação humana × providência espelhada da triagem: contadores separados.
+  const nNotas = contarNotas(anotacoes);
+
   // Cadastro obsoleto: foi unificado em outro (ativo=false + ponteiro do canônico).
   const obsoleto = !p.ativo;
 
@@ -404,8 +407,11 @@ export function ClientePainel({
                 </div>
                 <div className="proc-head-row proc-head-manage">
                   <EditarCliente p={p} />
+                  {/* Conta só o que humano escreveu. As providências espelhadas da
+                      triagem têm contador próprio dentro da aba — somá-las aqui fazia
+                      o botão anunciar anotações que não existiam. */}
                   <button type="button" className={`btn default${tab === "notas" ? " on" : ""}`} onClick={abrirNotas}>
-                    <NoteIco /> Anotações{anotacoes.length ? ` (${anotacoes.length})` : ""}
+                    <NoteIco /> Anotações{nNotas.humanas ? ` (${nNotas.humanas})` : ""}
                   </button>
                   {p.ativo && (
                     <Acao label="Inativar" variant="danger" titulo="Inativar cliente" confirmarLabel="Inativar" resumo={<>O cliente <b>não é apagado</b> — fica inativo (some das listas, mantido no banco e auditado). Confirmar?</>} acao={() => desativarCliente(p.id)} />
@@ -568,7 +574,13 @@ export function ClientePainel({
                 aparece: cada nota fica no registro onde foi escrita. */}
             {tab === "notas" && (
               <div className="proc-card">
-              <Sec titulo="Anotações" sub="tudo o que foi anotado nos registros deste cliente" extra={<span className="audp-count">{anotacoes.length}</span>}>
+              <Sec
+                titulo="Anotações"
+                sub={nNotas.providencias
+                  ? `${nNotas.humanas} escrita${nNotas.humanas === 1 ? "" : "s"} por você · ${nNotas.providencias} providência${nNotas.providencias === 1 ? "" : "s"} da triagem`
+                  : "tudo o que foi anotado nos registros deste cliente"}
+                extra={<span className="audp-count">{nNotas.humanas}</span>}
+              >
                 <NotasCliente clienteId={p.id} notas={anotacoes} />
               </Sec>
               </div>

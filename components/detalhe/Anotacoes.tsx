@@ -162,17 +162,53 @@ function NotaExterna({ nota }: { nota: NotaUnificada }) {
   );
 }
 
+/**
+ * Duas naturezas convivem nesta aba e NÃO podem somar no mesmo número.
+ *
+ * - ANOTAÇÃO (tabela `anotacoes`): texto que um humano escreveu de propósito.
+ * - PROVIDÊNCIA (`intimacoes.providencia`, espelhada aqui em leitura): texto que
+ *   a triagem automática gravou ao encaminhar a intimação.
+ *
+ * Somadas, davam "Anotações (3)" para um cliente com ZERO anotações e 3
+ * providências — e "Anotações (70)" no caso extremo, onde nenhuma era nota
+ * humana. O contador dizia que havia registro pessoal onde não havia nenhum.
+ */
+export const ehProvidencia = (n: NotaUnificada) => n.entidade_tipo === "providencia";
+export const contarNotas = (notas: NotaUnificada[]) => {
+  const providencias = notas.filter(ehProvidencia).length;
+  return { humanas: notas.length - providencias, providencias };
+};
+
 export function NotasCliente({ clienteId, notas }: { clienteId: string; notas: NotaUnificada[] }) {
+  const humanas = notas.filter((n) => !ehProvidencia(n));
+  const providencias = notas.filter(ehProvidencia);
+
   return (
     <div className="audp-notas">
-      {notas.length === 0
-        ? <div className="audp-empty">Nenhuma anotação ligada a este cliente ainda. Toda nota feita em suas intimações, prazos, peças… aparece aqui.</div>
-        : notas.map((n) =>
+      {/* 1 · escritas por gente — o que a aba promete */}
+      {humanas.length === 0
+        ? <div className="audp-empty">Nenhuma anotação escrita ainda. Toda nota feita neste cliente ou em suas intimações, prazos, peças… aparece aqui.</div>
+        : humanas.map((n) =>
             n.entidade_tipo === "cliente"
               ? <AnotacaoCard key={n.id} nota={n} />
               : <NotaExterna key={n.id} nota={n} />,
           )}
+
       <NovaAnotacao entidadeTipo="cliente" entidadeId={clienteId} />
+
+      {/* 2 · providências da triagem — leitura, abaixo e rotuladas como o que são */}
+      {providencias.length > 0 && (
+        <>
+          <div className="audp-sech" style={{ marginTop: 18 }}>
+            Providências das intimações <span className="audp-count">{providencias.length}</span>
+          </div>
+          <div className="audp-ia-note" style={{ marginTop: 0, marginBottom: 4 }}>
+            Texto gravado pela <b>triagem</b> ao encaminhar cada intimação, espelhado aqui em leitura.
+            Não é anotação sua — para anotar, use o campo acima.
+          </div>
+          {providencias.map((n) => <NotaExterna key={n.id} nota={n} />)}
+        </>
+      )}
     </div>
   );
 }
