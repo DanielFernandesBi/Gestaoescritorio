@@ -37,6 +37,25 @@ function statusEff(c: Contrato): "vigente" | "inadimplente" | "quitado" | "resci
 }
 const stTone = (s: string) => (s === "quitado" ? "blue" : s === "inadimplente" ? "red" : s === "rescindido" ? "slate" : "green");
 
+/**
+ * Abas de contrato. "Vigentes" é o contrato VIVO — não quitado e não rescindido —,
+ * portanto INCLUI o inadimplente, que também está em vigor. Antes "Vigentes" era
+ * sinônimo de "em dia" e escondia os inadimplentes, fazendo a carteira ativa
+ * parecer menor do que é (10 aparentes contra 22 reais no acervo de 04/08/2026).
+ * "Em dia" é a aba nova e herda aquele filtro antigo, agora com o nome correto.
+ */
+type FiltroContrato = "vigente" | "inadimplente" | "emdia" | "quitado";
+const casaFiltro = (st: string, f: FiltroContrato) =>
+  f === "vigente" ? st !== "quitado" && st !== "rescindido"
+    : f === "emdia" ? st === "vigente"
+      : st === f;
+const ROTULO_CONTRATO: Record<FiltroContrato, string> = {
+  vigente: "Vigentes",
+  inadimplente: "Inadimplentes",
+  emdia: "Em dia",
+  quitado: "Quitados",
+};
+
 /* ── fluxo de caixa (barra empilhada: realizado verde + previsto hachurado) ── */
 function FluxoCaixa({ fluxo, ano }: { fluxo: FluxoMes[]; ano: number }) {
   const mesAtual = new Date().getMonth();
@@ -114,7 +133,7 @@ export function FinanceiroView({
   clientes: Cli[];
   mesLabel: string;
 }) {
-  const [fContrato, setFContrato] = useState<"vigente" | "inadimplente" | "quitado">("vigente");
+  const [fContrato, setFContrato] = useState<FiltroContrato>("vigente");
   const [verTodos, setVerTodos] = useState(false);
 
   // KPIs
@@ -143,7 +162,16 @@ export function FinanceiroView({
 
   const maxReceita = Math.max(1, ...receitaPorCliente.map((r) => r.valor));
 
-  const contratosFiltrados = eff.filter((x) => x.st === fContrato);
+  // Contagem por aba, exibida no próprio chip: é o que impede a leitura errada da
+  // carteira — o número fica visível antes de clicar, em vez de depender do filtro.
+  const nPorAba = useMemo(() => ({
+    vigente: eff.filter((x) => casaFiltro(x.st, "vigente")).length,
+    inadimplente: eff.filter((x) => casaFiltro(x.st, "inadimplente")).length,
+    emdia: eff.filter((x) => casaFiltro(x.st, "emdia")).length,
+    quitado: eff.filter((x) => casaFiltro(x.st, "quitado")).length,
+  }), [eff]);
+
+  const contratosFiltrados = eff.filter((x) => casaFiltro(x.st, fContrato));
   const contratosView = verTodos ? contratosFiltrados : contratosFiltrados.slice(0, 4);
   const despesasAbertas = despesas.filter((d) => d.reembolsavel && !d.reembolsada).length;
 
@@ -264,9 +292,9 @@ export function FinanceiroView({
           <span className="t">Contratos</span>
           <span className="sub mono">{contratos.length} · clique para o objeto</span>
           <span className="fin-tabs">
-            {(["vigente", "inadimplente", "quitado"] as const).map((s) => (
+            {(["vigente", "inadimplente", "emdia", "quitado"] as const).map((s) => (
               <button key={s} type="button" className={`tk-chip${fContrato === s ? " on" : ""}`} onClick={() => { setFContrato(s); setVerTodos(false); }}>
-                {s === "vigente" ? "Vigentes" : s === "inadimplente" ? "Inadimplentes" : "Quitados"}
+                {ROTULO_CONTRATO[s]} ({nPorAba[s]})
               </button>
             ))}
           </span>
@@ -292,7 +320,7 @@ export function FinanceiroView({
                 </div>
               </Link>
             );
-          }) : <div className="fin-empty">Nenhum contrato {fContrato}.</div>}
+          }) : <div className="fin-empty">Nenhum contrato em “{ROTULO_CONTRATO[fContrato]}”.</div>}
         </div>
         {contratosFiltrados.length > 4 && (
           <button type="button" className="fin-vermais" onClick={() => setVerTodos((v) => !v)}>
