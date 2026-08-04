@@ -2281,7 +2281,13 @@ a.tk-title:hover{text-decoration:underline}
 .fin-carteira .sw.green{background:var(--green)}.fin-carteira .sw.blue{background:var(--blue)}.fin-carteira .sw.red{background:var(--red)}.fin-carteira .sw.slate{background:var(--brass)}
 
 /* receita por cliente */
-.fin-receita{padding:15px 18px;display:flex;flex-direction:column;gap:11px}
+/* Receita × Inadimplência dividem a mesma linha do grid e, por isso, a mesma
+   altura. Quem sobrar mais curto ganhava uma faixa branca no fim. Com o card
+   virando coluna flexível, a lista de receita cresce para ocupar a altura e
+   distribui as barras no espaço — sem altura fixa, que quebraria em telas
+   estreitas ou com menos clientes. */
+.fin-2col > .fin-card{display:flex;flex-direction:column}
+.fin-receita{padding:15px 18px;display:flex;flex-direction:column;gap:11px;flex:1;justify-content:space-between}
 .fin-receita .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
 .fin-receita .top b{color:var(--name)}
 .fin-receita .top span{font-family:var(--mono);color:var(--text)}
@@ -2289,10 +2295,12 @@ a.tk-title:hover{text-decoration:underline}
 .fin-receita .fill{height:100%;background:var(--green)}
 
 /* inadimplência */
-.fin-inad{padding:15px 18px}
+/* Absorve a sobra quando a Receita ao lado for o card mais alto, de modo que a
+   régua de cobrança encosta no rodapé em vez de deixar vão até o "ver mais". */
+.fin-inad{padding:15px 18px;flex:1;display:flex;flex-direction:column}
 .fin-inad .pct{font-family:var(--serif);font-size:30px;color:var(--red);line-height:1}
 .fin-inad .base{font-size:11px;color:var(--muted);margin-top:4px}
-.fin-inad .lista{margin-top:13px;display:flex;flex-direction:column;gap:9px}
+.fin-inad .lista{margin-top:13px;display:flex;flex-direction:column;gap:9px;flex:1}
 .fin-inad .item{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:10px}
 .fin-inad .who{flex:1;min-width:0}
 .fin-inad .who b{color:var(--name);font-size:12.5px}

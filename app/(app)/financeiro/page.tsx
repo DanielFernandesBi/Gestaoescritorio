@@ -31,14 +31,16 @@ export default async function FinanceiroPage() {
   }
   const fluxo = previsto.map((prev, mes) => ({ mes, previsto: prev, realizado: realizado[mes] }));
 
-  // Receita recebida por cliente (top 6).
+  // Receita recebida por cliente (top 10). Subiu de 6 para acompanhar a altura do
+  // card de Inadimplência ao lado, que passou a mostrar 6 itens mais o expandir —
+  // com 6 barras sobrava faixa branca no fim deste card.
   const receitaPorCliente = [...contratos
     .reduce((map, c) => map.set(c.cliente, (map.get(c.cliente) ?? 0) + c.total_pago), new Map<string, number>())
     .entries()]
     .map(([cliente, valor]) => ({ cliente, valor }))
     .filter((x) => x.valor > 0)
     .sort((a, b) => b.valor - a.valor)
-    .slice(0, 6);
+    .slice(0, 10);
 
   const clientesLite = clientes.map((c) => ({ id: c.id, nome: c.nome }));
 

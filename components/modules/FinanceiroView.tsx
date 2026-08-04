@@ -44,6 +44,13 @@ const stTone = (s: string) => (s === "quitado" ? "blue" : s === "inadimplente" ?
  * parecer menor do que é (10 aparentes contra 22 reais no acervo de 04/08/2026).
  * "Em dia" é a aba nova e herda aquele filtro antigo, agora com o nome correto.
  */
+/**
+ * Prévia padrão das listas do módulo. Antes cada card decidia sozinho — contratos
+ * mostravam 4 com "ver mais", parcelas e inadimplência despejavam a lista inteira
+ * e esticavam a página. Uma constante só mantém os quatro cards com a mesma régua.
+ */
+const PREVIA = 6;
+
 type FiltroContrato = "vigente" | "inadimplente" | "emdia" | "quitado";
 const casaFiltro = (st: string, f: FiltroContrato) =>
   f === "vigente" ? st !== "quitado" && st !== "rescindido"
@@ -135,6 +142,8 @@ export function FinanceiroView({
 }) {
   const [fContrato, setFContrato] = useState<FiltroContrato>("vigente");
   const [verTodos, setVerTodos] = useState(false);
+  const [verParcelas, setVerParcelas] = useState(false);
+  const [verInad, setVerInad] = useState(false);
 
   // KPIs
   const atrasadas = parcelas.filter((p) => p.status === "atrasado");
@@ -172,7 +181,9 @@ export function FinanceiroView({
   }), [eff]);
 
   const contratosFiltrados = eff.filter((x) => casaFiltro(x.st, fContrato));
-  const contratosView = verTodos ? contratosFiltrados : contratosFiltrados.slice(0, 4);
+  const contratosView = verTodos ? contratosFiltrados : contratosFiltrados.slice(0, PREVIA);
+  const parcelasView = verParcelas ? parcelas : parcelas.slice(0, PREVIA);
+  const inadView = verInad ? inadLista : inadLista.slice(0, PREVIA);
   const despesasAbertas = despesas.filter((d) => d.reembolsavel && !d.reembolsada).length;
 
   return (
@@ -273,7 +284,7 @@ export function FinanceiroView({
             <div className="base">da carteira em atraso ({kBRL(totalAtraso)} de {kBRL(carteiraReceber)})</div>
             {inadLista.length ? (
               <div className="lista">
-                {inadLista.map((x, i) => (
+                {inadView.map((x, i) => (
                   <div className="item" key={i}>
                     <div className="who"><b>{x.cliente}</b><div className="mono sub">parc. {x.parc} · {x.dias} dias</div></div>
                     <span className="val mono">{kBRL(x.valor)}</span>
@@ -283,6 +294,11 @@ export function FinanceiroView({
             ) : <div className="fin-empty">Sem parcelas em atraso. 🎉</div>}
             {inadLista.length > 0 && <Link className="fin-regua" href="/busca">Preparar régua de cobrança</Link>}
           </div>
+          {inadLista.length > PREVIA && (
+            <button type="button" className="fin-vermais" onClick={() => setVerInad((v) => !v)}>
+              {verInad ? "ver menos ↑" : `ver as ${inadLista.length} em atraso →`}
+            </button>
+          )}
         </article>
       </div>
 
@@ -322,7 +338,7 @@ export function FinanceiroView({
             );
           }) : <div className="fin-empty">Nenhum contrato em “{ROTULO_CONTRATO[fContrato]}”.</div>}
         </div>
-        {contratosFiltrados.length > 4 && (
+        {contratosFiltrados.length > PREVIA && (
           <button type="button" className="fin-vermais" onClick={() => setVerTodos((v) => !v)}>
             {verTodos ? "ver menos ↑" : `ver os ${contratosFiltrados.length} contratos →`}
           </button>
@@ -337,7 +353,7 @@ export function FinanceiroView({
             <colgroup><col style={{ width: "25%" }} /><col style={{ width: "27%" }} /><col style={{ width: "10%" }} /><col style={{ width: "13%" }} /><col style={{ width: "13%" }} /><col style={{ width: "12%" }} /></colgroup>
             <thead><tr><th>Cliente</th><th>Objeto</th><th className="c">Parc.</th><th className="r">Valor</th><th>Vencimento</th><th className="c">Ação</th></tr></thead>
             <tbody>
-              {parcelas.map((p) => (
+              {parcelasView.map((p) => (
                 <tr key={p.id}>
                   <td><b className="nm">{p.cliente}</b></td>
                   {/* A observação da parcela explica desdobramento, pagamento parcial e
@@ -358,6 +374,11 @@ export function FinanceiroView({
             </tbody>
           </table>
         ) : <div className="fin-empty">Nenhuma parcela pendente.</div>}
+        {parcelas.length > PREVIA && (
+          <button type="button" className="fin-vermais" onClick={() => setVerParcelas((v) => !v)}>
+            {verParcelas ? "ver menos ↑" : `ver as ${parcelas.length} parcelas →`}
+          </button>
+        )}
       </article>
 
       {/* despesas */}
