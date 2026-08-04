@@ -191,6 +191,15 @@ body.nav-locked{overflow:hidden}
 .btn.abrir::after{content:"→";font-weight:800;transition:transform .12s}
 .btn.abrir:hover{background:color-mix(in srgb,var(--accent) 15%,var(--surface));border-color:var(--accent);color:var(--accent-strong)}
 .btn.abrir:hover::after{transform:translateX(2px)}
+/* Abrir nota do Drive — na barra de ações do cliente. Herda o realce do .btn.abrir
+   (fundo accent-soft, borda accent, seta) e ganha um anel suave para saltar entre
+   os botões neutros quando existe nota. Sem nota, o botão permanece visível porém
+   apagado, explicando a condição em vez de sumir da barra. */
+.btn.nota-drive{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.btn.nota-drive:hover{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 20%,transparent)}
+.nota-drive-n{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-contrast);font-size:11px;font-weight:800;line-height:1}
+.btn.nota-drive-vazio{opacity:.5;cursor:default;color:var(--muted)}
+.btn.nota-drive-vazio:hover{border-color:var(--line)}
 .btn.sm.abrir{min-width:78px}
 .btn:disabled{opacity:.6;cursor:not-allowed}
 /* "Marcar lido" — único caminho para carimbar a leitura; destaque em azul + olho */

@@ -342,6 +342,15 @@ export function ClientePainel({
   // Anotação humana × providência espelhada da triagem: contadores separados.
   const nNotas = contarNotas(anotacoes);
 
+  // Notas de acompanhamento no Drive (`documentos` com tipo='nota'). O app não fala
+  // com o Drive: o botão só existe porque a nota é REGISTRADA no banco ao ser criada,
+  // com drive_url. Nota gerada sem esse registro fica invisível aqui — por isso o
+  // estado vazio explica a condição em vez de simplesmente sumir.
+  const notasDrive = documentos.filter((d) => d.tipo === "nota");
+  const notaRecente = notasDrive[0] ?? null; // getDocumentosCliente ordena por criado_em desc
+  const urlNota = (d: Documento) =>
+    d.drive_url ?? (d.drive_file_id ? `https://docs.google.com/document/d/${d.drive_file_id}/edit` : null);
+
   // Cadastro obsoleto: foi unificado em outro (ativo=false + ponteiro do canônico).
   const obsoleto = !p.ativo;
 
@@ -594,6 +603,22 @@ export function ClientePainel({
           <button type="button" className="btn default" onClick={() => setTab("execucao")}>Lançar atestado de pena</button>
           <button type="button" className="btn default" onClick={() => setTab("financeiro")}>Contratos</button>
           <button type="button" className="btn default" onClick={abrirNotas}><NoteIco /> Nota datada</button>
+          {notaRecente && urlNota(notaRecente) ? (
+            <a
+              className="btn abrir nota-drive"
+              href={urlNota(notaRecente)!}
+              target="_blank"
+              rel="noreferrer"
+              title={`Abre ${notaRecente.nome ?? "a nota"} no Google Docs${notasDrive.length > 1 ? ` · ${notasDrive.length} notas no acervo` : ""}`}
+            >
+              <NoteIco /> Abrir nota do Drive
+              {notasDrive.length > 1 && <span className="nota-drive-n">{notasDrive.length}</span>}
+            </a>
+          ) : (
+            <span className="btn nota-drive-vazio" title="A nota aparece aqui depois de ser gerada no Drive e registrada em documentos (tipo=nota).">
+              <NoteIco /> Sem nota no Drive
+            </span>
+          )}
         </div>
       </section>
     </div>
