@@ -27,7 +27,7 @@ export default async function AndamentoPage({
       lista={lista}
       mapa={mapa}
       anotacoes={anotacoes}
-      filtroInicial={f === "escalados" ? "escalados" : "recentes"}
+      filtroInicial={f === "escalados" ? "escalados" : f === "conferir" ? "conferir" : "recentes"}
     />
   );
 }

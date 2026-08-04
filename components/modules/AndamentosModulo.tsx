@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Chips } from "@/components/Chips";
 import { PageHeader } from "@/components/PageHeader";
-import { AndamentosTimeline } from "@/components/modules/AndamentosTimeline";
+import { AndamentosTimeline, conferenciaAberta } from "@/components/modules/AndamentosTimeline";
 import { AndamentosOrfaosList } from "@/components/modules/AndamentosOrfaosList";
 import type { Movimentacao, AndamentoOrfao } from "@/lib/data";
 import type { MapaProvidencia } from "@/lib/pecas";
@@ -39,11 +39,16 @@ export function AndamentosModulo({
   const irAba = (v: string) => { setAba(v); setVisiveis(PASSO); };
   const irOrig = (v: string) => { setOrig(v); setVisiveis(PASSO); };
 
+  // "A conferir" é a fila ACIONÁVEL — conferência ainda aberta. "Escalados" é o
+  // histórico do período (inclui as já resolvidas), que é o que o KPI sempre mediu.
+  // Sem a distinção, 19 escalados com 18 concluídos escondiam o único pendente.
+  const nAConferir = movimentacoes.filter(conferenciaAberta).length;
   const nEscalados = movimentacoes.filter((m) => m.escalado).length;
   const nDecisoes = movimentacoes.filter((m) => ehDecisao(m.tipo)).length;
 
   const abas = [
     { id: "recentes", label: `Recentes · 7d (${movimentacoes.length})` },
+    { id: "conferir", label: `A conferir (${nAConferir})` },
     { id: "escalados", label: `Escalados (${nEscalados})` },
     { id: "decisoes", label: `Decisões (${nDecisoes})` },
     { id: "orfaos", label: `Órfãos (${orfaos.length})` },
@@ -52,7 +57,11 @@ export function AndamentosModulo({
   const filtradas = useMemo(
     () =>
       movimentacoes.filter((m) => {
-        const okAba = aba === "escalados" ? m.escalado : aba === "decisoes" ? ehDecisao(m.tipo) : true;
+        const okAba =
+          aba === "conferir" ? conferenciaAberta(m)
+            : aba === "escalados" ? m.escalado
+              : aba === "decisoes" ? ehDecisao(m.tipo)
+                : true;
         const okOrig = orig === "todas" ? true : (m.origem ?? "") === orig;
         return okAba && okOrig;
       }),
@@ -74,7 +83,10 @@ export function AndamentosModulo({
         acoes={acoes}
         kpis={[
           { valor: movimentacoes.length, label: "Recentes · últimos 7 dias", tone: "neutral" },
-          { valor: nEscalados, label: "Escalados · conferência", tone: "amber" },
+          // O KPI passa a medir o ACIONÁVEL (mesma régua do badge do menu). Antes
+          // mostrava o total escalado no período, concluídos inclusive, e por isso
+          // divergia do menu — 19 aqui contra 1 lá, sem nada explicando a diferença.
+          { valor: nAConferir, label: "A conferir · conferência aberta", tone: "amber" },
           { valor: orfaos.length, label: "Órfãos · sem processo", tone: "red" },
           { valor: nDecisoes, label: "Decisões · mérito/despacho", tone: "accent" },
         ]}

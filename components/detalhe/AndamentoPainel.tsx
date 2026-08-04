@@ -7,6 +7,7 @@ import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarPrazoDeAndamento } from "@/components/modules/CriarPrazoDeAndamento";
 import { PromoverIntimacao } from "@/components/modules/PromoverIntimacao";
+import { conferenciaAberta } from "@/components/modules/AndamentosTimeline";
 import { atualizarAndamento } from "@/app/actions";
 import { ANDAMENTO_TIPO, ANDAMENTO_ORIGEM } from "@/lib/enums";
 import { type MapaProvidencia } from "@/lib/pecas";
@@ -60,15 +61,21 @@ function Sec({ titulo, sub, extra, children }: { titulo: string; sub?: string; e
   );
 }
 
+/** Filtros do trilho: 7 dias · a conferir (aberta) · escalados (histórico). */
+export type FiltroMaster = "recentes" | "conferir" | "escalados";
+
 /* ── master: card de andamento ───────────────────────────────────────────── */
 function MasterCard({ m, ativo, filtro }: { m: Movimentacao; ativo: boolean; filtro: string }) {
   const orfao = !m.processo_id;
-  const href = `${linkPara("andamento", m.id)}${filtro === "escalados" ? "?f=escalados" : ""}`;
+  const href = `${linkPara("andamento", m.id)}${filtro === "recentes" ? "" : `?f=${filtro}`}`;
   return (
     <Link className={`audp-mcard cli-mcard${ativo ? " on" : ""}`} href={href}>
       <div className="int-mtags">
         <span className={`pz-tag cat-${tipoTone(m.tipo) === "red" ? "neutral" : tipoTone(m.tipo)}`}>{humano(m.tipo)}</span>
-        {m.escalado && <span className="pz-tag cowork">escalou</span>}
+        {/* "escalou" dizia o mesmo para a conferência viva e a já fechada. */}
+        {conferenciaAberta(m)
+          ? <span className="pz-tag tang">a conferir</span>
+          : m.escalado && <span className="pz-tag cowork">conferido</span>}
         {orfao && <span className="pz-tag orfa">órfão</span>}
       </div>
       <div className="cli-mnome">{headline(m.descricao)}</div>
@@ -78,17 +85,19 @@ function MasterCard({ m, ativo, filtro }: { m: Movimentacao; ativo: boolean; fil
 }
 
 /* ── índice (lista compacta) — reusado no drawer e na tela raiz /andamentos ── */
-export function AndamentoMaster({ lista, activeId, filtroInicial = "recentes" }: { lista: Movimentacao[]; activeId?: string; filtroInicial?: "recentes" | "escalados" }) {
-  const [filtro, setFiltro] = useState<"recentes" | "escalados">(filtroInicial);
+export function AndamentoMaster({ lista, activeId, filtroInicial = "recentes" }: { lista: Movimentacao[]; activeId?: string; filtroInicial?: FiltroMaster }) {
+  const [filtro, setFiltro] = useState<FiltroMaster>(filtroInicial);
+  const aConferir = lista.filter(conferenciaAberta);
   const escalados = lista.filter((m) => m.escalado);
-  const visiveis = filtro === "escalados" ? escalados : lista;
+  const visiveis = filtro === "conferir" ? aConferir : filtro === "escalados" ? escalados : lista;
   return (
     <aside className="audp-master">
       <div className="audp-master-h">
         <h1>Andamentos</h1>
         <div className="audp-filtros">
           <button type="button" className={`audp-chip ink${filtro === "recentes" ? " on" : ""}`} onClick={() => setFiltro("recentes")}>7 dias</button>
-          <button type="button" className={`audp-chip tang${filtro === "escalados" ? " on" : ""}`} onClick={() => setFiltro("escalados")}>escalados ({escalados.length})</button>
+          <button type="button" className={`audp-chip tang${filtro === "conferir" ? " on" : ""}`} onClick={() => setFiltro("conferir")}>a conferir ({aConferir.length})</button>
+          <button type="button" className={`audp-chip ink${filtro === "escalados" ? " on" : ""}`} onClick={() => setFiltro("escalados")}>escalados ({escalados.length})</button>
         </div>
       </div>
       <div className="audp-master-list">
@@ -120,7 +129,7 @@ function EditarAndamento({ a }: { a: AndamentoFull }) {
 }
 
 /* ── componente principal ────────────────────────────────────────────────── */
-export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "recentes" }: { a: AndamentoFull; lista: Movimentacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; filtroInicial?: "recentes" | "escalados" }) {
+export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "recentes" }: { a: AndamentoFull; lista: Movimentacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; filtroInicial?: FiltroMaster }) {
   const [verNotas, setVerNotas] = useState(true);
   const idc = idCurto(a.codigo_movimentacao);
 

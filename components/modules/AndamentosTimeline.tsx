@@ -36,9 +36,20 @@ function headline(desc: string): string {
   return cut.length > 72 ? cut.slice(0, 72).trim() + "…" : cut;
 }
 
+/**
+ * Conferência ABERTA (pendente/em_andamento) × já resolvida.
+ *
+ * `escalado` só diz que existe tarefa não-cancelada, e por isso marcava igual a
+ * conferência viva e a já fechada. Com 19 escalados na janela e 18 concluídos, o
+ * único que ainda cobrava ação ficava indistinguível — é o que esta função separa.
+ */
+export const conferenciaAberta = (m: Movimentacao) =>
+  Boolean(m.escalado) && (m.escalado_status === "pendente" || m.escalado_status === "em_andamento");
+
 // Urgência (cor da barra/banner): urgente=red; alta=amber (verde se resultado favorável); informativo=cinza.
+// Conferência já concluída volta a ser informativa — não deve competir por atenção.
 function urgencia(m: Movimentacao): "urg" | "alta" | "ok" | "info" {
-  if (!m.escalado) return "info";
+  if (!conferenciaAberta(m)) return "info";
   if (m.prioridade === "urgente") return "urg";
   return resultado(m.descricao)?.cls === "fav" ? "ok" : "alta";
 }
@@ -59,7 +70,7 @@ export function AndamentosTimeline({
   if (!movimentacoes.length) return <div className="empty">Nenhuma movimentação neste filtro.</div>;
 
   // Continuidade do filtro na navegação para o detalhe (barra rápida).
-  const q = filtro === "escalados" ? "?f=escalados" : "";
+  const q = filtro === "escalados" || filtro === "conferir" ? `?f=${filtro}` : "";
   const hrefDet = (id: string) => `${linkPara("andamento", id)}${q}`;
 
   return (
@@ -91,19 +102,34 @@ export function AndamentosTimeline({
               <ContextoCaso ctx={m.contexto} />
               {temDesc && <div className="and-desc">{m.descricao}</div>}
 
-              {m.escalado && (
+              {m.escalado && (conferenciaAberta(m) ? (
                 <div className="and-banner">
                   <span className="and-banner-ico">⚠</span>
                   <div>
-                    <b>Escalado para conferência · {(m.prioridade ?? "alta").toUpperCase()}</b> — {motivo(m.prioridade)}
+                    <b>A conferir · {(m.prioridade ?? "alta").toUpperCase()}</b> — {motivo(m.prioridade)}
+                    {m.escalado_status === "em_andamento" && <> · <b>em andamento</b></>}
                   </div>
                 </div>
-              )}
+              ) : (
+                /* Já conferido: o cartão precisa dizer que a pendência FECHOU, em tom
+                   calmo, senão volta a competir por atenção com o que ainda cobra ação. */
+                <div className="and-banner feito">
+                  <span className="and-banner-ico">✓</span>
+                  <div><b>Conferência concluída</b> — escalado pela triagem e já resolvido.</div>
+                </div>
+              ))}
 
               <div className="and-foot">
                 <span className="and-cap"><span className="and-cap-dot" /> capturado pela triagem · origem {(m.origem ?? "—").toUpperCase()}</span>
                 <div className="and-acoes">
-                  {m.escalado && <Link className="btn sm primary" href={m.tarefa_id ? linkPara("tarefa", m.tarefa_id) : "/tarefas"}>Ver conferência</Link>}
+                  {m.escalado && (
+                    <Link
+                      className={`btn sm${conferenciaAberta(m) ? " primary" : ""}`}
+                      href={m.tarefa_id ? linkPara("tarefa", m.tarefa_id) : "/tarefas"}
+                    >
+                      {conferenciaAberta(m) ? "Conferir" : "Ver conferência"}
+                    </Link>
+                  )}
                   <CriarPecaPendente tipoOrigem="andamento" origemId={m.id} texto={m.descricao} mapa={mapa} />
                   {m.processo_id && <PromoverIntimacao andamentoId={m.id} />}
                   {m.processo_id && <CriarPrazoDeAndamento andamentoId={m.id} atoSugerido={head} />}

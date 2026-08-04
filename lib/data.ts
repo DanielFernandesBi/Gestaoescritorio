@@ -2912,6 +2912,12 @@ export type Movimentacao = {
   escalado?: boolean;
   prioridade?: string | null;
   tarefa_id?: string | null;
+  /**
+   * Status da tarefa de conferência (Sug. 30). `escalado` sozinho não distingue
+   * a conferência ABERTA da já resolvida — o cartão marcava as duas igual, e a
+   * única pendente ficava indistinguível das já concluídas no mesmo filtro.
+   */
+  escalado_status?: string | null;
 };
 
 export async function getAndamentos(): Promise<Movimentacao[]> {
@@ -2954,7 +2960,7 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
   }
 
   // Escalonamento (Sug. 30): tarefa de conferência vinculada por andamento_id.
-  const escalPorAnd = new Map<string, { tarefa_id: string; prioridade: string | null }>();
+  const escalPorAnd = new Map<string, { tarefa_id: string; prioridade: string | null; status: string | null }>();
   const andIds = rows.map((r) => r.id as string);
   if (andIds.length) {
     const { data: tarefas } = await supabase
@@ -2964,8 +2970,15 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
       .neq("status", "cancelada");
     for (const t of tarefas ?? []) {
       const k = t.andamento_id as string;
-      if (!escalPorAnd.has(k) || t.status === "pendente")
-        escalPorAnd.set(k, { tarefa_id: t.id as string, prioridade: (t.prioridade as string) ?? null });
+      // A ABERTA prevalece sobre a concluída quando o mesmo andamento tem mais de
+      // uma: o cartão deve anunciar o que ainda cobra ação, não o que já fechou.
+      const aberta = t.status === "pendente" || t.status === "em_andamento";
+      if (!escalPorAnd.has(k) || aberta)
+        escalPorAnd.set(k, {
+          tarefa_id: t.id as string,
+          prioridade: (t.prioridade as string) ?? null,
+          status: (t.status as string) ?? null,
+        });
     }
   }
 
@@ -2990,6 +3003,7 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
       escalado: Boolean(esc),
       prioridade: esc?.prioridade ?? null,
       tarefa_id: esc?.tarefa_id ?? null,
+      escalado_status: esc?.status ?? null,
     };
   });
 }
