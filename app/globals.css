@@ -1064,6 +1064,51 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .trilha-linha p{font-size:12.5px;line-height:1.5;color:var(--text)}
 .trilha-datas{font-size:11px;color:var(--muted-2);padding-top:9px;border-top:1px solid var(--line-soft)}
 
+/* ---------- /diligencia — a fila, o progresso e a espera ---------- */
+.dil-saude{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 18px}
+.dil-met{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:11px;padding:13px 15px}
+.dil-met b{display:block;font-family:var(--serif);font-size:29px;font-weight:600;line-height:1;color:var(--ink)}
+.dil-met span{display:block;font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+.dil-met b.tom-amber{color:var(--amber)}
+.dil-met b.tom-green{color:var(--green)}
+.dil-met b.tom-blue{color:var(--blue)}
+.dil-met b.tom-red{color:var(--red)}
+@media(max-width:1180px){.dil-saude{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.dil-saude{grid-template-columns:repeat(2,1fr)}}
+
+.dil-curva{padding:4px 18px 18px;border-top:1px solid var(--line-soft);margin-top:4px;padding-top:14px}
+.dil-nota{font-size:12px;color:var(--muted);line-height:1.6;margin-top:4px}
+.dil-nota b{color:var(--text)}
+.dil-barras{display:flex;align-items:flex-end;gap:12px;height:96px;margin-top:12px}
+.dil-bar{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:6px}
+.dil-bar-col{width:100%;max-width:52px;min-height:3px;border-radius:6px 6px 0 0;background:var(--green);display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden}
+.dil-bar-mapa{display:block;width:100%;background:var(--muted-2);opacity:.55}
+.dil-bar-l{font-family:var(--mono);font-size:10px;color:var(--muted-2)}
+.dil-legenda{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.dil-legenda span{width:9px;height:9px;border-radius:3px;flex:none}
+.dil-legenda .lg-autos{background:var(--green)}
+.dil-legenda .lg-mapa{background:var(--muted-2);opacity:.55;margin-left:12px}
+
+.dil-intro{font-size:12.5px;color:var(--muted);line-height:1.6;margin:2px 2px 14px;max-width:760px}
+.dil-intro b{color:var(--text)}
+.dil-intro .mono{font-size:11.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+.dil-list{display:flex;flex-direction:column;gap:10px}
+.dil-card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:var(--radius);box-shadow:var(--shadow);padding:13px 16px}
+.dil-card.velha{border-left-color:var(--red)}
+.dil-card.leve{border-left-color:var(--line);box-shadow:none;background:var(--surface-2)}
+.dil-card.feita{border-left-color:var(--green)}
+.dil-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.dil-espera{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted)}
+.dil-card.velha .dil-espera{color:var(--red)}
+.dil-qtd{font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 9px}
+.dil-ident{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dil-cli{font-weight:800;color:var(--name);font-size:13.5px}
+.dil-pergunta{font-size:12.5px;color:var(--text);line-height:1.55;margin-top:7px}
+.dil-foot{font-size:11px;color:var(--muted-2);margin-top:9px;padding-top:9px;border-top:1px solid var(--line-soft)}
+.dil-regra{font-size:12px;color:var(--text);line-height:1.6;background:var(--red-soft);border:1px solid color-mix(in srgb,var(--red) 26%,transparent);border-radius:10px;padding:11px 13px}
+.dil-regra b{color:var(--red)}
+.leg-dot.ok{background:var(--green)}
+
 /* ---------- Triagem (/triagem) — seções de órfãos ---------- */
 .tri-sec{margin-bottom:22px}
 .tri-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 2px 11px;display:flex;align-items:center;gap:8px}

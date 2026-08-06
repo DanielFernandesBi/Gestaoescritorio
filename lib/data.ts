@@ -3209,6 +3209,12 @@ export type ConsultaTribunal = {
   cadastrado_por: string | null;
   /** Dias entre o enfileiramento e a resposta — ou até hoje, se ainda pendente. */
   dias_espera: number | null;
+  /** Identificação do processo, para a linha ser legível sem outra consulta. */
+  numero_cnj?: string | null;
+  numero_registro?: string | null;
+  tribunal?: string | null;
+  segredo?: boolean;
+  cliente?: string | null;
 };
 
 function mapConsulta(r: Record<string, unknown>): ConsultaTribunal {
@@ -3293,15 +3299,32 @@ export async function getDiligenciaFila(): Promise<DiligenciaItem[]> {
   return ((data ?? []) as Record<string, unknown>[]).map(mapDiligencia);
 }
 
-/** Consultas já enfileiradas (a fila REAL, que a T4 recebe) e as já respondidas. */
-export async function getConsultas(limit = 200): Promise<ConsultaTribunal[]> {
+/**
+ * Consultas já enfileiradas (a fila REAL que a T4 recebe) e as já respondidas.
+ * Traz a identificação do processo junto, para a linha ser legível sem outra volta.
+ */
+export async function getConsultas(resultado?: string, limit = 200): Promise<ConsultaTribunal[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  let q = supabase
     .from("consultas_tribunal")
-    .select(CONSULTA_COLS)
-    .order("enfileirado_em", { ascending: false, nullsFirst: false })
+    .select(
+      `${CONSULTA_COLS}, processos(numero_cnj, numero_registro_tribunal, tribunal, segredo_justica, cliente_processo(clientes(id, nome)))`,
+    )
+    .order("enfileirado_em", { ascending: true, nullsFirst: false })
     .limit(limit);
-  return ((data ?? []) as Record<string, unknown>[]).map(mapConsulta);
+  if (resultado) q = q.eq("resultado", resultado);
+  const { data } = await q;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => {
+    const p = r.processos as unknown as NestedProcesso | null;
+    return {
+      ...mapConsulta(r),
+      numero_cnj: p?.numero_cnj ?? null,
+      numero_registro: p?.numero_registro_tribunal ?? null,
+      tribunal: p?.tribunal ?? null,
+      segredo: Boolean(p?.segredo_justica),
+      cliente: nomesClientes(p?.cliente_processo) || null,
+    };
+  });
 }
 
 /** Linha do feed — usada onde a janela de 7 dias de `vw_movimentacoes_recentes` é curta demais. */

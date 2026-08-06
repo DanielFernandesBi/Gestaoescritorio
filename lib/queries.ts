@@ -24,6 +24,7 @@ export async function getBadges(): Promise<Badges> {
     orfIntimacoes,
     orfAndamentos,
     financeiro,
+    diligencia,
   ] = await Promise.all([
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
@@ -64,6 +65,11 @@ export async function getBadges(): Promise<Badges> {
     // Financeiro: o badge é o que exige cobrança AGORA — parcelas em atraso (status já
     // materializado por fn_marcar_atrasados). "A vencer" não alarma; só o vencido.
     supabase.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "atrasado"),
+    // Diligência assistida: o badge é a fila REAL que a T4 recebe — linhas já
+    // gravadas como `pendente` em consultas_tribunal. Não conta a fila CALCULADA
+    // da vw_diligencia_fila, que é o que ainda pode ser enfileirado e cresce
+    // sozinha a cada movimento opaco. O que cobra uma sessão de T4 é o pendente.
+    supabase.from("consultas_tribunal").select("*", { count: "exact", head: true }).eq("resultado", "pendente"),
   ]);
 
   return {
@@ -81,6 +87,7 @@ export async function getBadges(): Promise<Badges> {
     andamentos: andamentos.count ?? 0,
     triagem: (orfPrazos.count ?? 0) + (orfIntimacoes.count ?? 0) + (orfAndamentos.count ?? 0),
     financeiro: financeiro.count ?? 0,
+    diligencia: diligencia.count ?? 0,
   };
 }
 
