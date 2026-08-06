@@ -65,11 +65,14 @@ export async function getBadges(): Promise<Badges> {
     // Financeiro: o badge é o que exige cobrança AGORA — parcelas em atraso (status já
     // materializado por fn_marcar_atrasados). "A vencer" não alarma; só o vencido.
     supabase.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "atrasado"),
-    // Diligência assistida: o badge é a fila REAL que a T4 recebe — linhas já
-    // gravadas como `pendente` em consultas_tribunal. Não conta a fila CALCULADA
-    // da vw_diligencia_fila, que é o que ainda pode ser enfileirado e cresce
-    // sozinha a cada movimento opaco. O que cobra uma sessão de T4 é o pendente.
-    supabase.from("consultas_tribunal").select("*", { count: "exact", head: true }).eq("resultado", "pendente"),
+    // Diligência assistida: o badge conta a fila CALCULADA (vw_diligencia_fila),
+    // e não as consultas já `pendente`. O motivo não é doutrinário e sim de
+    // visibilidade — `consultas_tribunal` nasceu com RLS ligado e SEM política,
+    // então a sessão do usuário lê zero linhas dela e o badge ficaria eternamente
+    // zerado com 27 processos esperando. A view roda com os direitos do dono e é
+    // legível. Havendo política de leitura para `authenticated`, o badge mais
+    // exato passa a ser a soma das duas (a view já exclui o que tem pendente).
+    supabase.from("vw_diligencia_fila").select("*", { count: "exact", head: true }),
   ]);
 
   return {

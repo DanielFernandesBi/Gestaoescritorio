@@ -76,7 +76,7 @@ function Saude({ s }: { s: SaudeApuracao }) {
         </div>
         <div className="dil-met">
           <b className="tom-blue">{emFila}</b>
-          <span>na fila da diligência</span>
+          <span>na fila da diligência{s.consultasLegiveis ? "" : " · única leitura confiável hoje"}</span>
         </div>
         <div className="dil-met">
           <b className="tom-green">{apurados}</b>
@@ -84,9 +84,13 @@ function Saude({ s }: { s: SaudeApuracao }) {
         </div>
         <div className="dil-met">
           <b className={s.esperaMaxima != null && s.esperaMaxima > 30 ? "tom-red" : ""}>
-            {s.esperaMaxima != null ? s.esperaMaxima : "—"}
+            {s.consultasLegiveis && s.esperaMaxima != null ? s.esperaMaxima : "—"}
           </b>
-          <span>dias — o mais antigo na fila{s.esperaMediana != null ? ` · mediana ${s.esperaMediana}` : ""}</span>
+          <span>
+            {s.consultasLegiveis
+              ? `dias — o mais antigo na fila${s.esperaMediana != null ? ` · mediana ${s.esperaMediana}` : ""}`
+              : "espera na fila — depende de consultas_tribunal, ilegível nesta sessão"}
+          </span>
         </div>
       </div>
 
@@ -221,8 +225,11 @@ export function DiligenciaView({
           </>
         }
         kpis={[
-          { valor: pendentes.length, label: "Na fila da T4 · enfileiradas", tone: pendentes.length ? "amber" : "green" },
-          { valor: saude.esperaMaxima ?? 0, label: "Dias — a espera mais antiga", tone: (saude.esperaMaxima ?? 0) > 30 ? "red" : "neutral" },
+          // Com a tabela ilegível, o número honesto é o da view — e o rótulo diz de onde vem.
+          saude.consultasLegiveis
+            ? { valor: pendentes.length, label: "Na fila da T4 · enfileiradas", tone: pendentes.length ? "amber" : "green" }
+            : { valor: saude.emDiligencia, label: "Movimentos em diligência · pela view", tone: "amber" },
+          { valor: saude.consultasLegiveis ? (saude.esperaMaxima ?? 0) : 0, label: saude.consultasLegiveis ? "Dias — a espera mais antiga" : "Espera — ilegível nesta sessão", tone: (saude.esperaMaxima ?? 0) > 30 ? "red" : "neutral" },
           { valor: fila.length, label: "Aguardando enfileiramento", tone: "neutral" },
           { valor: saude.porStatus.apurado, label: "Apurados na janela", tone: "green" },
         ]}
@@ -249,7 +256,25 @@ export function DiligenciaView({
             quando você a chamar. Agrupe por sistema antes de começar; um login serve para todos os
             processos do mesmo sistema.
           </p>
-          {pendVis.length === 0 ? (
+          {!saude.consultasLegiveis ? (
+            <div className="dil-cego">
+              <b>A fila existe, mas esta sessão não consegue lê-la.</b>
+              <p>
+                Há <b>{saude.emDiligencia}</b> movimento(s) marcado(s) como <i>na fila da diligência</i>{" "}
+                por <span className="mono">vw_feed_andamentos</span>, que enxerga{" "}
+                <span className="mono">consultas_tribunal</span> com os direitos do dono. A leitura
+                direta da tabela devolve zero, e isso não é fila vazia — a tabela nasceu com RLS
+                ligado e <b>sem política de leitura</b> para <span className="mono">authenticated</span>{" "}
+                (migrações 83 e 84). Enquanto a política não existir, esta aba, a trilha da visita no
+                detalhe do andamento e o livro das respondidas ficam mudos.
+              </p>
+              <p className="dil-cego-cta">
+                É correção de banco, com autorização expressa e registro em{" "}
+                <span className="mono">migracoes</span> — não se resolve pelo frontend. A fila{" "}
+                <b>calculada</b> ao lado continua legível e mostra o que ainda pode ser enfileirado.
+              </p>
+            </div>
+          ) : pendVis.length === 0 ? (
             <div className="empty">Nada na fila da T4. Nenhuma sessão a fazer agora.</div>
           ) : (
             <div className="dil-list">{pendVis.map((c) => <LinhaConsulta key={c.id} c={c} />)}</div>

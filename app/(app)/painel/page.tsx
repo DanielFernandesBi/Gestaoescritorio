@@ -1,5 +1,6 @@
 import { getPainelData, getUltimaVarredura, getUserEmail, getConferenciasEscaladas, getBeneficiosProximos, getBriefingAtual, getExecucaoFrescor, getExpectativaPendente, getSentinelaAtos } from "@/lib/queries";
-import { getAudiencias, getPecas, getPrazos } from "@/lib/data";
+import { getAudiencias, getPecas, getPrazos, getSaudeApuracao } from "@/lib/data";
+import { rotuloSistema } from "@/lib/apuracao";
 import { socioDoEmail } from "@/lib/allowlist";
 import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/PageHeader";
@@ -63,6 +64,7 @@ export default async function PainelPage() {
     cobertura,
     expectativa,
     sentinela,
+    saude,
   ] = await Promise.all([
     getPainelData(),
     getUltimaVarredura(),
@@ -76,6 +78,7 @@ export default async function PainelPage() {
     getExecucaoFrescor(),
     getExpectativaPendente(),
     getSentinelaAtos(),
+    getSaudeApuracao(),
   ]);
 
   const nome = socioDoEmail(email);
@@ -712,6 +715,53 @@ export default async function PainelPage() {
             </div>
           </>
         )}
+      </div>
+
+      {/* APURAÇÃO DOS AUTOS — o par da varredura. A captura diz que algo
+          aconteceu; esta seção diz quanto disso já se sabe o que é. */}
+      <div className="scan">
+        <div className="scan-h">
+          <h3><Icon name="search" /> Apuração dos autos <span className="ia-seal">T4</span></h3>
+          <Link className="link" href="/diligencia">ver a fila →</Link>
+        </div>
+        <div className="scan-sub">
+          Janela de {saude.janelaDias} dias · o push avisa que <b>algo</b> aconteceu; a diligência
+          assistida vai aos autos descobrir <b>o quê</b>.
+        </div>
+        <div className="scan-metrics">
+          <Link className="metric metric-link" href="/andamentos">
+            <b>{fmtNum(saude.porStatus.a_conferir)}</b><span>ainda opacos</span>
+          </Link>
+          <Link className="metric metric-link" href="/diligencia">
+            <b>{fmtNum(saude.consultasLegiveis ? saude.pendentes : saude.emDiligencia)}</b>
+            <span>{saude.consultasLegiveis ? "na fila da T4" : "movimentos em diligência"}</span>
+          </Link>
+          <Link className="metric metric-link" href="/diligencia">
+            <b>{fmtNum(saude.porStatus.apurado)}</b>
+            <span>apurados · {saude.apuradosT4} nos autos, {saude.apuradosMapa} pelo mapa</span>
+          </Link>
+          <Link className="metric metric-link" href="/diligencia">
+            <b>{saude.esperaMaxima != null ? fmtNum(saude.esperaMaxima) : "—"}</b>
+            <span>dias — a espera mais antiga</span>
+          </Link>
+        </div>
+        <div className="cov-foot">
+          {!saude.consultasLegiveis ? (
+            <>
+              A fila da T4 existe mas não é legível por esta sessão — <span className="mono">consultas_tribunal</span>{" "}
+              está com RLS ligado e sem política de leitura. Os números acima que dependem dela ficam
+              indisponíveis; o resto vem das views e é fiel. Detalhe em <Link className="proc-link" href="/diligencia">Diligência</Link>.
+            </>
+          ) : saude.pendentes > 0 ? (
+            <>
+              Há {saude.pendentes === 1 ? "1 processo" : `${saude.pendentes} processos`} esperando a
+              próxima sessão da T4{saude.pendentesPorSistema.length ? ` (${saude.pendentesPorSistema.slice(0, 3).map((x) => `${rotuloSistema(x.chave)} ${x.n}`).join(" · ")})` : ""}.
+              Ela é manual e nunca agendada — o 2FA exige você presente.
+            </>
+          ) : (
+            <>Nada na fila da T4. A fila calculada acumula {saude.filaTotal} visita(s) para o próximo enfileiramento.</>
+          )}
+        </div>
       </div>
     </div>
   );

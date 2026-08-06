@@ -3411,6 +3411,18 @@ export type SaudeApuracao = {
   /** Consultas já gravadas como `pendente` — a fila que a T4 recebe. */
   pendentes: number;
   pendentesPorSistema: ContagemChave[];
+  /**
+   * `consultas_tribunal` nasceu com RLS ligado e SEM política (migrações 83/84),
+   * de modo que a sessão do usuário lê zero linhas — não é fila vazia, é fila
+   * invisível. A view `vw_feed_andamentos` não sofre disso, porque roda com os
+   * direitos do dono, e por isso `status_apuracao='em_diligencia'` continua
+   * fiel. A contradição entre os dois é a própria prova, e é o que se detecta
+   * aqui: havendo andamento em diligência e nenhuma consulta legível, a tela
+   * avisa em vez de anunciar silêncio.
+   */
+  consultasLegiveis: boolean;
+  /** Andamentos cujo processo tem consulta pendente — número confiável, vem da view. */
+  emDiligencia: number;
   /** Espera do item pendente mais antigo, em dias. */
   esperaMaxima: number | null;
   esperaMediana: number | null;
@@ -3499,6 +3511,8 @@ export async function getSaudeApuracao(janelaDias = 45): Promise<SaudeApuracao> 
     filaPorTipo,
     pendentes: pend.length,
     pendentesPorSistema: contar(pend.map((r) => r.sistema as string | null)),
+    consultasLegiveis: consRows.length > 0 || porStatus.em_diligencia === 0,
+    emDiligencia: porStatus.em_diligencia,
     esperaMaxima: esperas.length ? esperas[esperas.length - 1] : null,
     esperaMediana: esperas.length ? esperas[Math.floor(esperas.length / 2)] : null,
     curva,
