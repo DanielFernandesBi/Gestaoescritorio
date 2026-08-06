@@ -77,19 +77,30 @@ export function Gate({ validado }: { validado: boolean }) {
 }
 
 /**
- * Sugestão 56 — "Do que se trata": linha determinística montada do banco
- * (classe · assunto · área · fase · instância · tribunal · vara), para o usuário
- * bater o olho e entender o caso. Não exibe nada quando não há contexto.
+ * Sugestão 56 — linha determinística montada do banco (classe · assunto · área ·
+ * fase · instância · tribunal · vara), para o usuário bater o olho no caso. Não
+ * exibe nada quando não há contexto.
+ *
+ * O rótulo é parametrizável porque esta linha responde "de quem é" e "onde corre",
+ * e não "o que aconteceu". Onde existe a apuração da T4 (andamentos), quem responde
+ * "do que se trata" é ela, e aqui o rótulo passa a ser `onde corre` — o metadado
+ * segue útil, como subtítulo, jamais como resposta.
  */
-export function ContextoCaso({ ctx }: { ctx?: CasoContexto | null }) {
+export function ContextoCaso({
+  ctx,
+  rotulo = "do que se trata",
+}: {
+  ctx?: CasoContexto | null;
+  rotulo?: string | null;
+}) {
   if (!ctx) return null;
   const partes = [ctx.classe, ctx.assunto, ctx.area, ctx.fase, ctx.instancia, ctx.tribunal, ctx.vara_comarca]
     .map((s) => s?.trim())
     .filter(Boolean) as string[];
   if (!partes.length) return null;
   return (
-    <div className="ctx-caso sub" title="Do que se trata (montado do banco)">
-      <span className="ctx-k">do que se trata</span> {partes.join(" · ")}
+    <div className="ctx-caso sub" title={rotulo ? `${rotulo} (montado do banco)` : "Contexto do caso (montado do banco)"}>
+      {rotulo && <span className="ctx-k">{rotulo}</span>} {partes.join(" · ")}
     </div>
   );
 }

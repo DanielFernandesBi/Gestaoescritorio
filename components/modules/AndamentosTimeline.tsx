@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SegredoTag, ContextoCaso, PartesCliente } from "@/components/ui";
+import { ApuracaoBloco, EstadoApuracao } from "@/components/Apuracao";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarPrazoDeAndamento } from "@/components/modules/CriarPrazoDeAndamento";
 import { PromoverIntimacao } from "@/components/modules/PromoverIntimacao";
@@ -37,6 +38,25 @@ function headline(desc: string): string {
 }
 
 /**
+ * O título do card. Havendo apuração, ela é a manchete — é ela que responde "o
+ * que aconteceu", que é a razão de existir da tela. Sem apuração, mantém-se a
+ * primeira oração do texto bruto, como sempre foi.
+ */
+function manchete(m: Movimentacao): string {
+  const t = m.apuracao?.texto?.trim();
+  if (t) return headline(t);
+  return headline(m.descricao);
+}
+
+/**
+ * Ato de rotina JÁ APURADO e com `exige_providencia=false` para de gritar. Não é
+ * inferência da tela — é leitura de dois campos do banco. Enquanto a apuração não
+ * existir, ou enquanto o campo for nulo (que é "não sei"), o alarme permanece.
+ */
+const rotinaResolvida = (m: Movimentacao) =>
+  Boolean(m.apuracao?.texto) && m.apuracao?.exige_providencia === false;
+
+/**
  * Conferência ABERTA (pendente/em_andamento) × já resolvida.
  *
  * `escalado` só diz que existe tarefa não-cancelada, e por isso marcava igual a
@@ -50,6 +70,10 @@ export const conferenciaAberta = (m: Movimentacao) =>
 // Conferência já concluída volta a ser informativa — não deve competir por atenção.
 function urgencia(m: Movimentacao): "urg" | "alta" | "ok" | "info" {
   if (!conferenciaAberta(m)) return "info";
+  // Apurado como rotina sem providência: a pergunta foi respondida nos autos e a
+  // resposta foi "nada a fazer". Continua visível e a conferência segue aberta,
+  // mas em tom baixo — antes TODO opaco virava "A conferir · URGENTE".
+  if (rotinaResolvida(m)) return "ok";
   if (m.prioridade === "urgente") return "urg";
   return resultado(m.descricao)?.cls === "fav" ? "ok" : "alta";
 }
@@ -77,15 +101,22 @@ export function AndamentosTimeline({
     <div className="and-list">
       {movimentacoes.map((m) => {
         const u = urgencia(m);
-        const head = headline(m.descricao);
-        const res = resultado(m.descricao);
-        const temDesc = m.descricao.length > head.length + 16;
+        const ap = m.apuracao ?? null;
+        const head = manchete(m);
+        // O realce favorável/adverso é leitura do texto do tribunal; quando há
+        // apuração, ela é a manchete e o realce sairia de outro texto — some.
+        const res = ap?.texto ? null : resultado(m.descricao);
+        // O texto bruto só aparece solto enquanto NÃO há apuração; havendo, ele
+        // vive dentro do bloco, em "ver original", e nunca é sobrescrito.
+        const temDesc = !ap?.texto && m.descricao.length > head.length + 16;
+        const tipoChip = ap?.tipo_efetivo ?? m.tipo;
         return (
           <article className={`and-card u-${u}`} key={m.id}>
             <span className="and-bar" />
             <div className="and-body">
               <div className="and-top">
-                <span className={`and-tipo t-${tipoTone(m.tipo)}`}>{humano(m.tipo)}</span>
+                <span className={`and-tipo t-${tipoTone(tipoChip)}`}>{humano(tipoChip)}</span>
+                <EstadoApuracao status={ap?.status} />
                 {m.tribunal && <span className="and-trib">{m.tribunal}</span>}
                 <span className="and-date mono">{fmtDate(m.data)}</span>
               </div>
@@ -99,17 +130,31 @@ export function AndamentosTimeline({
                 {m.segredo ? <SegredoTag on /> : m.partes?.length ? <PartesCliente partes={m.partes} /> : <span className="dl-cli">{m.clientes ?? "—"}</span>}
                 {m.numero_cnj && <> · <span className="cnj">{m.numero_cnj}</span></>}
               </div>
-              <ContextoCaso ctx={m.contexto} />
+              {/* Metadado como SUBTÍTULO — responde de quem é e onde corre, não o que aconteceu. */}
+              <ContextoCaso ctx={m.contexto} rotulo="onde corre" />
+              <ApuracaoBloco a={ap} bruto={{ tipo: m.tipo, descricao: m.descricao }} segredo={m.segredo} compacto />
               {temDesc && <div className="and-desc">{m.descricao}</div>}
 
               {m.escalado && (conferenciaAberta(m) ? (
-                <div className="and-banner">
-                  <span className="and-banner-ico">⚠</span>
-                  <div>
-                    <b>A conferir · {(m.prioridade ?? "alta").toUpperCase()}</b> — {motivo(m.prioridade)}
-                    {m.escalado_status === "em_andamento" && <> · <b>em andamento</b></>}
+                rotinaResolvida(m) ? (
+                  /* A conferência segue aberta (só humano a fecha), mas a apuração
+                     já respondeu que é rotina sem providência — não deve gritar. */
+                  <div className="and-banner feito">
+                    <span className="and-banner-ico">✓</span>
+                    <div>
+                      <b>Conferência aberta, sem urgência</b> — a apuração nos autos diz que é ato de
+                      rotina e não exige providência. Escalou como {(m.prioridade ?? "alta").toUpperCase()} antes de se saber disso.
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="and-banner">
+                    <span className="and-banner-ico">⚠</span>
+                    <div>
+                      <b>A conferir · {(m.prioridade ?? "alta").toUpperCase()}</b> — {motivo(m.prioridade)}
+                      {m.escalado_status === "em_andamento" && <> · <b>em andamento</b></>}
+                    </div>
+                  </div>
+                )
               ) : (
                 /* Já conferido: o cartão precisa dizer que a pendência FECHOU, em tom
                    calmo, senão volta a competir por atenção com o que ainda cobra ação. */
@@ -124,7 +169,7 @@ export function AndamentosTimeline({
                 <div className="and-acoes">
                   {m.escalado && (
                     <Link
-                      className={`btn sm${conferenciaAberta(m) ? " primary" : ""}`}
+                      className={`btn sm${conferenciaAberta(m) && !rotinaResolvida(m) ? " primary" : ""}`}
                       href={m.tarefa_id ? linkPara("tarefa", m.tarefa_id) : "/tarefas"}
                     >
                       {conferenciaAberta(m) ? "Conferir" : "Ver conferência"}

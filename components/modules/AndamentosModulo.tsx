@@ -46,9 +46,18 @@ export function AndamentosModulo({
   const nEscalados = movimentacoes.filter((m) => m.escalado).length;
   const nDecisoes = movimentacoes.filter((m) => ehDecisao(m.tipo)).length;
 
+  // Eixo da apuração (migr. 91-96) — é este o que responde "o que aconteceu".
+  const st = (m: Movimentacao) => m.apuracao?.status;
+  const nOpacos = movimentacoes.filter((m) => st(m) === "a_conferir").length;
+  const nFila = movimentacoes.filter((m) => st(m) === "em_diligencia").length;
+  const nApurados = movimentacoes.filter((m) => Boolean(m.apuracao?.texto)).length;
+
   const abas = [
     { id: "recentes", label: `Recentes · 7d (${movimentacoes.length})` },
-    { id: "conferir", label: `A conferir (${nAConferir})` },
+    { id: "opacos", label: `Sem saber do que se trata (${nOpacos})` },
+    { id: "diligencia", label: `Na fila da diligência (${nFila})` },
+    { id: "apurados", label: `Apurados (${nApurados})` },
+    { id: "conferir", label: `Conferência aberta (${nAConferir})` },
     { id: "escalados", label: `Escalados (${nEscalados})` },
     { id: "decisoes", label: `Decisões (${nDecisoes})` },
     { id: "orfaos", label: `Órfãos (${orfaos.length})` },
@@ -58,10 +67,13 @@ export function AndamentosModulo({
     () =>
       movimentacoes.filter((m) => {
         const okAba =
-          aba === "conferir" ? conferenciaAberta(m)
-            : aba === "escalados" ? m.escalado
-              : aba === "decisoes" ? ehDecisao(m.tipo)
-                : true;
+          aba === "opacos" ? m.apuracao?.status === "a_conferir"
+            : aba === "diligencia" ? m.apuracao?.status === "em_diligencia"
+              : aba === "apurados" ? Boolean(m.apuracao?.texto)
+                : aba === "conferir" ? conferenciaAberta(m)
+                  : aba === "escalados" ? m.escalado
+                    : aba === "decisoes" ? ehDecisao(m.tipo)
+                      : true;
         const okOrig = orig === "todas" ? true : (m.origem ?? "") === orig;
         return okAba && okOrig;
       }),
@@ -77,18 +89,23 @@ export function AndamentosModulo({
         descricao={
           <>
             Toda movimentação útil — decisões, despachos, juntadas, pautas — capturada e deduplicada.
-            São informativos; o que tem consequência é escalado para conferência.
+            A captura diz que <b>algo</b> aconteceu; quem diz <b>o quê</b> é a apuração da diligência
+            assistida, que entra como camada por cima, com o texto do tribunal sempre preservado.
           </>
         }
         acoes={acoes}
         kpis={[
           { valor: movimentacoes.length, label: "Recentes · últimos 7 dias", tone: "neutral" },
-          // O KPI passa a medir o ACIONÁVEL (mesma régua do badge do menu). Antes
-          // mostrava o total escalado no período, concluídos inclusive, e por isso
-          // divergia do menu — 19 aqui contra 1 lá, sem nada explicando a diferença.
-          { valor: nAConferir, label: "A conferir · conferência aberta", tone: "amber" },
+          // Os dois KPIs do meio são o eixo novo: quanto ainda não se sabe e
+          // quanto já foi respondido. É a migração de um para o outro que mede
+          // se a diligência assistida está valendo a pena.
+          { valor: nOpacos, label: "Sem saber do que se trata", tone: "amber" },
+          { valor: nApurados, label: "Apurados · com resposta", tone: "green" },
+          // O KPI da conferência mede o ACIONÁVEL (mesma régua do badge do menu).
+          // Antes mostrava o total escalado no período, concluídos inclusive, e por
+          // isso divergia do menu — 19 aqui contra 1 lá, sem nada explicando.
+          { valor: nAConferir, label: "Conferência aberta", tone: "accent" },
           { valor: orfaos.length, label: "Órfãos · sem processo", tone: "red" },
-          { valor: nDecisoes, label: "Decisões · mérito/despacho", tone: "accent" },
         ]}
       />
 

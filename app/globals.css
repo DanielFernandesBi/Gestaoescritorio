@@ -1003,6 +1003,57 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .chat-input span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-send{flex:none;width:24px;height:24px;border-radius:7px;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center;font-weight:700}
 
+/* ===== Apuração da T4 (migr. 91-96) — a resposta "do que se trata" =========
+ * A apuração é ADIÇÃO, nunca substituição: entra como camada por cima do card,
+ * com a origem sempre visível, e o texto bruto do tribunal segue acessível em
+ * "ver original". Duas origens que jamais podem parecer iguais — `autos` (alguém
+ * viu) tem selo forte; `mapa` (padrão reconhecido, ninguém abriu o processo) tem
+ * selo discreto, porque é inferência e não verificação. */
+.apur{margin-top:11px;padding:12px 14px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line-soft);border-left:3px solid var(--green)}
+.apur.de-mapa{border-left-color:var(--muted-2);border-left-style:dashed}
+.apur-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:6px}
+.apur-k{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--green);font-weight:800}
+.apur.de-mapa .apur-k{color:var(--muted)}
+.apur-txt{font-size:13.5px;line-height:1.5;color:var(--text)}
+.apur-txt b{color:var(--name)}
+/* Selo de origem — o que distingue "verificado" de "inferido". */
+.apur-selo{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;cursor:help}
+.apur-selo.autos{background:var(--green-soft);color:var(--green)}
+.apur-selo.autos::before{content:"✓";font-weight:900}
+.apur-selo.mapa{background:var(--surface);color:var(--muted);border:1px dashed var(--line);font-weight:600}
+.apur-selo.mapa::before{content:"≈";font-weight:800}
+/* Campos do banco (jamais inferência da UI). */
+.apur-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px}
+.apur-tag{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:6px;background:var(--line-soft);color:var(--muted)}
+.apur-tag.prov{background:var(--amber-soft);color:var(--amber)}
+.apur-tag.prov-nao{background:var(--green-soft);color:var(--green)}
+.apur-tag.prazo{background:var(--red-soft);color:var(--red);font-family:var(--mono);font-weight:600}
+.apur-tag.sigilo{background:var(--brass-soft);color:var(--brass)}
+/* Texto bruto do tribunal — nunca escondido, nunca sobrescrito. */
+.apur-orig{margin-top:9px}
+.apur-orig>summary{cursor:pointer;list-style:none;font-size:11px;font-weight:700;color:var(--muted);display:inline-flex;align-items:center;gap:5px}
+.apur-orig>summary::-webkit-details-marker{display:none}
+.apur-orig>summary::before{content:"▸";color:var(--muted-2)}
+.apur-orig[open]>summary::before{content:"▾"}
+.apur-orig>summary:hover{color:var(--text)}
+.apur-orig-b{margin-top:7px;padding:9px 11px;background:var(--surface);border:1px solid var(--line-soft);border-radius:8px;font-size:12px;line-height:1.5;color:var(--muted);white-space:pre-wrap}
+.apur-orig-k{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin-bottom:5px}
+
+/* Estado da apuração — chip no topo do card. `fila` é neutro de propósito:
+ * item em diligência já está sendo cuidado e não é pendência de Daniel. */
+.apur-st{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;cursor:help}
+.apur-st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.apur-st.ok{background:var(--green-soft);color:var(--green)}
+.apur-st.fila{background:var(--blue-soft);color:var(--blue)}
+.apur-st.aberto{background:var(--amber-soft);color:var(--amber)}
+.apur-st.neutro{background:var(--line-soft);color:var(--muted)}
+/* Pergunta em aberto — o card que ainda não sabe do que se trata assume isso. */
+.apur-vazio{margin-top:11px;padding:10px 13px;border-radius:11px;background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 26%,transparent);font-size:12px;color:var(--text);line-height:1.45}
+.apur-vazio b{color:var(--amber)}
+.apur-vazio.fila{background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 26%,transparent)}
+.apur-vazio.fila b{color:var(--blue)}
+.apur-rubrica{font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 9px}
+
 /* ---------- Triagem (/triagem) — seções de órfãos ---------- */
 .tri-sec{margin-bottom:22px}
 .tri-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 2px 11px;display:flex;align-items:center;gap:8px}
