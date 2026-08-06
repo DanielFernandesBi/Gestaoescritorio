@@ -293,8 +293,9 @@ export function DiligenciaView({
           {filaVis.length === 0 ? (
             <div className="empty">Nada aguardando enfileiramento.</div>
           ) : (
-            {/* A view não tem chave própria: a entrada `expectativa` pode repetir
-                processo com tipos de gatilho distintos, e ambas vêm sem intimacao_id. */}
+            // A view não tem chave própria: a entrada `expectativa` pode repetir o
+            // mesmo processo com tipos de gatilho distintos, ambas sem intimacao_id,
+            // e por isso o índice entra como desempate.
             <div className="dil-list">{filaVis.map((d, i) => <LinhaFila key={`${d.fila}-${d.processo_id}-${d.intimacao_id ?? i}`} d={d} />)}</div>
           )}
         </>
