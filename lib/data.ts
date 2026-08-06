@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { diasAte, humano } from "@/lib/format";
+import { diasAte, humano, hojeSP } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { MapaProvidencia } from "@/lib/pecas";
+import type { StatusApuracao } from "@/lib/apuracao";
 
 /* Helpers ---------------------------------------------------------------- */
 
@@ -2918,7 +2919,73 @@ export type Movimentacao = {
    * única pendente ficava indistinguível das já concluídas no mesmo filtro.
    */
   escalado_status?: string | null;
+  /** Camada da T4 (migrações 91 a 96) — null quando a view não cobre a linha. */
+  apuracao?: ApuracaoAndamento | null;
 };
+
+/* Apuração da T4 — camada sobre o andamento -------------------------------
+ *
+ * Vem de `vw_feed_andamentos`, que é a view canônica do feed. Ela NÃO substitui
+ * `vw_movimentacoes_recentes`: não tem janela, faz join INTERNO com processos
+ * ativos e por isso não enxerga órfãos nem processo arquivado. Logo a apuração
+ * ENRIQUECE a linha existente (fica `null` quando a view não a cobre) — que é
+ * também o que a doutrina manda, já que apuração é adição e nunca substituição.
+ */
+export type ApuracaoAndamento = {
+  /** O que o ato É, em uma ou duas frases. Null enquanto ninguém apurou. */
+  texto: string | null;
+  /** A apuração quando existe; senão o texto bruto do push. Nunca vazio. */
+  do_que_se_trata: string;
+  /** COALESCE(tipo_apurado, tipo) — o chip do card. */
+  tipo_efetivo: string;
+  tipo_apurado: string | null;
+  /** Campo do banco, jamais inferência da UI. */
+  exige_providencia: boolean | null;
+  prazo_identificado: string | null;
+  apurado_em: string | null;
+  /** `t4`/`chat`/`t2`/`humano` = alguém viu; `mapa` = padrão reconhecido. */
+  apurado_por: string | null;
+  /** FK para `consultas_tribunal` — a trilha da visita. */
+  consulta_id: string | null;
+  status: StatusApuracao;
+  /** Sistema de tramitação (`f_sistema_processo`), para agrupar a fila. */
+  sistema: string | null;
+};
+
+function mapApuracao(r: Record<string, unknown>): ApuracaoAndamento {
+  return {
+    texto: (r.apuracao as string | null) ?? null,
+    do_que_se_trata: (r.do_que_se_trata as string | null) ?? "",
+    tipo_efetivo: (r.tipo_efetivo as string | null) ?? (r.tipo_bruto as string | null) ?? "outro",
+    tipo_apurado: (r.tipo_apurado as string | null) ?? null,
+    exige_providencia: (r.exige_providencia as boolean | null) ?? null,
+    prazo_identificado: (r.prazo_identificado as string | null) ?? null,
+    apurado_em: (r.apurado_em as string | null) ?? null,
+    apurado_por: (r.apurado_por as string | null) ?? null,
+    consulta_id: (r.apuracao_consulta_id as string | null) ?? null,
+    status: ((r.status_apuracao as string) ?? "claro") as StatusApuracao,
+    sistema: (r.sistema as string | null) ?? null,
+  };
+}
+
+/** Apuração de um lote de andamentos, indexada por id (o que a view não cobre fica de fora). */
+async function apuracoesPorAndamento(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[],
+): Promise<Map<string, ApuracaoAndamento>> {
+  const mapa = new Map<string, ApuracaoAndamento>();
+  if (!ids.length) return mapa;
+  const { data } = await supabase
+    .from("vw_feed_andamentos")
+    .select(
+      "andamento_id, tipo_bruto, tipo_apurado, tipo_efetivo, apuracao, exige_providencia, prazo_identificado, apurado_em, apurado_por, apuracao_consulta_id, status_apuracao, do_que_se_trata, sistema",
+    )
+    .in("andamento_id", ids);
+  for (const r of (data ?? []) as Record<string, unknown>[]) {
+    mapa.set(r.andamento_id as string, mapApuracao(r));
+  }
+  return mapa;
+}
 
 export async function getAndamentos(): Promise<Movimentacao[]> {
   const supabase = await createClient();
@@ -2962,6 +3029,7 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
   // Escalonamento (Sug. 30): tarefa de conferência vinculada por andamento_id.
   const escalPorAnd = new Map<string, { tarefa_id: string; prioridade: string | null; status: string | null }>();
   const andIds = rows.map((r) => r.id as string);
+  const apurPorAnd = await apuracoesPorAndamento(supabase, andIds);
   if (andIds.length) {
     const { data: tarefas } = await supabase
       .from("tarefas")
@@ -3004,6 +3072,7 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
       prioridade: esc?.prioridade ?? null,
       tarefa_id: esc?.tarefa_id ?? null,
       escalado_status: esc?.status ?? null,
+      apuracao: apurPorAnd.get(r.id as string) ?? null,
     };
   });
 }
@@ -3039,13 +3108,19 @@ export type AndamentoFull = {
   clienteRefs: ParteRefLite[];
   tarefa: AndamentoTarefaVinc | null;
   pecas: AndamentoPecaVinc[];
+  /** Camada da T4 — null quando `vw_feed_andamentos` não cobre a linha. */
+  apuracao: ApuracaoAndamento | null;
+  /** Rubrica do ato separada da narrativa (prompt `fase14` da T1); nula no histórico. */
+  movimento_nome: string | null;
+  /** Trilha da visita que produziu a apuração, quando houver. */
+  consulta: ConsultaTribunal | null;
 };
 
 export async function getAndamentoFull(id: string): Promise<AndamentoFull | null> {
   const supabase = await createClient();
   const { data: r } = await supabase
     .from("andamentos")
-    .select("id, data, tipo, descricao, autor, origem, codigo_movimentacao, cadastrado_por, cadastro_automatico, criado_em, processo_id, processos(numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, area, classe, instancia, segredo_justica, cliente_processo(papel, clientes(id, nome)))")
+    .select("id, data, tipo, descricao, autor, origem, codigo_movimentacao, movimento_nome, cadastrado_por, cadastro_automatico, criado_em, processo_id, processos(numero_cnj, numero_registro_tribunal, tribunal, vara_comarca, area, classe, instancia, segredo_justica, cliente_processo(papel, clientes(id, nome)))")
     .eq("id", id)
     .maybeSingle();
   if (!r) return null;
@@ -3059,10 +3134,14 @@ export async function getAndamentoFull(id: string): Promise<AndamentoFull | null
     if (c?.id && c.nome && !vistos.has(c.id)) { vistos.add(c.id); clienteRefs.push({ id: c.id, nome: c.nome, papel: v.papel ?? null }); }
   }
 
-  const [tar, pcs] = await Promise.all([
+  const [tar, pcs, apurMap] = await Promise.all([
     supabase.from("tarefas").select("id, titulo, status, prioridade, responsavel").eq("andamento_id", id).neq("status", "cancelada").order("criado_em", { ascending: false }),
     supabase.from("pecas").select("id, titulo, status").eq("origem_andamento_id", id),
+    apuracoesPorAndamento(supabase, [id]),
   ]);
+  const apuracao = apurMap.get(id) ?? null;
+  // A trilha da visita só é buscada quando existe apuração com consulta vinculada.
+  const consulta = apuracao?.consulta_id ? await getConsultaTribunal(apuracao.consulta_id) : null;
 
   const tRows = (tar.data ?? []) as Record<string, unknown>[];
   const tRow = tRows.find((t) => t.status === "pendente") ?? tRows[0];
@@ -3096,6 +3175,310 @@ export async function getAndamentoFull(id: string): Promise<AndamentoFull | null
     clienteRefs,
     tarefa,
     pecas,
+    apuracao,
+    movimento_nome: (r.movimento_nome as string | null) ?? null,
+    consulta,
+  };
+}
+
+/* Diligência assistida — fila, livro e saúde ------------------------------
+ *
+ * `consultas_tribunal` é a fila E o livro. A linha nasce `pendente` com
+ * `enfileirado_em` marcando a entrada, e a T4 a fecha gravando `consultado_em`.
+ * A diferença entre as duas datas é a métrica de espera — é ela que dirá se a
+ * diligência está funcionando.
+ *
+ * O frontend aqui SÓ LÊ. Entrar nos autos é ato da T4, manual, com Daniel
+ * presente e o token na máquina; nenhuma tela dispara consulta a tribunal.
+ */
+
+export type ConsultaTribunal = {
+  id: string;
+  processo_id: string | null;
+  fila: string | null;
+  sistema: string | null;
+  fonte: string | null;
+  resultado: string | null;
+  pergunta: string | null;
+  observacao: string | null;
+  enfileirado_em: string | null;
+  consultado_em: string | null;
+  aguardando_desde: string | null;
+  intimacao_id: string | null;
+  peca_id: string | null;
+  cadastrado_por: string | null;
+  /** Dias entre o enfileiramento e a resposta — ou até hoje, se ainda pendente. */
+  dias_espera: number | null;
+};
+
+function mapConsulta(r: Record<string, unknown>): ConsultaTribunal {
+  const entrada = (r.enfileirado_em as string | null) ?? null;
+  const saida = (r.consultado_em as string | null) ?? null;
+  let dias: number | null = null;
+  if (entrada) {
+    const fim = saida ? new Date(saida) : new Date(`${hojeSP()}T00:00:00Z`);
+    dias = Math.max(0, Math.round((fim.getTime() - new Date(entrada).getTime()) / 86_400_000));
+  }
+  return {
+    id: r.id as string,
+    processo_id: (r.processo_id as string | null) ?? null,
+    fila: (r.fila as string | null) ?? null,
+    sistema: (r.sistema as string | null) ?? null,
+    fonte: (r.fonte as string | null) ?? null,
+    resultado: (r.resultado as string | null) ?? null,
+    pergunta: (r.pergunta as string | null) ?? null,
+    observacao: (r.observacao as string | null) ?? null,
+    enfileirado_em: entrada,
+    consultado_em: saida,
+    aguardando_desde: (r.aguardando_desde as string | null) ?? null,
+    intimacao_id: (r.intimacao_id as string | null) ?? null,
+    peca_id: (r.peca_id as string | null) ?? null,
+    cadastrado_por: (r.cadastrado_por as string | null) ?? null,
+    dias_espera: dias,
+  };
+}
+
+const CONSULTA_COLS =
+  "id, processo_id, fila, sistema, fonte, resultado, pergunta, observacao, enfileirado_em, consultado_em, aguardando_desde, intimacao_id, peca_id, cadastrado_por";
+
+export async function getConsultaTribunal(id: string): Promise<ConsultaTribunal | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("consultas_tribunal").select(CONSULTA_COLS).eq("id", id).maybeSingle();
+  return data ? mapConsulta(data as Record<string, unknown>) : null;
+}
+
+/** Linha da `vw_diligencia_fila` — o que a T4 vai perguntar na próxima sessão. */
+export type DiligenciaItem = {
+  fila: string;
+  processo_id: string;
+  intimacao_id: string | null;
+  peca_id: string | null;
+  sistema: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  tribunal: string | null;
+  segredo: boolean;
+  /** Movimentos agrupados nesta visita (a fila de opacos agrupa por PROCESSO). */
+  qtd: number;
+  data_base: string | null;
+  dias_espera: number | null;
+  cliente: string | null;
+  pergunta: string | null;
+  prioridade: string | null;
+};
+
+function mapDiligencia(r: Record<string, unknown>): DiligenciaItem {
+  return {
+    fila: (r.fila as string) ?? "andamento_opaco",
+    processo_id: r.processo_id as string,
+    intimacao_id: (r.intimacao_id as string | null) ?? null,
+    peca_id: (r.peca_id as string | null) ?? null,
+    sistema: (r.sistema as string | null) ?? null,
+    numero_cnj: (r.numero_cnj as string | null) ?? null,
+    numero_registro: (r.numero_registro_tribunal as string | null) ?? null,
+    tribunal: (r.tribunal as string | null) ?? null,
+    segredo: Boolean(r.segredo_justica),
+    qtd: Number(r.qtd ?? 1),
+    data_base: (r.data_base as string | null) ?? null,
+    dias_espera: r.dias_espera == null ? null : Number(r.dias_espera),
+    cliente: (r.cliente as string | null) ?? null,
+    pergunta: (r.pergunta as string | null) ?? null,
+    prioridade: (r.prioridade as string | null) ?? null,
+  };
+}
+
+export async function getDiligenciaFila(): Promise<DiligenciaItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("vw_diligencia_fila").select("*");
+  return ((data ?? []) as Record<string, unknown>[]).map(mapDiligencia);
+}
+
+/** Consultas já enfileiradas (a fila REAL, que a T4 recebe) e as já respondidas. */
+export async function getConsultas(limit = 200): Promise<ConsultaTribunal[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("consultas_tribunal")
+    .select(CONSULTA_COLS)
+    .order("enfileirado_em", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  return ((data ?? []) as Record<string, unknown>[]).map(mapConsulta);
+}
+
+/** Linha do feed — usada onde a janela de 7 dias de `vw_movimentacoes_recentes` é curta demais. */
+export type FeedAndamento = {
+  id: string;
+  processo_id: string | null;
+  numero_cnj: string | null;
+  numero_registro: string | null;
+  tribunal: string | null;
+  area: string | null;
+  instancia: string | null;
+  segredo: boolean;
+  data: string;
+  origem: string | null;
+  tipo_bruto: string;
+  descricao_bruta: string;
+  cliente: string | null;
+  dias: number | null;
+  apuracao: ApuracaoAndamento;
+};
+
+/**
+ * Feed da apuração numa janela larga (45 dias por padrão, a mesma da fila de
+ * opacos). Só processos ATIVOS, porque a view faz join interno — órfãos e
+ * arquivados continuam a ser vistos pela /triagem e pelo acervo.
+ */
+export async function getFeedAndamentos(janelaDias = 45, status?: StatusApuracao): Promise<FeedAndamento[]> {
+  const supabase = await createClient();
+  const corte = new Date(`${hojeSP()}T00:00:00Z`);
+  corte.setUTCDate(corte.getUTCDate() - janelaDias);
+
+  let q = supabase
+    .from("vw_feed_andamentos")
+    .select("*")
+    .gte("data", corte.toISOString().slice(0, 10))
+    .order("data", { ascending: false });
+  if (status) q = q.eq("status_apuracao", status);
+
+  const { data } = await q;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: r.andamento_id as string,
+    processo_id: (r.processo_id as string | null) ?? null,
+    numero_cnj: (r.numero_cnj as string | null) ?? null,
+    numero_registro: (r.numero_registro_tribunal as string | null) ?? null,
+    tribunal: (r.tribunal as string | null) ?? null,
+    area: (r.area as string | null) ?? null,
+    instancia: (r.instancia as string | null) ?? null,
+    segredo: Boolean(r.segredo_justica),
+    data: r.data as string,
+    origem: (r.origem as string | null) ?? null,
+    tipo_bruto: (r.tipo_bruto as string | null) ?? "outro",
+    descricao_bruta: (r.descricao_bruta as string | null) ?? "",
+    cliente: (r.cliente as string | null) ?? null,
+    dias: r.dias == null ? null : Number(r.dias),
+    apuracao: mapApuracao(r),
+  }));
+}
+
+export type ContagemChave = { chave: string; n: number };
+
+/**
+ * Painel de saúde da apuração — quantos chegaram, quantos o mapa resolveu,
+ * quantos foram à diligência e há quanto tempo o mais antigo espera.
+ *
+ * O número absoluto de `apurado` nasce em zero e assim fica por algumas semanas.
+ * Não é defeito da tela: o mapa só aprende sobre o que chegar depois do prompt
+ * `fase14` da T1 (com `movimento_nome` preenchido), e o histórico anterior não
+ * se beneficia. O que vale acompanhar é a CURVA e a proporção `t4` × `mapa`.
+ */
+export type SaudeApuracao = {
+  janelaDias: number;
+  /** Contagens por `status_apuracao` na janela. */
+  porStatus: Record<StatusApuracao, number>;
+  total: number;
+  /** Entre os apurados da janela, quem apurou. */
+  porOrigem: ContagemChave[];
+  apuradosT4: number;
+  apuradosMapa: number;
+  /** Fila calculada (`vw_diligencia_fila`) — o que ainda não foi enfileirado. */
+  filaTotal: number;
+  filaVisitas: number;
+  filaPorSistema: ContagemChave[];
+  filaPorTipo: ContagemChave[];
+  /** Consultas já gravadas como `pendente` — a fila que a T4 recebe. */
+  pendentes: number;
+  pendentesPorSistema: ContagemChave[];
+  /** Espera do item pendente mais antigo, em dias. */
+  esperaMaxima: number | null;
+  esperaMediana: number | null;
+  /** Apurados por semana (segunda a domingo), da mais antiga à mais recente. */
+  curva: { semana: string; t4: number; mapa: number }[];
+};
+
+const ZERO_STATUS: Record<StatusApuracao, number> = { apurado: 0, em_diligencia: 0, a_conferir: 0, claro: 0 };
+
+function contar(valores: (string | null | undefined)[], vazio = "sem sistema"): ContagemChave[] {
+  const m = new Map<string, number>();
+  for (const v of valores) m.set(v || vazio, (m.get(v || vazio) ?? 0) + 1);
+  return [...m.entries()].map(([chave, n]) => ({ chave, n })).sort((a, b) => b.n - a.n);
+}
+
+/** Segunda-feira da semana da data ISO, como yyyy-mm-dd. */
+function semanaDe(iso: string): string {
+  const d = new Date(iso.slice(0, 10) + "T00:00:00Z");
+  const dow = (d.getUTCDay() + 6) % 7; // 0 = segunda
+  d.setUTCDate(d.getUTCDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+
+export async function getSaudeApuracao(janelaDias = 45): Promise<SaudeApuracao> {
+  const supabase = await createClient();
+  const corte = new Date(`${hojeSP()}T00:00:00Z`);
+  corte.setUTCDate(corte.getUTCDate() - janelaDias);
+  const corteIso = corte.toISOString().slice(0, 10);
+
+  const [feed, fila, consultas] = await Promise.all([
+    supabase
+      .from("vw_feed_andamentos")
+      .select("status_apuracao, apurado_por, apurado_em")
+      .gte("data", corteIso),
+    supabase.from("vw_diligencia_fila").select("fila, sistema, qtd"),
+    supabase.from("consultas_tribunal").select("sistema, resultado, enfileirado_em, consultado_em"),
+  ]);
+
+  const feedRows = (feed.data ?? []) as Record<string, unknown>[];
+  const porStatus = { ...ZERO_STATUS };
+  for (const r of feedRows) {
+    const s = r.status_apuracao as StatusApuracao;
+    if (s in porStatus) porStatus[s] += 1;
+  }
+  const apurados = feedRows.filter((r) => r.apurado_por);
+  const porOrigem = contar(apurados.map((r) => r.apurado_por as string), "sem carimbo");
+
+  const filaRows = (fila.data ?? []) as Record<string, unknown>[];
+  const filaPorSistema = contar(filaRows.map((r) => r.sistema as string | null));
+  const filaPorTipo = contar(filaRows.map((r) => r.fila as string | null), "outra");
+
+  const consRows = (consultas.data ?? []) as Record<string, unknown>[];
+  const pend = consRows.filter((r) => r.resultado === "pendente");
+  const hojeMs = new Date(`${hojeSP()}T00:00:00Z`).getTime();
+  const esperas = pend
+    .map((r) => (r.enfileirado_em ? Math.max(0, Math.round((hojeMs - new Date(r.enfileirado_em as string).getTime()) / 86_400_000)) : null))
+    .filter((n): n is number => n != null)
+    .sort((a, b) => a - b);
+
+  // Curva das últimas 6 semanas — só o que tem carimbo de apuração.
+  const porSemana = new Map<string, { t4: number; mapa: number }>();
+  for (const r of apurados) {
+    const em = r.apurado_em as string | null;
+    if (!em) continue;
+    const k = semanaDe(em);
+    const acc = porSemana.get(k) ?? { t4: 0, mapa: 0 };
+    if (r.apurado_por === "mapa") acc.mapa += 1;
+    else acc.t4 += 1;
+    porSemana.set(k, acc);
+  }
+  const curva = [...porSemana.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-6)
+    .map(([semana, v]) => ({ semana, ...v }));
+
+  return {
+    janelaDias,
+    porStatus,
+    total: feedRows.length,
+    porOrigem,
+    apuradosT4: apurados.filter((r) => r.apurado_por !== "mapa").length,
+    apuradosMapa: apurados.filter((r) => r.apurado_por === "mapa").length,
+    filaTotal: filaRows.length,
+    filaVisitas: filaRows.reduce((s, r) => s + Number(r.qtd ?? 1), 0),
+    filaPorSistema,
+    filaPorTipo,
+    pendentes: pend.length,
+    pendentesPorSistema: contar(pend.map((r) => r.sistema as string | null)),
+    esperaMaxima: esperas.length ? esperas[esperas.length - 1] : null,
+    esperaMediana: esperas.length ? esperas[Math.floor(esperas.length / 2)] : null,
+    curva,
   };
 }
 
