@@ -3412,13 +3412,16 @@ export type SaudeApuracao = {
   pendentes: number;
   pendentesPorSistema: ContagemChave[];
   /**
-   * `consultas_tribunal` nasceu com RLS ligado e SEM política (migrações 83/84),
-   * de modo que a sessão do usuário lê zero linhas — não é fila vazia, é fila
-   * invisível. A view `vw_feed_andamentos` não sofre disso, porque roda com os
-   * direitos do dono, e por isso `status_apuracao='em_diligencia'` continua
-   * fiel. A contradição entre os dois é a própria prova, e é o que se detecta
-   * aqui: havendo andamento em diligência e nenhuma consulta legível, a tela
-   * avisa em vez de anunciar silêncio.
+   * Hoje é `true`: a policy `auth_read` da MIGRAÇÃO 97 (Sug. 122) liberou a
+   * leitura de `consultas_tribunal` para `authenticated`. Antes dela a tabela
+   * tinha RLS ligado e NENHUMA política, e a sessão do usuário lia zero linhas
+   * — não era fila vazia, era fila invisível.
+   *
+   * A guarda fica de pé como rede: `vw_feed_andamentos` roda com os direitos do
+   * dono e por isso `status_apuracao='em_diligencia'` é fiel mesmo quando a
+   * tabela está muda. Havendo andamento em diligência e nenhuma consulta
+   * legível, a tela avisa em vez de anunciar silêncio — o que volta a valer no
+   * dia em que alguém revogar a política sem perceber.
    */
   consultasLegiveis: boolean;
   /** Andamentos cujo processo tem consulta pendente — número confiável, vem da view. */

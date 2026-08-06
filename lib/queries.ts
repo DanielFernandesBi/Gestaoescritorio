@@ -24,7 +24,8 @@ export async function getBadges(): Promise<Badges> {
     orfIntimacoes,
     orfAndamentos,
     financeiro,
-    diligencia,
+    diligPendentes,
+    diligFila,
   ] = await Promise.all([
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
@@ -65,13 +66,14 @@ export async function getBadges(): Promise<Badges> {
     // Financeiro: o badge é o que exige cobrança AGORA — parcelas em atraso (status já
     // materializado por fn_marcar_atrasados). "A vencer" não alarma; só o vencido.
     supabase.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "atrasado"),
-    // Diligência assistida: o badge conta a fila CALCULADA (vw_diligencia_fila),
-    // e não as consultas já `pendente`. O motivo não é doutrinário e sim de
-    // visibilidade — `consultas_tribunal` nasceu com RLS ligado e SEM política,
-    // então a sessão do usuário lê zero linhas dela e o badge ficaria eternamente
-    // zerado com 27 processos esperando. A view roda com os direitos do dono e é
-    // legível. Havendo política de leitura para `authenticated`, o badge mais
-    // exato passa a ser a soma das duas (a view já exclui o que tem pendente).
+    // Diligência assistida: o badge é TUDO que espera visita aos autos, e são
+    // duas parcelas disjuntas — a fila já enfileirada (consultas `pendente`, que
+    // é a lista que a T4 recebe) e a fila calculada, que a view entrega já
+    // EXCLUINDO o que tem consulta pendente. Somar não duplica.
+    // A leitura direta de `consultas_tribunal` só passou a funcionar com a
+    // policy `auth_read` da migração 97; antes dela a tabela tinha RLS ligado e
+    // nenhuma política, e o badge ficava zerado com 27 processos esperando.
+    supabase.from("consultas_tribunal").select("*", { count: "exact", head: true }).eq("resultado", "pendente"),
     supabase.from("vw_diligencia_fila").select("*", { count: "exact", head: true }),
   ]);
 
@@ -90,7 +92,7 @@ export async function getBadges(): Promise<Badges> {
     andamentos: andamentos.count ?? 0,
     triagem: (orfPrazos.count ?? 0) + (orfIntimacoes.count ?? 0) + (orfAndamentos.count ?? 0),
     financeiro: financeiro.count ?? 0,
-    diligencia: diligencia.count ?? 0,
+    diligencia: (diligPendentes.count ?? 0) + (diligFila.count ?? 0),
   };
 }
 
