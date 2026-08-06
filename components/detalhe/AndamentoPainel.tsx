@@ -8,6 +8,7 @@ import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarPrazoDeAndamento } from "@/components/modules/CriarPrazoDeAndamento";
 import { PromoverIntimacao } from "@/components/modules/PromoverIntimacao";
 import { conferenciaAberta } from "@/components/modules/AndamentosTimeline";
+import { ApuracaoBloco, EstadoApuracao, TrilhaConsulta } from "@/components/Apuracao";
 import { atualizarAndamento } from "@/app/actions";
 import { ANDAMENTO_TIPO, ANDAMENTO_ORIGEM } from "@/lib/enums";
 import { type MapaProvidencia } from "@/lib/pecas";
@@ -68,17 +69,20 @@ export type FiltroMaster = "recentes" | "conferir" | "escalados";
 function MasterCard({ m, ativo, filtro }: { m: Movimentacao; ativo: boolean; filtro: string }) {
   const orfao = !m.processo_id;
   const href = `${linkPara("andamento", m.id)}${filtro === "recentes" ? "" : `?f=${filtro}`}`;
+  // No índice também vale a regra: quando há apuração, é ela que nomeia o item.
+  const tipoChip = m.apuracao?.tipo_efetivo ?? m.tipo;
   return (
     <Link className={`audp-mcard cli-mcard${ativo ? " on" : ""}`} href={href}>
       <div className="int-mtags">
-        <span className={`pz-tag cat-${tipoTone(m.tipo) === "red" ? "neutral" : tipoTone(m.tipo)}`}>{humano(m.tipo)}</span>
+        <span className={`pz-tag cat-${tipoTone(tipoChip) === "red" ? "neutral" : tipoTone(tipoChip)}`}>{humano(tipoChip)}</span>
+        <EstadoApuracao status={m.apuracao?.status} />
         {/* "escalou" dizia o mesmo para a conferência viva e a já fechada. */}
         {conferenciaAberta(m)
           ? <span className="pz-tag tang">a conferir</span>
           : m.escalado && <span className="pz-tag cowork">conferido</span>}
         {orfao && <span className="pz-tag orfa">órfão</span>}
       </div>
-      <div className="cli-mnome">{headline(m.descricao)}</div>
+      <div className="cli-mnome">{headline(m.apuracao?.texto || m.descricao)}</div>
       <div className="cli-mmeta">{orfao ? "sem processo" : (m.clientes || "—")} · {ddmm(m.data)}</div>
     </Link>
   );
@@ -132,6 +136,7 @@ function EditarAndamento({ a }: { a: AndamentoFull }) {
 export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "recentes" }: { a: AndamentoFull; lista: Movimentacao[]; mapa: MapaProvidencia | null; anotacoes: Anotacao[]; filtroInicial?: FiltroMaster }) {
   const [verNotas, setVerNotas] = useState(true);
   const idc = idCurto(a.codigo_movimentacao);
+  const tipoEfetivo = a.apuracao?.tipo_efetivo ?? a.tipo;
 
   return (
     <div className="audp">
@@ -148,12 +153,15 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
           <div className="audp-inner">
             {/* cabeçalho */}
             <div className="audp-tags">
-              <span className={`pz-tag ${tipoTone(a.tipo) === "red" ? "tone-red" : tipoTone(a.tipo) === "green" ? "val" : tipoTone(a.tipo) === "blue" ? "tone-blue" : "cat-slate"}`}>{humano(a.tipo)}</span>
+              <span className={`pz-tag ${tipoTone(tipoEfetivo) === "red" ? "tone-red" : tipoTone(tipoEfetivo) === "green" ? "val" : tipoTone(tipoEfetivo) === "blue" ? "tone-blue" : "cat-slate"}`}>{humano(tipoEfetivo)}</span>
+              <EstadoApuracao status={a.apuracao?.status} />
               <span className="pz-tag cat-blue">origem · {(a.origem ?? "—").toLowerCase()}</span>
+              {a.movimento_nome && <span className="apur-rubrica" title="Rubrica do ato, separada da narrativa pela T1 (prompt fase14).">{a.movimento_nome}</span>}
               {ehIA(a.cadastrado_por) && <span className="pz-tag cowork"><Spark s={9} />capturado pela IA</span>}
               {a.segredo && <span className="pz-tag segredo">🔒 segredo de justiça</span>}
             </div>
-            <h2 className="audp-h2">{headline(a.descricao)}</h2>
+            {/* A apuração é a manchete quando existe — é ela que diz o que aconteceu. */}
+            <h2 className="audp-h2">{headline(a.apuracao?.texto || a.descricao)}</h2>
             <div className="audp-cliline">
               {a.segredo ? (
                 <b className="audp-cli">Cliente sob segredo</b>
@@ -188,6 +196,24 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
               </div>
             )}
 
+            {/* BLOCO 0 · DO QUE SE TRATA — a razão de existir da tela. Vem antes de
+                tudo porque é a pergunta que fazia Daniel abrir o processo. */}
+            <div style={{ marginTop: 16 }}>
+              <ApuracaoBloco
+                a={a.apuracao}
+                bruto={{ tipo: a.tipo, descricao: a.descricao }}
+                segredo={a.segredo}
+                semOriginal
+              />
+            </div>
+
+            {/* BLOCO 0b · TRILHA DA VISITA (só quando a apuração veio de diligência) */}
+            {a.consulta && (
+              <Sec titulo="Trilha da diligência" sub="consultas_tribunal — a fila e o livro são a mesma tabela">
+                <TrilhaConsulta c={a.consulta} />
+              </Sec>
+            )}
+
             {/* BLOCO 1 · regra de dedup */}
             <div className="and-dedup">
               <Info />
@@ -209,8 +235,8 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
               <div className="audp-ia-note">Prioridade absoluta de temas que afetam a <b>liberdade/patrimônio</b>. No máximo 1 tarefa automática por movimentação (dedup <span className="mono">ux_tarefas_andamento_auto</span>). <b>Não cria prazo nem fundamento</b> — apenas o gatilho de atenção humana. <span style={{ color: "var(--red)", fontWeight: 600 }}>Alerta em texto livre na descrição não contaria</span> — ficaria invisível ao sistema.</div>
             </div>
 
-            {/* BLOCO 3 · TEOR */}
-            <Sec titulo="Teor da movimentação">
+            {/* BLOCO 3 · TEOR BRUTO — o que o tribunal escreveu, jamais alterado */}
+            <Sec titulo="Original do tribunal" sub="texto bruto do push — a apuração acrescenta, nunca substitui">
               <div className="int-teor">
                 <p>“{a.descricao}”</p>
                 <div className="int-teor-meta mono">descricao · origem {(a.origem ?? "—").toLowerCase()} · {fmtDate(a.data)}</div>
@@ -220,12 +246,25 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
             {/* BLOCO 4 · DADOS */}
             <Sec titulo="Dados do andamento">
               <div className="audp-dados">
-                <div className="fld"><div className="k">Tipo</div><div className="v">{humano(a.tipo)}</div></div>
+                <div className="fld"><div className="k">Tipo (original)</div><div className="v">{humano(a.tipo)}</div></div>
+                <div className="fld">
+                  <div className="k">Tipo apurado</div>
+                  <div className="v">{a.apuracao?.tipo_apurado ? humano(a.apuracao.tipo_apurado) : "— não reclassificado"}</div>
+                </div>
+                <div className="fld"><div className="k">Rubrica do movimento</div><div className="v">{a.movimento_nome ?? "— não informada"}</div></div>
                 <div className="fld"><div className="k">Data</div><div className="v mono">{fmtDate(a.data)}</div></div>
                 <div className="fld"><div className="k">Autor</div><div className="v">{a.autor ?? "—"}</div></div>
                 <div className="fld"><div className="k">Origem</div><div className="v">{a.origem ? a.origem.toUpperCase() : "—"}</div></div>
                 <div className="fld"><div className="k">Código movimentação</div><div className="v mono" style={{ fontSize: 12 }}>{a.codigo_movimentacao ?? "—"}</div></div>
                 <div className="fld"><div className="k">Cadastrado por</div><div className="v">{a.cadastrado_por ?? "—"}{a.cadastro_automatico ? " (automático)" : ""}</div></div>
+                <div className="fld">
+                  <div className="k">Apurado por</div>
+                  <div className="v">
+                    {a.apuracao?.apurado_por
+                      ? `${a.apuracao.apurado_por === "mapa" ? "mapa (padrão reconhecido)" : `${a.apuracao.apurado_por} (nos autos)`}${a.apuracao.apurado_em ? ` · ${fmtDate(a.apuracao.apurado_em)}` : ""}`
+                      : "— ainda não apurado"}
+                  </div>
+                </div>
               </div>
             </Sec>
 

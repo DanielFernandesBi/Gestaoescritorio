@@ -1,11 +1,13 @@
 import {
   ESTADO_APURACAO,
+  FILA_ROTULO,
   ehStatusApuracao,
+  rotuloSistema,
   seloApuracao,
   type StatusApuracao,
 } from "@/lib/apuracao";
-import { humano } from "@/lib/format";
-import type { ApuracaoAndamento } from "@/lib/data";
+import { fmtDate, humano } from "@/lib/format";
+import type { ApuracaoAndamento, ConsultaTribunal } from "@/lib/data";
 
 /**
  * Camada da apuração da T4 sobre o andamento. Server-friendly (sem estado) —
@@ -88,12 +90,15 @@ export function ApuracaoBloco({
   bruto,
   segredo,
   compacto = false,
+  semOriginal = false,
 }: {
   a?: ApuracaoAndamento | null;
   bruto: { tipo: string; descricao: string };
   segredo?: boolean;
   /** No card da lista o texto bruto vem recolhido; no detalhe, aberto. */
   compacto?: boolean;
+  /** No detalhe o teor bruto já tem seção própria — não se repete aqui. */
+  semOriginal?: boolean;
 }) {
   // Sem cobertura da view (órfão, processo arquivado) — nada a acrescentar.
   if (!a) return null;
@@ -128,6 +133,14 @@ export function ApuracaoBloco({
       </div>
       <div className="apur-txt">{a.texto}</div>
       <ApuracaoCampos a={a} segredo={segredo} />
+      {semOriginal && a.tipo_apurado && a.tipo_apurado !== bruto.tipo && (
+        <div className="apur-orig-b" style={{ marginTop: 9 }}>
+          <span className="apur-orig-k">reclassificação</span>
+          O tribunal registrou como <b>{humano(bruto.tipo)}</b>; a apuração diz que é{" "}
+          <b>{humano(a.tipo_apurado)}</b>. O tipo original permanece gravado.
+        </div>
+      )}
+      {!semOriginal && (
       <details className="apur-orig" open={!compacto}>
         <summary>ver original do tribunal</summary>
         <div className="apur-orig-b">
@@ -138,6 +151,47 @@ export function ApuracaoBloco({
           {bruto.descricao || "sem descrição"}
         </div>
       </details>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Trilha da visita — a linha de `consultas_tribunal` que produziu a apuração.
+ * A mesma tabela é a fila e o livro, então aqui se lê a pergunta que foi levada
+ * aos autos, quando entrou na fila, quando foi respondida e o que se respondeu.
+ * A diferença entre as duas datas é a métrica de espera da diligência.
+ */
+export function TrilhaConsulta({ c }: { c: ConsultaTribunal }) {
+  const fila = c.fila ? FILA_ROTULO[c.fila] : null;
+  return (
+    <div className="trilha">
+      <div className="trilha-top">
+        <span className="apur-tag">{fila?.rotulo ?? c.fila ?? "diligência"}</span>
+        <span className="apur-tag">{rotuloSistema(c.sistema)}</span>
+        {c.dias_espera != null && (
+          <span className="trilha-espera" title="Dias entre entrar na fila e ser respondida.">
+            {c.dias_espera === 0 ? "respondida no mesmo dia" : `${c.dias_espera} dia${c.dias_espera === 1 ? "" : "s"} na fila`}
+          </span>
+        )}
+      </div>
+      {c.pergunta && (
+        <div className="trilha-linha">
+          <span className="trilha-k">pergunta levada aos autos</span>
+          <p>{c.pergunta}</p>
+        </div>
+      )}
+      {c.observacao && (
+        <div className="trilha-linha">
+          <span className="trilha-k">o que se respondeu</span>
+          <p>{c.observacao}</p>
+        </div>
+      )}
+      <div className="trilha-datas mono">
+        enfileirada {c.enfileirado_em ? fmtDate(c.enfileirado_em) : "—"} · consultada{" "}
+        {c.consultado_em ? fmtDate(c.consultado_em) : "ainda pendente"}
+        {c.cadastrado_por ? ` · ${c.cadastrado_por}` : ""}
+      </div>
     </div>
   );
 }

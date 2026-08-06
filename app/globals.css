@@ -1054,6 +1054,16 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .apur-vazio.fila b{color:var(--blue)}
 .apur-rubrica{font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 9px}
 
+/* Trilha da visita — a linha de consultas_tribunal que produziu a apuração.
+ * Mesma tabela é a fila e o livro; aqui se lê a pergunta, a resposta e a espera. */
+.trilha{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:11px;padding:13px 15px}
+.trilha-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.trilha-espera{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted)}
+.trilha-linha{margin-bottom:10px}
+.trilha-k{display:block;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin-bottom:3px}
+.trilha-linha p{font-size:12.5px;line-height:1.5;color:var(--text)}
+.trilha-datas{font-size:11px;color:var(--muted-2);padding-top:9px;border-top:1px solid var(--line-soft)}
+
 /* ---------- Triagem (/triagem) — seções de órfãos ---------- */
 .tri-sec{margin-bottom:22px}
 .tri-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 2px 11px;display:flex;align-items:center;gap:8px}
