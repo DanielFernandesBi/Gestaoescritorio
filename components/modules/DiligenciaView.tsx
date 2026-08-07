@@ -6,9 +6,9 @@ import { Chips } from "@/components/Chips";
 import { PageHeader } from "@/components/PageHeader";
 import { SegredoTag } from "@/components/ui";
 import { FILA_ROTULO, rotuloSistema } from "@/lib/apuracao";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
-import type { ConsultaTribunal, DiligenciaItem, SaudeApuracao } from "@/lib/data";
+import type { ConsultaTribunal, DiligenciaItem, RegraMapaApurado, SaudeApuracao, SaudeRubrica } from "@/lib/data";
 
 /**
  * Diligência assistida — a fila, o progresso e a espera.
@@ -176,6 +176,112 @@ function LinhaFila({ d }: { d: DiligenciaItem }) {
   );
 }
 
+/* ── curadoria do mapa de aprendizado ────────────────────────────────────── */
+
+function Curadoria({ regras, rubrica }: { regras: RegraMapaApurado[]; rubrica: SaudeRubrica }) {
+  const suprimem = regras.filter((r) => r.autoriza_supressao);
+  const pctRecente = rubrica.recentes ? Math.round((rubrica.recentesComRubrica / rubrica.recentes) * 100) : 0;
+
+  return (
+    <>
+      <p className="dil-intro">
+        Toda apuração feita nos autos vira regra — assinatura normalizada do movimento →
+        classificação. Da próxima vez que o mesmo movimento chegar,{" "}
+        <span className="mono">fn_aplicar_mapa_andamentos</span> preenche a apuração sozinha,{" "}
+        <b>sem que ninguém vá aos autos</b>. É por isso que a curadoria importa: a regra dispensa a
+        visita, e dispensar visita é deixar de perguntar.
+      </p>
+
+      {/* A rubrica é o gargalo medido do mapa; sem ela a assinatura sai suja. */}
+      <div className="mapa-rubrica">
+        <div className="mapa-rubrica-h">Rubrica do movimento · o que faz o mapa comprimir</div>
+        <div className="dil-saude" style={{ padding: "14px 0 0" }}>
+          <div className="dil-met">
+            <b className={pctRecente >= 90 ? "tom-green" : pctRecente > 0 ? "tom-amber" : "tom-red"}>{pctRecente}%</b>
+            <span>dos andamentos dos últimos 7 dias já vêm com <span className="mono">movimento_nome</span></span>
+          </div>
+          <div className="dil-met">
+            <b>{rubrica.comRubrica}</b>
+            <span>com rubrica, de {rubrica.total} no acervo — o histórico anterior ao <span className="mono">fase14</span> não se beneficia</span>
+          </div>
+        </div>
+        <p className="dil-nota">
+          Com a rubrica nula a assinatura tem de sair da <span className="mono">descricao</span>, que
+          carrega ruído por processo (nome de parte, vara, número, prefixo da fonte), e três
+          variações da mesma juntada viram três regras distintas — nenhuma juntando as três
+          confirmações necessárias. Medido em 06/08: 471 assinaturas distintas em 506 movimentos
+          opacos, compressão de 7%. O conserto só age sobre o que chegar daqui em diante, então o
+          número a acompanhar é o da primeira linha, não o do acervo.
+        </p>
+      </div>
+
+      {regras.length === 0 ? (
+        <div className="dil-cego" style={{ background: "var(--surface-2)", borderColor: "var(--line)", borderLeftColor: "var(--muted-2)" }}>
+          <b style={{ color: "var(--text)" }}>O mapa ainda não tem nenhuma regra, e isso é o esperado.</b>
+          <p>
+            Ele aprende de <b>apuração</b>, não de captura — cada regra nasce de alguém ter estado
+            nos autos. Enquanto a T4 não rodar, não há o que aprender, por mais movimentos que a T1
+            capture. A primeira regra aparece depois da primeira sessão de diligência, e só passa a
+            dispensar visita quando acumular <b>3 confirmações, zero divergência</b> e{" "}
+            <span className="mono">exige_providencia = false</span>.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="mapa-resumo">
+            <b>{regras.length}</b> regra(s) aprendida(s) · <b>{suprimem.length}</b> já dispensa(m) a
+            visita aos autos · {regras.length - suprimem.length} ainda em observação
+          </div>
+          <div className="dil-list">
+            {regras.map((r) => (
+              <article className={`dil-card mapa-card${r.autoriza_supressao ? " suprime" : ""}`} key={r.id}>
+                <div className="dil-top">
+                  {r.autoriza_supressao ? (
+                    <span className="apur-tag prov" title="Esta regra dispensa a visita aos autos: o movimento é apurado pelo mapa e não vai à diligência.">
+                      dispensa visita
+                    </span>
+                  ) : (
+                    <span className="apur-tag" title="Ainda não dispensa visita — falta confirmação, há divergência ou o ato exige providência.">
+                      em observação
+                    </span>
+                  )}
+                  {r.tipo_apurado && <span className="apur-tag">{humano(r.tipo_apurado)}</span>}
+                  <span className="apur-tag">{rotuloSistema(r.sistema)}</span>
+                  {r.exige_providencia === true && <span className="apur-tag prov">exige providência</span>}
+                  <span className="dil-espera mono" title="Confirmações × divergências. A supressão exige 3+ e zero.">
+                    {r.confirmacoes}✓ {r.divergencias}✗
+                  </span>
+                </div>
+                <div className="mapa-assin mono">{r.assinatura}</div>
+                {r.apuracao_padrao && <p className="dil-pergunta">{r.apuracao_padrao}</p>}
+                {r.exemplo_bruto && (
+                  <details className="apur-orig">
+                    <summary>ver exemplo do texto bruto</summary>
+                    <div className="apur-orig-b">{r.exemplo_bruto}</div>
+                  </details>
+                )}
+                <div className="dil-foot mono">
+                  visto de {r.primeira_vez ? fmtDate(r.primeira_vez) : "—"} a{" "}
+                  {r.ultima_vez ? fmtDate(r.ultima_vez) : "—"}
+                  {r.criado_por ? ` · ${r.criado_por}` : ""}
+                </div>
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+
+      <p className="dil-nota" style={{ marginTop: 14 }}>
+        Esta área é de <b>leitura</b>. Desligar uma regra que você julgue arriscada é ato de
+        curadoria humana e hoje passa pelo chat — a política da migração 97 é só de SELECT, de
+        propósito. Para fazê-lo por aqui basta uma função estreita que <i>apenas desliga</i> a
+        supressão, auditada pelo gatilho da migração 98; é uma migração e está pronta para quando
+        você quiser.
+      </p>
+    </>
+  );
+}
+
 /* ── tela ────────────────────────────────────────────────────────────────── */
 
 export function DiligenciaView({
@@ -183,11 +289,15 @@ export function DiligenciaView({
   pendentes,
   fila,
   respondidas,
+  regras,
+  rubrica,
 }: {
   saude: SaudeApuracao;
   pendentes: ConsultaTribunal[];
   fila: DiligenciaItem[];
   respondidas: ConsultaTribunal[];
+  regras: RegraMapaApurado[];
+  rubrica: SaudeRubrica;
 }) {
   const [aba, setAba] = useState("pendentes");
   const [sis, setSis] = useState("todos");
@@ -242,11 +352,14 @@ export function DiligenciaView({
           { id: "pendentes", label: `Na fila da T4 (${pendentes.length})` },
           { id: "fila", label: `Aguardando enfileiramento (${fila.length})` },
           { id: "respondidas", label: `Já respondidas (${respondidas.length})` },
+          { id: "mapa", label: `Mapa de aprendizado (${regras.length})` },
         ]}
         value={aba}
         onChange={trocarAba}
       />
-      {sistemas.length > 2 && <Chips options={sistemas} value={sis} onChange={setSis} />}
+      {aba !== "mapa" && sistemas.length > 2 && <Chips options={sistemas} value={sis} onChange={setSis} />}
+
+      {aba === "mapa" && <Curadoria regras={regras} rubrica={rubrica} />}
 
       {aba === "pendentes" && (
         <>

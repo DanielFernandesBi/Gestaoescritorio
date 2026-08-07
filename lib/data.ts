@@ -3383,6 +3383,88 @@ export async function getFeedAndamentos(janelaDias = 45, status?: StatusApuracao
   }));
 }
 
+/**
+ * Regra do mapa de aprendizado (`mapa_movimento_apurado`, migrações 94 a 96).
+ *
+ * Toda apuração feita nos autos vira regra — assinatura normalizada do texto do
+ * movimento → classificação. Da próxima vez que o mesmo movimento chegar,
+ * `fn_aplicar_mapa_andamentos` preenche a apuração sozinha, sem que ninguém vá
+ * aos autos. O campo que decide isso é `autoriza_supressao`, e ele só vira
+ * `true` com 3+ confirmações, ZERO divergência e `exige_providencia=false` —
+ * o mapa resolve rotina confirmada, porque o padrão diz a NATUREZA do ato e
+ * nunca o seu CONTEÚDO. Processo em segredo de justiça nunca é suprimido.
+ */
+export type RegraMapaApurado = {
+  id: string;
+  assinatura: string;
+  sistema: string | null;
+  tipo_apurado: string | null;
+  apuracao_padrao: string | null;
+  exige_providencia: boolean | null;
+  confirmacoes: number;
+  divergencias: number;
+  /** `true` = a regra dispensa a visita aos autos. É o campo que a curadoria vigia. */
+  autoriza_supressao: boolean;
+  exemplo_bruto: string | null;
+  primeira_vez: string | null;
+  ultima_vez: string | null;
+  criado_por: string | null;
+};
+
+export async function getMapaAprendizado(): Promise<RegraMapaApurado[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("mapa_movimento_apurado")
+    .select("*")
+    .order("autoriza_supressao", { ascending: false })
+    .order("confirmacoes", { ascending: false });
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    assinatura: (r.assinatura as string) ?? "",
+    sistema: (r.sistema as string | null) ?? null,
+    tipo_apurado: (r.tipo_apurado as string | null) ?? null,
+    apuracao_padrao: (r.apuracao_padrao as string | null) ?? null,
+    exige_providencia: (r.exige_providencia as boolean | null) ?? null,
+    confirmacoes: Number(r.confirmacoes ?? 0),
+    divergencias: Number(r.divergencias ?? 0),
+    autoriza_supressao: Boolean(r.autoriza_supressao),
+    exemplo_bruto: (r.exemplo_bruto as string | null) ?? null,
+    primeira_vez: (r.primeira_vez as string | null) ?? null,
+    ultima_vez: (r.ultima_vez as string | null) ?? null,
+    criado_por: (r.criado_por as string | null) ?? null,
+  }));
+}
+
+/**
+ * Saúde da rubrica — o gargalo medido do mapa. Com `movimento_nome` nulo a
+ * assinatura sai da `descricao`, que carrega ruído por processo (nome de parte,
+ * vara, número, prefixo de fonte), e três variações da mesma juntada viram três
+ * regras distintas, nenhuma delas juntando as 3 confirmações necessárias. O
+ * prompt `fase14` da T1 conserta isso, mas só sobre o que chegar daqui em diante
+ * — daí o corte por data, que é o único jeito honesto de ler o número.
+ */
+export type SaudeRubrica = { total: number; comRubrica: number; recentes: number; recentesComRubrica: number };
+
+export async function getSaudeRubrica(dias = 7): Promise<SaudeRubrica> {
+  const supabase = await createClient();
+  const corte = new Date(`${hojeSP()}T00:00:00Z`);
+  corte.setUTCDate(corte.getUTCDate() - dias);
+  const iso = corte.toISOString();
+
+  const [total, comRubrica, recentes, recentesComRubrica] = await Promise.all([
+    supabase.from("andamentos").select("*", { count: "exact", head: true }),
+    supabase.from("andamentos").select("*", { count: "exact", head: true }).not("movimento_nome", "is", null),
+    supabase.from("andamentos").select("*", { count: "exact", head: true }).gte("criado_em", iso),
+    supabase.from("andamentos").select("*", { count: "exact", head: true }).gte("criado_em", iso).not("movimento_nome", "is", null),
+  ]);
+  return {
+    total: total.count ?? 0,
+    comRubrica: comRubrica.count ?? 0,
+    recentes: recentes.count ?? 0,
+    recentesComRubrica: recentesComRubrica.count ?? 0,
+  };
+}
+
 export type ContagemChave = { chave: string; n: number };
 
 /**

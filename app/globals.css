@@ -1115,6 +1115,18 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .dil-cego p:last-child{margin-bottom:0}
 .dil-cego .mono{font-size:11.5px;background:var(--surface);padding:1px 5px;border-radius:5px}
 .dil-cego-cta{color:var(--muted)}
+
+/* Curadoria do mapa de aprendizado — a regra dispensa a visita, e dispensar
+   visita é deixar de perguntar. Por isso a que suprime salta na lista. */
+.mapa-rubrica{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 18px 16px;margin-bottom:16px}
+.mapa-rubrica-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.mapa-rubrica .dil-saude{grid-template-columns:repeat(2,1fr)}
+.mapa-rubrica .dil-nota{margin-top:12px}
+.mapa-resumo{font-size:12.5px;color:var(--muted);margin:2px 2px 12px}
+.mapa-resumo b{font-family:var(--serif);font-size:16px;color:var(--ink);font-weight:600}
+.mapa-card{border-left-color:var(--line)}
+.mapa-card.suprime{border-left-color:var(--amber);background:linear-gradient(180deg,var(--amber-soft),var(--surface) 60%)}
+.mapa-assin{font-size:12px;color:var(--text);background:var(--surface-2);border:1px solid var(--line-soft);border-radius:8px;padding:8px 10px;line-height:1.5;word-break:break-word}
 .leg-dot.ok{background:var(--green)}
 
 /* ---------- Triagem (/triagem) — seções de órfãos ---------- */
