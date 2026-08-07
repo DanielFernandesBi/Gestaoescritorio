@@ -4,6 +4,7 @@ import {
   ehStatusApuracao,
   rotuloSistema,
   seloApuracao,
+  separarLeituraIa,
   type StatusApuracao,
 } from "@/lib/apuracao";
 import { fmtDate, humano } from "@/lib/format";
@@ -19,6 +20,46 @@ import type { ApuracaoAndamento, ConsultaTribunal } from "@/lib/data";
  * reescreve `descricao_bruta`/`tipo_bruto`, e não apresenta o que o mapa
  * reconheceu com a mesma autoridade do que a T4 viu nos autos.
  */
+
+/**
+ * Glifo da IA — o mesmo losango de quatro pontas que o sistema já usa em todos
+ * os painéis para dizer "isto veio da automação", na cor cobalt (`--accent`),
+ * que o design system declara como a cor da IA.
+ */
+export const Spark = ({ s = 12 }: { s?: number }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" style={{ fill: "var(--accent)", flex: "none" }} aria-hidden>
+    <path d="M12 2c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7z" />
+  </svg>
+);
+
+/**
+ * Texto capturado da fonte, com a LEITURA DA IA destacada.
+ *
+ * O texto do push traz, no mesmo parágrafo, o que foi extraído e a continuação
+ * em que a IA diz o que entendeu — o ato gêmeo que cruzou, o teor que não veio,
+ * o prazo que entende correr. Acrescentar isso é certo; o que faltava era o
+ * leitor saber de quem é cada parte. A continuação passa a sair na cor da IA e
+ * com o glifo da IA, sem quebrar a leitura corrida.
+ *
+ * Quando não há corte seguro, o texto sai exatamente como sempre saiu.
+ */
+export function TextoCapturado({ texto, aspas = false }: { texto: string; aspas?: boolean }) {
+  const { transcrito, leitura } = separarLeituraIa(texto);
+  const corpo = aspas ? `“${transcrito}”` : transcrito;
+  if (!leitura) return <>{corpo}</>;
+  return (
+    <>
+      {corpo}{" "}
+      <span
+        className="ia-leitura"
+        title="Leitura da IA — o que a automação entendeu ao capturar o ato. O texto da fonte é o que está acima; isto foi acrescentado pela triagem, e não pelo tribunal."
+      >
+        <Spark s={11} />
+        {leitura}
+      </span>
+    </>
+  );
+}
 
 /** Chip do estado (`status_apuracao`) — o eixo da tela. */
 export function EstadoApuracao({ status }: { status?: string | null }) {
@@ -148,7 +189,7 @@ export function ApuracaoBloco({
             {humano(bruto.tipo)}
             {a.tipo_apurado && a.tipo_apurado !== bruto.tipo ? ` · reclassificado como ${humano(a.tipo_apurado)}` : ""}
           </span>
-          {bruto.descricao || "sem descrição"}
+          {bruto.descricao ? <TextoCapturado texto={bruto.descricao} /> : "sem descrição"}
         </div>
       </details>
       )}

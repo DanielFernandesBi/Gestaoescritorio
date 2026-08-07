@@ -134,6 +134,82 @@ export function rotuloSistema(s: string | null | undefined): string {
   return SISTEMA_ROTULO[s] ?? s.toUpperCase();
 }
 
+/* Separação do que o TRIBUNAL disse e do que a IA LEU ----------------------
+ *
+ * A `descricao` capturada pela T1 costuma trazer duas coisas no mesmo texto —
+ * primeiro o que foi extraído da fonte (partes, ato, transcrição da decisão) e,
+ * na sequência, a leitura da própria IA (o ato gêmeo que ela cruzou, o teor que
+ * não veio, o prazo que ela entende que corre). Acrescentar isso é correto e
+ * útil; o que faltava era o leitor saber, sem esforço, onde termina um e começa
+ * o outro.
+ *
+ * A regra é CONSERVADORA de propósito, e o erro que ela evita é o pior dos dois:
+ * rotular texto do tribunal como texto da IA. Só corta em marcador conhecido que
+ * ABRE uma frase, e nunca quando a cauda candidata carrega transcrição entre
+ * aspas. Não casando nada, não corta — o texto é exibido como sempre foi.
+ *
+ * Fora da lista de propósito: "RESULTADO ADVERSO"/"Resultado favorável". São
+ * juízo da IA, mas aparecem no CABEÇALHO, antes da decisão transcrita, e cortar
+ * ali marcaria a fala do tribunal como leitura da máquina.
+ */
+const MARCAS_LEITURA_IA = [
+  "Ato gêmeo",
+  "Teor integral não comunicado",
+  "Teor integral não informado",
+  "Teor integral não veio",
+  "Acórdão ainda não publicado",
+  "Ainda não publicado",
+  "Aguardar publicação",
+  "Corre prazo",
+  "Avaliar ",
+  "Conferir ",
+  "Verificar ",
+  "Sem providência",
+  "Sem prazo e sem providência",
+  "Providência:",
+  "Providência —",
+  "Comunicação meramente informativa",
+  "Marca o termo inicial",
+  "Contexto:",
+];
+
+export type TextoSeparado = {
+  /** O que veio da fonte. Nunca vazio. */
+  transcrito: string;
+  /** A leitura acrescentada pela IA, ou null quando não há corte seguro. */
+  leitura: string | null;
+};
+
+/** A posição abre uma frase nova? (o trecho anterior termina em . ! ou ?) */
+function abreFrase(texto: string, i: number): boolean {
+  const antes = texto.slice(0, i).trimEnd();
+  return antes.length > 0 && /[.!?]$/.test(antes);
+}
+
+export function separarLeituraIa(descricao: string | null | undefined): TextoSeparado {
+  const t = (descricao ?? "").trim();
+  if (!t) return { transcrito: "", leitura: null };
+
+  let corte = -1;
+  for (const marca of MARCAS_LEITURA_IA) {
+    let i = t.indexOf(marca);
+    while (i > 0) {
+      if (abreFrase(t, i) && (corte === -1 || i < corte)) {
+        corte = i;
+        break;
+      }
+      i = t.indexOf(marca, i + 1);
+    }
+  }
+  if (corte <= 0) return { transcrito: t, leitura: null };
+
+  const cauda = t.slice(corte).trim();
+  // Cauda com transcrição entre aspas não é leitura da IA — é fala do tribunal.
+  if (/["“”]/.test(cauda)) return { transcrito: t, leitura: null };
+
+  return { transcrito: t.slice(0, corte).trim(), leitura: cauda };
+}
+
 /** Rótulo das três entradas da `vw_diligencia_fila`. */
 export const FILA_ROTULO: Record<string, { rotulo: string; ajuda: string }> = {
   andamento_opaco: {

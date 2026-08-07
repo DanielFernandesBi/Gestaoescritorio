@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { SegredoTag, ContextoCaso, PartesCliente } from "@/components/ui";
-import { ApuracaoBloco, EstadoApuracao } from "@/components/Apuracao";
+import { ApuracaoBloco, EstadoApuracao, TextoCapturado } from "@/components/Apuracao";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarPrazoDeAndamento } from "@/components/modules/CriarPrazoDeAndamento";
 import { PromoverIntimacao } from "@/components/modules/PromoverIntimacao";
@@ -133,7 +133,7 @@ export function AndamentosTimeline({
               {/* Metadado como SUBTÍTULO — responde de quem é e onde corre, não o que aconteceu. */}
               <ContextoCaso ctx={m.contexto} rotulo="onde corre" />
               <ApuracaoBloco a={ap} bruto={{ tipo: m.tipo, descricao: m.descricao }} segredo={m.segredo} compacto />
-              {temDesc && <div className="and-desc">{m.descricao}</div>}
+              {temDesc && <div className="and-desc"><TextoCapturado texto={m.descricao} /></div>}
 
               {m.escalado && (conferenciaAberta(m) ? (
                 rotinaResolvida(m) ? (

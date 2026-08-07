@@ -8,7 +8,7 @@ import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarPrazoDeAndamento } from "@/components/modules/CriarPrazoDeAndamento";
 import { PromoverIntimacao } from "@/components/modules/PromoverIntimacao";
 import { conferenciaAberta } from "@/components/modules/AndamentosTimeline";
-import { ApuracaoBloco, EstadoApuracao, TrilhaConsulta } from "@/components/Apuracao";
+import { ApuracaoBloco, EstadoApuracao, TextoCapturado, TrilhaConsulta } from "@/components/Apuracao";
 import { atualizarAndamento } from "@/app/actions";
 import { ANDAMENTO_TIPO, ANDAMENTO_ORIGEM } from "@/lib/enums";
 import { type MapaProvidencia } from "@/lib/pecas";
@@ -235,10 +235,12 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
               <div className="audp-ia-note">Prioridade absoluta de temas que afetam a <b>liberdade/patrimônio</b>. No máximo 1 tarefa automática por movimentação (dedup <span className="mono">ux_tarefas_andamento_auto</span>). <b>Não cria prazo nem fundamento</b> — apenas o gatilho de atenção humana. <span style={{ color: "var(--red)", fontWeight: 600 }}>Alerta em texto livre na descrição não contaria</span> — ficaria invisível ao sistema.</div>
             </div>
 
-            {/* BLOCO 3 · TEOR BRUTO — o que o tribunal escreveu, jamais alterado */}
+            {/* BLOCO 3 · TEOR BRUTO — o que o tribunal escreveu, jamais alterado.
+                A continuação escrita pela triagem sai na cor e no glifo da IA, para
+                que não se confunda com a fala da fonte. */}
             <Sec titulo="Original do tribunal" sub="texto bruto do push — a apuração acrescenta, nunca substitui">
               <div className="int-teor">
-                <p>“{a.descricao}”</p>
+                <p><TextoCapturado texto={a.descricao} aspas /></p>
                 <div className="int-teor-meta mono">descricao · origem {(a.origem ?? "—").toLowerCase()} · {fmtDate(a.data)}</div>
               </div>
             </Sec>

@@ -1054,6 +1054,18 @@ button.audp-mcard{font:inherit;text-align:left;width:100%;background:transparent
 .apur-vazio.fila b{color:var(--blue)}
 .apur-rubrica{font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 9px}
 
+/* Leitura da IA dentro do texto capturado — a continuação em que a triagem diz
+   o que entendeu. Mesma leitura corrida, mas na cor da IA (cobalt) e com o
+   glifo que o sistema já usa em todos os painéis, de modo que se saiba de quem
+   é cada parte sem precisar deduzir. Não é caixa nem citação: continua sendo o
+   mesmo parágrafo, só que assinado. */
+.ia-leitura{color:var(--accent-strong);font-style:italic}
+.ia-leitura svg{vertical-align:-1px;margin-right:3px}
+html[data-theme="dark"] .ia-leitura{color:var(--accent)}
+/* Dentro da transcrição entre aspas, a leitura não é fala do tribunal — sai do
+   itálico da citação e ganha peso, para não parecer parte do que foi citado. */
+.int-teor p .ia-leitura{font-style:normal;font-weight:600}
+
 /* Trilha da visita — a linha de consultas_tribunal que produziu a apuração.
  * Mesma tabela é a fila e o livro; aqui se lê a pergunta, a resposta e a espera. */
 .trilha{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:11px;padding:13px 15px}
