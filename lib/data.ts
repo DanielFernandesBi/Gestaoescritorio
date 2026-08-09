@@ -749,17 +749,43 @@ export type Intimacao = {
   };
 };
 
+const INTIMACAO_COLS =
+  "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, classe, area, instancia, tribunal, orgao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,assunto,area,fase,instancia,segredo_justica,cliente_processo(papel,clientes(id,nome,situacao_prisional)))";
+
 export async function getIntimacoes(): Promise<Intimacao[]> {
   const supabase = await createClient();
+  const JANELA = 300;
   const { data } = await supabase
     .from("intimacoes")
-    .select(
-      "id, origem, resumo, status, data_publicacao, data_ciencia, providencia, codigo_publicacao, processo_id, classe, area, instancia, tribunal, orgao, processos(numero_cnj,numero_registro_tribunal,tribunal,vara_comarca,classe,assunto,area,fase,instancia,segredo_justica,cliente_processo(papel,clientes(id,nome,situacao_prisional)))",
-    )
+    .select(INTIMACAO_COLS)
     .order("data_publicacao", { ascending: false, nullsFirst: false })
-    .limit(300);
+    .limit(JANELA);
 
-  const lista = (data ?? []).map((r): Intimacao => {
+  /* REDE DE SEGURANÇA DA LEITURA (regra de Daniel, 09/08/2026) — nenhuma
+   * intimação pode ficar sem uma forma clara de ele ler, ainda que a automação
+   * já tenha agido. A janela acima ordena por publicação e corta as mais
+   * antigas; com o acervo em 297 e a janela em 300, a primeira a cair seria
+   * justamente uma velha, e se estivesse NÃO LIDA sumiria em silêncio — que é
+   * exatamente o que a regra proíbe. Aqui se repescam as não lidas que ficaram
+   * fora, para que o total da tela nunca fique atrás do badge. */
+  const dentro = new Set((data ?? []).map((r) => r.id as string));
+  const { data: naoLidas } = await supabase
+    .from("vw_intimacoes_contexto")
+    .select("intimacao_id")
+    .neq("status", "arquivada")
+    .is("leram_ids", null);
+  const faltantes = ((naoLidas ?? []) as Record<string, unknown>[])
+    .map((r) => r.intimacao_id as string)
+    .filter((id) => !dentro.has(id));
+
+  type LinhaIntimacao = NonNullable<typeof data>[number];
+  let extras: LinhaIntimacao[] = [];
+  if (faltantes.length) {
+    const { data: repescadas } = await supabase.from("intimacoes").select(INTIMACAO_COLS).in("id", faltantes);
+    extras = (repescadas ?? []) as LinhaIntimacao[];
+  }
+
+  const lista = [...(data ?? []), ...extras].map((r): Intimacao => {
     const p = r.processos as unknown as NestedProcesso;
     const cp = p?.cliente_processo as unknown as (NestedCliente & { papel?: string | null })[] | null;
     // "Do que se trata": campo próprio da intimação primeiro (cobre órfãs), fallback no processo.

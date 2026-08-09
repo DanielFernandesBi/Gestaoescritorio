@@ -6,11 +6,18 @@ import type { Badges } from "@/lib/nav";
 export async function getBadges(): Promise<Badges> {
   const supabase = await createClient();
 
+  // Eixo de LEITURA (Sug. 82) — o badge de intimações é PESSOAL e precisa do uid
+  // antes das contagens. Ver o bloco `naoLidas` abaixo para o porquê de ele não
+  // ser mais derivado da caixa.
+  const { data: claims } = await supabase.auth.getClaims();
+  const meuId = (claims?.claims?.sub as string | undefined) ?? null;
+
   const [
     validacao,
     prazos,
     audiencias,
-    intimacoes,
+    naoLidasPorNinguem,
+    naoLidasPorMim,
     tarefas,
     processos,
     clientes,
@@ -30,9 +37,29 @@ export async function getBadges(): Promise<Badges> {
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
     supabase.from("audiencias").select("*", { count: "exact", head: true }).eq("status", "designada"),
-    // Sugestão 82: o badge é a caixa PESSOAL — itens de trabalho que o usuário logado
-    // ainda não deu ciência (vw_minhas_intimacoes_pendentes já filtra por auth.uid()).
-    supabase.from("vw_minhas_intimacoes_pendentes").select("*", { count: "exact", head: true }),
+    // INTIMAÇÕES — o badge é o eixo de LEITURA, e só ele. Regra de Daniel de
+    // 09/08/2026: nenhuma intimação pode ficar sem a leitura dele, ainda que a
+    // automação já tenha agido, porque quem confere é ele.
+    //
+    // Antes vinha de `vw_minhas_intimacoes_pendentes`, que é `na_caixa` E sem
+    // ciência minha — e `na_caixa` exige `status='pendente'`. Isso amarrava a
+    // leitura PESSOAL ao eixo de FLUXO, que é COMPARTILHADO: bastava a T1 criar
+    // o prazo e mover para `em_analise` para o item sumir da fila de leitura sem
+    // que ninguém o tivesse lido. Medido — a janela em que uma intimação fica
+    // `pendente` caiu de 791 minutos (03/08) para 1 minuto (07/08), de modo que
+    // o badge zerou por construção enquanto 6 intimações seguiam não lidas.
+    //
+    // Agora conta o que EU não li, qualquer que seja o status. Duas parcelas
+    // disjuntas, para não depender de `or` aninhado no PostgREST: (a) o que
+    // ninguém leu e (b) o que outro sócio leu e eu não. `arquivada` fica de
+    // fora por ser duplicata semântica — o ato original entra pela sua própria
+    // linha e é esse que se lê.
+    supabase.from("vw_intimacoes_contexto").select("*", { count: "exact", head: true })
+      .neq("status", "arquivada").is("leram_ids", null),
+    meuId
+      ? supabase.from("vw_intimacoes_contexto").select("*", { count: "exact", head: true })
+          .neq("status", "arquivada").not("leram_ids", "is", null).not("leram_ids", "cs", `{${meuId}}`)
+      : Promise.resolve({ count: 0 }),
     supabase.from("tarefas").select("*", { count: "exact", head: true }).in("status", ["pendente", "em_andamento"]),
     supabase.from("processos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("clientes").select("*", { count: "exact", head: true }).eq("ativo", true),
@@ -81,7 +108,7 @@ export async function getBadges(): Promise<Badges> {
     validacao: validacao.count ?? 0,
     prazos: prazos.count ?? 0,
     audiencias: audiencias.count ?? 0,
-    intimacoes: intimacoes.count ?? 0,
+    intimacoes: (naoLidasPorNinguem.count ?? 0) + (naoLidasPorMim.count ?? 0),
     tarefas: tarefas.count ?? 0,
     processos: processos.count ?? 0,
     clientes: clientes.count ?? 0,

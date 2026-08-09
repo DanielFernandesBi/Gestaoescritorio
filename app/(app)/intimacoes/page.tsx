@@ -1,5 +1,6 @@
 import { getIntimacoes } from "@/lib/data";
 import { getUserId } from "@/lib/queries";
+import { lidaPorMim } from "@/lib/ciencia";
 import { IntimacoesList } from "@/components/modules/IntimacoesList";
 import { PageHeader } from "@/components/PageHeader";
 import { FormModal } from "@/components/FormModal";
@@ -11,7 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function IntimacoesPage() {
   const [intimacoes, meuId] = await Promise.all([getIntimacoes(), getUserId()]);
-  const nPend = intimacoes.filter((i) => i.status === "pendente").length;
+  // O KPI de abertura é o eixo de LEITURA, não o de fluxo. "Pendentes" virou zero
+  // por construção quando a T1 passou a amarrar o artefato na mesma rodada da
+  // captura, e liderar a tela com ele escondia justamente o que falta conferir.
+  const nRevisar = intimacoes.filter((i) => !lidaPorMim(i, meuId)).length;
   const nAnalise = intimacoes.filter((i) => i.status === "em_analise").length;
   const nSemProv = intimacoes.filter((i) => i.status === "sem_providencia").length;
   return (
@@ -27,7 +31,7 @@ export default async function IntimacoesPage() {
           </>
         }
         kpis={[
-          { valor: nPend, label: "pendentes", tone: "amber" },
+          { valor: nRevisar, label: "para você revisar · não lidas", tone: nRevisar ? "amber" : "green" },
           { valor: nAnalise, label: "em análise", tone: "accent" },
           { valor: nSemProv, label: "sem providência", tone: "neutral" },
           { valor: intimacoes.length, label: "total · acervo recente", tone: "neutral" },
