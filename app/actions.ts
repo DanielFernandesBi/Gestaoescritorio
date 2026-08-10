@@ -747,6 +747,97 @@ export async function moverTarefa(id: string, status: string): Promise<Resultado
   }
 }
 
+/* ===================== APURAÇÃO HUMANA (Sug. 126 / Migração 101) =====================
+ *
+ * "Se eu já abri, não preciso que a T4 passe. Eu já conferi." O gesto que faltava
+ * era escrever O QUE ERA — sem isso o banco seguia sem saber, a fila da diligência
+ * não drenava e o mapa não aprendia com as 159 conferências já feitas.
+ *
+ * Quem grava é `fn_apurar_humano`, que carimba `apurado_por='humano'`, respeita o
+ * piso da casa (apuração é adição; descrição, tipo e origem do push ficam intactos)
+ * e, esgotados os movimentos opacos do processo, encerra a consulta pendente da T4.
+ * A tela não escreve em `consultas_tribunal` por UPDATE direto — só por esta porta.
+ */
+type ResultadoApuracao = Resultado & { apurados?: number; restantes?: number; consultaFechada?: boolean };
+
+async function gravarApuracao(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  andamentoId: string,
+  fd: FormData,
+): Promise<ResultadoApuracao | null> {
+  const texto = String(fd.get("apuracao") ?? "").trim();
+  if (!texto) return null; // Escrever é OPCIONAL — o gesto não pode virar pedágio.
+
+  const providenciaRaw = String(fd.get("exige_providencia") ?? "");
+  const { data, error } = await supabase.rpc("fn_apurar_humano", {
+    p_andamento_id: andamentoId,
+    p_apuracao: texto,
+    p_tipo_apurado: String(fd.get("tipo_apurado") ?? "").trim() || null,
+    p_exige_providencia: providenciaRaw === "" ? null : providenciaRaw === "sim",
+    p_prazo_identificado: String(fd.get("prazo_identificado") ?? "").trim() || null,
+    p_escopo: fd.get("escopo") === "andamento" ? "andamento" : "processo",
+  });
+  if (error) throw error;
+
+  const r = (data ?? {}) as { andamentos_apurados?: number; opacos_restantes?: number; consulta_fechada?: boolean };
+  const apurados = Number(r.andamentos_apurados ?? 0);
+  const restantes = Number(r.opacos_restantes ?? 0);
+  const fechada = Boolean(r.consulta_fechada);
+  let msg = apurados === 1 ? "1 movimento apurado." : `${apurados} movimentos apurados.`;
+  if (fechada) msg += " Processo saiu da fila da T4 — a visita perdeu o objeto.";
+  else if (restantes > 0) msg += ` Restam ${restantes} movimento(s) opaco(s) neste processo; a visita da T4 segue de pé.`;
+  return { ok: true, message: msg, apurados, restantes, consultaFechada: fechada };
+}
+
+/** Registra "do que se trata" a partir do próprio andamento (sem passar por tarefa). */
+export async function apurarAndamento(id: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const r = await gravarApuracao(supabase, id, fd);
+    if (!r) return { ok: false, message: "Escreva do que se trata — é esse texto que dispensa a visita da T4." };
+    revalidarTudo();
+    return r;
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/**
+ * Conclui a conferência escalada e, no mesmo gesto, registra o que era.
+ * O texto é OPCIONAL: sem ele a tarefa fecha como sempre fechou, e o andamento
+ * continua opaco — dizer o contrário seria inventar apuração que ninguém escreveu.
+ */
+export async function concluirConferencia(tarefaId: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    const { data: t } = await supabase
+      .from("tarefas")
+      .select("id, titulo, status, andamento_id")
+      .eq("id", tarefaId)
+      .maybeSingle();
+    if (!t) return { ok: false, message: "Tarefa não encontrada." };
+
+    let msgApuracao = "";
+    if (t.andamento_id) {
+      const r = await gravarApuracao(supabase, t.andamento_id as string, fd);
+      if (r) msgApuracao = ` ${r.message}`;
+    }
+
+    const { error } = await supabase
+      .from("tarefas")
+      .update({ status: "concluida", concluida_em: agora() })
+      .eq("id", tarefaId);
+    if (error) throw error;
+
+    revalidarTudo();
+    return { ok: true, message: `Conferência concluída.${msgApuracao}` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 export async function criarTarefa(fd: FormData): Promise<Resultado> {
   try {
     await requireUser();

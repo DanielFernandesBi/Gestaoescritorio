@@ -7,6 +7,7 @@ import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CaixaBtn } from "@/components/CaixaBtn";
 import { PageHeader } from "@/components/PageHeader";
 import { moverTarefa, assumirTarefa, reatribuirTarefa, type Resultado } from "@/app/actions";
+import { ConcluirConferencia } from "@/components/modules/RegistrarApuracao";
 import { linkPara } from "@/lib/links";
 import { fmtDate, humano, diasAte } from "@/lib/format";
 import type { TarefaCard } from "@/lib/data";
@@ -194,7 +195,11 @@ function PendenteCard({ t, mapa, outro }: { t: TarefaCard; mapa: MapaProvidencia
                 )}
                 <AcaoBtn run={() => moverTarefa(t.id, "em_andamento")}>Em andamento</AcaoBtn>
               </>}
-          <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>
+          {/* Conferência amarrada a movimentação fecha pela porta que também
+              registra o que era — dispensa a visita da T4 e ensina o mapa. */}
+          {t.andamento_id
+            ? <ConcluirConferencia tarefaId={t.id} titulo={t.titulo} temAndamento label={<><Check />Concluir</>} variant="default" />
+            : <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>}
           <AcaoBtn run={() => moverTarefa(t.id, "cancelada")} className="tk-fbtn cancelar"><X />Cancelar</AcaoBtn>
           {(conf || sent) && (
             <CriarPecaPendente
@@ -235,7 +240,9 @@ function AndamentoCard({ t }: { t: TarefaCard }) {
           {t.processo_id && <div className="tk-caixa-row"><CaixaBtn processoId={t.processo_id} /></div>}
         </div>
         <div className="tk-foot">
-          <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>
+          {t.andamento_id
+            ? <ConcluirConferencia tarefaId={t.id} titulo={t.titulo} temAndamento label={<><Check />Concluir</>} variant="default" />
+            : <AcaoBtn run={() => moverTarefa(t.id, "concluida")} className="tk-fbtn concluir"><Check />Concluir</AcaoBtn>}
           <AcaoBtn run={() => moverTarefa(t.id, "pendente")} className="tk-fbtn sec">Voltar</AcaoBtn>
           <AcaoBtn run={() => moverTarefa(t.id, "cancelada")} className="tk-fbtn cancelar"><X />Cancelar</AcaoBtn>
         </div>

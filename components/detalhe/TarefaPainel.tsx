@@ -9,6 +9,7 @@ import { Anotacoes } from "@/components/detalhe/Anotacoes";
 import { CriarPecaPendente } from "@/components/modules/CriarPecaPendente";
 import { CriarCompromisso } from "@/components/CriarCompromisso";
 import { moverTarefa, atualizarTarefa, assumirTarefa, reatribuirTarefa, criarPrazoDeTarefa } from "@/app/actions";
+import { ConcluirConferencia } from "@/components/modules/RegistrarApuracao";
 import { PRIORIDADES, RESPONSAVEIS, TIPO_CONTAGEM } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import { linkPara } from "@/lib/links";
@@ -339,7 +340,12 @@ export function TarefaPainel({ t, lista, anotacoes, mapa = null, socio = null }:
         {/* action bar */}
         <div className="audp-actionbar">
           {t.status !== "concluida" && (
-            <Acao label="✓ Concluir" variant="primary" size="md" titulo="Concluir tarefa" confirmarLabel="Concluir" resumo={<>Marcar <b>{t.titulo}</b> como <b>concluída</b>?</>} acao={() => moverTarefa(t.id, "concluida")} />
+            /* Conferência amarrada a uma movimentação fecha pela porta que também
+               registra o que era — é isso que dispensa a visita da T4 e ensina o
+               mapa. Escrever segue OPCIONAL; sem texto, fecha como sempre fechou. */
+            t.andamento_id
+              ? <ConcluirConferencia tarefaId={t.id} titulo={t.titulo} temAndamento tipoAtual={t.origem?.tipo ?? null} />
+              : <Acao label="✓ Concluir" variant="primary" size="md" titulo="Concluir tarefa" confirmarLabel="Concluir" resumo={<>Marcar <b>{t.titulo}</b> como <b>concluída</b>?</>} acao={() => moverTarefa(t.id, "concluida")} />
           )}
           {t.processo_id && <CriarPrazoDaTarefa t={t} />}
           <CriarPecaPendente tipoOrigem="tarefa" origemId={t.id} texto={[t.titulo, t.descricao].filter(Boolean).join(" — ")} baseTitulo={t.titulo} mapa={mapa} />

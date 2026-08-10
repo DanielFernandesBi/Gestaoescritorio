@@ -9,6 +9,7 @@ import { CriarPrazoDeAndamento } from "@/components/modules/CriarPrazoDeAndament
 import { PromoverIntimacao } from "@/components/modules/PromoverIntimacao";
 import { conferenciaAberta } from "@/components/modules/AndamentosTimeline";
 import { ApuracaoBloco, EstadoApuracao, TextoCapturado, TrilhaConsulta } from "@/components/Apuracao";
+import { RegistrarApuracao } from "@/components/modules/RegistrarApuracao";
 import { atualizarAndamento } from "@/app/actions";
 import { ANDAMENTO_TIPO, ANDAMENTO_ORIGEM } from "@/lib/enums";
 import { type MapaProvidencia } from "@/lib/pecas";
@@ -327,7 +328,10 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
 
         {/* action bar */}
         <div className="audp-actionbar">
-          {a.tarefa && <Link className="btn primary" href={linkPara("tarefa", a.tarefa.id)}><CheckSq /> Abrir conferência</Link>}
+          {/* Primeiro gesto da barra quando ainda não se sabe o que o ato é —
+              é ele que tira o processo da fila da T4 e ensina o mapa. */}
+          {!a.apuracao?.texto && <RegistrarApuracao andamentoId={a.id} tipoAtual={a.tipo} />}
+          {a.tarefa && <Link className={`btn ${a.apuracao?.texto ? "primary" : "default"}`} href={linkPara("tarefa", a.tarefa.id)}><CheckSq /> Abrir conferência</Link>}
           <CriarPecaPendente tipoOrigem="andamento" origemId={a.id} texto={a.descricao} mapa={mapa} />
           {a.processo_id && <PromoverIntimacao andamentoId={a.id} className="btn default" label="→ Transformar em intimação" />}
           {a.processo_id && <CriarPrazoDeAndamento andamentoId={a.id} atoSugerido={a.descricao.split(/ — | · |\. |; |\n/)[0].trim().slice(0, 72)} className="btn default" label="⏱ Transformar em prazo" />}
