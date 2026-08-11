@@ -54,10 +54,22 @@ function InerciaCard({ p }: { p: ProcessoInercia }) {
             <b className="over">+{fmtNum(Math.max(0, p.excedente))}d</b>
             <span>além do limiar</span>
           </div>
+          {/* Sug. 127 — DUAS datas, não uma. Chamar a base do relógio de "último
+              movimento" era falso: quando só chegou ruído de captura, o movimento
+              bruto é posterior e o cartão mentia. */}
           <div className="inc-metric">
             <b className="date">{p.ultima_atividade ? fmtDate(p.ultima_atividade) : "—"}</b>
-            <span>último movimento</span>
+            <span title={p.base_do_relogio ?? undefined}>base do relógio</span>
           </div>
+          {p.ultimo_movimento_bruto && p.ultimo_movimento_bruto !== p.ultima_atividade && (
+            <div className="inc-metric">
+              <b className="date">{fmtDate(p.ultimo_movimento_bruto)}</b>
+              <span title="Último movimento capturado, inclusive o que não zera o relógio por ser eco da nossa própria captura.">
+                movimento bruto
+                {p.dias_desde_movimento_bruto != null ? ` · há ${fmtNum(p.dias_desde_movimento_bruto)}d` : ""}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </article>
@@ -90,9 +102,11 @@ export function InerciaView({ processos }: { processos: ProcessoInercia[] }) {
         descricao={
           <>
             Todo o pipeline (DJEN/push/Radar) reage à <b>presença</b> de movimento; esta é a única peça que vigia a{" "}
-            <b>ausência</b>. Processos <b>ativos com vida</b> cujo silêncio — contado sobre o <b>último movimento real</b>,
-            nunca sobre o cadastro — passou do limiar da área/instância. Stub sem vida não entra (é legado da{" "}
-            <Link className="link" href="/duplicados">reconciliação de CNJ</Link>).
+            <b>ausência</b>. <b>Todo movimento zera o relógio</b>, salvo o que é eco da nossa própria captura —
+            disponibilização em diário, decurso de prazo, ato ordinatório, juntada de certidão. Entram os processos{" "}
+            <b>ativos com vida</b> cujo silêncio passou do limiar da área/instância. Stub sem vida não entra (é legado da{" "}
+            <Link className="link" href="/duplicados">reconciliação de CNJ</Link>). Quando a T4 ou você apuram do que se
+            trata um movimento, a sentinela aprende junto — o relógio lê o tipo apurado.
           </>
         }
         acoes={
