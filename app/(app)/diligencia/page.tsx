@@ -10,16 +10,20 @@ import { DiligenciaView } from "@/components/modules/DiligenciaView";
 export const dynamic = "force-dynamic";
 
 export default async function DiligenciaPage() {
-  const [saude, pendentes, fila, todas, regras, rubrica] = await Promise.all([
+  // O livro é a mesma tabela da fila, mas as duas metades não são a mesma coisa:
+  // resposta de tribunal é visita aos autos, dispensa é curadoria (Sug. 129) e
+  // chamá-las igualmente de "respondidas" seria mentir na tela. Vêm separadas do
+  // banco também por volume — as dispensas são a maioria e sozinhas estourariam
+  // o teto, escondendo as respostas de verdade.
+  const [saude, pendentes, fila, respondidas, dispensadas, regras, rubrica] = await Promise.all([
     getSaudeApuracao(),
     getConsultas("pendente"),
     getDiligenciaFila(),
-    getConsultas(),
+    getConsultas(["encontrado", "sem_registro", "nao_respondeu", "erro"], 200, true),
+    getConsultas("dispensada", 200, true),
     getMapaAprendizado(),
     getSaudeRubrica(),
   ]);
-  // O livro é a mesma tabela da fila; "respondidas" é tudo que já saiu de pendente.
-  const respondidas = todas.filter((c) => c.resultado && c.resultado !== "pendente").reverse();
 
   return (
     <DiligenciaView
@@ -27,6 +31,7 @@ export default async function DiligenciaPage() {
       pendentes={pendentes}
       fila={fila}
       respondidas={respondidas}
+      dispensadas={dispensadas}
       regras={regras}
       rubrica={rubrica}
     />

@@ -3329,16 +3329,25 @@ export async function getDiligenciaFila(): Promise<DiligenciaItem[]> {
  * Consultas já enfileiradas (a fila REAL que a T4 recebe) e as já respondidas.
  * Traz a identificação do processo junto, para a linha ser legível sem outra volta.
  */
-export async function getConsultas(resultado?: string, limit = 200): Promise<ConsultaTribunal[]> {
+export async function getConsultas(
+  resultado?: string | string[],
+  limit = 200,
+  recentesPrimeiro = false,
+): Promise<ConsultaTribunal[]> {
   const supabase = await createClient();
   let q = supabase
     .from("consultas_tribunal")
     .select(
       `${CONSULTA_COLS}, processos(numero_cnj, numero_registro_tribunal, tribunal, segredo_justica, cliente_processo(clientes(id, nome)))`,
     )
-    .order("enfileirado_em", { ascending: true, nullsFirst: false })
+    // A fila pendente se lê do mais antigo (é a ordem em que a T4 trabalha); o
+    // livro se lê do mais recente, senão o teto corta justamente o que acabou
+    // de acontecer — que é o caso desde que as dispensas da Sug. 129 passaram a
+    // responder pela maior parte da tabela.
+    .order("enfileirado_em", { ascending: !recentesPrimeiro, nullsFirst: false })
     .limit(limit);
-  if (resultado) q = q.eq("resultado", resultado);
+  if (Array.isArray(resultado)) q = q.in("resultado", resultado);
+  else if (resultado) q = q.eq("resultado", resultado);
   const { data } = await q;
   return ((data ?? []) as Record<string, unknown>[]).map((r) => {
     const p = r.processos as unknown as NestedProcesso | null;

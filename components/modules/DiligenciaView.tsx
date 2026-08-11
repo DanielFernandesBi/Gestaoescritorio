@@ -21,6 +21,22 @@ import type { ConsultaTribunal, DiligenciaItem, RegraMapaApurado, SaudeApuracao,
 
 const plural = (n: number, um: string, muitos: string) => `${n} ${n === 1 ? um : muitos}`;
 
+/* O tom do resultado não é enfeite: `encontrado` é resposta boa, `erro` é falha
+ * da visita, e `dispensada` (Sug. 129) NÃO é resposta de tribunal nenhuma — é
+ * curadoria. Pintá-la de verde ao lado das outras diria que alguém foi aos autos. */
+const TOM_RESULTADO: Record<string, string> = {
+  encontrado: "prov-nao",
+  sem_registro: "prov",
+  nao_respondeu: "prov",
+  erro: "prazo",
+  dispensada: "",
+};
+
+function TagResultado({ r }: { r: string | null }) {
+  const tom = TOM_RESULTADO[r ?? ""] ?? "";
+  return <span className={`apur-tag ${tom}`.trim()}>{r ?? "—"}</span>;
+}
+
 /** Identificação do processo numa linha, com o CNJ por extenso (nunca truncado). */
 function ProcIdent({
   cnj,
@@ -284,11 +300,35 @@ function Curadoria({ regras, rubrica }: { regras: RegraMapaApurado[]; rubrica: S
 
 /* ── tela ────────────────────────────────────────────────────────────────── */
 
+/** Linha do livro — vale para a resposta de tribunal e para a dispensa. */
+function LinhaLivro({ c }: { c: ConsultaTribunal }) {
+  return (
+    <article className="dil-card feita">
+      <div className="dil-top">
+        <TagResultado r={c.resultado} />
+        <span className="apur-tag">{rotuloSistema(c.sistema)}</span>
+        <span className="dil-espera mono">
+          {c.dias_espera == null ? "—" : plural(c.dias_espera, "dia", "dias")}{" "}
+          {c.resultado === "dispensada" ? "na fila até a dispensa" : "até responder"}
+        </span>
+      </div>
+      <ProcIdent cnj={c.numero_cnj} registro={c.numero_registro} cliente={c.cliente} segredo={c.segredo} processoId={c.processo_id} />
+      {c.observacao && <p className="dil-pergunta">{c.observacao}</p>}
+      <div className="dil-foot mono">
+        enfileirada {c.enfileirado_em ? fmtDate(c.enfileirado_em) : "—"} ·{" "}
+        {c.resultado === "dispensada" ? "dispensada" : "consultada"}{" "}
+        {c.consultado_em ? fmtDate(c.consultado_em) : "—"}
+      </div>
+    </article>
+  );
+}
+
 export function DiligenciaView({
   saude,
   pendentes,
   fila,
   respondidas,
+  dispensadas,
   regras,
   rubrica,
 }: {
@@ -296,6 +336,7 @@ export function DiligenciaView({
   pendentes: ConsultaTribunal[];
   fila: DiligenciaItem[];
   respondidas: ConsultaTribunal[];
+  dispensadas: ConsultaTribunal[];
   regras: RegraMapaApurado[];
   rubrica: SaudeRubrica;
 }) {
@@ -306,18 +347,24 @@ export function DiligenciaView({
   // economiza login, que é o gargalo real de uma sessão de T4.
   const sistemas = useMemo(() => {
     const m = new Map<string, number>();
-    const fonte = aba === "fila" ? fila.map((f) => f.sistema) : aba === "respondidas" ? respondidas.map((c) => c.sistema) : pendentes.map((c) => c.sistema);
+    const fonte =
+      aba === "fila"
+        ? fila.map((f) => f.sistema)
+        : aba === "respondidas"
+          ? [...respondidas, ...dispensadas].map((c) => c.sistema)
+          : pendentes.map((c) => c.sistema);
     for (const s of fonte) m.set(s || "residuo", (m.get(s || "residuo") ?? 0) + 1);
     return [
       { id: "todos", label: `Todos (${fonte.length})` },
       ...[...m.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => ({ id, label: `${rotuloSistema(id)} (${n})` })),
     ];
-  }, [aba, fila, pendentes, respondidas]);
+  }, [aba, fila, pendentes, respondidas, dispensadas]);
 
   const casaSistema = (s: string | null) => sis === "todos" || (s || "residuo") === sis;
   const pendVis = pendentes.filter((c) => casaSistema(c.sistema));
   const filaVis = fila.filter((f) => casaSistema(f.sistema));
   const respVis = respondidas.filter((c) => casaSistema(c.sistema));
+  const dispVis = dispensadas.filter((c) => casaSistema(c.sistema));
 
   const trocarAba = (v: string) => { setAba(v); setSis("todos"); };
 
@@ -351,7 +398,7 @@ export function DiligenciaView({
         options={[
           { id: "pendentes", label: `Na fila da T4 (${pendentes.length})` },
           { id: "fila", label: `Aguardando enfileiramento (${fila.length})` },
-          { id: "respondidas", label: `Já respondidas (${respondidas.length})` },
+          { id: "respondidas", label: `Livro da diligência (${respondidas.length + dispensadas.length})` },
           { id: "mapa", label: `Mapa de aprendizado (${regras.length})` },
         ]}
         value={aba}
@@ -400,8 +447,12 @@ export function DiligenciaView({
           <p className="dil-intro">
             Fila <b>calculada</b> (<span className="mono">vw_diligencia_fila</span>) — o que ainda pode
             ser enfileirado, e que a T1 grava ao rodar{" "}
-            <span className="mono">fn_enfileirar_diligencia</span>. Sai daqui o que já tem consulta
-            pendente ou respondida há menos de 30 dias, e volta só com movimento novo.
+            <span className="mono">fn_enfileirar_diligencia</span>. Sai daqui o que tem consulta{" "}
+            <b>pendente</b> enfileirada há menos de{" "}
+            <span className="mono">diligencia_pendente_validade_dias</span> (7 dias) e o que tem
+            consulta <b>encerrada</b> — de qualquer resultado, inclusive dispensa — posterior à data
+            do próprio movimento. Não há janela de trinta dias: o item volta quando chega movimento
+            NOVO, e a pendência não atendida volta sozinha vencidos os 7 dias.
           </p>
           {filaVis.length === 0 ? (
             <div className="empty">Nada aguardando enfileiramento.</div>
@@ -419,30 +470,37 @@ export function DiligenciaView({
           <p className="dil-intro">
             O livro da diligência. A mesma tabela é a fila e o registro, então aqui se lê o que foi
             perguntado e o que se respondeu. &quot;É ato de rotina, nada a fazer&quot; é resposta
-            válida e fica registrada como qualquer outra.
+            válida e fica registrada como qualquer outra. <b>As duas metades não se misturam:</b>{" "}
+            resposta é visita aos autos; dispensa é decisão de curadoria, em que ninguém entrou no
+            tribunal.
           </p>
+
+          <div className="scan-block-h">Respondidas nos autos ({respVis.length})</div>
           {respVis.length === 0 ? (
             <div className="empty">Nenhuma consulta respondida ainda.</div>
           ) : (
-            <div className="dil-list">
-              {respVis.map((c) => (
-                <article className="dil-card feita" key={c.id}>
-                  <div className="dil-top">
-                    <span className="apur-tag prov-nao">{c.resultado}</span>
-                    <span className="apur-tag">{rotuloSistema(c.sistema)}</span>
-                    <span className="dil-espera mono">
-                      {c.dias_espera == null ? "—" : plural(c.dias_espera, "dia", "dias")} até responder
-                    </span>
-                  </div>
-                  <ProcIdent cnj={c.numero_cnj} registro={c.numero_registro} cliente={c.cliente} segredo={c.segredo} processoId={c.processo_id} />
-                  {c.observacao && <p className="dil-pergunta">{c.observacao}</p>}
-                  <div className="dil-foot mono">
-                    enfileirada {c.enfileirado_em ? fmtDate(c.enfileirado_em) : "—"} · consultada{" "}
-                    {c.consultado_em ? fmtDate(c.consultado_em) : "—"}
-                  </div>
-                </article>
-              ))}
-            </div>
+            <div className="dil-list">{respVis.map((c) => <LinhaLivro key={c.id} c={c} />)}</div>
+          )}
+
+          {dispensadas.length > 0 && (
+            <>
+              <div className="scan-block-h" style={{ marginTop: 18 }}>
+                Dispensadas — a pergunta perdeu o objeto ({dispVis.length})
+              </div>
+              <p className="dil-intro">
+                <span className="mono">dispensada</span> é o resultado terminal criado na Sug. 129
+                (migração 104) para fechar item sem mentir: <span className="mono">nao_respondeu</span>{" "}
+                afirmaria que o <b>tribunal</b> não respondeu, e nestes o tribunal nunca foi
+                consultado. Cada linha traz, na observação, a data e o motivo da dispensa. Elas{" "}
+                <b>não cegam a sentinela</b> — como qualquer resultado encerrado, seguram o item fora
+                da fila só até chegar movimento novo posterior.
+              </p>
+              {dispVis.length === 0 ? (
+                <div className="empty">Nenhuma dispensa neste sistema.</div>
+              ) : (
+                <div className="dil-list">{dispVis.map((c) => <LinhaLivro key={c.id} c={c} />)}</div>
+              )}
+            </>
           )}
         </>
       )}
