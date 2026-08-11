@@ -8,6 +8,41 @@ import { Pill } from "@/components/ui";
 import { linkPara } from "@/lib/links";
 import { fmtDate, fmtNum, humano } from "@/lib/format";
 import type { ProcessoInercia } from "@/lib/queries";
+import { FormModal } from "@/components/FormModal";
+import { suprimirInercia } from "@/app/actions";
+
+/* Sug. 128 — "Conferi, está andando". Em vez de calar o alarme escondendo o
+ * processo, registra quem disse que está tudo bem, por quê e por quanto tempo.
+ * Irmão do gesto de apuração humana. */
+function ConferiEstaAndando({ p }: { p: ProcessoInercia }) {
+  return (
+    <FormModal
+      label="Conferi — está andando"
+      titulo="Tirar da sentinela por um tempo"
+      descricao="Você abriu e viu que o processo tramita. Diga por quê e por quanto tempo — fica registrado em consultas_tribunal, e o alarme volta sozinho no fim do prazo."
+      acao={suprimirInercia.bind(null, p.id)}
+      enviarLabel="Suprimir alarme"
+      variant="default"
+    >
+      <div>
+        <label>Por que está andando</label>
+        <textarea name="motivo" rows={2} required placeholder="Ex.: parecer do MPF juntado em 15/07 e conclusão ao relator; aguardando decisão." />
+      </div>
+      <div>
+        <label>Silenciar por</label>
+        <select name="dias" defaultValue="30">
+          <option value="30">30 dias</option>
+          <option value="60">60 dias</option>
+          <option value="90">90 dias</option>
+        </select>
+      </div>
+      <p className="sub" style={{ margin: 0 }}>
+        Não apaga nada e não muda o status do processo. Passado o prazo, se o silêncio
+        continuar, ele volta a aparecer aqui.
+      </p>
+    </FormModal>
+  );
+}
 
 const procNum = (p: ProcessoInercia) => p.numero_cnj ?? (p.numero_registro ? `reg ${p.numero_registro}` : "sem nº");
 
@@ -39,6 +74,13 @@ function InerciaCard({ p }: { p: ProcessoInercia }) {
           {p.execucao && <span className="inc-tag exec">execução penal</span>}
           {p.preso && <span className="inc-tag preso">réu preso</span>}
           {p.segredo && <span className="inc-tag segredo">🔒 segredo</span>}
+          {/* Sug. 128 — episódio já tratado: a T3 não recria tarefa e a T2 não
+              redige minuta, mas o processo continua visível aqui. */}
+          {p.ja_conferido_neste_episodio && (
+            <span className="inc-tag conferido" title={p.conferido_em ? `Conferência concluída em ${fmtDate(p.conferido_em)}, depois da base do relógio.` : undefined}>
+              ✓ já conferido neste episódio
+            </span>
+          )}
         </div>
 
         <div className="inc-metrics">
@@ -70,6 +112,11 @@ function InerciaCard({ p }: { p: ProcessoInercia }) {
               </span>
             </div>
           )}
+        </div>
+
+        <div className="inc-acoes">
+          <ConferiEstaAndando p={p} />
+          <Link className="btn sm abrir" href={linkPara("processo", p.id)}>Abrir processo</Link>
         </div>
       </div>
     </article>

@@ -838,6 +838,37 @@ export async function concluirConferencia(tarefaId: string, fd: FormData): Promi
   }
 }
 
+/**
+ * "Conferi — está andando" (Sug. 128 / Migração 103). Irmã da apuração humana.
+ * Em vez de calar o alarme escondendo o processo, registra QUEM disse que está
+ * tudo bem, POR QUÊ e POR QUANTO TEMPO, em `consultas_tribunal`.
+ */
+export async function suprimirInercia(processoId: string, fd: FormData): Promise<Resultado> {
+  try {
+    await requireUser();
+    const motivo = String(fd.get("motivo") ?? "").trim();
+    if (!motivo) return { ok: false, message: "Escreva por que o processo está andando." };
+    const dias = Number(fd.get("dias") ?? 30) || 30;
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("fn_suprimir_inercia", {
+      p_processo_id: processoId,
+      p_motivo: motivo,
+      p_dias: dias,
+    });
+    if (error) throw error;
+
+    const ate = (data as { suprime_ate?: string } | null)?.suprime_ate;
+    revalidarTudo();
+    return {
+      ok: true,
+      message: `Alarme suprimido por ${dias} dias${ate ? `, até ${fmtDate(ate)}` : ""}. Volta a alarmar depois disso, ou antes se o silêncio recomeçar.`,
+    };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
 export async function criarTarefa(fd: FormData): Promise<Resultado> {
   try {
     await requireUser();

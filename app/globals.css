@@ -3437,3 +3437,7 @@ h4 .xp-frescor{margin-left:8px;text-transform:none;letter-spacing:0}
 .al-cdias{flex:none;font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .al-cdias.t-crit{color:var(--red)}
 .al-cdias.t-warn{color:var(--amber)}
+
+/* Sug. 128 — inércia: selo do episódio já conferido e barra de ações do cartão. */
+.inc-tag.conferido{background:var(--green-soft);color:var(--green)}
+.inc-acoes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft)}

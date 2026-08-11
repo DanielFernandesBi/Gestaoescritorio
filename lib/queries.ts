@@ -822,6 +822,11 @@ export type ProcessoInercia = {
   dias_desde_movimento_bruto: number | null;
   /* Base do relógio: "movimento que conta" ou o piso (só houve ruído). */
   base_do_relogio: string | null;
+  /* Sug. 128 — o humano já fechou a conferência DEPOIS da base do relógio, ou
+   * seja, já tratou ESTE episódio de silêncio. T3 não recria tarefa e T2 não
+   * redige minuta; o processo segue visível. */
+  ja_conferido_neste_episodio: boolean;
+  conferido_em: string | null;
 };
 
 // Mesma doutrina do passo Cowork: prioridade alta quando execução penal OU réu preso.
@@ -831,7 +836,7 @@ export async function getProcessosInercia(limit = 200): Promise<ProcessoInercia[
   const supabase = await createClient();
   const { data } = await supabase
     .from("vw_processos_inercia")
-    .select("id, numero_cnj, numero_registro_tribunal, area, instancia, fase, responsavel, segredo_justica, ultima_atividade, dias_silencio, limiar_dias, base_do_relogio, ultimo_movimento_bruto, dias_desde_movimento_bruto")
+    .select("id, numero_cnj, numero_registro_tribunal, area, instancia, fase, responsavel, segredo_justica, ultima_atividade, dias_silencio, limiar_dias, base_do_relogio, ultimo_movimento_bruto, dias_desde_movimento_bruto, ja_conferido_neste_episodio, conferido_em")
     .order("dias_silencio", { ascending: false })
     .limit(limit);
   const rows = (data ?? []) as Record<string, unknown>[];
@@ -879,6 +884,8 @@ export async function getProcessosInercia(limit = 200): Promise<ProcessoInercia[
       ultimo_movimento_bruto: (r.ultimo_movimento_bruto as string | null) ?? null,
       dias_desde_movimento_bruto: r.dias_desde_movimento_bruto == null ? null : Number(r.dias_desde_movimento_bruto),
       base_do_relogio: (r.base_do_relogio as string | null) ?? null,
+      ja_conferido_neste_episodio: Boolean(r.ja_conferido_neste_episodio),
+      conferido_em: (r.conferido_em as string | null) ?? null,
     };
   });
 
