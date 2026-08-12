@@ -57,6 +57,11 @@ function encaminhamento(i: Intimacao): { label: string; cls: string; check?: boo
   }
   if (i.tem_peca) return { label: `Minuta IA · ${humano(i.peca_status ?? "em produção")}`, cls: "enc-ai" };
   if (i.na_caixa) return { label: "Na caixa · sem prazo", cls: "enc-caixa" };
+  // Sug. 132 — a lista ficava MUDA sobre a intimação que a automação encaminhou
+  // para tarefa ou audiência (o manual conta quatro artefatos, não dois). Sem
+  // linha nenhuma, o item parecia intocado. Qual é o artefato só o detalhe sabe,
+  // porque tarefa e audiência não têm `intimacao_id` — daí o convite a abrir.
+  if (i.status === "em_analise") return { label: "Em análise · abrir para ver o encaminhamento", cls: "enc-caixa" };
   return null;
 }
 

@@ -935,11 +935,39 @@ export async function getIntimacaoPorId(id: string): Promise<Intimacao | null> {
 
 export type IntimacaoVinculoPrazo = { id: string; ato: string; data_fatal: string; dias: number; validado: boolean };
 export type IntimacaoVinculoPeca = { id: string; titulo: string; status: string };
+/**
+ * Tarefa e audiência nascidas do MESMO encaminhamento (Sug. 132).
+ *
+ * Nenhuma das duas tem `intimacao_id` no banco — o vínculo real é `processo_id`,
+ * e a proximidade temporal é o que resta. Por isso a tela as rotula como
+ * "do processo, no mesmo momento", jamais como "desta intimação": a doutrina do
+ * manual manda a `descricao` ser a narrativa do tribunal e não admite inventar
+ * proveniência. A janela é a mesma da cascata da baixa (3 dias), pela defasagem
+ * natural entre a data do DJEN e a do push/SEEU do mesmo ato.
+ */
+export type IntimacaoVinculoTarefa = {
+  id: string;
+  titulo: string;
+  status: string;
+  prioridade: string | null;
+  automatica: boolean;
+  motivo_auto: string | null;
+  triagem: boolean;
+};
+export type IntimacaoVinculoAudiencia = {
+  id: string;
+  tipo: string;
+  modalidade: string | null;
+  data_hora: string;
+  validado: boolean;
+};
 
 export type IntimacaoFull = Intimacao & {
   clienteRefs: ParteRefLite[];
   prazo: IntimacaoVinculoPrazo | null;
   peca: IntimacaoVinculoPeca | null;
+  tarefas: IntimacaoVinculoTarefa[];
+  audiencias: IntimacaoVinculoAudiencia[];
 };
 
 export type ParteRefLite = { id: string; nome: string; papel: string | null };
@@ -949,13 +977,41 @@ export async function getIntimacaoFull(id: string): Promise<IntimacaoFull | null
   if (!base) return null;
   const supabase = await createClient();
 
-  const [vinc, prz, pcs, sinais] = await Promise.all([
+  // Janela causal: o artefato nasce da ingestão DESTA intimação, portanto vem
+  // depois dela. A folga de 1h para trás cobre a gravação fora de ordem no mesmo
+  // ciclo; os 3 dias para a frente são a janela da cascata da baixa.
+  const { data: cri } = await supabase.from("intimacoes").select("criado_em").eq("id", id).maybeSingle();
+  const t0 = cri?.criado_em ? new Date(cri.criado_em as string) : null;
+  const janelaIni = t0 ? new Date(t0.getTime() - 3_600_000).toISOString() : null;
+  const janelaFim = t0 ? new Date(t0.getTime() + 3 * 86_400_000).toISOString() : null;
+  const naJanela = <T extends { gte: (c: string, v: string) => T; lte: (c: string, v: string) => T }>(q: T) =>
+    janelaIni && janelaFim ? q.gte("criado_em", janelaIni).lte("criado_em", janelaFim) : q;
+
+  const [vinc, prz, pcs, sinais, trf, aud] = await Promise.all([
     base.processo_id
       ? supabase.from("cliente_processo").select("papel, clientes(id, nome)").eq("processo_id", base.processo_id)
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
     supabase.from("prazos").select("id, ato, data_fatal, validado").eq("intimacao_id", id).eq("status", "aberto").order("data_fatal", { ascending: true }),
     supabase.from("pecas").select("id, titulo, status").eq("intimacao_id", id),
     supabase.from("vw_intimacoes_contexto").select("revisado_em, revisado_por, leram_ids, leram_rotulos, qtd_leituras, na_caixa, tem_prazo, tem_peca").eq("intimacao_id", id).maybeSingle(),
+    base.processo_id && t0
+      ? naJanela(
+          supabase
+            .from("tarefas")
+            .select("id, titulo, status, prioridade, cadastro_automatico, motivo_auto, criado_em")
+            .eq("processo_id", base.processo_id)
+            .in("status", ["pendente", "em_andamento"]),
+        ).order("criado_em", { ascending: true })
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    base.processo_id && t0
+      ? naJanela(
+          supabase
+            .from("audiencias")
+            .select("id, tipo, modalidade, data_hora, validado, criado_em")
+            .eq("processo_id", base.processo_id)
+            .eq("status", "designada"),
+        ).order("data_hora", { ascending: true })
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
   ]);
 
   const clienteRefs: ParteRefLite[] = [];
@@ -981,10 +1037,35 @@ export async function getIntimacaoFull(id: string): Promise<IntimacaoFull | null
     ? { id: pecaRow.id as string, titulo: pecaRow.titulo as string, status: pecaRow.status as string }
     : null;
 
+  const tarefas: IntimacaoVinculoTarefa[] = ((trf.data ?? []) as Record<string, unknown>[]).map((t) => {
+    const titulo = (t.titulo as string) ?? "";
+    return {
+      id: t.id as string,
+      titulo,
+      status: t.status as string,
+      prioridade: (t.prioridade as string | null) ?? null,
+      automatica: Boolean(t.cadastro_automatico),
+      motivo_auto: (t.motivo_auto as string | null) ?? null,
+      // A triagem é o encaminhamento que NÃO decide nada — é o pedido de decisão
+      // humana. Distingui-la importa: só ela deixa a intimação de fato em aberto.
+      triagem: /^\s*\[TRIAGEM\]/i.test(titulo),
+    };
+  });
+
+  const audiencias: IntimacaoVinculoAudiencia[] = ((aud.data ?? []) as Record<string, unknown>[]).map((a) => ({
+    id: a.id as string,
+    tipo: a.tipo as string,
+    modalidade: (a.modalidade as string | null) ?? null,
+    data_hora: a.data_hora as string,
+    validado: Boolean(a.validado),
+  }));
+
   const s = sinais.data as Record<string, unknown> | null;
 
   return {
     ...base,
+    tarefas,
+    audiencias,
     revisado_em: (s?.revisado_em as string | null) ?? null,
     revisado_por: (s?.revisado_por as string | null) ?? null,
     leram_ids: (s?.leram_ids as string[] | null) ?? [],

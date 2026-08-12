@@ -2918,6 +2918,15 @@ a.tk-title:hover{text-decoration:underline}
 /* órfã */
 .int-orfa{background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 26%,transparent);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--text);line-height:1.55}
 
+/* Sug. 132 — o motivo do cadeado sai do `title` e vira texto lido. Neutro por
+   padrão; âmbar quando o único encaminhamento é triagem, porque aí a decisão
+   ainda é de Daniel e o travamento induz ao erro de achar que já foi resolvido. */
+.int-trava{display:flex;align-items:flex-start;gap:10px;margin-top:10px;padding:11px 13px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.55}
+.int-trava .ic{flex:none;line-height:1.4}
+.int-trava b{color:var(--text)}
+.int-trava.triagem{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 26%,transparent);color:var(--text)}
+.int-trava-cta{margin-top:6px;font-size:12px;color:var(--text)}
+
 /* identificação compacta da intimação (cliente negrito + processo menor) */
 .int-ident{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:11px}
 .int-ident-nome{font-size:18px;font-weight:800;color:var(--name);line-height:1.25}

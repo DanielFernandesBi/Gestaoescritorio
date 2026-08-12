@@ -12,7 +12,7 @@ import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm"
 import { atualizarIntimacao, atualizarIntimacaoCampos, criarPrazo, criarTarefa, promoverOrfa } from "@/app/actions";
 import { PROCESSO_INSTANCIA, PROCESSO_AREA, RESPONSAVEIS, TIPO_CONTAGEM, PRIORIDADES } from "@/lib/enums";
 import { sugerirPeca, type MapaProvidencia } from "@/lib/pecas";
-import { fmtDate, humano, dividirAto } from "@/lib/format";
+import { fmtDate, fmtTime, humano, dividirAto } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import { lidaPorMim, seloCiencia } from "@/lib/ciencia";
 import type { Intimacao, IntimacaoFull, Anotacao } from "@/lib/data";
@@ -173,19 +173,71 @@ function NovaTarefaIntim({ i, label, variant = "default" }: { i: IntimacaoFull; 
 }
 
 /* ── componente principal ────────────────────────────────────────────────── */
-// Estado de DECISÃO DE FLUXO (Sug. 53) — fonte: vw_intimacoes_contexto (status,
-// na_caixa) + os vínculos ABERTO/não-terminal (prazo/peça). Só está "aberta para
-// decisão" quando status='pendente' E na_caixa=true; caso contrário já foi
-// decidida/encaminhada e os botões de fluxo travam.
-type DecInfo = { aberta: boolean; selo: string; motivo: string };
+/**
+ * Estado de DECISÃO DE FLUXO (Sug. 53, corrigida pela Sug. 132).
+ *
+ * Só está "aberta para decisão" quando `status='pendente'` E `na_caixa=true`;
+ * fora disso os botões de fluxo travam. O que mudou: o manual lista QUATRO
+ * artefatos de encaminhamento — "prazo/audiência/peça/tarefa de conferência" —
+ * e esta função só conhecia dois. O resultado é que metade das intimações do dia
+ * ganhava um selo que explicava ("tem prazo") e a outra metade um "Em análise"
+ * mudo, que trava sem dizer para onde o ato foi.
+ *
+ * Agora o selo nomeia o destino e o motivo diz onde continuar. E distingue-se o
+ * caso do encaminhamento que NÃO decidiu nada — a tarefa de TRIAGEM, que é o
+ * pedido de decisão humana. Aí o travamento é o mais enganoso de todos, porque
+ * quem tem de decidir é justamente quem está diante da tela.
+ */
+type DecInfo = { aberta: boolean; selo: string; motivo: string; soTriagem: boolean };
 function classificarDecisao(i: IntimacaoFull): DecInfo {
-  if (i.status === "pendente" && i.na_caixa === true) return { aberta: true, selo: "", motivo: "" };
-  if (i.status === "arquivada") return { aberta: false, selo: "Arquivada", motivo: "Arquivada" };
-  if (i.prazo || i.peca) return { aberta: false, selo: `Encaminhada · ${i.prazo ? "tem prazo" : "tem peça"}`, motivo: "Já encaminhada (tem prazo/peça)" };
-  if (i.status === "sem_providencia") return { aberta: false, selo: "Decidida · sem providência", motivo: "Já decidida: sem providência" };
-  if (i.status === "providencia_tomada") return { aberta: false, selo: "Decidida · providência tomada", motivo: "Providência já tomada" };
-  if (i.status === "em_analise") return { aberta: false, selo: "Em análise", motivo: "Em análise" };
-  return { aberta: false, selo: "Já encaminhada", motivo: "Já encaminhada" };
+  const base = { aberta: false, soTriagem: false };
+  if (i.status === "pendente" && i.na_caixa === true) return { aberta: true, selo: "", motivo: "", soTriagem: false };
+  if (i.status === "arquivada") return { ...base, selo: "Arquivada", motivo: "Arquivada — nada a decidir." };
+  if (i.prazo || i.peca) {
+    return {
+      ...base,
+      selo: `Encaminhada · ${i.prazo ? "tem prazo" : "tem peça"}`,
+      motivo: i.prazo
+        ? "Já encaminhada — há prazo aberto vinculado. O acompanhamento é pelo prazo, que tem gate próprio."
+        : "Já encaminhada — há peça vinculada. O acompanhamento é pela peça, que tem gate próprio.",
+    };
+  }
+  if (i.status === "sem_providencia") return { ...base, selo: "Decidida · sem providência", motivo: "Já decidida: sem providência." };
+  if (i.status === "providencia_tomada") return { ...base, selo: "Decidida · providência tomada", motivo: "Providência já tomada." };
+
+  if (i.status === "em_analise") {
+    const aud = i.audiencias ?? [];
+    const tar = i.tarefas ?? [];
+    if (aud.length) {
+      return {
+        ...base,
+        selo: `Em análise · ${aud.length === 1 ? "audiência designada" : `${aud.length} audiências designadas`}`,
+        motivo: "Encaminhada para a agenda — há audiência designada no processo. O acompanhamento é pela audiência.",
+      };
+    }
+    if (tar.length && tar.every((t) => t.triagem)) {
+      return {
+        ...base,
+        soTriagem: true,
+        selo: "Em análise · só triagem",
+        motivo:
+          "O único encaminhamento é uma tarefa de TRIAGEM — a providência não casou regra de peça e o sistema pediu decisão humana. Se for ciência apenas, reabra a decisão para marcar sem providência.",
+      };
+    }
+    if (tar.length) {
+      return {
+        ...base,
+        selo: `Em análise · ${tar.length === 1 ? "tem tarefa" : `${tar.length} tarefas`}`,
+        motivo: "Encaminhada — há tarefa de conferência aberta no processo. O acompanhamento é pela tarefa.",
+      };
+    }
+    return {
+      ...base,
+      selo: "Em análise",
+      motivo: "Status avançado pela automação, mas nenhum artefato aberto foi encontrado no processo. Confira — pode ser encaminhamento fora da janela ou já concluído.",
+    };
+  }
+  return { ...base, selo: "Já encaminhada", motivo: "Já encaminhada." };
 }
 
 // Botão de fluxo TRAVADO: visível, desabilitado, cadeado + tooltip (a11y).
@@ -407,6 +459,37 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
                       : <BotaoTravado label={<><Clock /> Encaminhar → prazo</>} motivo={dec.motivo} />}
                   </div>
                 ) : null}
+
+                {/* Sug. 132 — audiência e tarefa também são encaminhamento, e sem
+                    elas o cadeado da tela não tinha como dizer para onde o ato foi.
+                    Vínculo por processo + janela: o rótulo diz isso, não inventa
+                    proveniência que o banco não guarda. */}
+                {(i.audiencias ?? []).map((a) => (
+                  <div className="przp-origem" key={a.id}>
+                    <span className={`pz-tag ${a.validado ? "val" : "tang"}`}>{a.validado ? "audiência" : "audiência a validar"}</span>
+                    <div className="mid">
+                      <div className="t">{humano(a.tipo)}{a.modalidade ? ` · ${humano(a.modalidade)}` : ""}</div>
+                      <div className="s mono">{fmtDate(a.data_hora)} às {fmtTime(a.data_hora)} · designada no mesmo momento desta captura</div>
+                    </div>
+                    <Link className="btn sm abrir" href={linkPara("audiencia", a.id)}>Abrir</Link>
+                  </div>
+                ))}
+
+                {(i.tarefas ?? []).map((t) => (
+                  <div className="przp-origem" key={t.id}>
+                    <span className={`pz-tag ${t.prioridade === "urgente" ? "tone-red" : t.triagem ? "cat-slate" : "cowork"}`}>
+                      {t.triagem ? "triagem" : "tarefa"}{t.prioridade === "urgente" ? " · urgente" : ""}
+                    </span>
+                    <div className="mid">
+                      <div className="t">{t.titulo.replace(/^\s*\[TRIAGEM\]\s*/i, "")}</div>
+                      <div className="s">
+                        {humano(t.status)}
+                        {t.triagem ? " · pede DECISÃO sua — não decidiu nada sozinha" : ""}
+                      </div>
+                    </div>
+                    <Link className="btn sm abrir" href={linkPara("tarefa", t.id)}>Abrir</Link>
+                  </div>
+                ))}
               </div>
             </Sec>
 
@@ -444,6 +527,25 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
               )}
               {!dec.aberta && !reaberto && <ReabrirDecisao onReabrir={() => setReaberto(true)} />}
             </div>
+
+            {/* Sug. 132 — o cadeado passa a dizer POR QUE trava, e não só que trava.
+                Antes o motivo vivia só no `title` do botão desabilitado, que não
+                aparece no toque nem no teclado. */}
+            {!dec.aberta && !reaberto && dec.motivo && (
+              <div className={`int-trava${dec.soTriagem ? " triagem" : ""}`}>
+                <span className="ic">🔒</span>
+                <div>
+                  <b>{dec.selo}</b> — {dec.motivo}
+                  {dec.soTriagem && (
+                    <div className="int-trava-cta">
+                      Nada foi decidido por você ainda. Se, lendo, concluir que é ciência apenas,
+                      use <b>Reabrir decisão</b> acima e marque <b>sem providência</b> — fica auditado como decisão sua.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="audp-status-note">Arquivar é troca de status — nunca DELETE. A intimação permanece como porta de entrada auditada.</div>
           </div>
         </div>
