@@ -330,7 +330,19 @@ export function AndamentoPainel({ a, lista, mapa, anotacoes, filtroInicial = "re
         <div className="audp-actionbar">
           {/* Primeiro gesto da barra quando ainda não se sabe o que o ato é —
               é ele que tira o processo da fila da T4 e ensina o mapa. */}
-          {!a.apuracao?.texto && <RegistrarApuracao andamentoId={a.id} tipoAtual={a.tipo} />}
+          {!a.apuracao?.texto && (
+            <RegistrarApuracao
+              andamentoId={a.id}
+              tipoAtual={a.tipo}
+              /* Sug. 134 — aqui o título da tarefa existe, então o fecho diz
+                 exatamente qual conferência vai encerrar. */
+              conferencia={
+                a.tarefa && (a.tarefa.status === "pendente" || a.tarefa.status === "em_andamento")
+                  ? { titulo: a.tarefa.titulo, prioridade: a.tarefa.prioridade ?? null }
+                  : null
+              }
+            />
+          )}
           {a.tarefa && <Link className={`btn ${a.apuracao?.texto ? "primary" : "default"}`} href={linkPara("tarefa", a.tarefa.id)}><CheckSq /> Abrir conferência</Link>}
           <CriarPecaPendente tipoOrigem="andamento" origemId={a.id} texto={a.descricao} mapa={mapa} />
           {a.processo_id && <PromoverIntimacao andamentoId={a.id} className="btn default" label="→ Transformar em intimação" />}

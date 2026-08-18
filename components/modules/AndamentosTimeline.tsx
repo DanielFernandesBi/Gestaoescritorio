@@ -179,7 +179,15 @@ export function AndamentosTimeline({
                   {/* Se ele já abriu os autos, é aqui que o card deixa de ser opaco
                       e o processo sai da fila da T4 — sem precisar entrar no detalhe. */}
                   {m.processo_id && !m.apuracao?.texto && (
-                    <RegistrarApuracao andamentoId={m.id} tipoAtual={m.tipo} label="Já conferi · do que se trata" variant="default" />
+                    <RegistrarApuracao
+                      andamentoId={m.id}
+                      tipoAtual={m.tipo}
+                      /* Sug. 134 — havendo conferência ABERTA sobre este movimento,
+                         escrever do que se trata fecha as duas pontas de uma vez. */
+                      conferencia={conferenciaAberta(m) ? { prioridade: m.prioridade ?? null } : null}
+                      label="Já conferi · do que se trata"
+                      variant="default"
+                    />
                   )}
                   <CriarPecaPendente tipoOrigem="andamento" origemId={m.id} texto={m.descricao} mapa={mapa} />
                   {m.processo_id && <PromoverIntimacao andamentoId={m.id} />}

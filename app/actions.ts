@@ -789,15 +789,48 @@ async function gravarApuracao(
   return { ok: true, message: msg, apurados, restantes, consultaFechada: fechada };
 }
 
-/** Registra "do que se trata" a partir do próprio andamento (sem passar por tarefa). */
+/**
+ * Registra "do que se trata" a partir do próprio andamento (sem passar por tarefa).
+ *
+ * Sug. 134 — fecha a conferência no mesmo gesto, quando pedido. `fn_apurar_humano`
+ * grava a apuração e encerra a CONSULTA da fila da T4, mas nunca tocou `tarefas`:
+ * quem escrevia do que se trata pelo cartão via a tarefa de conferência continuar
+ * aberta e tinha de concluí-la de novo, em outra tela. São dois eixos que o mesmo
+ * ato humano resolve.
+ *
+ * A tarefa a fechar é resolvida AQUI, pelo `andamento_id`, e nunca por id vindo do
+ * formulário — o cliente escolhe SE fecha, jamais O QUE fecha. E fecha só a deste
+ * movimento: apurando o processo inteiro (escopo padrão), as conferências dos
+ * outros movimentos seguem como estavam, porque nem toda tarefa escalada pergunta
+ * "do que se trata" — as de decurso de prazo e de liberdade pedem ação.
+ */
 export async function apurarAndamento(id: string, fd: FormData): Promise<Resultado> {
   try {
     await requireUser();
     const supabase = await createClient();
     const r = await gravarApuracao(supabase, id, fd);
     if (!r) return { ok: false, message: "Escreva do que se trata — é esse texto que dispensa a visita da T4." };
+
+    let msgTarefa = "";
+    if (fd.get("concluir_tarefa")) {
+      const { data: abertas } = await supabase
+        .from("tarefas")
+        .select("id")
+        .eq("andamento_id", id)
+        .in("status", ["pendente", "em_andamento"]);
+      const ids = ((abertas ?? []) as { id: string }[]).map((t) => t.id);
+      if (ids.length) {
+        const { error } = await supabase
+          .from("tarefas")
+          .update({ status: "concluida", concluida_em: agora() })
+          .in("id", ids);
+        if (error) throw error;
+        msgTarefa = ids.length === 1 ? " Conferência concluída." : ` ${ids.length} conferências deste movimento concluídas.`;
+      }
+    }
+
     revalidarTudo();
-    return r;
+    return { ...r, message: `${r.message}${msgTarefa}` };
   } catch (e) {
     return falha(e);
   }

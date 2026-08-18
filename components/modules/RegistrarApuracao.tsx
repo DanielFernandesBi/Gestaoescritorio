@@ -21,6 +21,47 @@ import type { ReactNode } from "react";
  * que a doutrina proíbe.
  */
 
+/** Conferência escalada ainda aberta sobre ESTE movimento. */
+export type ConferenciaAberta = { titulo?: string | null; prioridade?: string | null };
+
+/**
+ * O fecho da conferência dentro do gesto de apurar.
+ *
+ * `fn_apurar_humano` grava a apuração e encerra a CONSULTA da fila da T4 — nunca
+ * tocou `tarefas`. Só que, no cartão, "Já conferi · do que se trata" fica ao lado
+ * de "Conferir", e escrever do que se trata É a conferência: deixar a tarefa
+ * aberta depois disso é pedir o mesmo trabalho duas vezes.
+ *
+ * Vem marcado, mas VISÍVEL e desmarcável, e nomeia o que vai fechar — porque nem
+ * toda conferência escalada pergunta "do que se trata": há as de decurso de prazo
+ * e de liberdade, que pedem AÇÃO e podem seguir de pé depois de identificado o
+ * ato. Fecha só a deste movimento; apurando o processo inteiro, as tarefas dos
+ * outros movimentos continuam como estavam.
+ */
+function FechoConferencia({ c }: { c: ConferenciaAberta }) {
+  const urgente = c.prioridade === "urgente" || c.prioridade === "alta";
+  return (
+    <div className="apur-fecho">
+      <label style={{ display: "flex", gap: 9, alignItems: "flex-start", cursor: "pointer" }}>
+        <input type="checkbox" name="concluir_tarefa" defaultChecked style={{ marginTop: 3 }} />
+        <span>
+          <b>Concluir também a conferência deste movimento</b>
+          {c.titulo ? <><br /><span className="sub">{c.titulo}</span></> : null}
+          {urgente && (
+            <>
+              <br />
+              <span className="sub" style={{ color: "var(--amber)" }}>
+                Prioridade {c.prioridade?.toUpperCase()} — se ela pede AÇÃO e não só identificar o ato,
+                desmarque e deixe a tarefa aberta.
+              </span>
+            </>
+          )}
+        </span>
+      </label>
+    </div>
+  );
+}
+
 function Campos({ escopoPadrao, tipoAtual }: { escopoPadrao: "processo" | "andamento"; tipoAtual?: string | null }) {
   return (
     <>
@@ -120,11 +161,14 @@ export function ConcluirConferencia({
 export function RegistrarApuracao({
   andamentoId,
   tipoAtual,
+  conferencia,
   label = "Registrar do que se trata",
   variant = "primary",
 }: {
   andamentoId: string;
   tipoAtual?: string | null;
+  /** Passe quando houver conferência escalada ABERTA sobre este movimento. */
+  conferencia?: ConferenciaAberta | null;
   label?: ReactNode;
   variant?: "primary" | "default";
 }) {
@@ -132,12 +176,17 @@ export function RegistrarApuracao({
     <FormModal
       label={label}
       titulo="Registrar do que se trata"
-      descricao="Você abriu os autos e viu. Escreva o que era — o card passa a mostrar isso no lugar do texto cru, o processo sai da fila da T4 e o mapa aprende a reconhecer o mesmo movimento."
+      descricao={
+        conferencia
+          ? "Você abriu os autos e viu. Escreva o que era — o card passa a mostrar isso no lugar do texto cru, a conferência deste movimento fecha, o processo sai da fila da T4 e o mapa aprende a reconhecer o mesmo movimento."
+          : "Você abriu os autos e viu. Escreva o que era — o card passa a mostrar isso no lugar do texto cru, o processo sai da fila da T4 e o mapa aprende a reconhecer o mesmo movimento."
+      }
       acao={apurarAndamento.bind(null, andamentoId)}
       enviarLabel="Registrar"
       variant={variant}
     >
       <Campos escopoPadrao="processo" tipoAtual={tipoAtual} />
+      {conferencia && <FechoConferencia c={conferencia} />}
     </FormModal>
   );
 }
