@@ -22,11 +22,14 @@ const ORIGENS = [
 export function AndamentosModulo({
   movimentacoes,
   orfaos,
+  conferencias = [],
   mapa = null,
   acoes,
 }: {
   movimentacoes: Movimentacao[];
   orfaos: AndamentoOrfao[];
+  /** Conferências abertas SEM janela de data — a mesma régua do badge do menu. */
+  conferencias?: Movimentacao[];
   mapa?: MapaProvidencia | null;
   acoes?: ReactNode;
 }) {
@@ -39,10 +42,13 @@ export function AndamentosModulo({
   const irAba = (v: string) => { setAba(v); setVisiveis(PASSO); };
   const irOrig = (v: string) => { setOrig(v); setVisiveis(PASSO); };
 
-  // "A conferir" é a fila ACIONÁVEL — conferência ainda aberta. "Escalados" é o
-  // histórico do período (inclui as já resolvidas), que é o que o KPI sempre mediu.
-  // Sem a distinção, 19 escalados com 18 concluídos escondiam o único pendente.
-  const nAConferir = movimentacoes.filter(conferenciaAberta).length;
+  // "A conferir" é a fila ACIONÁVEL — conferência ainda aberta —, e ela NÃO se
+  // mede na janela de 7 dias: vem de `conferencias`, sem recorte de data, que é
+  // a régua do badge do menu. Medir aqui dentro de `movimentacoes` era a causa
+  // do menu dizer 13 e a tela não ter o que conferir — as 13 eram de 12 a 16/08
+  // e a view corta em 7 dias. "Escalados" segue sendo o histórico do PERÍODO
+  // (inclui as já resolvidas), que é outra pergunta e continua na janela.
+  const nAConferir = conferencias.length;
   const nEscalados = movimentacoes.filter((m) => m.escalado).length;
   const nDecisoes = movimentacoes.filter((m) => ehDecisao(m.tipo)).length;
 
@@ -63,22 +69,22 @@ export function AndamentosModulo({
     { id: "orfaos", label: `Órfãos (${orfaos.length})` },
   ];
 
-  const filtradas = useMemo(
-    () =>
-      movimentacoes.filter((m) => {
-        const okAba =
-          aba === "opacos" ? m.apuracao?.status === "a_conferir"
-            : aba === "diligencia" ? m.apuracao?.status === "em_diligencia"
-              : aba === "apurados" ? Boolean(m.apuracao?.texto)
-                : aba === "conferir" ? conferenciaAberta(m)
-                  : aba === "escalados" ? m.escalado
-                    : aba === "decisoes" ? ehDecisao(m.tipo)
-                      : true;
-        const okOrig = orig === "todas" ? true : (m.origem ?? "") === orig;
-        return okAba && okOrig;
-      }),
-    [movimentacoes, aba, orig],
-  );
+  const filtradas = useMemo(() => {
+    // A aba da conferência lê a fila SEM janela; as outras, a janela de 7 dias.
+    const base = aba === "conferir" ? conferencias : movimentacoes;
+    return base.filter((m) => {
+      const okAba =
+        aba === "opacos" ? m.apuracao?.status === "a_conferir"
+          : aba === "diligencia" ? m.apuracao?.status === "em_diligencia"
+            : aba === "apurados" ? Boolean(m.apuracao?.texto)
+              : aba === "conferir" ? conferenciaAberta(m)
+                : aba === "escalados" ? m.escalado
+                  : aba === "decisoes" ? ehDecisao(m.tipo)
+                    : true;
+      const okOrig = orig === "todas" ? true : (m.origem ?? "") === orig;
+      return okAba && okOrig;
+    });
+  }, [movimentacoes, conferencias, aba, orig]);
 
   return (
     <>
@@ -104,10 +110,25 @@ export function AndamentosModulo({
           // O KPI da conferência mede o ACIONÁVEL (mesma régua do badge do menu).
           // Antes mostrava o total escalado no período, concluídos inclusive, e por
           // isso divergia do menu — 19 aqui contra 1 lá, sem nada explicando.
-          { valor: nAConferir, label: "Conferência aberta", tone: "accent" },
+          { valor: nAConferir, label: "Conferência aberta · sem prazo de validade", tone: "accent" },
           { valor: orfaos.length, label: "Órfãos · sem processo", tone: "red" },
         ]}
       />
+
+      {/* A conferência pendente fica ACIMA das abas e fora da janela de 7 dias:
+          é o acionável que o badge anuncia, e some da vista só quando é
+          resolvida — nunca por envelhecer. Na própria aba "conferir" o bloco
+          se recolhe, para não repetir a lista logo abaixo. */}
+      {conferencias.length > 0 && aba !== "conferir" && (
+        <div className="conf-pend">
+          <div className="conf-pend-h">
+            <span className="t">Conferência pendente</span>
+            <span className="n">{conferencias.length}</span>
+            <span className="hint">qualquer data — não expira com a janela de 7 dias</span>
+          </div>
+          <AndamentosTimeline movimentacoes={conferencias} mapa={mapa} filtro="conferir" />
+        </div>
+      )}
 
       <Chips options={abas} value={aba} onChange={irAba} />
       {aba !== "orfaos" && <Chips options={ORIGENS} value={orig} onChange={irOrig} />}

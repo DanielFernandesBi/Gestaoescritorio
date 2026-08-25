@@ -394,6 +394,19 @@ export function DiligenciaView({
 
       <Saude s={saude} />
 
+      {/* O badge do menu soma as DUAS filas (vw_diligencia_fila + consultas
+          pendentes), e a tela as mostra em abas separadas — sem esta linha, o
+          menu dizia 44 e a aba aberta dizia 25, sem nada explicando a diferença.
+          As duas metades continuam separadas de propósito: uma é o que já foi
+          enfileirado, a outra o que ainda pode entrar. */}
+      {saude.consultasLegiveis && pendentes.length + fila.length > 0 && (
+        <p className="dil-soma">
+          O badge do menu conta <b>{pendentes.length + fila.length}</b> — a soma das duas primeiras
+          abas: <b>{pendentes.length}</b> já na fila da T4 e <b>{fila.length}</b> aguardando
+          enfileiramento.
+        </p>
+      )}
+
       <Chips
         options={[
           { id: "pendentes", label: `Na fila da T4 (${pendentes.length})` },

@@ -3184,6 +3184,95 @@ export async function getAndamentos(): Promise<Movimentacao[]> {
   });
 }
 
+/* Conferência pendente — a fila que o badge conta, SEM janela de data ----------
+ *
+ * O badge de Andamentos conta tarefas de conferência abertas (`vw` nenhuma:
+ * `tarefas` com `andamento_id`, automáticas do cowork, em pendente/em_andamento)
+ * e não tem recorte temporal. A tela lia só `vw_movimentacoes_recentes`, cujo
+ * corte é `data >= hoje-7d OR criado_em > now()-48h`. As duas janelas divergiam:
+ * medido em 25/08/2026, as 13 conferências abertas vinham de andamentos de 12 a
+ * 16/08 e NENHUMA caía dentro da view — o menu dizia 13 e a página não tinha o
+ * que conferir.
+ *
+ * O alarme envelhecia para fora da tela e continuava tocando no menu. Alinhar o
+ * badge à janela de 7 dias resolveria a divergência ESCONDENDO as 13, o que
+ * contraria o fail-safe da Sug. 118 (a diligência apaga a pendência, nunca o
+ * alarme). Então é a TELA que passa a enxergar a fila inteira, aqui: parte-se
+ * das tarefas abertas — a mesma régua do badge, caractere por caractere — e
+ * buscam-se os andamentos correspondentes direto da TABELA, em qualquer data.
+ */
+export async function getConferenciasPendentes(): Promise<Movimentacao[]> {
+  const supabase = await createClient();
+  // Mesma régua do badge (lib/queries.ts): tarefa de conferência ainda aberta,
+  // automática do cowork, amarrada a um andamento.
+  const { data: tarefas } = await supabase
+    .from("tarefas")
+    .select("id, andamento_id, prioridade, status")
+    .not("andamento_id", "is", null)
+    .eq("cadastro_automatico", true)
+    .eq("cadastrado_por", "cowork")
+    .in("status", ["pendente", "em_andamento"]);
+
+  const porAndamento = new Map<string, { tarefa_id: string; prioridade: string | null; status: string | null }>();
+  for (const t of tarefas ?? []) {
+    const k = t.andamento_id as string;
+    // Mais de uma tarefa aberta sobre o mesmo movimento: fica a primeira, que é
+    // o que o cartão sabe exibir. O contador do badge conta tarefas, este bloco
+    // conta MOVIMENTOS — a diferença aparece só nesse caso, e é intencional.
+    if (!porAndamento.has(k))
+      porAndamento.set(k, { tarefa_id: t.id as string, prioridade: (t.prioridade as string) ?? null, status: (t.status as string) ?? null });
+  }
+  const ids = [...porAndamento.keys()];
+  if (!ids.length) return [];
+
+  const [{ data: rows }, apurPorAnd] = await Promise.all([
+    supabase
+      .from("andamentos")
+      .select(
+        "id, data, tipo, descricao, autor, origem, processo_id, processos(numero_cnj,numero_registro_tribunal,tribunal,segredo_justica,classe,assunto,area,fase,instancia,vara_comarca,cliente_processo(papel,clientes(id,nome)))",
+      )
+      .in("id", ids)
+      .order("data", { ascending: false }),
+    apuracoesPorAndamento(supabase, ids),
+  ]);
+
+  return ((rows ?? []) as Record<string, unknown>[]).map((r): Movimentacao => {
+    const p = r.processos as unknown as NestedProcesso;
+    const esc = porAndamento.get(r.id as string);
+    return {
+      id: r.id as string,
+      data: r.data as string,
+      tipo: r.tipo as string,
+      descricao: r.descricao as string,
+      autor: (r.autor as string | null) ?? null,
+      origem: (r.origem as string | null) ?? null,
+      numero_cnj: p?.numero_cnj ?? null,
+      numero_registro: p?.numero_registro_tribunal ?? null,
+      tribunal: p?.tribunal ?? null,
+      segredo: Boolean(p?.segredo_justica),
+      clientes: nomesClientes(p?.cliente_processo) || null,
+      contexto: p
+        ? {
+            classe: p.classe ?? null,
+            assunto: p.assunto ?? null,
+            area: p.area ?? null,
+            fase: p.fase ?? null,
+            instancia: p.instancia ?? null,
+            tribunal: p.tribunal ?? null,
+            vara_comarca: p.vara_comarca ?? null,
+          }
+        : null,
+      processo_id: (r.processo_id as string | null) ?? null,
+      partes: partesClientes(p?.cliente_processo as unknown as (NestedCliente & { papel?: string | null })[] | null),
+      escalado: true,
+      prioridade: esc?.prioridade ?? null,
+      tarefa_id: esc?.tarefa_id ?? null,
+      escalado_status: esc?.status ?? null,
+      apuracao: apurPorAnd.get(r.id as string) ?? null,
+    };
+  });
+}
+
 /* Detalhe completo do andamento (master-detail, alvo Plantão) — lê direto da
  * tabela (qualquer data, não só a janela recente) + escalonamento (tarefa) e
  * peça originada. */
@@ -3818,7 +3907,19 @@ export async function getTarefaPorId(id: string): Promise<Tarefa | null> {
 /* Painel de tarefas (tela /tarefas, alvo Plantão) -----------------------------
  * Tarefas com o cliente resolvido (processo vinculado OU cliente direto), nº do
  * processo, selo de sigilo e a data de conclusão — para os cards do kanban
- * (pendente · em andamento · concluída). getTarefas continua magra (drawer). */
+ * (pendente · em andamento · concluída). getTarefas continua magra (drawer).
+ *
+ * DUAS consultas, e não uma janela única. A anterior pedia as 300 primeiras de
+ * TODAS as tarefas ordenadas por `data_limite`, e só filtrava status em memória
+ * — com 519 tarefas, das quais 476 já encerradas, as 43 abertas não cabiam
+ * inteiras na janela: as datadas subiam ao topo pela ordenação, e as 24 abertas
+ * SEM data caíam depois da linha 300, entre as concluídas antigas, e jamais
+ * chegavam ao navegador. Daí o badge dizer 43 e a tela mostrar 19.
+ *
+ * O recorte agora é do SERVIDOR, e cada coluna pede o que precisa: as abertas
+ * inteiras (são dezenas, não milhares) e só as concluídas recentes, que é o que
+ * a coluna "Concluída · recentes" promete. Canceladas não são pedidas — nenhuma
+ * coluna as renderiza. */
 
 export type TarefaCard = Tarefa & {
   cliente: string | null;
@@ -3826,17 +3927,30 @@ export type TarefaCard = Tarefa & {
   concluida_em: string | null;
 };
 
+const CAMPOS_TAREFA_CARD =
+  "id, titulo, descricao, status, prioridade, responsavel, data_limite, concluida_em, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, motivo_auto, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome))), clientes(nome)";
+
+/** Quantas concluídas a coluna "recentes" mostra. Teto de exibição, não de acervo. */
+const CONCLUIDAS_RECENTES = 40;
+
 export async function getTarefasPainel(): Promise<TarefaCard[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("tarefas")
-    .select(
-      "id, titulo, descricao, status, prioridade, responsavel, data_limite, concluida_em, processo_id, cliente_id, cadastro_automatico, cadastrado_por, andamento_id, motivo_auto, processos(numero_cnj,numero_registro_tribunal,segredo_justica,cliente_processo(clientes(nome))), clientes(nome)",
-    )
-    .order("data_limite", { ascending: true, nullsFirst: false })
-    .limit(300);
+  const [abertas, concluidas] = await Promise.all([
+    supabase
+      .from("tarefas")
+      .select(CAMPOS_TAREFA_CARD)
+      .in("status", ["pendente", "em_andamento"])
+      .order("data_limite", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("tarefas")
+      .select(CAMPOS_TAREFA_CARD)
+      .eq("status", "concluida")
+      .order("concluida_em", { ascending: false, nullsFirst: false })
+      .limit(CONCLUIDAS_RECENTES),
+  ]);
 
-  return ((data ?? []) as Record<string, unknown>[]).map((r): TarefaCard => {
+  const linhas = [...(abertas.data ?? []), ...(concluidas.data ?? [])];
+  return (linhas as Record<string, unknown>[]).map((r): TarefaCard => {
     const p = r.processos as unknown as NestedProcesso;
     const direto = r.clientes as unknown as { nome: string | null } | null;
     return {
