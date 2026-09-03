@@ -95,7 +95,12 @@ function MasterCard({ a, ativo }: { a: AudienciaCard; ativo: boolean }) {
 /* ── índice (lista compacta) — reusado no drawer e na tela raiz /audiencias ── */
 export function AudienciaMaster({ lista, activeId }: { lista: AudienciaCard[]; activeId?: string }) {
   const [filtro, setFiltro] = useState<"designadas" | "validar">("designadas");
-  const designadas = lista.filter((a) => a.status === "designada");
+  // Só as que ainda vão acontecer — mesma régua da tela e do badge do menu
+  // (`dias_ate >= 0`, a partir do início do dia). O chip dizia "Designadas (31)"
+  // somando o acervo inteiro, com audiências realizadas meses atrás que ninguém
+  // baixou. A ATIVA é exceção: abrindo o detalhe de uma audiência já passada,
+  // ela continua no índice, senão o item destacado não existiria na lista.
+  const designadas = lista.filter((a) => a.status === "designada" && (a.dias_ate >= 0 || a.id === activeId));
   const aValidar = designadas.filter((a) => !a.validado);
   const visiveis = filtro === "validar" ? aValidar : designadas;
   return (

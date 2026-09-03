@@ -339,7 +339,10 @@ export function AudienciasView({ audiencias }: { audiencias: AudienciaCard[] }) 
   const cAmanha = desig.filter((a) => a.dias_ate === 1).length;
   const cValidar = desig.filter((a) => !a.validado && a.dias_ate >= 0).length;
   const cProx7 = desig.filter((a) => a.validado && a.dias_ate >= 0 && a.dias_ate <= 7).length;
-  const cVirtual = desig.filter((a) => a.modalidade === "virtual").length;
+  // "em curso" tem de significar em curso: sem o recorte de data este KPI somava
+  // as sessões virtuais do acervo inteiro, encerradas inclusive. Mesma régua dos
+  // vizinhos e da lista abaixo (`dias_ate >= 0`).
+  const cVirtual = desig.filter((a) => a.modalidade === "virtual" && a.dias_ate >= 0).length;
 
   const upcoming = useMemo(
     () => audiencias.filter((a) => a.status === "designada" && a.dias_ate >= 0 && passaResp(a.responsavel) && (escopo !== "semana" || a.dias_ate <= 7)),

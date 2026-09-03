@@ -36,7 +36,21 @@ export async function getBadges(): Promise<Badges> {
   ] = await Promise.all([
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
-    supabase.from("audiencias").select("*", { count: "exact", head: true }).eq("status", "designada"),
+    // AUDIÊNCIAS — só as que ainda vão acontecer. `status='designada'` sozinho
+    // conta o acervo inteiro, inclusive as já realizadas que ninguém baixou:
+    // medido em 03/09/2026, eram 31 designadas para 10 por acontecer — 23 já
+    // tinham passado, a mais antiga de junho. O badge anunciava trabalho que não
+    // existe, que é o inverso do defeito de Andamentos (lá o alarme sumia da
+    // tela e seguia no menu; aqui o menu inventa alarme que a tela não tem).
+    //
+    // A régua é a MESMA da tela (`AudienciasView`, `dias_ate >= 0`): conta do
+    // INÍCIO do dia de hoje, não de agora. A audiência das 9h continua contada
+    // às 15h — ela é o trabalho do dia — e só sai à meia-noite. O corte em UTC
+    // reproduz exatamente `diasAte`, que compara a data do timestamp como vem do
+    // banco contra `hojeSP()`.
+    supabase.from("audiencias").select("*", { count: "exact", head: true })
+      .eq("status", "designada")
+      .gte("data_hora", `${hojeSP()}T00:00:00Z`),
     // INTIMAÇÕES — o badge é o eixo de LEITURA, e só ele. Regra de Daniel de
     // 09/08/2026: nenhuma intimação pode ficar sem a leitura dele, ainda que a
     // automação já tenha agido, porque quem confere é ele.
