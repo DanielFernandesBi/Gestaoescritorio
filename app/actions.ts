@@ -3605,13 +3605,35 @@ export async function converterOportunidade(id: string, fd: FormData): Promise<R
  * falhou. Por isso o retorno daqui carrega as linhas — a tela mostra item a
  * item e mantém à vista o que não passou.
  */
+/**
+ * Vocabulário de `resultado` conferido no corpo da função (27/10/2026) — é mais
+ * largo do que "promovido/rejeitado/falhou":
+ *   catálogo            → `promovido` | `rejeitado`
+ *   legislação/pendência→ `aprovado`  | `rejeitado`
+ *   legislação/lote     → `lote aprovado` | `lote rejeitado`
+ *   erro em qualquer um → `falhou` (com `erro` preenchido)
+ *   resumo da promoção  → `promocao_legislacao` (ver abaixo)
+ * Por isso o tipo é aberto: só `falhou` tem significado especial na tela.
+ */
 export type DecisaoAprovacaoItem = {
   staging_id: string;
-  resultado: "promovido" | "rejeitado" | "falhou" | string;
+  resultado: string;
   jurisprudencia_id: string | null;
   erro: string | null;
 };
-export type ResultadoAprovacao = Resultado & { itens?: DecisaoAprovacaoItem[] };
+export type ResultadoAprovacao = Resultado & {
+  itens?: DecisaoAprovacaoItem[];
+  /**
+   * Resumos de `resultado = 'promocao_legislacao'` (Adendo 1, item 3). A função
+   * acrescenta uma linha por fonte promovida, com o resumo no campo `erro` —
+   * que ali NÃO é erro, é informação ("55 dispositivos promovidos; 10
+   * aguardando pendência; 0 falharam"). Vêm separados dos itens por dois
+   * motivos: não contam como item decidido, e o `staging_id` deles é o id da
+   * FONTE, que no lote é o mesmo id do cartão — misturados, o resumo sobrescrevia
+   * o "lote aprovado" daquele cartão.
+   */
+  resumosLegislacao?: string[];
+};
 
 export async function decidirAprovacoes(
   ids: string[],
@@ -3641,16 +3663,25 @@ export async function decidirAprovacoes(
     });
     if (error) throw error;
 
-    const itens = ((data ?? []) as Record<string, unknown>[]).map((r): DecisaoAprovacaoItem => ({
+    const linhas = ((data ?? []) as Record<string, unknown>[]).map((r): DecisaoAprovacaoItem => ({
       staging_id: r.staging_id as string,
       resultado: (r.resultado as string) ?? "falhou",
       jurisprudencia_id: (r.jurisprudencia_id as string | null) ?? null,
       erro: (r.erro as string | null) ?? null,
     }));
 
+    // Separa o resumo da promoção de legislação dos itens decididos.
+    const itens = linhas.filter((i) => i.resultado !== "promocao_legislacao");
+    const resumosLegislacao = linhas
+      .filter((i) => i.resultado === "promocao_legislacao")
+      .map((i) => i.erro?.trim())
+      .filter((t): t is string => Boolean(t));
+
     const ok = itens.filter((i) => i.resultado !== "falhou").length;
     const falhas = itens.filter((i) => i.resultado === "falhou");
-    const verbo = decisao === "aprovar" ? "promovido" : "rejeitado";
+    // Verbo neutro: o que a função devolve varia por fila (promovido, aprovado,
+    // lote aprovado), e é cada cartão que mostra o seu. Aqui só se conta.
+    const verbo = decisao === "aprovar" ? "aprovado" : "rejeitado";
 
     revalidatePath("/aprovacoes");
     revalidarTudo();
@@ -3662,12 +3693,14 @@ export async function decidirAprovacoes(
         ok: false,
         message: `${ok} ${ok === 1 ? verbo : verbo + "s"}, ${falhas.length} com falha. Veja o erro de cada um abaixo.`,
         itens,
+        resumosLegislacao,
       };
     }
     return {
       ok: true,
       message: `${ok} ${ok === 1 ? "item" : "itens"} ${ok === 1 ? verbo : verbo + "s"}.`,
       itens,
+      resumosLegislacao,
     };
   } catch (e) {
     return falha(e);

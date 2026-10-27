@@ -31,12 +31,41 @@ const ROTULO_ORIGEM: Record<string, string> = {
 const rotuloOrigem = (o: string) => ROTULO_ORIGEM[o] ?? humano(o);
 
 const ROTULO_CLASSE: Record<string, string> = {
+  // catálogo
   novo: "Novo verbete",
   situacao_alterada: "Situação alterada",
   redacao_alterada: "Redação alterada",
   metadado_alterado: "Metadado alterado",
+  // legislação (Adendo 1)
+  lote: "Lote da norma",
+  pendencia: "Pendência de redação",
 };
 const rotuloClasse = (c: string) => ROTULO_CLASSE[c] ?? humano(c);
+
+/**
+ * Trava de aprovação. Rejeitar nunca é barrado — é a saída para o item que não
+ * serve. São duas razões, uma por fila, e as duas têm regra equivalente no
+ * banco: a função recusa igual, esta é a que explica ANTES do clique.
+ */
+function travaAprovacao(it: AprovacaoItem): string | null {
+  // Catálogo: a conferência do literal REPROVOU (NULL é "não conferido ainda",
+  // e isso não barra).
+  if (it.literal_confere === false) {
+    return "O texto literal não confere com a fonte — a conferência reprovou, então não há o que aprovar.";
+  }
+  // Legislação: redação sem data de vigência. A função levanta
+  // "redação sem data de vigência não pode ser aprovada; aguarde a data do DOU".
+  if (it.classe === "pendencia" && !metaTexto(it.metadados_propostos, "vigencia_inicio_proposta")) {
+    return "Sem data de vigência — aguardando a data do DOU.";
+  }
+  return null;
+}
+
+/** Valor de texto de uma chave do jsonb, ou null se ausente/vazia. */
+function metaTexto(dados: Record<string, unknown> | null, chave: string): string | null {
+  const v = dados?.[chave];
+  return typeof v === "string" && v.trim() ? v : null;
+}
 
 const TOM_PRIORIDADE: Record<string, "red" | "amber" | "gray"> = {
   alta: "red",
@@ -121,7 +150,10 @@ function TextoRealcado({ partes, tom }: { partes: Parte[]; tom: "saiu" | "entrou
 /* ── peças do cartão ─────────────────────────────────────────────────────── */
 
 function Identidade({ it }: { it: AprovacaoItem }) {
-  const num = [it.numero, it.identificador_extra].filter(Boolean).join(" · ");
+  // Na pendência o `identificador_extra` é o rótulo do dispositivo e já aparece
+  // em destaque no corpo — repetir aqui só polui a linha.
+  const extra = it.classe === "pendencia" ? null : it.identificador_extra;
+  const num = [it.numero, extra].filter(Boolean).join(" · ");
   const linha = [it.tribunal, it.tipo ? humano(it.tipo) : null, num, it.orgao].filter(Boolean).join(" · ");
   return linha ? <div className="apv-ident mono">{linha}</div> : null;
 }
@@ -148,10 +180,17 @@ function Procedencia({ it }: { it: AprovacaoItem }) {
 /* ── o que mudou: metadados propostos e o diff cru ───────────────────────── */
 
 const ROTULO_METADADO: Record<string, string> = {
+  // catálogo
   data_julgamento: "julgamento",
   data_publicacao_acordao: "publicação do acórdão",
   data_cancelamento: "cancelamento",
   relator: "relator",
+  // legislação. `origem` aqui é a LEI ALTERADORA ("L 8.930"), e não a origem da
+  // fila (catalogo/legislacao) — o rótulo desfaz a ambiguidade na tela.
+  origem: "lei de origem",
+  vigencia_inicio_proposta: "vigência · início",
+  vigencia_fim_proposta: "vigência · fim",
+  revogado_por: "revogado por",
 };
 
 /** Chaves do `diff_detalhe` que já têm lugar próprio no cartão. */
@@ -237,6 +276,59 @@ function Transicao({ de, para }: { de: string | null; para: string | null }) {
   );
 }
 
+/* ── legislação (Adendo 1) ───────────────────────────────────────────────── */
+
+/**
+ * O `texto_proposto` do LOTE é uma lista: uma linha por lei alteradora, no
+ * formato `sigla — DOU <data> — vigência proposta <data> — cláusula`. Vira
+ * tabela, que é o que torna a lista legível: dá para varrer as datas na
+ * vertical e achar a que falta.
+ *
+ * A cláusula fica com o RESTO da linha, não com o quarto pedaço: separador
+ * dentro do texto da cláusula não deve comer conteúdo.
+ */
+function LinhasDoLote({ texto }: { texto: string }) {
+  const linhas = texto
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => {
+      const p = l.split(" — ");
+      return p.length >= 4
+        ? { sigla: p[0], dou: p[1], vigencia: p[2], clausula: p.slice(3).join(" — ") }
+        : { sigla: l, dou: "", vigencia: "", clausula: "" };
+    });
+  if (!linhas.length) return null;
+  // "?" é como o pipeline marca o que não localizou — é justamente o que Daniel
+  // precisa ver, então vira destaque e não texto comum.
+  const faltando = (s: string) => s.includes("?");
+  // O rótulo repetido em toda linha ("DOU ", "vigência proposta ") vira
+  // cabeçalho de coluna. Se o prefixo não vier como esperado, o valor fica
+  // inteiro — melhor redundante que truncado.
+  const semPrefixo = (v: string, prefixo: string) =>
+    v.startsWith(prefixo) ? v.slice(prefixo.length).trim() : v;
+  return (
+    <div className="apv-lote-tabela">
+      <div className="apv-lote-linha cab">
+        <span className="sigla">norma</span>
+        <span className="dou">DOU</span>
+        <span className="vig">vigência proposta</span>
+        <span className="clau">cláusula de vigência</span>
+      </div>
+      {linhas.map((l, k) => (
+        <div className="apv-lote-linha" key={k}>
+          <span className="sigla mono">{l.sigla}</span>
+          <span className={`dou mono${faltando(l.dou) ? " falta" : ""}`}>{semPrefixo(l.dou, "DOU") || "—"}</span>
+          <span className={`vig mono${faltando(l.vigencia) ? " falta" : ""}`}>
+            {semPrefixo(l.vigencia, "vigência proposta") || "—"}
+          </span>
+          <span className="clau">{l.clausula}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Corpo do cartão conforme a classe. Classe desconhecida cai no genérico. */
 function Corpo({ it }: { it: AprovacaoItem }) {
   const proposto = it.texto_proposto?.trim() ?? "";
@@ -309,6 +401,24 @@ function Corpo({ it }: { it: AprovacaoItem }) {
     );
   }
 
+  // Legislação · lote: um cartão por lei. O título já resume as contagens; aqui
+  // vem a lista das leis alteradoras com DOU, vigência proposta e cláusula.
+  if (it.classe === "lote") {
+    return proposto ? <LinhasDoLote texto={proposto} /> : <p className="apv-nota">Lote sem leis listadas.</p>;
+  }
+
+  // Legislação · pendência: um cartão por redação. O rótulo do dispositivo sai
+  // da linha de identidade e vira destaque — é por ele que se reconhece o item.
+  if (it.classe === "pendencia") {
+    return (
+      <>
+        {it.identificador_extra && <div className="apv-dispositivo">{it.identificador_extra}</div>}
+        <MetadadosPropostos dados={it.metadados_propostos} />
+        {proposto ? <p className="apv-texto">{proposto}</p> : <p className="apv-nota">Sem redação proposta.</p>}
+      </>
+    );
+  }
+
   // `novo` e qualquer classe nova: identidade (acima), metadados propostos —
   // relator e datas informam também no verbete novo — e o texto na íntegra.
   return (
@@ -327,28 +437,29 @@ function Cartao({
   onMarcar,
   resultado,
   registrar,
+  anotarResumos,
 }: {
   it: AprovacaoItem;
   marcado: boolean;
   onMarcar: (id: string, v: boolean) => void;
   resultado?: DecisaoAprovacaoItem;
   registrar: (itens: DecisaoAprovacaoItem[]) => void;
+  anotarResumos: (resumos: string[]) => void;
 }) {
-  // Só `false` barra. NULL é "ainda não conferido", e a especificação proíbe
-  // aprovar o que a conferência REPROVOU — não o que ela ainda não olhou.
-  const barrado = it.literal_confere === false;
-  const razao = "O texto literal não confere com a fonte — a conferência reprovou, então não há o que aprovar.";
+  const razao = travaAprovacao(it);
+  const barrado = razao != null;
 
   const decidir = async (decisao: "aprovar" | "rejeitar", texto: string) => {
     const r = await decidirAprovacoes([it.id], decisao, texto);
     if (r.itens?.length) registrar(r.itens);
+    if (r.resumosLegislacao?.length) anotarResumos(r.resumosLegislacao);
     return { ok: r.ok, message: r.message };
   };
 
   return (
     <article className={`apv-card${barrado ? " barrado" : ""}${resultado?.resultado === "falhou" ? " falhou" : ""}`}>
       <div className="apv-card-h">
-        <label className="apv-check" title={barrado ? razao : "Selecionar para o lote"}>
+        <label className="apv-check" title={razao ?? "Selecionar para o lote"}>
           <input
             type="checkbox"
             checked={marcado}
@@ -390,7 +501,7 @@ function Cartao({
       <div className="apv-acoes">
         {barrado ? (
           <>
-            <button className="btn sm" type="button" disabled title={razao}>
+            <button className="btn sm" type="button" disabled title={razao ?? undefined}>
               Aprovar
             </button>
             <span className="apv-barrado-razao">{razao}</span>
@@ -528,6 +639,8 @@ export function AprovacoesView({
     msg: null,
     ok: true,
   });
+  // Resumos de `promocao_legislacao` (Adendo 1, item 3) — informação, não erro.
+  const [resumos, setResumos] = useState<string[]>([]);
 
   const registrar = (linhas: DecisaoAprovacaoItem[]) =>
     setResultados((prev) => {
@@ -563,16 +676,18 @@ export function AprovacoesView({
 
   const total = itens.length;
   const nAlta = itens.filter((i) => i.prioridade === "alta").length;
-  const nBarrados = itens.filter((i) => i.literal_confere === false).length;
+  const nBarrados = itens.filter((i) => travaAprovacao(i) != null).length;
   // Nunca manda ao banco um id barrado, mesmo que a seleção tenha sobrevivido a
-  // uma recarga: a trava não é só visual.
-  const selecionados = itens.filter((i) => marcados.has(i.id) && i.literal_confere !== false).map((i) => i.id);
+  // uma recarga: a trava não é só visual. Vale para as duas razões (literal
+  // reprovado no catálogo, redação sem vigência na legislação).
+  const selecionados = itens.filter((i) => marcados.has(i.id) && travaAprovacao(i) == null).map((i) => i.id);
 
   const aprovarLote = async () => {
     if (!selecionados.length) return;
     setLote({ pend: true, msg: null, ok: true });
     const r = await decidirAprovacoes(selecionados, "aprovar", "");
     if (r.itens?.length) registrar(r.itens);
+    if (r.resumosLegislacao?.length) setResumos(r.resumosLegislacao);
     setLote({ pend: false, msg: r.message, ok: r.ok });
     // Mantém marcados só os que falharam — os promovidos saem da fila.
     const falhos = new Set((r.itens ?? []).filter((i) => i.resultado === "falhou").map((i) => i.staging_id));
@@ -602,6 +717,24 @@ export function AprovacoesView({
       />
 
       <PainelT5 v={varredura} />
+
+      {/* Adendo 1, item 3 — a função devolve uma linha por fonte promovida com o
+          resumo no campo `erro`, que ali é INFORMAÇÃO. Fica como aviso verde e
+          separado dos cartões: o `staging_id` desse resumo é o id da FONTE, que
+          no lote coincide com o id do cartão, e misturá-los apagaria o
+          "lote aprovado" daquele cartão. */}
+      {resumos.length > 0 && (
+        <div className="apv-promocao">
+          <div className="apv-promocao-h">
+            <Icon name="check" size={15} /> Promoção da legislação
+          </div>
+          <ul>
+            {resumos.map((t, k) => (
+              <li key={k}>{t}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {total === 0 ? (
         <div className="card">
@@ -648,6 +781,7 @@ export function AprovacoesView({
                           onMarcar={onMarcar}
                           resultado={resultados[it.id]}
                           registrar={registrar}
+                          anotarResumos={setResumos}
                         />
                       ))}
                     </div>
