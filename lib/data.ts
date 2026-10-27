@@ -4704,6 +4704,21 @@ export type AprovacaoItem = {
   tese_pendente: boolean;
   observacoes: string | null;
   prioridade: string;
+  /**
+   * O diff cru da proposta contra o verbete já catalogado (Sug. 156, colunas
+   * acrescentadas em 27/10/2026). Chaves vistas no acervo: `texto_atual`,
+   * `situacao_atual`, `jurisprudencia_id`, `texto_difere` e
+   * `tese_pendente_publicacao` — as três primeiras já têm coluna própria na
+   * view. Fica como mapa aberto de propósito: chave nova que o pipeline passe
+   * a emitir aparece na tela em vez de ser descartada em silêncio.
+   */
+  diff_detalhe: Record<string, unknown> | null;
+  /**
+   * Metadados que a proposta quer gravar — hoje `data_julgamento`,
+   * `data_publicacao_acordao`, `data_cancelamento` e `relator`, já sem nulos
+   * (`jsonb_strip_nulls` na view). É o "o que mudou" do metadado alterado.
+   */
+  metadados_propostos: Record<string, unknown> | null;
 };
 
 export type AprovacaoResumo = {
@@ -4714,7 +4729,7 @@ export type AprovacaoResumo = {
 };
 
 const CAMPOS_APROVACAO =
-  "origem, id, criado_em, tribunal, tipo, numero, identificador_extra, classe, titulo, orgao, texto_proposto, texto_atual, situacao_atual, situacao_nova, fonte_arquivo, fonte_publicacao, fonte_data, literal_confere, conferencia_pdf, tese_pendente, observacoes, prioridade";
+  "origem, id, criado_em, tribunal, tipo, numero, identificador_extra, classe, titulo, orgao, texto_proposto, texto_atual, situacao_atual, situacao_nova, fonte_arquivo, fonte_publicacao, fonte_data, literal_confere, conferencia_pdf, tese_pendente, observacoes, prioridade, diff_detalhe, metadados_propostos";
 
 /** Ordem de atenção da fila. Prioridade desconhecida cai por último, não some. */
 const PESO_PRIORIDADE: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
@@ -4756,6 +4771,8 @@ export async function getAprovacoesPendentes(): Promise<AprovacaoItem[]> {
       tese_pendente: Boolean(r.tese_pendente),
       observacoes: (r.observacoes as string | null) ?? null,
       prioridade: (r.prioridade as string) ?? "baixa",
+      diff_detalhe: (r.diff_detalhe as Record<string, unknown> | null) ?? null,
+      metadados_propostos: (r.metadados_propostos as Record<string, unknown> | null) ?? null,
     }))
     .sort((a, b) => pesoPrioridade(a.prioridade) - pesoPrioridade(b.prioridade));
 }

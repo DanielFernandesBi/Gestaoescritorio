@@ -145,6 +145,84 @@ function Procedencia({ it }: { it: AprovacaoItem }) {
   );
 }
 
+/* ── o que mudou: metadados propostos e o diff cru ───────────────────────── */
+
+const ROTULO_METADADO: Record<string, string> = {
+  data_julgamento: "julgamento",
+  data_publicacao_acordao: "publicação do acórdão",
+  data_cancelamento: "cancelamento",
+  relator: "relator",
+};
+
+/** Chaves do `diff_detalhe` que já têm lugar próprio no cartão. */
+const DIFF_JA_EXIBIDO = new Set([
+  "texto_atual", // vira a coluna "texto atual"
+  "situacao_atual", // vira a transição de situação
+  "tese_pendente_publicacao", // vira o aviso de tese pendente
+  "texto_difere", // vira o selo abaixo
+  "jurisprudencia_id", // id interno do verbete; não é informação de decisão
+]);
+
+const PARECE_DATA = /^\d{4}-\d{2}-\d{2}/;
+/** Valor do JSON em texto legível — data virando dd/mm/aaaa, resto como está. */
+function valorLegivel(v: unknown): string {
+  if (v == null) return "—";
+  if (typeof v === "boolean") return v ? "sim" : "não";
+  if (typeof v === "number") return String(v);
+  if (typeof v === "string") return PARECE_DATA.test(v) ? fmtDate(v) : v;
+  return JSON.stringify(v);
+}
+
+/**
+ * Metadados que a proposta quer gravar. É isto que muda num
+ * `metadado_alterado`, e informa também no verbete novo (relator, datas).
+ * Rótulo desconhecido cai no nome humanizado — campo novo aparece sozinho.
+ */
+function MetadadosPropostos({ dados }: { dados: Record<string, unknown> | null }) {
+  const pares = Object.entries(dados ?? {}).filter(([, v]) => v != null && v !== "");
+  if (!pares.length) return null;
+  return (
+    <div className="apv-meta">
+      <div className="apv-meta-k">Metadados propostos</div>
+      <dl className="apv-meta-grid">
+        {pares.map(([k, v]) => (
+          <div className="apv-meta-par" key={k}>
+            <dt>{ROTULO_METADADO[k] ?? humano(k)}</dt>
+            <dd className={PARECE_DATA.test(String(v)) ? "mono" : undefined}>{valorLegivel(v)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/**
+ * O resto do `diff_detalhe`: o selo de `texto_difere` — que responde se o texto
+ * literal muda junto com o metadado, e é a dúvida natural de quem decide — mais
+ * qualquer chave que o pipeline passe a emitir e que ainda não tenha lugar no
+ * cartão. Nada do diff fica invisível.
+ */
+function DetalheDiff({ diff }: { diff: Record<string, unknown> | null }) {
+  if (!diff) return null;
+  const difere = diff.texto_difere;
+  const extras = Object.entries(diff).filter(([k, v]) => !DIFF_JA_EXIBIDO.has(k) && v != null && v !== "");
+  if (typeof difere !== "boolean" && !extras.length) return null;
+  return (
+    <div className="apv-diff">
+      {typeof difere === "boolean" && (
+        <span className={`apv-selo ${difere ? "no" : "ok"}`} title="O texto literal muda junto com o metadado?">
+          texto literal {difere ? "também difere" : "é o mesmo"}
+        </span>
+      )}
+      {extras.map(([k, v]) => (
+        <span className="apv-diff-extra" key={k}>
+          <b>{humano(k)}</b> {valorLegivel(v)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function Transicao({ de, para }: { de: string | null; para: string | null }) {
   if (!de && !para) return null;
   return (
@@ -191,6 +269,9 @@ function Corpo({ it }: { it: AprovacaoItem }) {
             Textos longos demais para o realce palavra a palavra — mostrados inteiros, sem marcação.
           </p>
         )}
+        {/* Sem `DetalheDiff` aqui: o lado a lado já responde o que mudou no
+            texto, e o selo de `texto_difere` seria redundante nesta classe. */}
+        <MetadadosPropostos dados={it.metadados_propostos} />
       </>
     );
   }
@@ -199,6 +280,10 @@ function Corpo({ it }: { it: AprovacaoItem }) {
     return (
       <>
         <Transicao de={it.situacao_atual} para={it.situacao_nova} />
+        {/* `data_cancelamento` e o selo de `texto_difere` pesam justamente aqui:
+            uma súmula cancelada muda de situação e às vezes só isso. */}
+        <MetadadosPropostos dados={it.metadados_propostos} />
+        <DetalheDiff diff={it.diff_detalhe} />
         {proposto && <p className="apv-texto">{proposto}</p>}
       </>
     );
@@ -214,17 +299,24 @@ function Corpo({ it }: { it: AprovacaoItem }) {
             mantido.
           </p>
         )}
+        {/* O "o que mudou" vem das colunas `metadados_propostos` e
+            `diff_detalhe`, acrescentadas à view em 27/10/2026. Antes daí havia
+            aqui uma linha remetendo às observações, que era um contorno. */}
+        <MetadadosPropostos dados={it.metadados_propostos} />
+        <DetalheDiff diff={it.diff_detalhe} />
         {proposto && <p className="apv-texto">{proposto}</p>}
-        <p className="apv-nota">
-          O detalhe campo a campo da alteração fica em <span className="mono">diff_detalhe</span>, que a view
-          não expõe — acima está o metadado proposto, e as observações registram o que mudou.
-        </p>
       </>
     );
   }
 
-  // `novo` e qualquer classe nova: identidade (acima) + o texto na íntegra.
-  return proposto ? <p className="apv-texto">{proposto}</p> : <p className="apv-nota">Sem texto proposto.</p>;
+  // `novo` e qualquer classe nova: identidade (acima), metadados propostos —
+  // relator e datas informam também no verbete novo — e o texto na íntegra.
+  return (
+    <>
+      <MetadadosPropostos dados={it.metadados_propostos} />
+      {proposto ? <p className="apv-texto">{proposto}</p> : <p className="apv-nota">Sem texto proposto.</p>}
+    </>
+  );
 }
 
 /* ── cartão ──────────────────────────────────────────────────────────────── */
