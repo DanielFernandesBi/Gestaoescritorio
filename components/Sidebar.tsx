@@ -80,6 +80,9 @@ export function Sidebar({
               const active =
                 pathname === it.href || pathname.startsWith(it.href + "/");
               const count = it.badgeKey ? contagens[it.badgeKey] : undefined;
+              // Destaque dinâmico: o item declara qual chave o promove (ver kindKeyAlta).
+              const kind =
+                it.kindKeyAlta && (contagens[it.kindKeyAlta] ?? 0) > 0 ? "alert" : it.kind;
               return (
                 <Link
                   key={it.id}
@@ -89,7 +92,7 @@ export function Sidebar({
                   <Icon name={it.ico} />
                   <span>{it.label}</span>
                   {count != null && count > 0 && (
-                    <span className={`badge ${it.kind ?? ""}`}>{count}</span>
+                    <span className={`badge ${kind ?? ""}`}>{count}</span>
                   )}
                 </Link>
               );

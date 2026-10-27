@@ -33,6 +33,7 @@ export async function getBadges(): Promise<Badges> {
     financeiro,
     diligPendentes,
     diligFila,
+    aprovacoes,
   ] = await Promise.all([
     supabase.from("vw_pendentes_validacao").select("*", { count: "exact", head: true }),
     supabase.from("prazos").select("*", { count: "exact", head: true }).eq("status", "aberto"),
@@ -116,7 +117,18 @@ export async function getBadges(): Promise<Badges> {
     // nenhuma política, e o badge ficava zerado com 27 processos esperando.
     supabase.from("consultas_tribunal").select("*", { count: "exact", head: true }).eq("resultado", "pendente"),
     supabase.from("vw_diligencia_fila").select("*", { count: "exact", head: true }),
+    // Aprovações (Sug. 156): o selo é a SOMA de `pendentes` de todas as origens
+    // do resumo — hoje só 'catalogo', e virão 'radar' e 'legislacao' sem que isto
+    // precise mudar. `alta` sai na mesma linha e serve ao destaque do selo, não à
+    // contagem. Vem da view (uma linha por origem) e não de um count, porque são
+    // dois números da mesma leitura.
+    supabase.from("vw_aprovacoes_resumo").select("origem, pendentes, alta"),
   ]);
+
+  // Soma das origens. Fila vazia devolve zero linhas, e zero não acende selo.
+  const aprovLinhas = (aprovacoes.data ?? []) as { pendentes: number | null; alta: number | null }[];
+  const aprovTotal = aprovLinhas.reduce((n, r) => n + Number(r.pendentes ?? 0), 0);
+  const aprovAlta = aprovLinhas.reduce((n, r) => n + Number(r.alta ?? 0), 0);
 
   return {
     validacao: validacao.count ?? 0,
@@ -134,6 +146,8 @@ export async function getBadges(): Promise<Badges> {
     triagem: (orfPrazos.count ?? 0) + (orfIntimacoes.count ?? 0) + (orfAndamentos.count ?? 0),
     financeiro: financeiro.count ?? 0,
     diligencia: (diligPendentes.count ?? 0) + (diligFila.count ?? 0),
+    aprovacoes: aprovTotal,
+    aprovacoes_alta: aprovAlta,
   };
 }
 

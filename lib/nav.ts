@@ -7,6 +7,13 @@ export type NavItem = {
   href: string;
   badgeKey?: string; // chave em `badges` para mostrar contagem
   kind?: BadgeKind;
+  /**
+   * Chave em `badges` que, quando > 0, PROMOVE o selo a destaque (`alert`).
+   * O `kind` é estático e não sabe o que há dentro da fila; isto deixa o
+   * destaque seguir o conteúdo — ex.: Aprovações fica discreto com fila
+   * comum e acende quando entra item de prioridade alta.
+   */
+  kindKeyAlta?: string;
 };
 
 export type NavGroup = { grp: string; items: NavItem[]; ia?: boolean };
@@ -48,6 +55,9 @@ export const NAV: NavGroup[] = [
       { id: "intimacoes", label: "Intimações", ico: "inbox", href: "/intimacoes", badgeKey: "intimacoes" },
       { id: "andamentos", label: "Andamentos", ico: "activity", href: "/andamentos", badgeKey: "andamentos", kind: "warn" },
       { id: "diligencia", label: "Diligência · autos", ico: "search", href: "/diligencia", badgeKey: "diligencia" },
+      // Sug. 156 — gate humano do catálogo de jurisprudência (T5). Fila vazia
+      // deixa o item visível e sem selo; `alta` > 0 acende o destaque.
+      { id: "aprovacoes", label: "Aprovações", ico: "check", href: "/aprovacoes", badgeKey: "aprovacoes", kind: "warn", kindKeyAlta: "aprovacoes_alta" },
       { id: "alertas", label: "Alertas", ico: "bell", href: "/alertas", badgeKey: "alertas", kind: "alert" },
       { id: "inercia", label: "Inércia · silêncio", ico: "clock", href: "/inercia", badgeKey: "inercia", kind: "warn" },
       { id: "varredura", label: "Varredura", ico: "shield", href: "/varredura" },

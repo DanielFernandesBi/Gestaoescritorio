@@ -70,7 +70,7 @@ function revalidarTudo() {
   for (const p of [
     "/painel", "/validacao", "/prazos", "/audiencias", "/intimacoes",
     "/tarefas", "/producao", "/processos", "/clientes", "/financeiro", "/andamentos",
-    "/auditoria", "/sistema", "/alertas", "/estudos",
+    "/auditoria", "/sistema", "/alertas", "/estudos", "/aprovacoes",
   ]) {
     revalidatePath(p);
   }
@@ -3583,6 +3583,92 @@ export async function converterOportunidade(id: string, fd: FormData): Promise<R
     revalidatePath("/clientes");
     revalidatePath("/financeiro");
     return { ok: true, message: `Convertido: cliente + contrato (${n} parcela${n === 1 ? "" : "s"}) criados.` };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+/* Central de aprovações — a decisão (Sug. 156) -----------------------------
+ *
+ * Esta é a ÚNICA porta de escrita da central, e ela só chama
+ * `fn_decidir_aprovacao`. O frontend nunca escreve em `jurisprudencia_staging`
+ * nem em `jurisprudencia_oficial`: é a função (SECURITY DEFINER) que muda a
+ * situação, carimba a observação com autor e data, e promove pela
+ * `fn_promover_novo`/`fn_promover_alteracao` conforme a classe.
+ *
+ * O `p_origem` é sempre 'frontend' — a função só aceita 'chat' ou 'frontend', e
+ * é esse carimbo que distingue, na auditoria, a decisão tomada na tela da
+ * tomada no chat.
+ *
+ * A função NÃO aborta o lote quando um item falha: ela devolve uma linha por
+ * item, com `resultado` = promovido | rejeitado | falhou e o `erro` do que
+ * falhou. Por isso o retorno daqui carrega as linhas — a tela mostra item a
+ * item e mantém à vista o que não passou.
+ */
+export type DecisaoAprovacaoItem = {
+  staging_id: string;
+  resultado: "promovido" | "rejeitado" | "falhou" | string;
+  jurisprudencia_id: string | null;
+  erro: string | null;
+};
+export type ResultadoAprovacao = Resultado & { itens?: DecisaoAprovacaoItem[] };
+
+export async function decidirAprovacoes(
+  ids: string[],
+  decisao: "aprovar" | "rejeitar",
+  motivo: string,
+): Promise<ResultadoAprovacao> {
+  try {
+    await requireUser();
+    const lista = [...new Set((ids ?? []).map((s) => String(s).trim()).filter(Boolean))];
+    if (!lista.length) return { ok: false, message: "Nenhum item selecionado." };
+    if (decisao !== "aprovar" && decisao !== "rejeitar") {
+      return { ok: false, message: `Decisão inválida: ${decisao}.` };
+    }
+    const texto = String(motivo ?? "").trim();
+    // Rejeição exige motivo. A função também recusa sem ele; barrar aqui dá a
+    // mensagem no lugar certo, em vez de devolver exceção do banco.
+    if (decisao === "rejeitar" && !texto) {
+      return { ok: false, message: "Rejeitar exige motivo — escreva por que a proposta não entra no catálogo." };
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("fn_decidir_aprovacao", {
+      p_ids: lista,
+      p_decisao: decisao,
+      p_motivo: texto || null,
+      p_origem: "frontend",
+    });
+    if (error) throw error;
+
+    const itens = ((data ?? []) as Record<string, unknown>[]).map((r): DecisaoAprovacaoItem => ({
+      staging_id: r.staging_id as string,
+      resultado: (r.resultado as string) ?? "falhou",
+      jurisprudencia_id: (r.jurisprudencia_id as string | null) ?? null,
+      erro: (r.erro as string | null) ?? null,
+    }));
+
+    const ok = itens.filter((i) => i.resultado !== "falhou").length;
+    const falhas = itens.filter((i) => i.resultado === "falhou");
+    const verbo = decisao === "aprovar" ? "promovido" : "rejeitado";
+
+    revalidatePath("/aprovacoes");
+    revalidarTudo();
+
+    // Lote parcialmente bem-sucedido NÃO é sucesso: `ok: false` mantém o painel
+    // aberto com os erros à vista, que é o que a função permite distinguir.
+    if (falhas.length) {
+      return {
+        ok: false,
+        message: `${ok} ${ok === 1 ? verbo : verbo + "s"}, ${falhas.length} com falha. Veja o erro de cada um abaixo.`,
+        itens,
+      };
+    }
+    return {
+      ok: true,
+      message: `${ok} ${ok === 1 ? "item" : "itens"} ${ok === 1 ? verbo : verbo + "s"}.`,
+      itens,
+    };
   } catch (e) {
     return falha(e);
   }

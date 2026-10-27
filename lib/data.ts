@@ -4668,6 +4668,184 @@ export async function buscaGlobal(termoRaw: string): Promise<ResultadosBusca> {
   };
 }
 
+/* Central de aprovações — gate humano do catálogo (Sug. 156) ---------------
+ *
+ * Leitura pura das duas views que o banco já expõe. A decisão NÃO passa por
+ * aqui nem por nenhuma escrita direta: quem promove é `fn_decidir_aprovacao`,
+ * chamada pela server action (ver `decidirAprovacoes` em app/actions.ts).
+ * `jurisprudencia_staging` e `jurisprudencia_oficial` não são escritas pelo
+ * frontend em nenhuma hipótese.
+ */
+
+/** Uma proposta à espera de decisão. Campos conforme `vw_aprovacoes_pendentes`. */
+export type AprovacaoItem = {
+  /** Hoje só 'catalogo'; 'radar' e 'legislacao' entram sem mudança de código. */
+  origem: string;
+  id: string;
+  criado_em: string | null;
+  tribunal: string | null;
+  tipo: string | null;
+  numero: string | null;
+  identificador_extra: string | null;
+  /** `classe_diff`: novo | situacao_alterada | redacao_alterada | metadado_alterado. */
+  classe: string;
+  titulo: string | null;
+  orgao: string | null;
+  texto_proposto: string | null;
+  texto_atual: string | null;
+  situacao_atual: string | null;
+  situacao_nova: string | null;
+  fonte_arquivo: string | null;
+  fonte_publicacao: string | null;
+  fonte_data: string | null;
+  /** NULL = sem conferência ainda. Só `false` proíbe aprovar. */
+  literal_confere: boolean | null;
+  conferencia_pdf: boolean | null;
+  tese_pendente: boolean;
+  observacoes: string | null;
+  prioridade: string;
+};
+
+export type AprovacaoResumo = {
+  origem: string;
+  pendentes: number;
+  alta: number;
+  mais_antigo: string | null;
+};
+
+const CAMPOS_APROVACAO =
+  "origem, id, criado_em, tribunal, tipo, numero, identificador_extra, classe, titulo, orgao, texto_proposto, texto_atual, situacao_atual, situacao_nova, fonte_arquivo, fonte_publicacao, fonte_data, literal_confere, conferencia_pdf, tese_pendente, observacoes, prioridade";
+
+/** Ordem de atenção da fila. Prioridade desconhecida cai por último, não some. */
+const PESO_PRIORIDADE: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
+const pesoPrioridade = (p: string | null | undefined) => PESO_PRIORIDADE[p ?? ""] ?? 3;
+
+export async function getAprovacoesPendentes(): Promise<AprovacaoItem[]> {
+  const supabase = await createClient();
+  // Ordena por `criado_em` no banco e por PRIORIDADE aqui: o PostgREST não
+  // ordena por sequência arbitrária (alta < media < baixa), e o sort do JS é
+  // estável — o critério de data sobrevive dentro de cada prioridade.
+  const { data } = await supabase
+    .from("vw_aprovacoes_pendentes")
+    .select(CAMPOS_APROVACAO)
+    .order("criado_em", { ascending: true, nullsFirst: false });
+
+  return ((data ?? []) as unknown as Record<string, unknown>[])
+    .map((r): AprovacaoItem => ({
+      origem: (r.origem as string) ?? "desconhecida",
+      id: r.id as string,
+      criado_em: (r.criado_em as string | null) ?? null,
+      tribunal: (r.tribunal as string | null) ?? null,
+      tipo: (r.tipo as string | null) ?? null,
+      numero: (r.numero as string | null) ?? null,
+      identificador_extra: (r.identificador_extra as string | null) ?? null,
+      classe: (r.classe as string) ?? "desconhecida",
+      titulo: (r.titulo as string | null) ?? null,
+      orgao: (r.orgao as string | null) ?? null,
+      texto_proposto: (r.texto_proposto as string | null) ?? null,
+      texto_atual: (r.texto_atual as string | null) ?? null,
+      situacao_atual: (r.situacao_atual as string | null) ?? null,
+      situacao_nova: (r.situacao_nova as string | null) ?? null,
+      fonte_arquivo: (r.fonte_arquivo as string | null) ?? null,
+      fonte_publicacao: (r.fonte_publicacao as string | null) ?? null,
+      fonte_data: (r.fonte_data as string | null) ?? null,
+      // `literal_confere` vem de LEFT JOIN: distinga NULL (sem conferência) de
+      // false (a conferência REPROVOU). Só o false barra a aprovação.
+      literal_confere: (r.literal_confere as boolean | null) ?? null,
+      conferencia_pdf: (r.conferencia_pdf as boolean | null) ?? null,
+      tese_pendente: Boolean(r.tese_pendente),
+      observacoes: (r.observacoes as string | null) ?? null,
+      prioridade: (r.prioridade as string) ?? "baixa",
+    }))
+    .sort((a, b) => pesoPrioridade(a.prioridade) - pesoPrioridade(b.prioridade));
+}
+
+export async function getAprovacoesResumo(): Promise<AprovacaoResumo[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vw_aprovacoes_resumo")
+    .select("origem, pendentes, alta, mais_antigo");
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    origem: (r.origem as string) ?? "desconhecida",
+    pendentes: Number(r.pendentes ?? 0),
+    alta: Number(r.alta ?? 0),
+    mais_antigo: (r.mais_antigo as string | null) ?? null,
+  }));
+}
+
+/* Painel da última T5 — informativo, sem botão -----------------------------
+ *
+ * `ciclo` é `data_referencia`, a convenção da casa para varredura (ver o rótulo
+ * `ciclo <data_referencia>` no mapa de links). `pendencias_impressao`,
+ * `propagacao` e `lacunas` moram em `diagnostico_oab`; `anomalias` é coluna.
+ *
+ * Conferido em 27/10/2026: NÃO existe nenhuma linha de `varreduras` com
+ * `fonte='catalogo'` (as fontes gravadas são 'ambas', 'redacao', 'manutencao' e
+ * 'djen'), e nenhuma varredura do acervo traz as três chaves acima. A T5 ainda
+ * não registrou ciclo sob essa fonte — por isso cada parte é opcional e a tela
+ * diz que não há ciclo, em vez de quebrar ou inventar dado.
+ */
+export type VarreduraCatalogo = {
+  id: string;
+  criado_em: string | null;
+  /** O "ciclo" da varredura. */
+  data_referencia: string | null;
+  status: string | null;
+  pendencias_impressao: string[];
+  propagacao: string[];
+  lacunas: string[];
+  anomalias: { tipo: string | null; detalhe: string | null }[];
+};
+
+/** Normaliza "lista simples" que pode vir como array de strings, de objetos ou nula. */
+function listaSimples(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x) => {
+      if (x == null) return "";
+      if (typeof x === "string") return x;
+      if (typeof x === "number" || typeof x === "boolean") return String(x);
+      // Objeto: usa a descrição mais provável; no pior caso serializa — o que
+      // não se quer é a tela mostrando "[object Object]".
+      const o = x as Record<string, unknown>;
+      const cand = o.detalhe ?? o.descricao ?? o.texto ?? o.mensagem ?? o.chave ?? o.item;
+      return typeof cand === "string" ? cand : JSON.stringify(x);
+    })
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
+export async function getUltimaVarreduraCatalogo(): Promise<VarreduraCatalogo | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("varreduras")
+    .select("id, criado_em, data_referencia, status, diagnostico_oab, anomalias")
+    .eq("fonte", "catalogo")
+    .order("criado_em", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+
+  const diag = (data.diagnostico_oab ?? {}) as Record<string, unknown>;
+  const anoms = Array.isArray(data.anomalias) ? (data.anomalias as unknown[]) : [];
+  return {
+    id: data.id as string,
+    criado_em: (data.criado_em as string | null) ?? null,
+    data_referencia: (data.data_referencia as string | null) ?? null,
+    status: (data.status as string | null) ?? null,
+    pendencias_impressao: listaSimples(diag.pendencias_impressao),
+    propagacao: listaSimples(diag.propagacao),
+    lacunas: listaSimples(diag.lacunas),
+    anomalias: anoms.map((a) => {
+      const o = (a ?? {}) as Record<string, unknown>;
+      return {
+        tipo: (o.tipo as string | null) ?? null,
+        detalhe: (o.detalhe as string | null) ?? null,
+      };
+    }),
+  };
+}
+
 /* Estudos de caso (estratégia) ------------------------------------------- */
 
 export type EstudoResumo = {
