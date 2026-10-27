@@ -6,6 +6,7 @@ import { PromoverProcessoForm } from "@/components/modules/PromoverProcessoForm"
 import { promoverOrfa } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 import type { AndamentoOrfao } from "@/lib/data";
+import { buscarJson } from "@/lib/api";
 
 type ProcLite = { id: string; label: string };
 type CliLite = { id: string; nome: string };
@@ -16,8 +17,8 @@ export function AndamentosOrfaosList({ orfaos }: { orfaos: AndamentoOrfao[] }) {
 
   useEffect(() => {
     let vivo = true;
-    fetch("/api/processos-lite").then((r) => r.json()).then((d) => vivo && setProcs(d.processos ?? [])).catch(() => {});
-    fetch("/api/clientes-lite").then((r) => r.json()).then((d) => vivo && setClis(d.clientes ?? [])).catch(() => {});
+    buscarJson<{ processos?: typeof procs }>("/api/processos-lite").then((d) => { if (vivo && d) setProcs(d.processos ?? []); });
+    buscarJson<{ clientes?: typeof clis }>("/api/clientes-lite").then((d) => { if (vivo && d) setClis(d.clientes ?? []); });
     return () => { vivo = false; };
   }, []);
 

@@ -23,6 +23,7 @@ import {
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { fmtDate, ddClass, humano, encurtarTitulo } from "@/lib/format";
 import type { Peca } from "@/lib/data";
+import { buscarJson } from "@/lib/api";
 
 type Socio = "Daniel" | "Rodolfo";
 const oUtroSocio = (s: Socio): Socio => (s === "Daniel" ? "Rodolfo" : "Daniel");
@@ -133,10 +134,10 @@ function useLites() {
   const [intims, setIntims] = useState<Lite[]>([]);
   useEffect(() => {
     let vivo = true;
-    fetch("/api/processos-lite").then((r) => r.json()).then((d) => vivo && setProcs(d.processos ?? [])).catch(() => {});
-    fetch("/api/clientes-lite").then((r) => r.json()).then((d) => vivo && setClis(d.clientes ?? [])).catch(() => {});
-    fetch("/api/prazos-lite").then((r) => r.json()).then((d) => vivo && setPrazos(d.prazos ?? [])).catch(() => {});
-    fetch("/api/intimacoes-lite").then((r) => r.json()).then((d) => vivo && setIntims(d.intimacoes ?? [])).catch(() => {});
+    buscarJson<{ processos?: typeof procs }>("/api/processos-lite").then((d) => { if (vivo && d) setProcs(d.processos ?? []); });
+    buscarJson<{ clientes?: typeof clis }>("/api/clientes-lite").then((d) => { if (vivo && d) setClis(d.clientes ?? []); });
+    buscarJson<{ prazos?: typeof prazos }>("/api/prazos-lite").then((d) => { if (vivo && d) setPrazos(d.prazos ?? []); });
+    buscarJson<{ intimacoes?: typeof intims }>("/api/intimacoes-lite").then((d) => { if (vivo && d) setIntims(d.intimacoes ?? []); });
     return () => { vivo = false; };
   }, []);
   return { procs, clis, prazos, intims };

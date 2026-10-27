@@ -10,6 +10,7 @@ import {
 import { ESTUDO_STATUS, ESTUDO_TIPO, OBJETIVO_STATUS, PRIORIDADES } from "@/lib/enums";
 import { fmtDate, humano } from "@/lib/format";
 import type { EstudoDetalhe as TEstudo } from "@/lib/data";
+import { buscarJson } from "@/lib/api";
 
 type ProcLite = { id: string; label: string };
 
@@ -30,14 +31,14 @@ export function EstudoDetalhe({ estudoId }: { estudoId: string }) {
 
   useEffect(() => {
     let vivo = true;
-    fetch(`/api/estudos/${estudoId}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => vivo && (d?.id ? setE(d) : setErro(true)))
-      .catch(() => vivo && setErro(true));
-    fetch("/api/processos-lite")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => vivo && setProcs(d.processos ?? []))
-      .catch(() => {});
+    buscarJson<TEstudo>(`/api/estudos/${estudoId}`).then((d) => {
+      if (!vivo) return;
+      if (d?.id) setE(d);
+      else setErro(true);
+    });
+    buscarJson<{ processos?: typeof procs }>("/api/processos-lite").then((d) => {
+      if (vivo && d) setProcs(d.processos ?? []);
+    });
     return () => { vivo = false; };
   }, [estudoId]);
 

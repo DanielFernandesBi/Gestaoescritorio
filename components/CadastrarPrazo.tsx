@@ -6,16 +6,16 @@ import { BuscaSelect } from "@/components/BuscaSelect";
 import { Icon } from "@/components/Icon";
 import { criarPrazo } from "@/app/actions";
 import { TIPO_CONTAGEM, RESPONSAVEIS } from "@/lib/enums";
+import { buscarJson } from "@/lib/api";
 
 /** Botão + modal para cadastrar um prazo (exige processo; nasce validado=false). */
 export function CadastrarPrazo() {
   const [procs, setProcs] = useState<{ id: string; label: string }[]>([]);
   useEffect(() => {
     let vivo = true;
-    fetch("/api/processos-lite")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => vivo && setProcs(d.processos ?? []))
-      .catch(() => {});
+    buscarJson<{ processos?: typeof procs }>("/api/processos-lite").then((d) => {
+      if (vivo && d) setProcs(d.processos ?? []);
+    });
     return () => { vivo = false; };
   }, []);
 

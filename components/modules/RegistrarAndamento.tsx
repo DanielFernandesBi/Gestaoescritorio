@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { criarAndamento } from "@/app/actions";
 import { ANDAMENTO_TIPO } from "@/lib/enums";
 import { humano } from "@/lib/format";
+import { buscarJson } from "@/lib/api";
 
 type ProcLite = { id: string; label: string };
 
@@ -15,7 +16,7 @@ export function RegistrarAndamento() {
   const [procs, setProcs] = useState<ProcLite[]>([]);
   useEffect(() => {
     let vivo = true;
-    fetch("/api/processos-lite").then((r) => r.json()).then((d) => vivo && setProcs(d.processos ?? [])).catch(() => {});
+    buscarJson<{ processos?: typeof procs }>("/api/processos-lite").then((d) => { if (vivo && d) setProcs(d.processos ?? []); });
     return () => { vivo = false; };
   }, []);
 

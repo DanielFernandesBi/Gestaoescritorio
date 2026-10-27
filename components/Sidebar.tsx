@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buscarJson } from "@/lib/api";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NAV, type Badges } from "@/lib/nav";
@@ -33,10 +34,12 @@ export function Sidebar({
     const puxar = async () => {
       if (document.visibilityState !== "visible") return;
       try {
-        const r = await fetch("/api/badges", { cache: "no-store" });
-        if (!r.ok) return;
-        const b = (await r.json()) as Badges;
-        if (vivo) setLive(b);
+        // Este poll é também a SENTINELA de sessão do app: roda em toda tela,
+        // a cada minuto, então uma sessão que cai com a janela aberta é
+        // percebida aqui e `buscarJson` leva ao login — mesmo numa tela que
+        // não busque mais nada.
+        const b = await buscarJson<Badges>("/api/badges", { cache: "no-store" });
+        if (b && vivo) setLive(b);
       } catch {
         /* offline/erro de rede: mantém o último valor, sem quebrar a UI */
       }

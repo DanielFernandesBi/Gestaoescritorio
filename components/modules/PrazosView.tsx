@@ -11,6 +11,7 @@ import { validarPrazo, baixarPrazo } from "@/app/actions";
 import { linkPara } from "@/lib/links";
 import { fmtDate, ddClass, dividirAto, categoriaAto } from "@/lib/format";
 import type { PrazoCard, PrazoOrfao } from "@/lib/data";
+import { buscarJson } from "@/lib/api";
 
 /* ── glifos (fora do set do Icon.tsx, no estilo da /duplicados) ──────────── */
 const Person = ({ c = "var(--muted-2)" }: { c?: string }) => (
@@ -266,8 +267,8 @@ export function PrazosView({ prazos, orfaos }: { prazos: PrazoCard[]; orfaos: Pr
 
   useEffect(() => {
     let vivo = true;
-    fetch("/api/processos-lite").then((r) => r.json()).then((d) => vivo && setProcs(d.processos ?? [])).catch(() => {});
-    fetch("/api/clientes-lite").then((r) => r.json()).then((d) => vivo && setClis(d.clientes ?? [])).catch(() => {});
+    buscarJson<{ processos?: typeof procs }>("/api/processos-lite").then((d) => { if (vivo && d) setProcs(d.processos ?? []); });
+    buscarJson<{ clientes?: typeof clis }>("/api/clientes-lite").then((d) => { if (vivo && d) setClis(d.clientes ?? []); });
     return () => { vivo = false; };
   }, []);
 

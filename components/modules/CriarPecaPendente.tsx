@@ -7,6 +7,7 @@ import { criarPecaDeOrigem, type Resultado } from "@/app/actions";
 import { PECA_TIPO, PRIORIDADES, RESPONSAVEIS } from "@/lib/enums";
 import { humano } from "@/lib/format";
 import { sugerirPeca, type MapaProvidencia } from "@/lib/pecas";
+import { buscarJson } from "@/lib/api";
 
 type TipoOrigem = "andamento" | "intimacao" | "tarefa";
 type Lite = { id: string; label: string };
@@ -62,8 +63,8 @@ export function CriarPecaPendente({
     setCarregando(true);
     try {
       const [pe, pl] = await Promise.all([
-        fetch(`/api/peca-por-origem?tipo=${tipoOrigem}&id=${origemId}`).then((r) => r.json()).catch(() => ({})),
-        fetch(`/api/prazos-lite`).then((r) => r.json()).catch(() => ({})),
+        buscarJson<{ peca?: typeof existente }>(`/api/peca-por-origem?tipo=${tipoOrigem}&id=${origemId}`),
+        buscarJson<{ prazos?: typeof prazos }>(`/api/prazos-lite`),
       ]);
       setExistente(pe?.peca ?? null);
       setPrazos(pl?.prazos ?? []);

@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { criarAudiencia } from "@/app/actions";
 import { AUDIENCIA_TIPO, AUDIENCIA_MODALIDADE, RESPONSAVEIS } from "@/lib/enums";
 import { humano } from "@/lib/format";
+import { buscarJson } from "@/lib/api";
 
 /** Botão + modal para cadastrar uma audiência (exige processo; nasce provisória,
  * validado=false — fixada na validação). */
@@ -14,10 +15,9 @@ export function CadastrarAudiencia() {
   const [procs, setProcs] = useState<{ id: string; label: string }[]>([]);
   useEffect(() => {
     let vivo = true;
-    fetch("/api/processos-lite")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => vivo && setProcs(d.processos ?? []))
-      .catch(() => {});
+    buscarJson<{ processos?: typeof procs }>("/api/processos-lite").then((d) => {
+      if (vivo && d) setProcs(d.processos ?? []);
+    });
     return () => { vivo = false; };
   }, []);
 

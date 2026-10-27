@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { buscarResposta } from "@/lib/api";
 
 // urlBase64 -> Uint8Array (formato exigido pelo pushManager.subscribe)
 function urlBase64ToUint8Array(base64String: string) {
@@ -21,8 +22,8 @@ export default function PushOptIn() {
   async function enviarTeste() {
     setTeste("enviando");
     try {
-      const res = await fetch("/api/push/test", { method: "POST" });
-      setTeste(res.ok ? "ok" : "erro");
+      const res = await buscarResposta("/api/push/test", { method: "POST" });
+      setTeste(res?.ok ? "ok" : "erro");
     } catch {
       setTeste("erro");
     }
@@ -55,7 +56,7 @@ export default function PushOptIn() {
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
 
-      const res = await fetch("/api/push/subscribe", {
+      const res = await buscarResposta("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,7 +64,7 @@ export default function PushOptIn() {
           dispositivo: navigator.userAgent.slice(0, 120),
         }),
       });
-      if (!res.ok) throw new Error("falha ao registrar assinatura");
+      if (!res?.ok) throw new Error("falha ao registrar assinatura");
       setStatus("subscribed");
     } catch (e) {
       setStatus("error");

@@ -42,9 +42,21 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/auth") ||
     // Cron do Vercel: chega sem sessão, autentica por Bearer na própria rota.
     path.startsWith("/api/cron");
+  // Rota de DADOS, consumida por `fetch` do navegador — não por navegação.
+  // Redirecionar um fetch para /login devolve HTML com status 200: o
+  // `r.json()` do cliente estoura, o `catch` engole e a tela fica com lista
+  // VAZIA, sem ninguém saber que a sessão caiu. Para estas o gate responde
+  // 401/403 em JSON, que o cliente sabe ler (ver `buscarJson` em lib/api.ts).
+  const isApiDados = path.startsWith("/api/") && !path.startsWith("/api/cron");
 
   // Sem usuário válido em rota protegida → manda para o login.
   if (!claims && !isPublic) {
+    if (isApiDados) {
+      return NextResponse.json(
+        { error: "sessao_expirada" },
+        { status: 401, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -53,6 +65,12 @@ export async function updateSession(request: NextRequest) {
   // Usuário autenticado mas fora da allowlist → derruba a sessão.
   if (claims && !isAllowedEmail(email)) {
     await supabase.auth.signOut();
+    if (isApiDados) {
+      return NextResponse.json(
+        { error: "nao_autorizado" },
+        { status: 403, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("erro", "nao_autorizado");

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { baixarAtoPeca, baixarProtocoloPeca, arquivarProtocoloPeca, marcarPendenteArquivamento, type ResultadoBaixa } from "@/app/actions";
 import { useBaixaCascata } from "@/components/modules/BaixaCascata";
 import { humano } from "@/lib/format";
+import { buscarJson } from "@/lib/api";
 
 type Ctx = {
   peca: { id: string; titulo: string; status: string; processo_id: string | null; segredo: boolean } | null;
@@ -52,7 +53,7 @@ export function BaixaAtoModal({ pecaId, titulo, label, className = "btn sm" }: {
     setAberto(true); setRes(null); setCarregando(true); setArquivo(null); setArqMsg(null);
     setFecharPrazo(true); setFecharTarefa(true); setFecharIntim(true); setExtras(new Set()); setData(hojeISO());
     try {
-      const c = await fetch(`/api/peca-baixa/${pecaId}`).then((r) => r.json()).catch(() => null);
+      const c = await buscarJson<typeof ctx>(`/api/peca-baixa/${pecaId}`);
       setCtx(c);
     } finally { setCarregando(false); }
   }

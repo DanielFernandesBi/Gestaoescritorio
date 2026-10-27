@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { humano } from "@/lib/format";
+import { buscarJson } from "@/lib/api";
 
 type Evento = {
   id: number;
@@ -44,10 +45,11 @@ export function HistoricoRegistro({ id }: { id: string }) {
 
   useEffect(() => {
     let vivo = true;
-    fetch(`/api/historico/${id}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => vivo && setEventos(d.eventos))
-      .catch(() => vivo && setErro(true));
+    buscarJson<{ eventos?: typeof eventos }>(`/api/historico/${id}`).then((d) => {
+      if (!vivo) return;
+      if (d?.eventos) setEventos(d.eventos);
+      else setErro(true);
+    });
     return () => { vivo = false; };
   }, [id]);
 

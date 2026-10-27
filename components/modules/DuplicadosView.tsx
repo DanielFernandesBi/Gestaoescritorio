@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { mesclarCliente, mesclarProcesso } from "@/app/actions";
 import { fmtDate, humano } from "@/lib/format";
 import type { Resultado } from "@/app/actions";
+import { buscarJson } from "@/lib/api";
 import type {
   ClienteDuplicadoCluster,
   ClienteSimilar,
@@ -503,8 +504,11 @@ export function DuplicadosView({
   // /api/processos-lite é buscada uma única vez e compartilhada por todos os cards.
   const carregarLista = useCallback(async (): Promise<ProcLite[]> => {
     if (listaRef.current) return listaRef.current;
-    const r = await fetch("/api/processos-lite").then((x) => x.json()).catch(() => ({ processos: [] }));
-    listaRef.current = (r.processos ?? []) as ProcLite[];
+    const r = await buscarJson<{ processos?: ProcLite[] }>("/api/processos-lite");
+    // Sem resposta utilizável NÃO se memoiza: guardar [] em `listaRef` deixaria
+    // a lista vazia para sempre, mesmo depois de a rede voltar.
+    if (!r) return [];
+    listaRef.current = r.processos ?? [];
     return listaRef.current;
   }, []);
 

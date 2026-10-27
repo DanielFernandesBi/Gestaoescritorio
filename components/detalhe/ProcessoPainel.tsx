@@ -22,6 +22,7 @@ import {
 import { humano, fmtDate } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import type { Processo, ProcessoFull, ProcAndMini, AtoCanonico, Anotacao } from "@/lib/data";
+import { buscarJson } from "@/lib/api";
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
 const Spark = ({ s = 13 }: { s?: number }) => (
@@ -274,7 +275,7 @@ export function ProcessoPainel({ p, lista, anotacoes }: { p: ProcessoFull; lista
 
   useEffect(() => {
     let vivo = true;
-    fetch("/api/clientes-lite").then((r) => r.json()).then((d) => vivo && setClis(d.clientes ?? [])).catch(() => {});
+    buscarJson<{ clientes?: typeof clis }>("/api/clientes-lite").then((d) => { if (vivo && d) setClis(d.clientes ?? []); });
     return () => { vivo = false; };
   }, []);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { buscarJson } from "@/lib/api";
 import Link from "next/link";
 import { Icon } from "./Icon";
 import { rotuloAlerta, toneAlerta, alvoAlerta, prazoAlerta } from "@/lib/alertas";
@@ -22,10 +23,8 @@ export function SinoAlertas() {
     const puxar = async () => {
       if (document.visibilityState !== "visible") return;
       try {
-        const r = await fetch("/api/alertas", { cache: "no-store" });
-        if (!r.ok) return;
-        const data = (await r.json()) as AlertaVw[];
-        if (!vivo) return;
+        const data = await buscarJson<AlertaVw[]>("/api/alertas", { cache: "no-store" });
+        if (!data || !vivo) return;
         setAlertas(data);
         const criticosNovos = data.filter((a) => a.prioridade <= 1 && !vistos.current.has(chave(a)));
         data.forEach((a) => vistos.current.add(chave(a)));

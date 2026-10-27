@@ -16,6 +16,7 @@ import { fmtDate, fmtTime, humano, dividirAto } from "@/lib/format";
 import { linkPara } from "@/lib/links";
 import { lidaPorMim, seloCiencia } from "@/lib/ciencia";
 import type { Intimacao, IntimacaoFull, Anotacao } from "@/lib/data";
+import { buscarJson } from "@/lib/api";
 
 /* ── glifos ──────────────────────────────────────────────────────────────── */
 const Spark = ({ s = 13 }: { s?: number }) => (
@@ -275,8 +276,8 @@ export function IntimacaoPainel({ i, lista, mapa, anotacoes, meuId }: { i: Intim
 
   useEffect(() => {
     let vivo = true;
-    fetch("/api/processos-lite").then((r) => r.json()).then((d) => vivo && setProcs(d.processos ?? [])).catch(() => {});
-    fetch("/api/clientes-lite").then((r) => r.json()).then((d) => vivo && setClis(d.clientes ?? [])).catch(() => {});
+    buscarJson<{ processos?: typeof procs }>("/api/processos-lite").then((d) => { if (vivo && d) setProcs(d.processos ?? []); });
+    buscarJson<{ clientes?: typeof clis }>("/api/clientes-lite").then((d) => { if (vivo && d) setClis(d.clientes ?? []); });
     return () => { vivo = false; };
   }, []);
 

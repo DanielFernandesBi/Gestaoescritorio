@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { buscarJson, buscarResposta } from "@/lib/api";
 
 // As 5 categorias do push (Sug. 81 fase 2) e seus rótulos. A escolha é POR
 // APARELHO: grava em push_subscriptions.categorias da assinatura deste aparelho.
@@ -38,9 +39,10 @@ export default function PushCategorias() {
         }
         const ep = sub.endpoint;
         setEndpoint(ep);
-        const res = await fetch(`/api/push/categorias?endpoint=${encodeURIComponent(ep)}`);
-        if (!res.ok) throw new Error("falha ao ler categorias");
-        const data = (await res.json()) as { categorias: string[] };
+        const data = await buscarJson<{ categorias?: string[] }>(
+          `/api/push/categorias?endpoint=${encodeURIComponent(ep)}`,
+        );
+        if (!data) throw new Error("falha ao ler categorias");
         if (!vivo) return;
         setMarcadas(new Set(data.categorias ?? []));
         setEstado("pronto");
@@ -62,12 +64,12 @@ export default function PushCategorias() {
     setSalvo(false);
     setSalvando(true);
     try {
-      const res = await fetch("/api/push/categorias", {
+      const res = await buscarResposta("/api/push/categorias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint, categorias: [...nova] }),
       });
-      if (!res.ok) throw new Error("falha ao salvar");
+      if (!res?.ok) throw new Error("falha ao salvar");
       setSalvo(true);
     } catch {
       setEstado("erro");
